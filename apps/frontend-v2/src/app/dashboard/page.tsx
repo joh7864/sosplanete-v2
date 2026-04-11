@@ -406,7 +406,7 @@ export default function DashboardSummaryPage() {
                               <div className="p-3 border-b border-slate-50 bg-slate-50/50">
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réassigner le gestionnaire</span>
                               </div>
-                              <div className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
+                              <div className="max-h-[180px] overflow-y-auto p-1 custom-scrollbar">
                                 {amUsers.map((user: any) => (
                                   <button
                                     key={user.id}

@@ -86,7 +86,7 @@ const SidebarDashboardDropdown: React.FC<{
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-slate-800 rounded-xl mt-1 flex flex-col py-1"
+            className="overflow-hidden bg-slate-800 rounded-xl mt-1 flex flex-col py-1 max-h-60 overflow-y-auto custom-scrollbar"
           >
              {instances.map(inst => (
                 <button

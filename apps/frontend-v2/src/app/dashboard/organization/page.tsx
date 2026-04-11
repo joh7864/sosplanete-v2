@@ -256,8 +256,8 @@ function OrganizationContent() {
                       >
                           <Building2 size={24} />
                       </motion.button>
-                      <div id="in-page-switcher" className="hidden absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-50 z-[90] p-2">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest p-2 mb-1">Changer d'académie</p>
+                      <div id="in-page-switcher" className="hidden absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-50 z-[90] p-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest p-2 mb-1 sticky top-0 bg-white/95 backdrop-blur-xl z-10">Changer d'académie</p>
                            {managedInstances.map(inst => (
                                <button
                                    key={inst.id}
