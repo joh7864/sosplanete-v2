@@ -466,8 +466,8 @@ function OrganizationContent() {
             setShowTeamModal={setShowTeamModal}
             isSelectionMode={isSelectionMode}
             isSelected={selectedEntities.teams.includes(team.id)}
-            onSelect={(id) => toggleSelection('teams', id)}
-            onEditGroup={(g) => {
+            onSelect={(id: number) => toggleSelection('teams', id)}
+            onEditGroup={(g: any) => {
               setSelectedGroup(g);
               setShowGroupModal(true);
               setIsNewGroup(false);
@@ -477,12 +477,12 @@ function OrganizationContent() {
               setShowGroupModal(true);
               setIsNewGroup(true);
             }}
-            onEditPlayer={(p) => {
+            onEditPlayer={(p: any) => {
               setSelectedPlayer(p);
               setShowPlayerModal(true);
               setIsNewPlayer(false);
             }}
-            onAddPlayer={(gId) => {
+            onAddPlayer={(gId: number) => {
               setSelectedGroup({ id: gId } as Group);
               setShowPlayerModal(true);
               setIsNewPlayer(true);
