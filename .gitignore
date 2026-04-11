@@ -50,3 +50,4 @@ apps/backend-v1/dev/src/admin/static/animation/*
 # Mais on garde les dossiers
 !apps/backend-v1/dev/src/admin/static/image/.gitkeep
 !apps/backend-v1/dev/src/admin/static/animation/.gitkeep
+uploads/
