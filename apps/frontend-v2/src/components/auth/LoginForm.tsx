@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { GlassCard } from '../ui/GlassCard';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export const LoginForm: React.FC = () => {
   const router = useRouter();
@@ -36,26 +37,26 @@ export const LoginForm: React.FC = () => {
       const data = await response.json();
       
       // Stockage local du token et des infos de base
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('user_role', data.user.role || 'AM');
-      localStorage.setItem('user_name', data.user.name || '');
+      setAuthData('access_token', data.access_token, rememberMe);
+      setAuthData('user_role', data.user.role || 'AM', rememberMe);
+      setAuthData('user_name', data.user.name || '', rememberMe);
       
       const managedInstances = data.user.managedInstances || [];
-      localStorage.setItem('managed_instances', JSON.stringify(managedInstances));
+      setAuthData('managed_instances', JSON.stringify(managedInstances), rememberMe);
       
       // Animation et redirection basée sur le rôle et le nombre d'instances
       setTimeout(() => {
         if (data.user.role === 'AS') {
-          localStorage.removeItem('active_instance_id');
+          removeAuthData('active_instance_id');
           router.push('/dashboard/users');
         } else if (managedInstances.length > 1) {
           // Cas Isabelle : charger une nouvelle session fraîche (vue globale par défaut)
-          localStorage.removeItem('active_instance_id');
+          removeAuthData('active_instance_id');
           router.push('/dashboard');
         } else {
           // Instance unique : sélection automatique
           if (managedInstances.length === 1) {
-            localStorage.setItem('active_instance_id', managedInstances[0].id.toString());
+            setAuthData('active_instance_id', managedInstances[0].id.toString(), rememberMe);
             router.push('/dashboard/organization');
           } else {
             router.push('/dashboard');

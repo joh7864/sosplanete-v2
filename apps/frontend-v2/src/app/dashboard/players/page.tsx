@@ -7,6 +7,7 @@ import { Users, Plus, Upload, Search, Trash2, Loader2, Download, AlertCircle, Ch
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function PlayersPage() {
   return (
@@ -35,7 +36,7 @@ function PlayersContent() {
     if (urlInstanceId) {
       setInstanceId(parseInt(urlInstanceId));
     } else {
-      const savedId = localStorage.getItem('active_instance_id');
+      const savedId = getAuthData('active_instance_id');
       if (savedId) setInstanceId(parseInt(savedId));
     }
   }, [urlInstanceId]);
@@ -48,7 +49,7 @@ function PlayersContent() {
     if (!instanceId) return;
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         const data = await resp.json();
@@ -69,7 +70,7 @@ function PlayersContent() {
   const fetchGroups = async (teamId: number) => {
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups?teamId=${teamId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         const data = await resp.json();
@@ -94,7 +95,7 @@ function PlayersContent() {
     setLoading(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/children?groupId=${groupId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) setPlayers(await resp.json());
     } catch (e) {
@@ -111,7 +112,7 @@ function PlayersContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({ pseudo: newPseudo, groupId: selectedGroupId }),
       });
@@ -129,7 +130,7 @@ function PlayersContent() {
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/children/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok && selectedGroupId) fetchPlayers(selectedGroupId);
     } catch (e) {
@@ -144,7 +145,7 @@ function PlayersContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({ fileContent: csvContent }),
       });

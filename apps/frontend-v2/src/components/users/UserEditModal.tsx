@@ -21,6 +21,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAssetUrl } from '@/utils/assets';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface User {
   id: number;
@@ -85,7 +86,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onU
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${user.id}/avatar`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${getAuthData('access_token')}`
         },
         body: formData,
       });
@@ -113,7 +114,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onU
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${getAuthData('access_token')}`
         },
         body: JSON.stringify(payload),
       });

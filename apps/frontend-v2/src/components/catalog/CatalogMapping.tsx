@@ -49,6 +49,7 @@ import { CatalogCsvModal } from './CatalogCsvModal';
 import { LocalActionEditModal } from './LocalActionEditModal';
 
 import { ActionRef, LocalAction } from '@/types';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface CatalogMappingProps {
   instanceId: number;
@@ -87,7 +88,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       const [refRes, localRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -108,7 +109,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
 
   const handleMapActions = async (refIds: number[]) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/bulk-import`, {
         method: 'POST',
         headers: { 
@@ -128,7 +129,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
 
   const handleUnmapActions = async (localIds: number[]) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       await Promise.all(localIds.map(id => 
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/${id}`, {
           method: 'DELETE',

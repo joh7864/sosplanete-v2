@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/Input';
 import { getAssetUrl } from '@/utils/assets';
 
 import { ActionRef, LocalAction } from '@/types';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface LocalActionEditModalProps {
   action: LocalAction | null;
@@ -58,7 +59,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/${action.id}`, {
         method: 'PATCH',
         headers: { 

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Papa from 'papaparse';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface CatalogCsvModalProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
         }
 
         try {
-          const token = localStorage.getItem('access_token');
+          const token = getAuthData('access_token');
           const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
              headers: { Authorization: `Bearer ${token}` }
           });
@@ -149,7 +150,7 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
   const handleConfirmImport = async () => {
     setImporting(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       // Only import valid rows
       const validActions = previewData.filter(d => d.existsInRef);
       

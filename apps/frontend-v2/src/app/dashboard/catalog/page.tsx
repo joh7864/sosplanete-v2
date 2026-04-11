@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { GalleryGroup } from '@/components/catalog/GalleryGroup';
 import { TopBar } from '@/components/layout/TopBar';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface ActionRef {
   id: number;
@@ -43,7 +44,7 @@ export default function CatalogPage() {
       setLoading(true);
       try {
         const query = searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : '';
-        const token = localStorage.getItem('access_token');
+        const token = getAuthData('access_token');
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref/search${query}`, {
           headers: {
             'Authorization': `Bearer ${token}`

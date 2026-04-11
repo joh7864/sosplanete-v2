@@ -6,6 +6,7 @@ import { X, Save, Trash2, Globe, Link as LinkIcon, Users, Loader2, AlertTriangle
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface InstanceEditModalProps {
   instance?: any;
@@ -33,7 +34,7 @@ export const InstanceEditModal: React.FC<InstanceEditModalProps> = ({ instance, 
     setLoadingUsers(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         const allUsers = await resp.json();
@@ -70,7 +71,7 @@ export const InstanceEditModal: React.FC<InstanceEditModalProps> = ({ instance, 
         method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify(payload),
       });

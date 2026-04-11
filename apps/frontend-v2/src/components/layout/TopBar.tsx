@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Users } from 'lucide-react';
 import { getAssetUrl } from '@/utils/assets';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface TopBarProps {
   title: React.ReactNode;
@@ -19,7 +20,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       if (!token) return;
       
       try {
@@ -39,8 +40,8 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_role');
+    removeAuthData('access_token');
+    removeAuthData('user_role');
     router.push('/');
   };
 

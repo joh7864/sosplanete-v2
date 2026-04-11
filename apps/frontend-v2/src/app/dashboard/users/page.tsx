@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { UserEditModal } from '@/components/users/UserEditModal';
 import { TopBar } from '@/components/layout/TopBar';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -39,7 +40,7 @@ export default function UsersManagementPage() {
     setLoading(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) setUsers(await resp.json());
     } catch (e) {
@@ -57,7 +58,7 @@ export default function UsersManagementPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({ email, name, password, role }),
       });
@@ -79,7 +80,7 @@ export default function UsersManagementPage() {
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) fetchUsers();
     } catch (e) {

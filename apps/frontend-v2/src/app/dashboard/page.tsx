@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { InstanceEditModal } from '@/components/instances/InstanceEditModal';
 import { InstanceDeleteConfirm } from '@/components/instances/InstanceDeleteConfirm';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface Instance {
   id: number;
@@ -52,7 +53,7 @@ export default function DashboardSummaryPage() {
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
 
   useEffect(() => {
-    const role = localStorage.getItem('user_role');
+    const role = getAuthData('user_role');
     setUserRole(role);
     fetchInstances();
     if (role === 'AS') {
@@ -67,7 +68,7 @@ export default function DashboardSummaryPage() {
   const fetchAMUsers = async () => {
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         const allUsers = await resp.json();
@@ -82,14 +83,14 @@ export default function DashboardSummaryPage() {
     setLoading(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         const data = await resp.json();
         setInstances(data);
         
         // Update local storage so the sidebar works with up-to-date instances
-        localStorage.setItem('managed_instances', JSON.stringify(data));
+        setAuthData('managed_instances', JSON.stringify(data));
         window.dispatchEvent(new Event('storage'));
       }
     } catch (e) {
@@ -106,7 +107,7 @@ export default function DashboardSummaryPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({ isOpen: !instance.isOpen }),
       });
@@ -123,7 +124,7 @@ export default function DashboardSummaryPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({ adminId: newAdminId }),
       });
@@ -306,7 +307,7 @@ export default function DashboardSummaryPage() {
                            className="hover:text-emerald-600 transition-colors inline-block max-w-full"
                            onClick={(e) => {
                              e.stopPropagation();
-                             localStorage.setItem('active_instance_id', instance.id.toString());
+                             setAuthData('active_instance_id', instance.id.toString());
                              window.dispatchEvent(new Event('storage'));
                            }}
                         >
@@ -443,7 +444,7 @@ export default function DashboardSummaryPage() {
                               className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all shadow-sm active:scale-95 border border-emerald-100 block"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                localStorage.setItem('active_instance_id', instance.id.toString());
+                                setAuthData('active_instance_id', instance.id.toString());
                                 window.dispatchEvent(new Event('storage'));
                               }}
                            >
@@ -465,7 +466,7 @@ export default function DashboardSummaryPage() {
                           href={`/dashboard/organization?instanceId=${instance.id}`}
                           className="hover:text-emerald-600 transition-colors"
                           onClick={() => {
-                            localStorage.setItem('active_instance_id', instance.id.toString());
+                            setAuthData('active_instance_id', instance.id.toString());
                             window.dispatchEvent(new Event('storage'));
                           }}
                         >
@@ -508,7 +509,7 @@ export default function DashboardSummaryPage() {
                             href={`/dashboard/organization?instanceId=${instance.id}`}
                             className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all border border-emerald-100 ml-2"
                             onClick={() => {
-                              localStorage.setItem('active_instance_id', instance.id.toString());
+                              setAuthData('active_instance_id', instance.id.toString());
                               window.dispatchEvent(new Event('storage'));
                             }}
                         >

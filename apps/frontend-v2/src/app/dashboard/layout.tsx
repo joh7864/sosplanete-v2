@@ -2,6 +2,7 @@
 
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useState } from "react";
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function DashboardRootLayout({
   children,
@@ -11,7 +12,7 @@ export default function DashboardRootLayout({
   // Initialisation du rôle depuis le localStorage pour éviter les flashs d'UI
   const [role] = useState<'AS' | 'AM'>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('user_role') as 'AS' | 'AM') || 'AM';
+      return (getAuthData('user_role') as 'AS' | 'AM') || 'AM';
     }
     return 'AM';
   });

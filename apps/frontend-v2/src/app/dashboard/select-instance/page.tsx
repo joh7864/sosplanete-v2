@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function SelectInstancePage() {
   const router = useRouter();
@@ -22,8 +23,8 @@ export default function SelectInstancePage() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const rawInstances = localStorage.getItem('managed_instances');
-    const name = localStorage.getItem('user_name');
+    const rawInstances = getAuthData('managed_instances');
+    const name = getAuthData('user_name');
     
     if (rawInstances) {
       setInstances(JSON.parse(rawInstances));
@@ -36,12 +37,12 @@ export default function SelectInstancePage() {
   }, [router]);
 
   const handleSelect = (instanceId: number) => {
-    localStorage.setItem('active_instance_id', instanceId.toString());
+    setAuthData('active_instance_id', instanceId.toString());
     router.push('/dashboard/organization');
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    clearAuthData();
     router.push('/');
   };
 

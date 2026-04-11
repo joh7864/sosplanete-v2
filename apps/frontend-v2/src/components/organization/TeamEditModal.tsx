@@ -19,6 +19,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface TeamEditModalProps {
   team?: any | null;
@@ -71,7 +72,7 @@ export const TeamEditModal: React.FC<TeamEditModalProps> = ({
         method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({
           name,
@@ -102,7 +103,7 @@ export const TeamEditModal: React.FC<TeamEditModalProps> = ({
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/${team.id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
       });
 

@@ -36,6 +36,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { getAssetUrl } from '@/utils/assets';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function OrganizationPage() {
   return (
@@ -65,12 +66,12 @@ function OrganizationContent() {
 
   useEffect(() => {
     // Check managed instances
-    const savedInstances = localStorage.getItem('managed_instances');
+    const savedInstances = getAuthData('managed_instances');
     if (savedInstances) setManagedInstances(JSON.parse(savedInstances));
 
     // Si pas d'ID dans l'URL, on cherche dans le localStorage
     if (!instanceId) {
-      const savedActiveId = localStorage.getItem('active_instance_id');
+      const savedActiveId = getAuthData('active_instance_id');
       if (savedActiveId) {
         setInstanceId(parseInt(savedActiveId));
       }
@@ -91,7 +92,7 @@ function OrganizationContent() {
     setLoading(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
         setTeams(await resp.json());
@@ -143,7 +144,7 @@ function OrganizationContent() {
         // Individual/Contextual bulk delete
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/${type === 'teams' ? 'bulk-delete' : `${type}/bulk-delete`}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
           body: JSON.stringify({ ids })
         });
       } else {
@@ -151,21 +152,21 @@ function OrganizationContent() {
         if (selectedEntities.teams.length > 0) {
           await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/bulk-delete`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
             body: JSON.stringify({ ids: selectedEntities.teams })
           });
         }
         if (selectedEntities.groups.length > 0) {
           await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/groups/bulk-delete`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
             body: JSON.stringify({ ids: selectedEntities.groups })
           });
         }
         if (selectedEntities.children.length > 0) {
           await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/children/bulk-delete`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
             body: JSON.stringify({ ids: selectedEntities.children })
           });
         }
@@ -189,7 +190,7 @@ function OrganizationContent() {
 
       await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
         body: JSON.stringify(body)
       });
       await fetchTeams();
@@ -206,7 +207,7 @@ function OrganizationContent() {
 
       await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
         body: JSON.stringify(body)
       });
       await fetchTeams();
@@ -261,7 +262,7 @@ function OrganizationContent() {
                                <button
                                    key={inst.id}
                                    onClick={() => {
-                                       localStorage.setItem('active_instance_id', inst.id.toString());
+                                       setAuthData('active_instance_id', inst.id.toString());
                                        setInstanceId(inst.id);
                                        window.dispatchEvent(new Event('storage'));
                                        document.getElementById('in-page-switcher')?.classList.add('hidden');
@@ -321,7 +322,7 @@ function OrganizationContent() {
                            whileHover={{ scale: 1.02 }}
                            whileTap={{ scale: 0.98 }}
                            onClick={() => {
-                               localStorage.setItem('active_instance_id', inst.id.toString());
+                               setAuthData('active_instance_id', inst.id.toString());
                                setInstanceId(inst.id);
                                window.dispatchEvent(new Event('storage'));
                            }}

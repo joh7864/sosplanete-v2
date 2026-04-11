@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Papa from 'papaparse';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface ReferenceCsvModalProps {
   isOpen: boolean;
@@ -134,7 +135,7 @@ export const ReferenceCsvModal: React.FC<ReferenceCsvModalProps> = ({ isOpen, on
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref/import`, {
         method: 'POST',
         headers: {

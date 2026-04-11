@@ -6,6 +6,7 @@ import { User, Mail, Lock, Camera, Save, Loader2, CheckCircle, Eye, EyeOff } fro
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
       });
       if (response.ok) {
@@ -65,7 +66,7 @@ export default function ProfilePage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify(payload),
       });
@@ -74,7 +75,7 @@ export default function ProfilePage() {
         setSuccess(true);
         setNewPassword('');
         // Sync local storage name if changed
-        localStorage.setItem('user_name', name);
+        setAuthData('user_name', name);
         window.dispatchEvent(new Event('storage'));
         setTimeout(() => setSuccess(false), 3000);
       }
@@ -101,7 +102,7 @@ export default function ProfilePage() {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/avatar`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${getAuthData('access_token')}`
         },
         body: formData,
       });
@@ -110,7 +111,7 @@ export default function ProfilePage() {
         const data = await resp.json();
         setUser({ ...user, avatar: data.url });
         // Synchroniser le localStorage pour la sidebar
-        localStorage.setItem('userAvatar', data.url);
+        setAuthData('userAvatar', data.url);
         window.dispatchEvent(new Event('storage'));
       }
     } catch (e) {

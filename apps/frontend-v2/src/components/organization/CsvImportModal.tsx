@@ -14,6 +14,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import Papa from 'papaparse';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface CsvImportModalProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+            Authorization: `Bearer ${getAuthData('access_token')}`,
           },
           body: JSON.stringify({ csvContent }),
         });

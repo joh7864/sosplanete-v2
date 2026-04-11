@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { X, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface InstanceDeleteConfirmProps {
   instance: any;
@@ -23,7 +24,7 @@ export const InstanceDeleteConfirm: React.FC<InstanceDeleteConfirmProps> = ({ in
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instance.id}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${getAuthData('access_token')}`,
         },
       });
 

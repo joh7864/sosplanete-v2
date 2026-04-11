@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { getAssetUrl } from '@/utils/assets';
+import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -116,7 +117,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
 
   const [userName, setUserName] = React.useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('user_name') || '';
+      return getAuthData('user_name') || '';
     }
     return '';
   });
@@ -130,7 +131,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    clearAuthData();
     window.location.href = '/';
   };
 
@@ -140,7 +141,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
   React.useEffect(() => {
     setMounted(true);
     const fetchProfile = async () => {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       if (!token) return;
       
       try {
@@ -152,8 +153,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           setUserName(data.name || data.email || 'Utilisateur');
           setUserRole(data.role);
           setUserAvatar(data.avatar || '');
-          localStorage.setItem('user_name', data.name || '');
-          localStorage.setItem('user_role', data.role);
+          setAuthData('user_name', data.name || '');
+          setAuthData('user_role', data.role);
         }
       } catch (e) {
         console.error('Failed to fetch profile', e);
@@ -162,16 +163,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
     fetchProfile();
 
     // Check instances from local storage
-    const savedInstances = localStorage.getItem('managed_instances');
-    const savedActiveId = localStorage.getItem('active_instance_id');
+    const savedInstances = getAuthData('managed_instances');
+    const savedActiveId = getAuthData('active_instance_id');
     if (savedInstances) setManagedInstances(JSON.parse(savedInstances));
     if (savedActiveId) setActiveInstanceId(savedActiveId);
 
     const handleStorage = () => {
-      const savedName = localStorage.getItem('user_name');
-      const savedAvatar = localStorage.getItem('userAvatar');
-      const latestInstances = localStorage.getItem('managed_instances');
-      const latestActiveId = localStorage.getItem('active_instance_id');
+      const savedName = getAuthData('user_name');
+      const savedAvatar = getAuthData('userAvatar');
+      const latestInstances = getAuthData('managed_instances');
+      const latestActiveId = getAuthData('active_instance_id');
       
       if (savedName) setUserName(savedName);
       if (savedAvatar) setUserAvatar(savedAvatar);
@@ -218,7 +219,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
               instances={managedInstances}
               activeId={activeInstanceId}
               onSwitch={(id) => {
-                 localStorage.setItem('active_instance_id', id);
+                 setAuthData('active_instance_id', id);
                  setActiveInstanceId(id);
                  window.dispatchEvent(new Event('storage'));
                  router.push('/dashboard/organization');
