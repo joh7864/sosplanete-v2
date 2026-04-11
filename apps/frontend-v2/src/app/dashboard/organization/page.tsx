@@ -551,7 +551,7 @@ function OrganizationContent() {
          isNew={isNewGroup}
          initialData={selectedGroup ? { name: selectedGroup.name, color: selectedGroup.color || '' } : undefined}
          onSave={handleSaveGroup}
-         onDelete={!isNewGroup ? () => {
+         onDelete={!isNewGroup ? async () => {
            setConfirmData({
              title: "Supprimer cette classe",
              description: `Êtes-vous sûr de vouloir supprimer la classe "${selectedGroup?.name}" ? Tous les joueurs associés seront également supprimés.`,
@@ -566,7 +566,7 @@ function OrganizationContent() {
          isNew={isNewPlayer}
          initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '' } : undefined}
          onSave={handleSavePlayer}
-         onDelete={!isNewPlayer ? () => {
+         onDelete={!isNewPlayer ? async () => {
            setConfirmData({
              title: "Supprimer l'équipier",
              description: `Supprimer définitivement l'accès pour @${selectedPlayer?.pseudo} ?`,
