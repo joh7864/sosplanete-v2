@@ -62,7 +62,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onU
     return (now - lastSeen) < 5 * 60 * 1000; // < 5 mins
   };
 
-  const formatDate = (date: string) => {
+  const formatDate = (date: string | undefined) => {
     if (!date) return 'Jamais';
     return new Date(date).toLocaleString('fr-FR', {
       day: '2-digit', month: '2-digit', year: 'numeric',

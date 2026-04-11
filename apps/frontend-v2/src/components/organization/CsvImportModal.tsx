@@ -179,9 +179,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                               <tbody>
                                 {preview.map((row, i) => (
                                   <tr key={i} className="border-b border-slate-100/50 last:border-none hover:bg-white/50 transition-colors">
-                                    <td className="px-3 py-1.5 font-bold text-slate-700">{normalizeKey(row, ['Equipe', 'equipe']) || '-'}</td>
-                                    <td className="px-3 py-1.5 text-slate-600">{normalizeKey(row, ['Group', 'group', 'groupe']) || '-'}</td>
-                                    <td className="px-3 py-1.5 text-slate-600">{normalizeKey(row, ['Pseudo', 'pseudo']) || '-'}</td>
+                                    <td className="px-3 py-1.5 font-bold text-slate-700">{(normalizeKey(row, ['Equipe', 'equipe']) as string) || '-'}</td>
+                                    <td className="px-3 py-1.5 text-slate-600">{(normalizeKey(row, ['Group', 'group', 'groupe']) as string) || '-'}</td>
+                                    <td className="px-3 py-1.5 text-slate-600">{(normalizeKey(row, ['Pseudo', 'pseudo']) as string) || '-'}</td>
                                     <td className="px-3 py-1.5 text-slate-400 font-mono italic">******</td>
                                     <td className="px-3 py-1.5">{normalizeKey(row, ['logo equipe']) ? '🖼️' : '❌'}</td>
                                   </tr>
@@ -198,7 +198,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
 
                           <div className="flex gap-4">
                             <Button variant="outline" className="flex-1 h-12 rounded-xl text-xs" onClick={() => setStep('upload')}>Annuler</Button>
-                            <Button variant="default" className="flex-[2] h-12 rounded-xl bg-emerald-600 text-white font-black uppercase tracking-widest text-xs" onClick={handleUpload} disabled={loading} isLoading={loading}>
+                            <Button variant="primary" className="flex-[2] h-12 rounded-xl bg-emerald-600 text-white font-black uppercase tracking-widest text-xs" onClick={handleUpload} disabled={loading} isLoading={loading}>
                               Confirmer l'importation
                             </Button>
                           </div>

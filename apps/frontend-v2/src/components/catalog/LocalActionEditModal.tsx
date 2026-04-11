@@ -19,24 +19,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  impactLabel: string;
-  weightedStars: number;
-}
-
-interface LocalAction {
-  id: number;
-  label: string;
-  category: string;
-  image?: string;
-  description?: string;
-  actionRefId: number;
-  actionRef: ActionRef;
-}
+import { ActionRef, LocalAction } from '@/types';
 
 interface LocalActionEditModalProps {
   action: LocalAction | null;

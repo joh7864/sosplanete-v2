@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
+import { Team, Group, Child, ActionDone } from '@/types';
 import { TeamEditModal } from '@/components/organization/TeamEditModal';
 import { CsvImportModal } from '@/components/organization/CsvImportModal';
 import { EditGroupModal } from '@/components/organization/EditGroupModal';
@@ -34,38 +35,6 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
-
-// --- Types ---
-interface ActionDone {
-  id: number;
-  savedCo2: number;
-  savedWater: number;
-  savedWaste: number;
-}
-
-interface Child {
-  id: number;
-  pseudo: string;
-  actionsDone: ActionDone[];
-}
-
-interface Group {
-  id: number;
-  name: string;
-  children: Child[];
-  color?: string | null;
-  _count: {
-    children: number;
-  };
-}
-
-interface Team {
-  id: number;
-  name: string;
-  color: string | null;
-  icon: string | null;
-  groups: Group[];
-}
 
 export default function OrganizationPage() {
   return (
@@ -241,8 +210,8 @@ function OrganizationContent() {
 
   const calculateGroupVitality = (group: Group) => {
     let co2 = 0, water = 0, waste = 0;
-    group.children?.forEach(child => {
-      child.actionsDone?.forEach(action => {
+    group.children?.forEach((child: Child) => {
+      child.actionsDone?.forEach((action: ActionDone) => {
         co2 += action.savedCo2;
         water += action.savedWater;
         waste += action.savedWaste;
@@ -368,19 +337,19 @@ function OrganizationContent() {
           <>
             {/* Global Stats Bar Integrated Actions */}
             {(() => {
-              const totalGroups = teams.reduce((acc, t) => acc + t.groups.length, 0);
-          const totalPlayers = teams.reduce((acc, t) => acc + t.groups.reduce((accG, g) => accG + (g.children?.length || 0), 0), 0);
-          const totalActions = teams.reduce((acc, t) => acc + t.groups.reduce((accG, g) => 
-            accG + (g.children?.reduce((accC, c) => accC + (c.actionsDone?.length || 0), 0) || 0)
-          , 0), 0);
-          
-          let totalCo2 = 0, totalWater = 0, totalWaste = 0;
-          teams.forEach(t => t.groups.forEach(g => {
-            const vit = calculateGroupVitality(g);
-            totalCo2 += vit.co2;
-            totalWater += vit.water;
-            totalWaste += vit.waste;
-          }));
+              const totalGroups = teams.reduce((acc: number, t: any) => acc + (t.groups?.length || 0), 0);
+              const totalPlayers = teams.reduce((acc: number, t: any) => acc + (t.groups?.reduce((accG: number, g: any) => accG + (g.children?.length || 0), 0) || 0), 0);
+              const totalActions = teams.reduce((acc: number, t: any) => acc + (t.groups?.reduce((accG: number, g: any) => 
+                accG + (g.children?.reduce((accC: number, c: any) => accC + (c.actionsDone?.length || 0), 0) || 0)
+              , 0) || 0), 0);
+              
+              let totalCo2 = 0, totalWater = 0, totalWaste = 0;
+              teams.forEach((t: any) => t.groups?.forEach((g: any) => {
+                const vit = calculateGroupVitality(g);
+                totalCo2 += vit.co2;
+                totalWater += vit.water;
+                totalWaste += vit.waste;
+              }));
 
           return (
             <GlassCard className="mb-2 border-none shadow-xl overflow-hidden py-4 px-8 bg-white/80">
@@ -484,7 +453,7 @@ function OrganizationContent() {
               setIsNewPlayer(false);
             }}
             onAddPlayer={(gId: number) => {
-              setSelectedGroup({ id: gId } as Group);
+              setSelectedGroup({ id: gId } as any);
               setShowPlayerModal(true);
               setIsNewPlayer(true);
             }}

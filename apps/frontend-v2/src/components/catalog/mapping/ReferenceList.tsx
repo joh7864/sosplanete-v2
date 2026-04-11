@@ -13,18 +13,7 @@ import {
   Star
 } from 'lucide-react';
 
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  impactLabel: string;
-  weightedStars: number;
-  image?: string;
-  defaultCo2: number;
-  defaultWater: number;
-  defaultWaste: number;
-}
+import { ActionRef, LocalAction } from '@/types';
 
 interface ReferenceListProps {
   actions: ActionRef[];
@@ -57,9 +46,9 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
       const matchCat = !filterCategory || a.category === filterCategory;
       const matchStars = a.weightedStars >= minStars;
       
-      const matchCo2 = !impactFilters.co2 || a.defaultCo2 > 0;
-      const matchWater = !impactFilters.water || a.defaultWater > 0;
-      const matchWaste = !impactFilters.waste || a.defaultWaste > 0;
+      const matchCo2 = !impactFilters.co2 || (a.defaultCo2 ?? 0) > 0;
+      const matchWater = !impactFilters.water || (a.defaultWater ?? 0) > 0;
+      const matchWaste = !impactFilters.waste || (a.defaultWaste ?? 0) > 0;
 
       const isNotMapped = !mappedIds.includes(a.id);
       return matchSearch && matchCat && matchStars && matchCo2 && matchWater && matchWaste && isNotMapped;

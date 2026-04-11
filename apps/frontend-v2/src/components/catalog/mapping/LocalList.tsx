@@ -13,26 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  weightedStars: number;
-  image?: string;
-  defaultCo2: number;
-  defaultWater: number;
-  defaultWaste: number;
-}
-
-interface LocalAction {
-  id: number;
-  label: string;
-  category: string;
-  image?: string;
-  actionRefId: number;
-  actionRef: ActionRef;
-}
+import { LocalAction } from '@/types';
 
 interface LocalListProps {
   actions: LocalAction[];
@@ -65,11 +46,11 @@ export const LocalList: React.FC<LocalListProps> = ({
     return actions.filter(la => {
       const matchSearch = la.label.toLowerCase().includes(globalSearch.toLowerCase()) || la.actionRef.code.toLowerCase().includes(globalSearch.toLowerCase());
       const matchCat = !filterCategory || la.category === filterCategory;
-      const matchStars = la.actionRef.weightedStars >= minStars;
+      const matchStars = (la.actionRef.weightedStars || 0) >= minStars;
       
-      const matchCo2 = !impactFilters.co2 || la.actionRef.defaultCo2 > 0;
-      const matchWater = !impactFilters.water || la.actionRef.defaultWater > 0;
-      const matchWaste = !impactFilters.waste || la.actionRef.defaultWaste > 0;
+      const matchCo2 = !impactFilters.co2 || (la.actionRef.defaultCo2 ?? 0) > 0;
+      const matchWater = !impactFilters.water || (la.actionRef.defaultWater ?? 0) > 0;
+      const matchWaste = !impactFilters.waste || (la.actionRef.defaultWaste ?? 0) > 0;
 
       return matchSearch && matchCat && matchStars && matchCo2 && matchWater && matchWaste;
     });

@@ -46,29 +46,7 @@ import { ReferenceList } from './mapping/ReferenceList';
 import { CatalogCsvModal } from './CatalogCsvModal';
 import { LocalActionEditModal } from './LocalActionEditModal';
 
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  impactLabel: string;
-  weightedStars: number;
-  image?: string;
-  description?: string;
-  defaultCo2: number;
-  defaultWater: number;
-  defaultWaste: number;
-}
-
-interface LocalAction {
-  id: number;
-  label: string;
-  category: string;
-  image?: string;
-  description?: string;
-  actionRefId: number;
-  actionRef: ActionRef;
-}
+import { ActionRef, LocalAction } from '@/types';
 
 interface CatalogMappingProps {
   instanceId: number;
