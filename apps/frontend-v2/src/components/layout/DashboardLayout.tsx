@@ -20,6 +20,7 @@ import {
   Bell
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
+import { getAssetUrl } from '@/utils/assets';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -125,10 +126,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
 
   // Helper pour l'URL de l'avatar
   const getAvatarUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    return `${baseUrl}${path}`;
+    return getAssetUrl(path);
   };
 
   const handleLogout = () => {
@@ -204,7 +202,12 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
         <div className="flex-1 flex flex-col gap-8 h-full bg-slate-900 border-r border-slate-800 p-6 pt-8">
           <div className="flex items-center gap-3 px-2">
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
-              <img src="/assets/logo.png" alt="SOS Planète" className="w-8 h-8 object-contain" />
+              <img 
+                src={getAssetUrl('logo-sosplanete.png')} 
+                alt="SOS Planète" 
+                className="w-8 h-8 object-contain" 
+                onError={(e) => { (e.target as HTMLImageElement).src = '/assets/logo.png' }} // Fallback local discret au cas où
+              />
             </div>
             <span className="text-xl font-black tracking-tight text-white">SOS Planète</span>
           </div>

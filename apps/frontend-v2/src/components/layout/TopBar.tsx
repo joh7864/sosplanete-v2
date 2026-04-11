@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Users } from 'lucide-react';
+import { getAssetUrl } from '@/utils/assets';
 
 interface TopBarProps {
   title: React.ReactNode;
@@ -44,10 +45,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
   };
 
   const getAvatarUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-    return `${baseUrl}${path}`;
+    return getAssetUrl(path);
   };
 
   return (

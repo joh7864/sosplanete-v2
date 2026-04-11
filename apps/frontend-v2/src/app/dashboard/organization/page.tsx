@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
+import { getAssetUrl } from '@/utils/assets';
 
 export default function OrganizationPage() {
   return (
@@ -75,6 +76,10 @@ function OrganizationContent() {
       }
     }
   }, [instanceId]);
+
+  const getAvatarUrl = (path: string | null) => {
+    return getAssetUrl(path);
+  };
 
   useEffect(() => {
     if (instanceId) fetchTeams();
@@ -572,7 +577,8 @@ function TeamCard({
   isSelectionMode, isSelected, onSelect, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer
 }: any) {
   const cardColor = team.color || '#40916C';
-  const logoPath = team.icon?.startsWith('./') ? team.icon.replace('./', '/') : team.icon;
+  // Résolution de l'image de l'équipe via le backend
+  const logoPath = team.icon ? getAssetUrl(`teams/${team.icon.split('/').pop()}`) : null;
 
   const groupsCount = team.groups?.length || 0;
   const playersCount = team.groups?.reduce((acc: number, g: any) => acc + (g.children?.length || 0), 0) || 0;

@@ -20,6 +20,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAssetUrl } from '@/utils/assets';
 
 interface User {
   id: number;
@@ -50,9 +51,7 @@ export const UserEditModal: React.FC<UserEditModalProps> = ({ user, onClose, onU
 
   // Helper pour l'URL de l'avatar
   const getAvatarUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
+    return getAssetUrl(path);
   };
 
   const isOnline = () => {

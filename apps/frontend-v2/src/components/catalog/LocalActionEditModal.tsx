@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { getAssetUrl } from '@/utils/assets';
 
 import { ActionRef, LocalAction } from '@/types';
 
@@ -128,9 +129,9 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Icône / Image</span>
                  <div className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center relative group overflow-hidden shadow-inner">
                     <img 
-                      src={image || (action.actionRef.image ? `/assets/actions/${action.actionRef.image}` : '/assets/logo-sosplanete.png')}
+                      src={image || (action.actionRef.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo-sosplanete.png'))}
                       className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500"
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/assets/logo-sosplanete.png'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = getAssetUrl('logo-sosplanete.png'); }}
                     />
                  </div>
                  <Input 
