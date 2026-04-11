@@ -152,6 +152,19 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                             <div className="text-center"><p className="text-base font-black text-slate-700">Sélectionner Neyron.csv</p><p className="text-xs text-slate-400 font-medium">Semicolon (;) separator required</p></div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
                           </div>
+                          
+                          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex gap-4">
+                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-emerald-500 shrink-0 shadow-sm">
+                                <Upload size={20} className="rotate-180" />
+                             </div>
+                             <div className="flex flex-col gap-1">
+                                <h4 className="font-black text-slate-800 text-sm">Spécifications du fichier</h4>
+                                <p className="text-slate-500 text-xs leading-relaxed">
+                                  Le fichier doit comporter 5 colonnes séparées par des points-virgules (;) : <br/>
+                                  <span className="font-black text-slate-700">Équipe, Groupe, Pseudo, Mot de passe, Logo équipe</span>.
+                                </p>
+                             </div>
+                          </div>
                         </motion.div>
                       ) : (
                         <motion.div key="preview" className="space-y-4">

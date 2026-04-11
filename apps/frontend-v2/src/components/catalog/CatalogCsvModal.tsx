@@ -133,10 +133,16 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
     setIsDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type === 'text/csv' || file.name.endsWith('.csv')) {
-      processFile(file);
-    } else {
-      setError("Veuillez déposer un fichier CSV valide.");
+    if (file) {
+      const isCsv = file.name.toLowerCase().endsWith('.csv') || 
+                    file.type === 'text/csv' || 
+                    file.type === 'application/vnd.ms-excel';
+      
+      if (isCsv) {
+        processFile(file);
+      } else {
+        setError("Veuillez déposer un fichier CSV valide (.csv).");
+      }
     }
   };
 

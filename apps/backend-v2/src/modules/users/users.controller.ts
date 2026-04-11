@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -51,7 +52,13 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: join(__dirname, '../../../../uploads/avatars'),
+        destination: (_req, _file, cb) => {
+          const path = join(process.cwd(), 'uploads/avatars');
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path, { recursive: true });
+          }
+          cb(null, path);
+        },
         filename: (_req, file, cb) => {
           const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
           cb(null, uniqueName);
@@ -82,7 +89,13 @@ export class UsersController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: join(__dirname, '../../../../uploads/avatars'),
+        destination: (_req, _file, cb) => {
+          const path = join(process.cwd(), 'uploads/avatars');
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path, { recursive: true });
+          }
+          cb(null, path);
+        },
         filename: (_req, file, cb) => {
           const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
           cb(null, uniqueName);
