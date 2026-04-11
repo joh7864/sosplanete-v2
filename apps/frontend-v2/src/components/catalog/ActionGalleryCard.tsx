@@ -1,22 +1,12 @@
 'use client';
 
 import React from 'react';
+import { ActionRef } from '@/types';
 import { motion } from 'framer-motion';
 import { Droplets, Cloud, Trash2, Star } from 'lucide-react';
 import { getAssetUrl } from '@/utils/assets';
 
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  impactLabel: string;
-  weightedStars: number;
-  defaultCo2?: number;
-  defaultWater?: number;
-  defaultWaste?: number;
-  image?: string;
-}
+
 
 interface ActionGalleryCardProps {
   action: ActionRef;
