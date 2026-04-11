@@ -53,6 +53,7 @@ interface Group {
   id: number;
   name: string;
   children: Child[];
+  color?: string | null;
   _count: {
     children: number;
   };
