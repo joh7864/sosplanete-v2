@@ -29,6 +29,7 @@ services:
       - wagmoo_wagmoo_net
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=wagmoo_wagmoo_net"
       - "traefik.http.routers.sos-api.rule=Host(`api-sosplanete.nnauru.net`)"
       - "traefik.http.routers.sos-api.entrypoints=websecure"
       - "traefik.http.routers.sos-api.tls.certresolver=myresolver"
@@ -48,6 +49,7 @@ services:
       - wagmoo_wagmoo_net
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=wagmoo_wagmoo_net"
       - "traefik.http.routers.sos-v2.rule=Host(`sosplanete.nnauru.net`)"
       - "traefik.http.routers.sos-v2.entrypoints=websecure"
       - "traefik.http.routers.sos-v2.tls.certresolver=myresolver"
