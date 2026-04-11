@@ -24,6 +24,7 @@ services:
       - DATABASE_URL=postgresql://nnauru:me4nnauru@db:5432/nnauru?schema=public
       - PORT=3011
       - NODE_ENV=production
+      - UPLOADS_DIR=/app/uploads
     volumes:
       - ./uploads:/app/uploads
     networks:

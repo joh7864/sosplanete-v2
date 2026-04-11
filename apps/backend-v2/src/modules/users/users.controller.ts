@@ -53,7 +53,8 @@ export class UsersController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const path = join(__dirname, '..', '..', '..', '..', '..', 'uploads/avatars');
+          const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const path = join(basePath, 'avatars');
           if (!fs.existsSync(path)) {
             fs.mkdirSync(path, { recursive: true });
           }
@@ -90,7 +91,8 @@ export class UsersController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const path = join(__dirname, '..', '..', '..', '..', '..', 'uploads/avatars');
+          const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const path = join(basePath, 'avatars');
           if (!fs.existsSync(path)) {
             fs.mkdirSync(path, { recursive: true });
           }

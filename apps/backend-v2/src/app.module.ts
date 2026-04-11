@@ -27,7 +27,7 @@ import { UsersModule } from './modules/users/users.module';
     LocalActionModule,
     PeriodModule,
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', '..', 'uploads'),
+      rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
       serveRoot: '/uploads',
     }),
   ],
