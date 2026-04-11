@@ -77,6 +77,8 @@ function OrganizationContent() {
     }
   }, [instanceId]);
 
+  const activeInstanceName = managedInstances.find(i => i.id.toString() === instanceId?.toString())?.schoolName || "l'Organisation";
+
   const getAvatarUrl = (path: string | null) => {
     return getAssetUrl(path);
   };
@@ -517,6 +519,7 @@ function OrganizationContent() {
         onClose={() => setShowImportModal(false)} 
         onImport={loadData}
         instanceId={instanceId || 0}
+        instanceName={activeInstanceName}
       />
 
       <EditGroupModal 

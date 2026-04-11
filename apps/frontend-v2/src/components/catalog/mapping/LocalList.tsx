@@ -12,7 +12,7 @@ import {
   Droplets
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { ActionGalleryCard } from '../ActionGalleryCard';
 import { LocalAction } from '@/types';
 
 interface LocalListProps {
@@ -26,6 +26,8 @@ interface LocalListProps {
   filterCategory?: string | null;
   minStars?: number;
   impactFilters?: { co2: boolean; water: boolean; waste: boolean };
+  viewMode?: 'list' | 'grid';
+  isFullWidth?: boolean;
 }
 
 export const LocalList: React.FC<LocalListProps> = ({ 
@@ -38,7 +40,9 @@ export const LocalList: React.FC<LocalListProps> = ({
   globalSearch = '',
   filterCategory,
   minStars = 0,
-  impactFilters = { co2: false, water: false, waste: false }
+  impactFilters = { co2: false, water: false, waste: false },
+  viewMode = 'list',
+  isFullWidth = false
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: 'local-drop-zone' });
 
@@ -77,8 +81,8 @@ export const LocalList: React.FC<LocalListProps> = ({
       ref={setNodeRef} 
       className={`flex flex-col gap-3 h-full p-5 rounded-2xl border transition-all duration-300 ${isOver ? 'bg-emerald-50/80 border-emerald-400 border-dashed shadow-2xl shadow-emerald-500/10' : 'bg-white border-slate-200 shadow-xl'}`}
     >
-      {/* Header Compact with COUNT */}
-      <div className="flex items-center justify-between">
+      {/* Header Compact with COUNT (Fixed height for alignment) */}
+      <div className="flex items-center justify-between h-12">
           <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <Settings2 size={16} />
@@ -88,7 +92,6 @@ export const LocalList: React.FC<LocalListProps> = ({
                    <h3 className="text-xs font-black text-slate-800 tracking-tight leading-none uppercase">Mon Catalogue</h3>
                    <span className="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-black">{actions.length}</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Établissement</span>
               </div>
           </div>
 
@@ -102,22 +105,64 @@ export const LocalList: React.FC<LocalListProps> = ({
           </button>
       </div>
 
-      <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar flex flex-col gap-1.5 mt-2">
+      <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar flex flex-col gap-1.5 mt-3">
         {loading ? (
           <div className="flex items-center justify-center py-20 opacity-20">
              <Settings2 size={32} className="animate-spin" />
           </div>
         ) : (
-          filteredLocal.map(action => (
-            <CompactLocalCard 
-              key={action.id} 
-              action={action} 
-              isSelected={selectedIds.includes(action.id)}
-              onToggle={() => toggleSelect(action.id)}
-              onEdit={() => onEdit(action)}
-              onRemove={() => onRemove(action.id)}
-            />
-          ))
+          viewMode === 'list' ? (
+            filteredLocal.map(action => (
+              <CompactLocalCard 
+                key={action.id} 
+                action={action} 
+                isSelected={selectedIds.includes(action.id)}
+                onToggle={() => toggleSelect(action.id)}
+                onEdit={() => onEdit(action)}
+                onRemove={() => onRemove(action.id)}
+              />
+            ))
+          ) : (
+            <div className={`grid gap-4 pt-2 transition-all duration-500 ${isFullWidth ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+              {filteredLocal.map(action => (
+                <div key={action.id} className="relative group">
+                   {/* Checkbox Overlay */}
+                   <div 
+                    onClick={(e) => { e.stopPropagation(); toggleSelect(action.id); }}
+                    className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all cursor-pointer shadow-md ${selectedIds.includes(action.id) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 opacity-0 group-hover:opacity-100'}`}
+                   >
+                     {selectedIds.includes(action.id) && <Check size={14} strokeWidth={4} />}
+                   </div>
+
+                   {/* Quick Edit/Remove Mini Overlay */}
+                   <div className="absolute bottom-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onEdit(action); }}
+                        className="w-7 h-7 rounded-lg bg-white/90 text-slate-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-md"
+                      >
+                         <Settings2 size={12} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onRemove(action.id); }}
+                        className="w-7 h-7 rounded-lg bg-white/90 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"
+                      >
+                         <Trash2 size={12} />
+                      </button>
+                   </div>
+
+                   <div onClick={() => onEdit(action)}>
+                    <ActionGalleryCard 
+                      action={{
+                        ...action.actionRef,
+                        referenceName: action.label, // Use local label
+                        category: action.category
+                      }} 
+                    />
+                   </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
 
         {!loading && actions.length === 0 && (

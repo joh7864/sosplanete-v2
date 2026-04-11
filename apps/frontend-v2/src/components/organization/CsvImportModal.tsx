@@ -18,11 +18,12 @@ import Papa from 'papaparse';
 interface CsvImportModalProps {
   isOpen: boolean;
   instanceId: number;
+  instanceName: string;
   onClose: () => void;
   onImport: () => void;
 }
 
-export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instanceId, onClose, onImport }) => {
+export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instanceId, instanceName, onClose, onImport }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<any[]>([]);
   const [totalRows, setTotalRows] = useState(0);
@@ -149,7 +150,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                             className="border-4 border-dashed border-slate-100 rounded-2xl p-10 flex flex-col items-center justify-center gap-4 hover:border-emerald-500/30 hover:bg-emerald-50/20 transition-all cursor-pointer group"
                           >
                             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-all"><Upload size={32} /></div>
-                            <div className="text-center"><p className="text-base font-black text-slate-700">Sélectionner Neyron.csv</p><p className="text-xs text-slate-400 font-medium">Semicolon (;) separator required</p></div>
+                            <div className="text-center"><p className="text-base font-black text-slate-700">Sélectionner {instanceName}.csv</p><p className="text-xs text-slate-400 font-medium">Semicolon (;) separator required</p></div>
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
                           </div>
                           

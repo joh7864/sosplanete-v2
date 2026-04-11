@@ -12,7 +12,7 @@ import {
   Trash2,
   Star
 } from 'lucide-react';
-
+import { ActionGalleryCard } from '../ActionGalleryCard';
 import { ActionRef, LocalAction } from '@/types';
 
 interface ReferenceListProps {
@@ -25,6 +25,7 @@ interface ReferenceListProps {
   filterCategory?: string | null;
   minStars?: number;
   impactFilters?: { co2: boolean; water: boolean; waste: boolean };
+  viewMode?: 'list' | 'grid';
 }
 
 export const ReferenceList: React.FC<ReferenceListProps> = ({ 
@@ -36,7 +37,8 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   globalSearch = '',
   filterCategory,
   minStars = 0,
-  impactFilters = { co2: false, water: false, waste: false }
+  impactFilters = { co2: false, water: false, waste: false },
+  viewMode = 'list'
 }) => {
   const { setNodeRef } = useDroppable({ id: 'reference-drop-zone' });
 
@@ -74,7 +76,7 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   return (
     <div ref={setNodeRef} className="flex flex-col gap-3 h-full bg-white/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
       
-      <div className="flex items-center justify-between px-1">
+      <div className="flex items-center justify-between px-1 h-12">
          <button 
           onClick={toggleSelectAll}
           className="text-[10px] font-black uppercase text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2"
@@ -89,20 +91,33 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
          </span>
       </div>
 
-      <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar flex flex-col gap-1.5 mt-1">
+      <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar flex flex-col gap-1.5 mt-3">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-10">
              <Loader2 size={32} className="animate-spin text-emerald-500" />
           </div>
         ) : (
-          filteredActions.map(action => (
-            <DraggableActionCard 
-              key={action.id} 
-              action={action} 
-              isSelected={selectedIds.includes(action.id)}
-              onToggle={() => toggleSelect(action.id)}
-            />
-          ))
+          viewMode === 'list' ? (
+            filteredActions.map(action => (
+              <DraggableActionCard 
+                key={action.id} 
+                action={action} 
+                isSelected={selectedIds.includes(action.id)}
+                onToggle={() => toggleSelect(action.id)}
+              />
+            ))
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+               {filteredActions.map(action => (
+                 <GridReferenceCard 
+                   key={action.id}
+                   action={action}
+                   isSelected={selectedIds.includes(action.id)}
+                   onToggle={() => toggleSelect(action.id)}
+                 />
+               ))}
+            </div>
+          )
         )}
         
         {!loading && filteredActions.length === 0 && (
@@ -165,6 +180,46 @@ const DraggableActionCard = ({ action, isSelected, onToggle }: any) => {
          {action.defaultCo2 > 0 && <Leaf size={14} className="text-emerald-500" />}
          {action.defaultWater > 0 && <Droplets size={14} className="text-sky-500" />}
       </div>
+    </div>
+  );
+};
+const GridReferenceCard = ({ action, isSelected, onToggle }: any) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: action.id,
+    data: { type: 'reference', action }
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+    opacity: 0.8,
+    scale: 1.05
+  } : undefined;
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`relative group ${isDragging ? 'z-50' : ''}`}
+    >
+        {/* Checkbox Overlay */}
+        <div 
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all cursor-pointer shadow-md ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'bg-white border-slate-200 opacity-0 group-hover:opacity-100'}`}
+        >
+          {isSelected && <Check size={14} strokeWidth={4} />}
+        </div>
+
+        {/* Drag Handle Overlay */}
+        <div 
+          {...listeners} 
+          {...attributes}
+          className="absolute top-2 left-2 z-20 w-8 h-8 rounded-lg bg-white/90 text-slate-300 flex items-center justify-center cursor-grab active:cursor-grabbing hover:text-emerald-500 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+        >
+          <GripVertical size={18} />
+        </div>
+
+        <ActionGalleryCard action={action} />
     </div>
   );
 };
