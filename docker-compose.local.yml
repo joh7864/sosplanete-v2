@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sos_db_local
+    environment:
+      - POSTGRES_DB=nnauru
+      - POSTGRES_USER=nnauru
+      - POSTGRES_PASSWORD=me4nnauru
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./apps/backend-v1/dev/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  backend:
+    build: ./apps/backend-v1
+    container_name: sos_backend_local
+    depends_on:
+      - db
+    ports:
+      - "8082:8080"
+
+  admin:
+    build: ./apps/backend-v1
+    container_name: sos_admin_local
+    depends_on:
+      - db
+    command: ["python", "dev/src/admin.py"]
+    volumes:
+      - ./apps/backend-v1/dev/src/admin/static:/app/dev/src/admin/static
+    ports:
+      - "5001:5000"
+
+  frontend:
+    build: ./apps/frontend
+    container_name: sos_frontend_local
+    ports:
+      - "8081:80"

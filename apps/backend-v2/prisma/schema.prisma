@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------
+// 🌍 GLOBAL / COMMON DATA (Géré par l'AS)
+// ---------------------------------------------------------
+
+enum Role {
+  AS
+  AM
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  lastSeenAt DateTime? @updatedAt
+  role      Role     @default(AM)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Un utilisateur (AM) gère une ou plusieurs instances (généralement une seule école)
+  managedInstances Instance[]
+}
+
+model ActionRef {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique // Identifiant métier (ex: W01, E01)
+  referenceName String
+  defaultCo2    Float?   // Valeur par défaut si non surchargée
+  defaultWater  Float?
+  defaultWaste  Float?
+  co2Year       Float?   // CO2e /an du fichier CSV
+  impactLabel   String?  // Impact (Low, Medium, High)
+  impactTotal   Float?   // Impact total
+  weightedStars Int?     // Etoile pondérée (1-5)
+  image         String?  // Nom du fichier image (ex: B01.png)
+  year          Int      @default(2025)
+  category      String?
+
+  // Liaisons avec les actions personnalisées des instances
+  localActions  LocalAction[]
+}
+
+model AnnualImpactData {
+  id          Int      @id @default(autoincrement())
+  year        Int      @unique
+  waterImpact Float
+  co2Impact   Float
+  wasteImpact Float
+}
+
+// ---------------------------------------------------------
+// 🏫 INSTANCE DATA (Données spécifiques à chaque école)
+// ---------------------------------------------------------
+
+model Instance {
+  id         Int      @id @default(autoincrement())
+  schoolName String
+  hostUrl    String?  @unique
+  isOpen     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  
+  // Admin local associé
+  adminId    Int?
+  admin      User?    @relation(fields: [adminId], references: [id])
+
+  // Structure de l'école
+  teams      Team[]
+  localActions LocalAction[]
+  periods    Period[]
+}
+
+model Team {
+  id         Int      @id @default(autoincrement())
+  name       String
+  color      String?  // Code Hexa ou nom de couleur pastel
+  icon       String?  // Identifiant d'icône (Lucide ou SVG)
+  instanceId Int
+  instance   Instance @relation(fields: [instanceId], references: [id])
+  
+  groups     Group[]
+}
+
+model Group {
+  id       Int      @id @default(autoincrement())
+  name     String
+  color    String?
+  teamId   Int
+  team     Team     @relation(fields: [teamId], references: [id])
+  
+  children Child[]
+}
+
+model Child {
+  id        Int      @id @default(autoincrement())
+  pseudo    String
+  password  String?  // Optionnel si connexion anonyme/pseudo simple
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id])
+  
+  actionsDone ActionDone[]
+
+  @@unique([pseudo, groupId]) // Pseudo unique par classe
+}
+
+model LocalAction {
+  id          Int      @id @default(autoincrement())
+  label       String
+  description String?
+  category    String?
+  image       String?
+  
+  // Lien vers le référentiel global
+  actionRefId Int
+  actionRef   ActionRef @relation(fields: [actionRefId], references: [id])
+  
+  // Appartenance à l'instance
+  instanceId  Int
+  instance    Instance  @relation(fields: [instanceId], references: [id])
+
+  // Surcharges éventuelles des poids d'impact par instance
+  specificCo2   Float?
+  specificWater Float?
+  specificWaste Float?
+
+  actionsDone ActionDone[]
+
+  @@unique([instanceId, actionRefId])
+}
+
+model Period {
+  id         Int      @id @default(autoincrement())
+  startDate  DateTime
+  endDate    DateTime
+  instanceId Int
+  instance   Instance @relation(fields: [instanceId], references: [id])
+  
+  actionsDone ActionDone[]
+}
+
+model ActionDone {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  
+  childId       Int
+  child         Child    @relation(fields: [childId], references: [id])
+  
+  localActionId Int
+  localAction   LocalAction @relation(fields: [localActionId], references: [id])
+  
+  periodId      Int
+  period        Period      @relation(fields: [periodId], references: [id])
+
+  // Valeurs calculées au moment de l'enregistrement pour historique stable
+  savedCo2      Float
+  savedWater    Float
+  savedWaste    Float
+}
+
+// ---------------------------------------------------------
+// 🦊 GAMIFICATION (Moteur d'animaux)
+// ---------------------------------------------------------
+
+model AnimalRelease {
+  id          Int      @id @default(autoincrement())
+  name        String
+  unlockOrder Int      @unique // 1 à 9
+  imageUrl    String?
+}

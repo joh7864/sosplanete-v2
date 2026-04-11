@@ -1,0 +1,52 @@
+# --- OS & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+# --- FRONTEND (Node / Vite / React) ---
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# --- BACKEND (Python) ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.venv/
+venv/
+ENV/
+# --- DOCKER ---
+.docker-compose.local.yml.swp
+# --- SPECIFIQUE SOS PLANETE ---
+# On ignore les images uploadées si on veut repartir sur une base propre
+apps/backend-v1/dev/src/admin/static/image/*
+apps/backend-v1/dev/src/admin/static/animation/*
+# Mais on garde les dossiers
+!apps/backend-v1/dev/src/admin/static/image/.gitkeep
+!apps/backend-v1/dev/src/admin/static/animation/.gitkeep

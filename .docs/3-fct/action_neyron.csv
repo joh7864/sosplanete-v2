@@ -1,0 +1,40 @@
+﻿ID Action;Titre action;Catégorie;Lien action ref
+A23;Préparer soi-même ses goûters, ses yaourts;Courses;D11
+A07;Récupérer l’‘eau froide de la douche pour arroser les plantes;Eau;D05
+A19;Ramasser les déchets et les mettre dans une poubelle;Déchets;T04
+A18;Ne pas jeter les déchets dans la nature;Déchets;D06
+A16;Utiliser les bacs de tri (noir, vert, jaune);Déchets;D10
+A27;Utiliser une gourde quand on veut boire dehors;Déchets;W04
+A26;Boire de l’‘eau du robinet plutôt que de l’‘eau en bouteilles en plastique;Déchets;W02
+A25;Acheter en vrac, éviter les emballages plastiques privilégier les emballages cartons;Déchets;W03
+A17;Faire un compost;Déchets;T06
+A22;Réparer plutôt que jeter;Déchets;D06
+A14;Utiliser les heures creuses et moins chauffer;Electricité;E03
+A13;Eteindre la lumière quand on quitte la pièce;Electricité;E01
+A11;Eteindre complètement les appareils (ne pas laisser sous veille);Electricité;E04
+A15;Fermer le frigo;Electricité;C01
+A09;Fermer les fenêtres quand on chauffe;Electricité;D09
+A06;Prendre seulement 1 bain par semaine;Eau;E08
+A05;Prendre des douches rapides et pas trop chaude et couper l’‘eau quand on se savonne;Eau;E08
+A04;Couper l’‘eau quand on se savonne les mains;Eau;E08
+A02;Couper le moteur quand on ne roule pas;Transport;D02
+A01;Aller à l’‘école à pied, faire du covoiturage ou prendre le bus, le vélo, la trottinette…;Transport;B07
+A12;Eteindre la télé quand on ne la regarde pas;Electricité;B01
+A34;Ne pas tuer les petites bêtes;Biodiversité;D03
+A29;Faire des courses proches de chez soi;Courses;B02
+A32;Réutiliser le dos des feuilles en brouillon;Déchets;W01
+A37;Utiliser des sacs réutilisables pour faire ses courses;Déchets;W05
+A20;Acheter seulement quand on en a besoin,;Déchets;C06
+A38;Emballer les cadeaux avec du tissu ;Déchets;C06
+A28;Donner les habits qui ne nous vont plus ou les jouets qu’‘on utilise plus au lieu de les jeter;Déchets;D04
+A31;Bien ranger ses affaires, ses feuilles pour ne pas casser, perdre et devoir racheter inutilement;Déchets;W06
+A30;Manger moins de viande (manger du poisson ou des œufs);Biodiversité;D06
+A08;Choisir le bouton de la chasse d’‘eau selon ses besoins;Eau;D01
+A33;Ne pas arracher les plantes;Biodiversité;D08
+A36;Utiliser la climatisation de manière adaptée ;Electricité;E07
+A35;Etendre le linge pour ne pas utiliser le sèche linge ;Electricité;D10
+A39;Ne pas acheter de produits contenant de l'huile de palme ;Courses;C02
+A24;Préparer soi-même son pain ou sa brioche;Courses;C06
+A21;Garder les restes de repas pour les manger un autre jour;Déchets;D02
+A03;Couper l’‘eau quand on se brosse les dents et utiliser un gobelet;Eau;W02
+A10;Fermer les volets l’‘hiver;Electricité;E08

@@ -1,0 +1,62 @@
+﻿ID_REF action;Titre action;CO2e (kg CO2e / sem);Eau (l /sem);Déchet kg /sem);Catégorie;tCO2e /an;Impact;Impact total;Etoile pondéré;Image
+B01;Ne pas prélever d’espèces vivantes dans la nature (animaux ou plantes);0;0;0;Biodiversité;0;Behaviour;0;0;B01.png
+B02;Ne pas tuer les araignées. les insectes (les mettre dehors…);0;0;0;Biodiversité;0;Behaviour;0;0;B02.jpg
+B03;Donner à manger aux oiseaux dans son jardin ou sur son balcon;0;0;0;Biodiversité;0;Behaviour;0;0;B03.jpg
+B04;Faire un jardin potager;4.48;0;0;Biodiversité;0.23296;Moderate;3.584;4;B04.png
+B05;Manger de la viande de gros animaux une seule fois par jour (vache, porc, mouton);4.959118;0;0;Biodiversité;0.257874137;High;3.967294;4;B05.jpg
+B06;Manger de la viande une seule fois par jour (volaille, gros animaux, ...);5.464831;0;0;Biodiversité;0.284171212;High;4.371865;5;B06.png
+B07;Manger de la viande ou du poisson une seule fois par jour;5.962227;0;0;Biodiversité;0.31003579;High;4.769781;5;B07.png
+B08;Manger des repas végétarien 1 fois par jour;1.27387;0;0;Biodiversité;0.066241244;Moderate;1.019096;4;B08.png
+C01;Acheter des produits locaux et de saison (hors serres chauffées) qui n’ont pas besoin d’être transportés;13.7935;0;0;Courses;0.717262;High;11.0348;5;C01.png
+C02;Ne pas acheter des produits contenant de l'huile de palme;0.088219;0;0;Courses;0.004587397;Low;0.070575;2;C02.jpg
+C03;Acheter des fruits ou légumes de saison;6.932;0;0;Courses;0.360464;High;5.5456;5;C03.jpg
+C04;Faire soi-même ses jus de fruits pour éviter les bouteilles en plastique;0.001386;0;0.06;Courses;0.000072072;Low;0.007109;2;C04.jpg
+C05;Faire soi-même ses produits d’entretien pour éviter les emballages;0.006;0;0.03;Courses;0.000312;Low;0.0078;2;C05.jpg
+C06;Faire ses repas, gouter, compotes sois même plutôt que d’acheter des plats préparés;1.260407;0;0.180058;Courses;0.065541175;Moderate;1.026332;4;C06.png
+D01;Limiter l'utilisation du papier : Utiliser les feuilles des 2 côtés / faire du brouillon / Utiliser l’ardoise pour chercher / Prendre du papier recyclé…;0.009641;0;0.8;Déchet;0.000501332;Low;0.087713;3;D01.jpg
+D02;Tout manger ce qu’il y a dans nos assiettes (cantine/maison);2.453511;0;1.390385;Déchet;0.127582549;Moderate;2.101847;4;D02.jpg
+D03;Ne pas jeter de déchets dans la nature (chewing-gums. sacs. canettes. bouteilles…);0.424875;0;4.486538;Déchet;0.02209351;Moderate;0.788554;4;D03.jpg
+D04;Ramasser les papiers et les déchets par terre pour les mettre à la poubelle;0.00947;0;0.1;Déchet;0.00049244;Low;0.017576;2;D04.jpg
+D05;Ne pas trop acheter de choses quand on n’en a pas vraiment besoin (bien réfléchir à nos vrais besoins alimentaires ou autres).;0.000239;0;0.134615;Déchet;0.000012407;Low;0.013652;2;D05.jpg
+D06;Prendre soin de ses affaires pour les faire durer plus longtemps (reboucher les feutres… ne pas casser. ne pas lancer…);0.017374;0;0.183462;Déchet;0.000903438;Low;0.032245;2;D06.jpg
+D07;Vendre ou donner les vêtements. les objets. les jouets dont on ne veut plus (trop petits…);0.017374;0;0;Déchet;0.000903438;Low;0.013899;2;D07.png
+D08;Utiliser les bacs de tri;0.866962;0;0;Déchet;0.045082;Moderate;0.693569;4;D08.jpg
+D09;Faire du compost avec les déchets végétaux ou donner les restes alimentaires aux poules…;0.0623;0;1.75;Déchet;0.0032396;Low;0.22484;3;D09.jpg
+D10;Ne pas acheter de bouteilles en plastique : boire à la gourde;0.54243;0;0.21;Déchet;0.02820636;Moderate;0.454944;3;D10.png
+D11;Acheter des produits en vrac. éviter les emballages individuels…;0.379014;0;34.86;Déchet;0.019708746;Moderate;3.789211;4;D11.png
+D12;Privilégier les achats d’objets recyclables (carton plutôt que plastique);0.46544;0;0;Déchet;0.0242029;Moderate;0.372352;3;D12.png
+D13;Mettre un stop pub sur la boîte aux lettres;0.363351;0;0.378846;Déchet;0.01889427;Moderate;0.328566;3;D13.png
+D14;Réduire son budget vêtement;2.513477;0;0.142308;Déchet;0.13070078;Moderate;2.025012;4;D14.png
+D15;Economiser les mouchoirs en papier. l'essuie-tout et le papier toilette;0.009591;0;0.8;Déchet;0.000498732;Low;0.087673;3;D15.png
+D16;Acheter des appareils électronique reconditionné à très forte composante électronique;5.492603;0;1.481175;Déchet;0.285615342;High;4.5422;5;D16.png
+D17;Acheter des appareils électronique reconditionné à forte composante électronique;1.915171;0;0.516459;Déchet;0.099588904;Moderate;1.583783;4;D17.png
+D18;Acheter des appareils électronique reconditionné à moyenne composante électronique;0.927068;0;0.25;Déchet;0.048207562;Moderate;0.766655;4;D18.png
+D19;Acheter des appareils électronique reconditionné à faible composante électronique;0.370685;0;0.099962;Déchet;0.019275616;Moderate;0.306544;3;D19.png
+D20;Acheter des appareils électronique reconditionné à très faible composante électronique;0.065205;0;0.017584;Déchet;0.003390685;Low;0.053923;2;D20.png
+D21;Réduire son budget achat de mobiliers;5.012202;0;0.128846;Déchet;0.26063449;High;4.022646;4;D21.png
+D22;Réduire son budget achat de machine et équipements;5.846795;0;0.019231;Déchet;0.304033333;High;4.679359;5;D22.png
+E01;Eteindre la lumière quand on quitte une pièce. quand on n’en a pas besoin;0.027408;0;0;Electricité;0.001425216;Low;0.021926;2;E01.jpg
+E02;Ouvrir les volets et ne pas allumer la lumière quand il fait jour dehors. ou éteindre lorsque la lumière extérieure le permet;0.027408;0;0;Electricité;0.001425216;Low;0.021926;2;E02.jpg
+E03;Eteindre complétement les appareils électriques : téléphone. télévision. tablette… tous les soirs ou pour la journée lorsque je ne suis pas là;0.15988;0;0;Electricité;0.00831376;Low;0.127904;3;E03.jpg
+E04;Eteindre les écrans (ordinateur. télévision. …) pour diminuer la consommation d’électricité;0.15988;0;1;Electricité;0.00831376;Low;0.227904;3;E04.png
+E05;Préférer les ampoules à basse consommation;0.072803;0;0;Electricité;0.00378573;Low;0.058242;2;E05.jpg
+E06;Préférer les piles rechargeables;0.097538;0;0;Electricité;0.00507195;Low;0.07803;2;E06.png
+E07;Baisser le chauffage aux enérgies fossiles;24.407463;0;0;Electricité;1.269188072;High;19.52597;5;E07.png
+E08;Eteindre le chauffage lorsqu’on aère une pièce;0.000173;0;0;Electricité;0.000008994;Low;0.000138;1;E08.png
+E09;Passer moins de temps à regarder des vidéos sur internet;0.002855;0;0;Electricité;0.00014846;Low;0.002284;1;E09.png
+E10;Faire sécher son linge à l'air libre au lieu d'utiliser le sèche linge chaque fois qu'on peut;0.413462;0;0;Electricité;0.0215;Moderate;0.330769;3;E10.png
+E11;Couvrir les casseroles lorsqu’on fait bouillir de l’eau ou pour cuire…;0.00293;0;0;Electricité;0.000152359;Low;0.002344;1;E11.png
+E12;L'été, ne pas mettre la climatisation plus froide que 24°;19.663278;0;0;Electricité;1.022490456;High;15.730622;5;E12.png
+T01;Préférer le bus plutôt que la voiture;0.347;0;0;Transport;0.018044;Moderate;0.2776;3;T01.png
+T02;Préférer le métro/tramway plutôt que la voiture;0.7491;0;0;Transport;0.0389532;Moderate;0.59928;4;T02.jpg
+T03;Préférer la marche ou le vélo plutôt que la voiture;0.506;0;0;Transport;0.026312;Moderate;0.4048;3;T03.png
+T04;Faire du covoiturage;0.506;0;0;Transport;0.026312;Moderate;0.4048;3;T04.png
+T05;Préférer le train à l'avion;18.2445;0;0;Transport;0.948714;High;14.5956;5;T05.jpg
+T06;Couper le moteur de la voiture quand elle ne roule pas;1.518;0;0;Transport;0.078936;Moderate;1.2144;4;T06.png
+W01;Prendre des douches rapides;0.088256;224;0;Eau;0.004589312;Low;0.093005;3;W01.jpg
+W02;Couper l’eau quand on se brosse les dents : mettre de l’eau dans un verre pour se rincer;0.011032;28;0;Eau;0.000573664;Low;0.011626;2;W02.jpg
+W03;Ne pas faire couler l’eau trop longtemps quand on se lave les mains;0.004964;12.6;0;Eau;0.000258149;Low;0.005232;2;W03.jpg
+W04;Tirer la petite chasse d’eau quand on fait pipi;0.006501;16.5;0;Eau;0.000338052;Low;0.006851;2;W04.jpg
+W05;Ne pas prendre de bain;0.140658;357;0;Eau;0.007314216;Low;0.148226;3;W05.jpg
+W06;Récupérer l’eau de pluie ou l’eau froide de la douche avant qu’elle chauffe pour arroser les plantes;0.00917;35;0;Eau;0.00047684;Low;0.010836;2;W06.jpg
+W07;Vider le reste de sa gourde dans les plantes;0;0.000013;0;Eau;0;Behaviour;0;1;W07.png

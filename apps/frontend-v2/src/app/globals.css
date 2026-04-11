@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Nature & Pastel Palette */
+  --color-mint: #95D5B2;      /* Medium Mint */
+  --color-sage: #40916C;      /* Main Green */
+  --color-forest: #1B4332;    /* Dark Forest */
+  --color-sky: #BBE1FA;
+  --color-peach: #FFD3B6;
+  --color-cream: #F8FAF5;     /* Cleaner Off-white */
+  
+  /* Semantic Colors */
+  --bg-primary: var(--color-cream);
+  --text-primary: var(--color-forest);
+  --accent-primary: var(--color-sage);
+  
+  /* High Contrast Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.85); /* Much more opaque */
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-blur: blur(20px);
+  
+  /* Layout */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  /* Glass Card Component */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  /* Transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Base tailwind classes used in my components */
+@utility transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@utility prose-sos {
+  @apply text-sm leading-relaxed text-slate-600;
+
+  & a {
+    @apply text-emerald-500 font-bold underline decoration-emerald-200 underline-offset-2 hover:text-emerald-600 hover:decoration-emerald-400 transition-all;
+  }
+
+  & b, & strong {
+    @apply font-black text-slate-800;
+  }
+
+  & ul {
+    @apply list-disc list-inside my-2 ml-2;
+  }
+
+  & li {
+    @apply my-1;
+  }
+
+  & p {
+    @apply mb-2 last:mb-0;
+  }
+}
