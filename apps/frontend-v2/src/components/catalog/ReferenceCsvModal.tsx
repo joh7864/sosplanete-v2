@@ -240,8 +240,8 @@ export const ReferenceCsvModal: React.FC<ReferenceCsvModalProps> = ({ isOpen, on
                     </div>
                 )}
              </div>
-           ) : (
-             <div className="flex flex-col gap-6">
+            ) : (
+             <div className="flex flex-col gap-6 pb-8">
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-6">
                         <div className="flex flex-col">
