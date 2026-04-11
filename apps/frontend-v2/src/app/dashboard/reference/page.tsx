@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Star, Loader2, Info, LayoutGrid, List, Filter, ChevronDown, ChevronRight, Edit3, Trash2 } from 'lucide-react';
+import { Search, Plus, Star, Loader2, Info, LayoutGrid, List, Filter, ChevronDown, ChevronRight, Edit3, Trash2, Database, Download } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -31,8 +31,44 @@ export default function ReferencePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [actions, setActions] = useState<ActionRef[]>([]);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleToggleAll = () => setIsAllExpanded(!isAllExpanded);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref/import`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Import réussi : ${result.count} actions traitées.`);
+        window.location.reload(); // Recharger pour voir les changements
+      } else {
+        throw new Error("Erreur lors de l'import");
+      }
+    } catch (error) {
+      console.error("Erreur import:", error);
+      alert("Erreur lors de l'importation du référentiel.");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     const fetchActions = async () => {
@@ -162,6 +198,26 @@ export default function ReferencePage() {
               <LayoutGrid size={20} />
             </button>
           </div>
+
+          <div className="h-8 w-[1px] bg-slate-100 mx-1" />
+
+          {/* Bouton Import Référentiel (Option B: Upload) */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImport} 
+            accept=".csv" 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 p-3 px-4 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm group font-bold text-xs"
+            title="Importer le référentiel CSV"
+          >
+            {importing ? <Loader2 size={18} className="animate-spin" /> : <Database size={18} className="group-hover:scale-110 transition-transform" />}
+            <span className="hidden sm:inline">Import</span>
+          </button>
           
           <button 
             onClick={handleToggleAll}

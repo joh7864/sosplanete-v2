@@ -20,11 +20,15 @@ export class AuthController {
     
     const { access_token } = await this.authService.login(user);
     
+    const maxAge = body.rememberMe 
+      ? 1000 * 60 * 60 * 24 * 30 // 30 jours
+      : 1000 * 60 * 60 * 24;      // 24 heures
+    
     response.cookie('access_token', access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
+      maxAge,
     });
 
     return {

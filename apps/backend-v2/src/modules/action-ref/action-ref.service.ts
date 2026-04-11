@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as Papa from 'papaparse';
 
 @Injectable()
 export class ActionRefService {
@@ -9,95 +8,81 @@ export class ActionRefService {
 
   constructor(private prisma: PrismaService) {}
 
-  async importFromCSV() {
-    const csvPath = path.resolve(process.cwd(), '../../.docs/3-fct/Import SUIVI - Référentiel actions SOS Planète.csv');
-    this.logger.log(`Attempting to import CSV from: ${csvPath}`);
+  async importFromCSV(fileBuffer: Buffer) {
+    const csvData = fileBuffer.toString('utf-8');
     
-    if (!fs.existsSync(csvPath)) {
-      this.logger.error(`CSV not found at ${csvPath}`);
-      return { success: false, error: 'File not found' };
-    }
+    return new Promise((resolve) => {
+      Papa.parse(csvData, {
+        header: false,
+        skipEmptyLines: true,
+        delimiter: ';',
+        complete: async (results) => {
+          const rows = results.data as string[][];
+          // On ignore l'en-tête (ligne 0)
+          const dataLines = rows.slice(1);
+          
+          let count = 0;
+          let errors = 0;
 
-    const content = fs.readFileSync(csvPath, 'utf-8');
-    const lines = content.split('\n');
-    const headerLine = lines[0].split(';');
-    
-    // Mapping précis basé sur l'audit du fichier
-    const findIndex = (name: string) => headerLine.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
-    
-    const idxCode = 0;
-    const idxName = 1;
-    const idxCo2 = 2;
-    const idxWater = 3;
-    const idxWaste = 4;
-    const idxCategory = 5;
-    const idxCo2Year = 6;
-    const idxImpact = 7;
-    const idxImpactTotal = 8;
-    const idxStars = 9;
-    const idxImage = 10;
+          for (const row of dataLines) {
+            if (row.length < 10) continue;
 
-    const dataLines = lines.slice(1);
+            const code = row[0]?.trim();
+            const name = row[1]?.trim();
+            
+            if (!code || !name) continue;
 
-    let count = 0;
-    for (const line of dataLines) {
-      if (!line.trim()) continue;
-      
-      const parts = line.split(';');
-      if (parts.length < 11) continue;
+            const co2 = parseFloat(row[2]?.replace(',', '.') || '0');
+            const water = parseFloat(row[3]?.replace(',', '.') || '0');
+            const waste = parseFloat(row[4]?.replace(',', '.') || '0');
+            const category = row[5]?.trim();
+            const co2Year = parseFloat(row[6]?.replace(',', '.') || '0');
+            const impactLabel = row[7]?.trim();
+            const impactTotal = parseFloat(row[8]?.replace(',', '.') || '0');
+            const weightedStars = parseInt(row[9]?.trim() || '0', 10);
+            const image = row[10]?.trim();
 
-      const code = parts[idxCode]?.trim();
-      const name = parts[idxName]?.trim();
-      
-      if (!code || !name) continue;
+            try {
+              await this.prisma.actionRef.upsert({
+                where: { code },
+                update: {
+                  referenceName: name,
+                  defaultCo2: co2,
+                  defaultWater: water,
+                  defaultWaste: waste,
+                  co2Year,
+                  impactLabel,
+                  impactTotal,
+                  weightedStars,
+                  category,
+                  image,
+                },
+                create: {
+                  code,
+                  referenceName: name,
+                  defaultCo2: co2,
+                  defaultWater: water,
+                  defaultWaste: waste,
+                  co2Year,
+                  impactLabel,
+                  impactTotal,
+                  weightedStars,
+                  category,
+                  image,
+                },
+              });
+              count++;
+            } catch (err) {
+              this.logger.error(`Error importing code ${code}: ${err.message}`);
+              errors++;
+            }
+          }
 
-      const co2 = parseFloat(parts[idxCo2]?.replace(',', '.') || '0');
-      const water = parseFloat(parts[idxWater]?.replace(',', '.') || '0');
-      const waste = parseFloat(parts[idxWaste]?.replace(',', '.') || '0');
-      const category = parts[idxCategory]?.trim();
-      const co2Year = parseFloat(parts[idxCo2Year]?.replace(',', '.') || '0');
-      const impactLabel = parts[idxImpact]?.trim();
-      const impactTotal = parseFloat(parts[idxImpactTotal]?.replace(',', '.') || '0');
-      const weightedStars = parseInt(parts[idxStars]?.trim() || '0', 10);
-      const image = parts[idxImage]?.trim();
-
-      try {
-        await this.prisma.actionRef.upsert({
-          where: { code },
-          update: {
-            referenceName: name,
-            defaultCo2: co2,
-            defaultWater: water,
-            defaultWaste: waste,
-            co2Year,
-            impactLabel,
-            impactTotal,
-            weightedStars,
-            category,
-            image,
-          },
-          create: {
-            code,
-            referenceName: name,
-            defaultCo2: co2,
-            defaultWater: water,
-            defaultWaste: waste,
-            co2Year,
-            impactLabel,
-            impactTotal,
-            weightedStars,
-            category,
-            image,
-          },
-        });
-        count++;
-      } catch (err) {
-        this.logger.error(`Error importing line: ${line}. Error: ${err.message}`);
-      }
-    }
-
-    this.logger.log(`Imported ${count} actions from CSV.`);
-    return { success: true, count };
+          this.logger.log(`Import finished: ${count} success, ${errors} errors.`);
+          resolve({ success: true, count, errors });
+        }
+      });
+    });
   }
 
   async findAll() {

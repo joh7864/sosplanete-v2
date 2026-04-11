@@ -45,22 +45,27 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
   const [importing, setImporting] = useState(false);
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
 
     setLoading(true);
     setError(null);
 
     Papa.parse(file, {
-      header: false, // User specified exact order, so we'll use headers manually or positional
+      header: false,
       skipEmptyLines: true,
       delimiter: ';',
       complete: async (results) => {
-        // Expected Order: ActionRef, Name, Icon, Description, Etoile, Category
         const rows = results.data as string[][];
+        if (!rows || rows.length < 2) {
+          setError("Le fichier semble vide ou invalide.");
+          setLoading(false);
+          return;
+        }
+
         const formattedRows: CsvRow[] = rows.slice(1).map(row => ({
           actionRef: row[0]?.trim() || '',
           name: row[1]?.trim() || '',
@@ -76,12 +81,8 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
           return;
         }
 
-        // Validate against backend ActionRef
         try {
           const token = localStorage.getItem('access_token');
-          const codes = formattedRows.map(r => r.actionRef);
-          
-          // Helper to fetch ref matches (could be optimized)
           const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
              headers: { Authorization: `Bearer ${token}` }
           });
@@ -107,6 +108,36 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
         }
       }
     });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === 'text/csv' || file.name.endsWith('.csv')) {
+      processFile(file);
+    } else {
+      setError("Veuillez déposer un fichier CSV valide.");
+    }
   };
 
   const handleConfirmImport = async () => {
@@ -181,7 +212,10 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
              <div className="flex flex-col gap-6">
                 <div 
                    onClick={() => fileInputRef.current?.click()}
-                   className="group border-2 border-dashed border-slate-100 rounded-2xl p-16 flex flex-col items-center gap-4 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition-all"
+                   onDragOver={handleDragOver}
+                   onDragLeave={handleDragLeave}
+                   onDrop={handleDrop}
+                   className={`group border-2 border-dashed rounded-2xl p-16 flex flex-col items-center gap-4 cursor-pointer transition-all ${isDragging ? 'border-emerald-500 bg-emerald-50/50 scale-[1.02]' : 'border-slate-100 hover:border-emerald-500 hover:bg-emerald-50/30'}`}
                 >
                    <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-white group-hover:text-emerald-500 transition-all shadow-sm">
                       {loading ? <Loader2 size={32} className="animate-spin" /> : <Plus size={32} />}
