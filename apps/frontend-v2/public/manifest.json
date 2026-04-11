@@ -8,14 +8,10 @@
   "theme_color": "#D5EDC2",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icons/logo-sosplanete.png",
+      "sizes": "192x192 512x512 any",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
