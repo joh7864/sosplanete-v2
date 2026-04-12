@@ -361,18 +361,18 @@ export default function DashboardSummaryPage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-1 items-end shrink-0">
-                        <div className="flex items-center gap-1.5 justify-end">
-                           <span className="text-[10px] font-bold text-slate-700">{formatEcoImpact(instance.totalImpacts?.co2 || 0, 'co2')}</span>
-                           <Leaf size={14} className="text-emerald-500" />
+                      <div className="flex flex-col gap-1.5 items-end shrink-0">
+                        <div className="flex items-center gap-2 justify-end">
+                           <span className="text-xs font-black text-slate-800 tracking-tight">{formatEcoImpact(instance.totalImpacts?.co2 || 0, 'co2')}</span>
+                           <Leaf size={16} className="text-emerald-500" />
                         </div>
-                        <div className="flex items-center gap-1.5 justify-end">
-                           <span className="text-[10px] font-bold text-slate-700">{formatEcoImpact(instance.totalImpacts?.water || 0, 'water')}</span>
-                           <Droplets size={14} className="text-blue-500" />
+                        <div className="flex items-center gap-2 justify-end">
+                           <span className="text-xs font-black text-slate-800 tracking-tight">{formatEcoImpact(instance.totalImpacts?.water || 0, 'water')}</span>
+                           <Droplets size={16} className="text-blue-500" />
                         </div>
-                        <div className="flex items-center gap-1.5 justify-end">
-                           <span className="text-[10px] font-bold text-slate-700">{formatEcoImpact(instance.totalImpacts?.waste || 0, 'waste')}</span>
-                           <Trash size={14} className="text-amber-500" />
+                        <div className="flex items-center gap-2 justify-end">
+                           <span className="text-xs font-black text-slate-800 tracking-tight">{formatEcoImpact(instance.totalImpacts?.waste || 0, 'waste')}</span>
+                           <Trash size={16} className="text-amber-500" />
                         </div>
                       </div>
                     </div>

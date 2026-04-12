@@ -76,10 +76,10 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
             <div className="p-10 border-b border-slate-50 flex justify-between items-center">
               <div>
                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                  {isNew ? 'Créer une classe' : 'Paramètres de la classe'}
+                  {isNew ? 'Créer un groupe' : 'Paramètres du groupe'}
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                  Gestion opérationnelle du détachement
+                  Gestion opérationnelle du groupe
                 </p>
               </div>
               <button 
@@ -93,7 +93,7 @@ export const EditGroupModal: React.FC<EditGroupModalProps> = ({
             <form onSubmit={handleSubmit} className="p-10 space-y-8">
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                  <Layout size={12} /> Nom de la classe
+                  <Layout size={12} /> Nom du groupe
                 </label>
                 <input 
                   autoFocus

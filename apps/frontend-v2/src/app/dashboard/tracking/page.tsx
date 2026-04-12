@@ -18,7 +18,9 @@ import {
   Upload,
   Check,
   Maximize2,
-  Minimize2
+  Minimize2,
+  X,
+  Sparkles
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { getAuthData } from '@/utils/storage';
@@ -70,6 +72,7 @@ function TrackingContent() {
   const [showInstanceSelector, setShowInstanceSelector] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideInactive, setHideInactive] = useState(false);
+  const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | null>(null);
 
   // Valeurs de configuration pour la densification
   const CELL_WIDTH = 32; // px
@@ -207,6 +210,33 @@ function TrackingContent() {
     return matchesSearch && matchesTeam && matchesGroup && matchesActivity;
   });
 
+  const teamStats = teams.map(team => {
+    const teamChildren = data.children.filter(c => c.teamId === team.id);
+    const total = teamChildren.reduce((sum, c) => sum + c.total, 0);
+    return {
+      ...team,
+      total,
+      memberCount: teamChildren.length,
+      avg: teamChildren.length > 0 ? Math.round(total / teamChildren.length) : 0
+    };
+  }).sort((a, b) => b.total - a.total);
+
+  const groupStats = groups.map(group => {
+    const groupChildren = data.children.filter(c => c.groupId === group.id);
+    const total = groupChildren.reduce((sum, c) => sum + c.total, 0);
+    return {
+      ...group,
+      total,
+      memberCount: groupChildren.length,
+      avg: groupChildren.length > 0 ? Math.round(total / groupChildren.length) : 0
+    };
+  }).sort((a, b) => b.total - a.total);
+
+  const topTeam = teamStats[0];
+  const topChild = data.children.length > 0 
+    ? [...data.children].sort((a, b) => b.total - a.total)[0]
+    : null;
+
   const getHeatmapStyle = (count: number) => {
     if (count === 0) return 'bg-slate-50/30 text-slate-300';
     if (count <= 2) return 'bg-emerald-100 text-emerald-800 font-bold';
@@ -282,12 +312,12 @@ function TrackingContent() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
         <GlassCard className="p-4 flex flex-col justify-between h-[110px]">
           <div className="flex items-start justify-between w-full">
             <div className="flex flex-col gap-1">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions Totales</p>
-              <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">+12% cette sem.</span>
+              <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">Global</span>
             </div>
             <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500">
               <TrendingUp size={18} />
@@ -295,33 +325,54 @@ function TrackingContent() {
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="text-3xl font-black text-slate-800">{data.grandTotal.toLocaleString()}</h3>
-            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap">Depuis le début du jeu</p>
+            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap">Cumulées</p>
           </div>
         </GlassCard>
 
         <GlassCard className="p-4 flex flex-col justify-between h-[110px]">
           <div className="flex items-start justify-between w-full">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cette Semaine</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dernière Semaine</p>
             <div className="p-2 bg-blue-50 rounded-xl text-blue-500">
               <Calendar size={18} />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="text-3xl font-black text-slate-800">{data.weeklyTotals[data.weeklyTotals.length - 1]?.toLocaleString() || 0}</h3>
-            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap">Actions en S{data.config.periodsCount}</p>
+            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap">Actions en S{data.weeklyTotals.length}</p>
           </div>
         </GlassCard>
 
-        <GlassCard className="p-4 flex flex-col justify-between h-[110px]">
+        {/* TOP EQUIPE */}
+        <GlassCard 
+          onClick={() => setLeaderboardType('team')}
+          className="p-4 flex flex-col justify-between h-[110px] cursor-pointer hover:border-amber-500/30 hover:bg-amber-50/10 transition-all group"
+        >
           <div className="flex items-start justify-between w-full">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Top Enfant</p>
-            <div className="p-2 bg-amber-50 rounded-xl text-amber-500">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-amber-600 transition-colors">Top Équipe</p>
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-600 group-hover:scale-110 transition-transform">
               <Trophy size={18} />
             </div>
           </div>
           <div className="flex items-baseline gap-2 overflow-hidden">
-            <h3 className="text-2xl font-black text-slate-800 truncate select-none">@{data.children.reduce((prev, current) => (prev.total > current.total) ? prev : current).pseudo}</h3>
-            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap truncate">{data.children.reduce((prev, current) => (prev.total > current.total) ? prev : current).total} actions</p>
+            <h3 className="text-2xl font-black text-slate-800 truncate">{topTeam?.name || '---'}</h3>
+            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap truncate">{topTeam?.total || 0} pts</p>
+          </div>
+        </GlassCard>
+
+        {/* TOP ENFANT */}
+        <GlassCard 
+          onClick={() => setLeaderboardType('child')}
+          className="p-4 flex flex-col justify-between h-[110px] cursor-pointer hover:border-emerald-500/30 hover:bg-emerald-50/10 transition-all group border-emerald-100/50"
+        >
+          <div className="flex items-start justify-between w-full">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Top Enfant</p>
+            <div className="p-2 bg-emerald-100 rounded-xl text-emerald-600 group-hover:scale-110 transition-transform">
+              <Trophy size={18} />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2 overflow-hidden">
+            <h3 className="text-2xl font-black text-slate-800 truncate">{topChild?.pseudo || '---'}</h3>
+            <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap truncate">{topChild?.total || 0} act.</p>
           </div>
         </GlassCard>
 
@@ -385,7 +436,7 @@ function TrackingContent() {
                       onChange={(e) => setSelectedGroup(e.target.value)}
                       className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600 cursor-pointer"
                     >
-                      <option value="all">Toutes les classes</option>
+                      <option value="all">Tous les groupes</option>
                       {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                     </select>
 
@@ -452,7 +503,7 @@ function TrackingContent() {
                                 <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-xs">
                                    <img src={getPlayerAvatar(child.pseudo, child.avatar)} alt="" className="w-full h-full object-cover" />
                                 </div>
-                                <span className="text-[9px] font-black text-emerald-600 truncate">@{child.pseudo}</span>
+                                <span className="text-[9px] font-black text-emerald-600 truncate">{child.pseudo}</span>
                               </div>
                             </td>
                             <td className="w-[60px] px-3 py-1.5 text-center font-black text-[10px] text-slate-800 bg-emerald-50/10">
@@ -553,6 +604,259 @@ function TrackingContent() {
             onImport={() => fetchStats()}
         />
       )}
+
+      {/* LEADERBOARD OVERLAY */}
+      <AnimatePresence>
+        {leaderboardType && (
+          <LeaderboardOverlay 
+            type={leaderboardType}
+            teamData={teamStats}
+            groupData={groupStats}
+            childData={[...filteredChildren].sort((a, b) => b.total - a.total)}
+            onClose={() => setLeaderboardType(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// COMPOSANT LEADERBOARD PREMIUM
+const LeaderboardOverlay = ({ type, teamData, groupData, childData, onClose }: { 
+  type: 'child' | 'team', 
+  teamData: any[], 
+  groupData: any[],
+  childData: any[],
+  onClose: () => void 
+}) => {
+  const [localType, setLocalType] = useState<'child' | 'team' | 'group'>(type);
+  
+  const currentData = localType === 'team' ? teamData : localType === 'group' ? groupData : childData;
+  const title = localType === 'team' ? 'Classement des Équipes' : localType === 'group' ? 'Classement des Groupes' : 'Classement des Joueurs';
+  const unit = localType === 'team' ? 'points' : localType === 'group' ? 'points' : 'actions';
+  
+  // Top 3 pour le podium
+  const top3 = currentData.slice(0, 3);
+  const others = currentData.slice(3);
+  const maxScore = currentData[0]?.total || 1;
+
+  const getPlayerAvatar = (pseudo: string, avatarPath?: string) => {
+    if (avatarPath) return avatarPath;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-10"
+    >
+      <div 
+        className="absolute inset-0 bg-slate-950/20 backdrop-blur-md" 
+        onClick={onClose}
+      />
+      
+      <motion.div 
+        initial={{ scale: 0.9, y: 20, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.9, y: 20, opacity: 0 }}
+        className="relative w-full max-w-xl max-h-[90vh] bg-white/40 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-slate-950/20 overflow-hidden border border-white/50 flex flex-col"
+      >
+        {/* Header */}
+        <div className="p-6 pb-4 flex flex-col border-b border-slate-100/30 shrink-0 gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
+                <Trophy size={20} />
+              </div>
+              <h2 className="text-xl font-black text-slate-800 tracking-tight">{title}</h2>
+            </div>
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-xl bg-white/50 text-slate-400 hover:text-slate-800 hover:bg-white transition-all shadow-sm"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Tab Selector (only for collectives) */}
+          {(type === 'team' || type === 'group') && (
+            <div className="flex bg-slate-100/50 p-1 rounded-xl w-full">
+              <button 
+                onClick={() => setLocalType('team')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-black tracking-tight rounded-lg transition-all ${localType === 'team' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Users size={14} />
+                ÉQUIPES
+              </button>
+              <button 
+                onClick={() => setLocalType('group')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 text-[10px] font-black tracking-tight rounded-lg transition-all ${localType === 'group' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Building2 size={14} />
+                GROUPES
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-2">
+          {/* PODIUM */}
+          {currentData.length > 0 ? (
+            <>
+          <div className="grid grid-cols-3 gap-3 mb-6 items-end max-w-md mx-auto pt-4 text-center">
+            {/* 2nd Place - Silver Medal */}
+            {top3[1] && (
+              <motion.div 
+                key={`${localType}-2`}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-col items-center gap-3"
+              >
+                <div className="relative group/medal">
+                  {/* Medal Glow */}
+                  <div className="absolute inset-0 bg-slate-300/30 rounded-full blur-xl group-hover:bg-slate-300/50 transition-colors" />
+                  
+                  <div className="relative w-16 h-16 rounded-full border-[6px] border-slate-300 overflow-hidden shadow-xl bg-white flex items-center justify-center z-10 transition-transform hover:scale-105">
+                    {localType !== 'child' ? (
+                       <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-50">
+                         {localType === 'team' ? <Users size={24} /> : <Building2 size={24} />}
+                       </div>
+                    ) : (
+                      <img src={getPlayerAvatar(top3[1].pseudo, top3[1].avatar)} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-7 h-7 bg-gradient-to-br from-slate-200 to-slate-400 rounded-full flex items-center justify-center text-[10px] font-black text-slate-700 shadow-lg border-2 border-white z-20">2</div>
+                </div>
+                <div className="w-full bg-slate-100/60 backdrop-blur-sm rounded-xl p-2 text-center border border-slate-200">
+                  <p className="text-[10px] font-black text-slate-800 truncate mb-0.5">{localType === 'child' ? top3[1].pseudo : top3[1].name}</p>
+                  <p className="text-[9px] font-bold text-slate-500">{top3[1].total} {unit}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 1st Place - Gold Medal */}
+            {top3[0] && (
+              <motion.div 
+                key={`${localType}-1`}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div className="relative group/medal">
+                  {/* Olympic Sparkle Animation */}
+                   <motion.div 
+                    animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }} 
+                    transition={{ repeat: Infinity, duration: 4 }} 
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 text-amber-500 drop-shadow-lg z-20"
+                   >
+                     <Sparkles size={32} />
+                   </motion.div>
+                   
+                   {/* Gold Glow */}
+                  <div className="absolute inset-0 bg-amber-400/40 rounded-full blur-2xl group-hover:bg-amber-400/60 transition-colors" />
+
+                  <div className="relative w-24 h-24 rounded-full border-[8px] border-amber-400 overflow-hidden shadow-2xl shadow-amber-500/40 bg-white flex items-center justify-center z-10 scale-110 transition-transform hover:scale-115">
+                    {localType !== 'child' ? (
+                       <div className="w-full h-full flex items-center justify-center text-amber-500 bg-gradient-to-br from-amber-50 to-amber-100">
+                          {localType === 'team' ? <Users size={32} /> : <Building2 size={32} />}
+                       </div>
+                    ) : (
+                      <img src={getPlayerAvatar(top3[0].pseudo, top3[0].avatar)} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-9 h-9 bg-gradient-to-br from-amber-300 to-amber-500 rounded-full flex items-center justify-center text-xs font-black text-white shadow-xl border-2 border-white z-20">1</div>
+                </div>
+                <div className="w-full bg-amber-50/80 backdrop-blur-sm rounded-xl p-3 text-center border border-amber-200 shadow-xl shadow-amber-500/5">
+                  <p className="text-sm font-black text-slate-800 truncate mb-0.5">{localType === 'child' ? top3[0].pseudo : top3[0].name}</p>
+                  <p className="text-[10px] font-black text-amber-600">{top3[0].total} {unit}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* 3rd Place - Bronze Medal */}
+            {top3[2] && (
+              <motion.div 
+                key={`${localType}-3`}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex flex-col items-center gap-3"
+              >
+                <div className="relative group/medal">
+                  {/* Bronze Glow */}
+                  <div className="absolute inset-0 bg-orange-400/20 rounded-full blur-xl group-hover:bg-orange-400/40 transition-colors" />
+
+                  <div className="relative w-16 h-16 rounded-full border-[6px] border-orange-400 overflow-hidden shadow-xl bg-white flex items-center justify-center z-10 transition-transform hover:scale-105">
+                    {localType !== 'child' ? (
+                       <div className="w-full h-full flex items-center justify-center text-orange-500 bg-orange-50">
+                          {localType === 'team' ? <Users size={24} /> : <Building2 size={24} />}
+                       </div>
+                    ) : (
+                      <img src={getPlayerAvatar(top3[2].pseudo, top3[2].avatar)} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-7 h-7 bg-gradient-to-br from-orange-300 to-orange-500 rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-lg border-2 border-white z-20">3</div>
+                </div>
+                <div className="w-full bg-orange-50/40 backdrop-blur-sm rounded-xl p-2 text-center border border-orange-200">
+                  <p className="text-[10px] font-black text-slate-800 truncate mb-0.5">{localType === 'child' ? top3[2].pseudo : top3[2].name}</p>
+                  <p className="text-[9px] font-bold text-orange-600/70">{top3[2].total} {unit}</p>
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* LIST */}
+          <div className="space-y-1.5 mt-4">
+            {others.map((item, idx) => (
+              <motion.div 
+                key={`${localType}-${idx}`}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.1 + idx * 0.05 }}
+                className="group flex items-center gap-3 p-2 rounded-2xl border border-slate-100 bg-white/30 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all hover:-translate-y-0.5"
+              >
+                <div className="w-8 text-[10px] font-black text-slate-400 group-hover:text-slate-800 transition-colors">#{idx + 4}</div>
+                
+                <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                  {localType !== 'child' ? (
+                    localType === 'team' ? <Users size={14} className="text-slate-400" /> : <Building2 size={14} className="text-slate-400" />
+                  ) : (
+                    <img src={getPlayerAvatar(item.pseudo, item.avatar)} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <span className="text-[11px] font-black text-slate-800">{localType === 'child' ? item.pseudo : item.name}</span>
+                    <span className="text-[11px] font-black text-slate-900">{item.total} <span className="text-[9px] text-slate-400 uppercase tracking-tighter ml-1 font-medium">{unit}</span></span>
+                  </div>
+                  {/* Progress Bar */}
+                  <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                      key={`${localType}-${idx}-progress`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(item.total / maxScore) * 100}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-full rounded-full ${localType === 'child' ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 italic text-sm">
+              <Users size={40} className="mb-4 opacity-20" />
+              Pas encore de données
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};

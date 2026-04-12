@@ -668,8 +668,8 @@ function OrganizationContent() {
          onSave={handleSaveGroup}
          onDelete={!isNewGroup ? async () => {
            setConfirmData({
-             title: "Supprimer cette classe",
-             description: `Êtes-vous sûr de vouloir supprimer la classe "${selectedGroup?.name}" ? Tous les joueurs associés seront également supprimés.`,
+             title: "Supprimer ce groupe",
+             description: `Êtes-vous sûr de vouloir supprimer le groupe "${selectedGroup?.name}" ? Tous les joueurs associés seront également supprimés.`,
              onConfirm: () => handleBulkDelete('groups', [selectedGroup!.id])
            });
          } : undefined}
@@ -943,7 +943,7 @@ function TeamCard({
                     <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
                        <Plus size={20} />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest">Nouvelle classe</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest">Nouveau groupe</span>
                   </button>
                 </div>
 
