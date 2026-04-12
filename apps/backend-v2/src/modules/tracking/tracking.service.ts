@@ -161,7 +161,7 @@ export class TrackingService {
       const row = rows[i];
       const lineNum = i + 2;
 
-      const actionRefCode = row['Arction ref']?.toString().trim();
+      const actionRefCode = row['Action ref']?.toString().trim();
       const teamName = row['Team']?.toString().trim();
       const groupName = row['Group']?.toString().trim();
       const childPseudo = row['Children']?.toString().trim();

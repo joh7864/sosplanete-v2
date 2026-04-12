@@ -16,7 +16,9 @@ import {
   Loader2,
   Building2,
   Upload,
-  Check
+  Check,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { getAuthData } from '@/utils/storage';
@@ -66,6 +68,13 @@ function TrackingContent() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showInstanceSelector, setShowInstanceSelector] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hideInactive, setHideInactive] = useState(false);
+
+  // Valeurs de configuration pour la densification
+  const CELL_WIDTH = 32; // px
+  const STATIC_COLS_WIDTH = 340; // Total des colonnes de gauche
+
 
   useEffect(() => {
     fetchInstances();
@@ -194,7 +203,8 @@ function TrackingContent() {
                          c.teamName.toLowerCase().includes(search.toLowerCase());
     const matchesTeam = selectedTeam === 'all' || c.teamId.toString() === selectedTeam;
     const matchesGroup = selectedGroup === 'all' || c.groupId.toString() === selectedGroup;
-    return matchesSearch && matchesTeam && matchesGroup;
+    const matchesActivity = !hideInactive || c.total > 0;
+    return matchesSearch && matchesTeam && matchesGroup && matchesActivity;
   });
 
   const getHeatmapStyle = (count: number) => {
@@ -210,10 +220,12 @@ function TrackingContent() {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
   };
 
+  const activeInstanceName = managedInstances.find(i => i.id === instanceId)?.schoolName;
+
   return (
     <div className="flex flex-col gap-4 pb-20">
       <TopBar 
-        title="Suivi Jeux" 
+        title={`Suivi Jeux ${activeInstanceName ? `• ${activeInstanceName}` : ''}`} 
         actions={
           <div className="flex items-center gap-2">
             {userRole === 'AS' && instanceId && (
@@ -329,134 +341,162 @@ function TrackingContent() {
         </GlassCard>
       </div>
 
-      {/* Main Table Section */}
-      <GlassCard className="p-0 overflow-hidden border-none shadow-2xl bg-white/80">
-        <div className="p-6 border-b border-slate-100 flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-               <h2 className="text-xl font-black text-slate-800">Détails des Actions</h2>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Heatmap de performance par enfant</p>
-            </div>
-            
-            <div className="flex flex-wrap gap-3">
-               {/* Team Filter */}
-               <select 
-                 value={selectedTeam}
-                 onChange={(e) => { setSelectedTeam(e.target.value); setSelectedGroup('all'); }}
-                 className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600"
-               >
-                 <option value="all">Toutes les équipes</option>
-                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-               </select>
-
-               {/* Group Filter */}
-               <select 
-                 value={selectedGroup}
-                 onChange={(e) => setSelectedGroup(e.target.value)}
-                 className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600"
-               >
-                 <option value="all">Toutes les classes</option>
-                 {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-               </select>
-
-               <div className="relative">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                 <input 
-                   type="text" 
-                   placeholder="Rechercher..." 
-                   value={search}
-                   onChange={(e) => setSearch(e.target.value)}
-                   className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-full md:w-48 font-black"
-                 />
-               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto custom-scrollbar">
-          <div className="min-w-[1000px]">
-          <table className="w-full text-left border-collapse table-fixed">
-            <thead>
-              <tr className="bg-slate-50/50">
-                <th className="w-[100px] p-4 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-0 bg-slate-50/50 z-20">Équipe</th>
-                <th className="w-[100px] p-4 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-[100px] bg-slate-50/50 z-20">Groupe</th>
-                <th className="w-[140px] p-4 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Enfant</th>
-                <th className="w-[70px] p-4 text-[9px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 text-center bg-emerald-50/50">Total</th>
-                <th className="p-0 border-b border-slate-100">
-                  <div className="flex">
-                    {data.periods.map((p, i) => (
-                      <div key={i} className="flex-1 p-1 text-[9px] font-black uppercase text-slate-500 tracking-tighter border-l border-slate-100/50 min-w-[40px] text-center flex flex-col items-center justify-center h-16 bg-white/50">
-                        <span className="text-slate-400 text-[8px]">{p.label}</span>
-                        <span className="text-slate-800 font-bold mt-0.5">
-                          {new Date(p.start).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                        </span>
-                      </div>
-                    ))}
+      {/* Heatmap Section */}
+      <div className={`transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950/20 backdrop-blur-md p-4 md:p-10 flex items-center justify-center' : ''}`}>
+        <GlassCard padding="none" className={`overflow-hidden border-none shadow-2xl transition-all duration-300 ${isFullscreen ? 'w-full h-full' : ''}`}>
+          <div className={`flex flex-col h-full ${isFullscreen ? 'p-8' : 'p-6'}`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Détail des actions</h2>
+                    <div className="px-2 py-0.5 rounded-full bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-tighter">Live</div>
                   </div>
-                </th>
-              </tr>
-            </thead>
-          </table>
-          
-          <div className="max-h-[710px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse table-fixed">
-              <tbody className="divide-y divide-slate-100">
-                {filteredChildren.map((child) => (
-                  <tr key={child.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="w-[100px] px-4 py-2 border-b border-slate-100 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 text-[10px] font-black text-slate-800 truncate">
-                      {child.teamName}
-                    </td>
-                    <td className="w-[100px] px-4 py-2 border-b border-slate-100 sticky left-[100px] bg-white group-hover:bg-slate-50/50 z-10 text-[9px] font-bold text-slate-400 uppercase tracking-tight truncate">
-                      {child.groupName}
-                    </td>
-                    <td className="w-[140px] px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-sm">
-                           <img src={getPlayerAvatar(child.pseudo, child.avatar)} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-[10px] font-black text-emerald-600 truncate">@{child.pseudo}</span>
-                      </div>
-                    </td>
-                    <td className="w-[70px] px-4 py-2 text-center font-black text-xs text-slate-800 bg-emerald-50/10">
-                      {child.total}
-                    </td>
-                    <td className="p-0">
-                      <div className="flex h-full">
-                        {child.weeks.map((count, i) => (
-                          <div key={i} className="flex-1 min-w-[40px] px-0.5 py-1 h-11 flex items-center justify-center border-l border-slate-50/50">
-                            <div className={`w-full h-full rounded-md flex items-center justify-center text-[10px] transition-all hover:scale-110 cursor-default ${getHeatmapStyle(count)}`}>
-                              {count > 0 ? count : <div className="w-1 h-1 rounded-full bg-slate-200" />}
-                            </div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Saisie hebdomadaire par élève</p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                      {/* Hide Inactive Toggle */}
+                      <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                        <input 
+                          type="checkbox"
+                          checked={hideInactive}
+                          onChange={(e) => setHideInactive(e.target.checked)}
+                          className="w-3 h-3 accent-emerald-500 rounded border-slate-300"
+                        />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">Masquer inactifs</span>
+                      </label>
+
+                    {/* Team Filter */}
+                    <select 
+                      value={selectedTeam}
+                      onChange={(e) => {
+                        setSelectedTeam(e.target.value);
+                        setSelectedGroup('all');
+                      }}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600 cursor-pointer"
+                    >
+                      <option value="all">Toutes les équipes</option>
+                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+
+                    {/* Group Filter */}
+                    <select 
+                      value={selectedGroup}
+                      onChange={(e) => setSelectedGroup(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600 cursor-pointer"
+                    >
+                      <option value="all">Toutes les classes</option>
+                      {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                      <input 
+                        type="text" 
+                        placeholder="Chercher élève..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-xl text-[10px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-full md:w-40 font-black"
+                      />
+                    </div>
+
+                    {/* FULLSCREEN TOGGLE */}
+                    <button 
+                      onClick={() => setIsFullscreen(!isFullscreen)}
+                      className={`p-1.5 rounded-xl border transition-all ${isFullscreen ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50 hover:text-slate-900'}`}
+                      title={isFullscreen ? "Quitter le plein écran" : "Passer en plein écran"}
+                    >
+                      {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                    </button>
+                </div>
+              </div>
+
+              <div className={`overflow-x-auto custom-scrollbar flex-1 ${isFullscreen ? 'h-full' : ''}`}>
+                <div className={`min-w-fit flex flex-col ${isFullscreen ? 'h-full' : ''}`}>
+                  <table className="w-full text-left border-collapse table-fixed">
+                    <thead>
+                      <tr className="bg-slate-50/50">
+                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-0 bg-slate-50/50 z-20">Équipe</th>
+                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-[80px] bg-slate-50/50 z-20">Groupe</th>
+                        <th className="w-[120px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Enfant</th>
+                        <th className="w-[60px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 text-center bg-emerald-50/50">Total</th>
+                        <th className="p-0 border-b border-slate-100">
+                          <div className="flex">
+                            {data.periods.map((p, i) => (
+                              <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-0.5 text-[8px] font-black uppercase text-slate-500 tracking-tighter border-l border-slate-100/50 text-center flex flex-col items-center justify-center h-12 bg-white/50">
+                                <span className="text-slate-400 text-[7px] leading-none opacity-70">{p.label}</span>
+                                <span className="text-slate-800 font-bold mt-0.5 leading-none">
+                                  {new Date(p.start).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                                </span>
+                              </div>
+                            ))}
                           </div>
+                        </th>
+                      </tr>
+                    </thead>
+                  </table>
+                  
+                  <div className={`custom-scrollbar ${isFullscreen ? 'flex-1 overflow-y-auto' : 'max-h-[600px] overflow-y-auto'}`}>
+                    <table className="w-full text-left border-collapse table-fixed">
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredChildren.map((child) => (
+                          <tr key={child.id} className="hover:bg-slate-50/50 transition-colors group">
+                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 text-[9px] font-black text-slate-800 truncate">
+                              {child.teamName}
+                            </td>
+                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-[80px] bg-white group-hover:bg-slate-50/50 z-10 text-[8px] font-bold text-slate-400 uppercase tracking-tight truncate">
+                              {child.groupName}
+                            </td>
+                            <td className="w-[120px] px-3 py-1.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-xs">
+                                   <img src={getPlayerAvatar(child.pseudo, child.avatar)} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="text-[9px] font-black text-emerald-600 truncate">@{child.pseudo}</span>
+                              </div>
+                            </td>
+                            <td className="w-[60px] px-3 py-1.5 text-center font-black text-[10px] text-slate-800 bg-emerald-50/10">
+                              {child.total}
+                            </td>
+                            <td className="p-0">
+                              <div className="flex h-full">
+                                {child.weeks.map((count, i) => (
+                                  <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="px-0.5 py-0.5 h-9 flex items-center justify-center border-l border-slate-50/50">
+                                    <div className={`w-full h-full rounded-md flex items-center justify-center text-[10px] transition-all hover:scale-110 cursor-default ${getHeatmapStyle(count)}`}>
+                                      {count > 0 ? count : <div className="w-1 h-1 rounded-full bg-slate-200" />}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
                         ))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <table className="w-full text-left border-collapse table-fixed">
-            <tfoot>
-              <tr className="bg-slate-900 text-white">
-                <td className="w-[340px] p-4 text-[10px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire</td>
-                <td className="w-[70px] p-4 text-center font-black text-sm text-white">{data.grandTotal}</td>
-                <td className="p-0">
-                  <div className="flex">
-                    {data.weeklyTotals.map((total, i) => (
-                      <div key={i} className="flex-1 min-w-[40px] p-2 text-center text-[10px] font-black text-white border-l border-white/10">
-                        {total}
-                      </div>
-                    ))}
+                      </tbody>
+                    </table>
                   </div>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+
+                  <table className="w-full text-left border-collapse table-fixed">
+                    <tfoot>
+                      <tr className="bg-slate-900 text-white">
+                        <td className="w-[340px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire</td>
+                        <td className="w-[60px] px-3 py-2 text-center font-black text-[10px] text-white">{data.grandTotal}</td>
+                        <td className="p-0">
+                          <div className="flex">
+                            {data.weeklyTotals.map((total, i) => (
+                              <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-1.5 text-center text-[9px] font-black text-white border-l border-white/10">
+                                {total}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
           </div>
-        </div>
-      </GlassCard>
+        </GlassCard>
+      </div>
 
       {/* Global Evolution Chart */}
       <GlassCard className="p-8">

@@ -8,6 +8,10 @@ export class InstanceService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateInstanceDto) {
+    if (data.gameStartDate && typeof data.gameStartDate === 'string') {
+      data.gameStartDate = new Date(data.gameStartDate);
+    }
+
     return this.prisma.instance.create({
       data: {
         schoolName: data.schoolName,
@@ -114,6 +118,11 @@ export class InstanceService {
 
   async update(id: number, data: UpdateInstanceDto) {
     await this.findOne(id);
+
+    // Prisma exige un objet Date, on convertit la chaîne si besoin
+    if (data.gameStartDate && typeof data.gameStartDate === 'string') {
+      data.gameStartDate = new Date(data.gameStartDate);
+    }
 
     const updated = await this.prisma.instance.update({
       where: { id },

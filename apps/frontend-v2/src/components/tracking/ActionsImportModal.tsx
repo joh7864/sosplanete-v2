@@ -61,7 +61,7 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
         if (results.data && results.data.length > 0) {
           // Vérification sommaire des colonnes
           const headers = results.meta.fields || [];
-          const required = ['Arction ref', 'Team', 'Group', 'Children', 'Date'];
+          const required = ['Action ref', 'Team', 'Group', 'Children', 'Date'];
           const missing = required.filter(h => !headers.includes(h));
           
           if (missing.length > 0) {
@@ -319,7 +319,7 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
                               <tbody>
                                 {preview.map((row, i) => (
                                   <tr key={i} className="border-b border-slate-100/50 last:border-none hover:bg-white/50 transition-colors">
-                                    <td className="px-3 py-2 font-bold text-emerald-600">{row['Arction ref']}</td>
+                                    <td className="px-3 py-2 font-bold text-emerald-600">{row['Action ref']}</td>
                                     <td className="px-3 py-2 text-slate-600 font-medium">{row['Team']}</td>
                                     <td className="px-3 py-2 text-slate-500">{row['Group']}</td>
                                     <td className="px-3 py-2 text-slate-800 font-black">{row['Children']}</td>

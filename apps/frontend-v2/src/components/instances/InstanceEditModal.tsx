@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Trash2, Globe, Link as LinkIcon, Users, Loader2, AlertTriangle, Lock, Unlock } from 'lucide-react';
+import { X, Save, Trash2, Globe, Link as LinkIcon, Users, Loader2, AlertTriangle, Lock, Unlock, Calendar, Hash } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -19,6 +19,8 @@ export const InstanceEditModal: React.FC<InstanceEditModalProps> = ({ instance, 
   const [hostUrl, setHostUrl] = useState(instance?.hostUrl || '');
   const [adminId, setAdminId] = useState<number | undefined>(instance?.adminId);
   const [instanceIsOpen, setInstanceIsOpen] = useState<boolean>(instance?.isOpen || false);
+  const [gameStartDate, setGameStartDate] = useState(instance?.gameStartDate ? new Date(instance.gameStartDate).toISOString().split('T')[0] : '');
+  const [gamePeriodsCount, setGamePeriodsCount] = useState<number>(instance?.gamePeriodsCount || 24);
   const [users, setUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +60,8 @@ export const InstanceEditModal: React.FC<InstanceEditModalProps> = ({ instance, 
       hostUrl: hostUrl || undefined,
       adminId: adminId ? Number(adminId) : undefined,
       isOpen: instanceIsOpen,
+      gameStartDate: gameStartDate || undefined,
+      gamePeriodsCount: gamePeriodsCount ? Number(gamePeriodsCount) : undefined,
     };
 
     try {
@@ -142,6 +146,26 @@ export const InstanceEditModal: React.FC<InstanceEditModalProps> = ({ instance, 
                   value={hostUrl}
                   onChange={(e) => setHostUrl(e.target.value)}
                   icon={<LinkIcon size={18} />}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  label="Date de début du jeu"
+                  type="date"
+                  value={gameStartDate}
+                  onChange={(e) => setGameStartDate(e.target.value)}
+                  icon={<Calendar size={18} />}
+                />
+
+                <Input
+                  label="Nombre de périodes"
+                  type="number"
+                  min="1"
+                  max="52"
+                  value={gamePeriodsCount}
+                  onChange={(e) => setGamePeriodsCount(Number(e.target.value))}
+                  icon={<Hash size={18} />}
                 />
               </div>
 
