@@ -50,7 +50,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between px-6 lg:px-10 py-3 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-6 -mt-6 lg:-mx-10 lg:-mt-10 mb-6 lg:mb-8 w-[calc(100%+3rem)] lg:w-[calc(100%+5rem)]">
+    <header className="sticky top-0 z-40 flex items-center justify-between px-6 lg:px-10 py-3 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]">
       
       {/* Dynamic Title */}
       <div className="flex items-center gap-4">

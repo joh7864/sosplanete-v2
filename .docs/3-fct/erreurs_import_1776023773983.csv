@@ -1,0 +1,413 @@
+﻿Ligne;Erreur
+2;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+3;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+4;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+5;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+6;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+7;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+8;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+9;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+10;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+11;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+12;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+13;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+14;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+15;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+16;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+17;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+18;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+19;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+20;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+21;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+22;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+23;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+24;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+25;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+26;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+27;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+28;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+29;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+30;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+31;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+32;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+33;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+34;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+35;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+36;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+37;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+38;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+39;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+40;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+41;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+42;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+43;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+44;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+45;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+46;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+47;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+48;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+49;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+50;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+51;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+52;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+53;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+54;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+55;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+56;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+57;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+58;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+59;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+60;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+61;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+62;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+63;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+64;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+65;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+66;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+67;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+68;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+69;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+70;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+71;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+72;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+73;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+74;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+75;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+76;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+77;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+78;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+79;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+80;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+81;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+82;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+83;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+84;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+85;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+86;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+87;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+88;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+89;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+90;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+91;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+92;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+93;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+94;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+95;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+96;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+97;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+98;"Groupe ""Rouges maternelles "" inconnu pour l'équipe ""ROUGES""."
+99;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+100;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."
+101;"Erreur technique (
+Invalid `this.prisma.actionDone.create()` invocation in
+C:\Users\User\Documents\Sync Pcloud\Professionnel\Dev\sosplanete-v2\apps\backend-v2\src\modules\tracking\tracking.service.ts:240:38
+
+  237     }
+  238 });
+  239 
+→ 240 await this.prisma.actionDone.create(
+Foreign key constraint violated on the constraint: `ActionDone_periodId_fkey`)."

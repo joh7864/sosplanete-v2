@@ -114,9 +114,10 @@ export default function UsersManagementPage() {
           <Button 
             variant="primary" 
             onClick={() => setShowAddModal(true)} 
-            className="h-9 px-5 gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 text-white font-black uppercase tracking-widest text-[10px]"
+            className="h-10 w-10 p-0 rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 text-white flex items-center justify-center border-none"
+            title="Nouvel Utilisateur"
           >
-            <Plus size={16} /> Nouvel Utilisateur
+            <Plus size={20} />
           </Button>
         }
       />

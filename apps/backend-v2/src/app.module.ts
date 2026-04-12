@@ -13,6 +13,7 @@ import { ChildModule } from './modules/child/child.module';
 import { LocalActionModule } from './modules/local-action/local-action.module';
 import { PeriodModule } from './modules/period/period.module';
 import { UsersModule } from './modules/users/users.module';
+import { TrackingModule } from './modules/tracking/tracking.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './modules/users/users.module';
     ChildModule,
     LocalActionModule,
     PeriodModule,
+    TrackingModule,
     ServeStaticModule.forRoot({
       rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
       serveRoot: '/uploads',

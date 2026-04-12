@@ -147,18 +147,24 @@ export default function CatalogPage() {
                 <button 
                    onClick={() => setViewMode('list')}
                    className={`p-1.5 flex items-center justify-center rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                   title="Vue Liste"
                 >
                     <List size={16} />
                 </button>
                 <button 
                    onClick={() => setViewMode('gallery')}
                    className={`p-1.5 flex items-center justify-center rounded-md transition-all ${viewMode === 'gallery' ? 'bg-white shadow-sm text-sky-600' : 'text-slate-400 hover:text-slate-600'}`}
+                   title="Vue Galerie"
                 >
                     <LayoutGrid size={16} />
                 </button>
             </div>
-            <Button variant="sky" className="gap-2 h-9 px-5 text-xs shadow-md shadow-sky-500/20">
-              <Plus size={16} /> Nouvelle
+            <Button 
+                variant="sky" 
+                className="h-10 w-10 p-0 rounded-xl shadow-md shadow-sky-500/20 flex items-center justify-center border-none"
+                title="Nouvelle Action"
+            >
+              <Plus size={20} />
             </Button>
           </>
         }

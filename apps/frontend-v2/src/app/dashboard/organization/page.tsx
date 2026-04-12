@@ -31,12 +31,15 @@ import {
   Unlock,
   Lock,
   Building2,
-  Box
+  Box,
+  BarChart2,
+  Calendar
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import { formatEcoImpact } from '@/utils/format';
 
 export default function OrganizationPage() {
   return (
@@ -63,6 +66,10 @@ function OrganizationContent() {
   const [instanceId, setInstanceId] = useState<number | null>(urlInstanceId ? parseInt(urlInstanceId) : null);
 
   const [managedInstances, setManagedInstances] = useState<any[]>([]);
+  const [amUsers, setAmUsers] = useState<any[]>([]);
+  const [activePopoverId, setActivePopoverId] = useState<number | null>(null);
+  const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     // Check managed instances
@@ -76,7 +83,69 @@ function OrganizationContent() {
         setInstanceId(parseInt(savedActiveId));
       }
     }
+
+    const role = getAuthData('user_role');
+    setUserRole(role);
+    if (role === 'AS') {
+      fetchAMUsers();
+    }
+
+    const handleClickOutside = () => setActivePopoverId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
   }, [instanceId]);
+
+  const fetchAMUsers = async () => {
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        const allUsers = await resp.json();
+        setAmUsers(allUsers.filter((u: any) => u.role === 'AM' || u.role === 'AS'));
+      }
+    } catch (e) {
+      console.error('Fetch users error:', e);
+    }
+  };
+
+  const updateManagedInstances = async () => {
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setManagedInstances(data);
+        setAuthData('managed_instances', JSON.stringify(data));
+        window.dispatchEvent(new Event('storage'));
+      }
+    } catch (e) {
+      console.error('Fetch instances error:', e);
+    }
+  };
+
+  const handleAdminChange = async (targetInstanceId: number, newAdminId: number) => {
+    setUpdatingAdminId(targetInstanceId);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${targetInstanceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+        body: JSON.stringify({ adminId: newAdminId }),
+      });
+      if (resp.ok) {
+        await updateManagedInstances();
+        setActivePopoverId(null);
+      }
+    } catch (e) {
+      console.error('Update admin error:', e);
+    } finally {
+      setUpdatingAdminId(null);
+    }
+  };
 
   const activeInstanceName = managedInstances.find(i => i.id.toString() === instanceId?.toString())?.schoolName || "l'Organisation";
 
@@ -246,13 +315,14 @@ function OrganizationContent() {
           selector={
             managedInstances.length > 1 ? (
                   <div className="relative">
-                      <motion.button
+                       <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
                               document.getElementById('in-page-switcher')?.classList.toggle('hidden');
                           }}
                           className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all text-slate-400 hover:text-emerald-500"
+                          title="Changer d'académie"
                       >
                           <Building2 size={24} />
                       </motion.button>
@@ -302,6 +372,13 @@ function OrganizationContent() {
               Gestion du Catalogue
               {activeTab === 'catalog' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-full" />}
             </button>
+            <button 
+              onClick={() => setActiveTab('settings' as any)}
+              className={`pb-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === ('settings' as any) ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Paramètres du Jeu
+              {activeTab === ('settings' as any) && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-full" />}
+            </button>
           </div>
         )}
 
@@ -331,9 +408,69 @@ function OrganizationContent() {
                             <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
                                 <Building2 size={24} />
                             </div>
-                            <div className="flex flex-col items-center">
+                            <div className="flex flex-col items-center flex-1">
                                 <span className="font-black text-slate-800">{inst.schoolName}</span>
                                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">{inst.hostUrl}</span>
+                            </div>
+                            
+                            <div className="w-full mt-2 pt-4 border-t border-slate-100 flex items-center justify-between">
+                              <div 
+                                className="flex items-center gap-2 relative group/popover"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (userRole === 'AS') setActivePopoverId(activePopoverId === inst.id ? null : inst.id);
+                                }}
+                              >
+                                <div className={`w-8 h-8 rounded-full bg-slate-50 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 transition-transform ${userRole === 'AS' ? 'group-hover/popover:scale-105 cursor-pointer' : ''} ${updatingAdminId === inst.id ? 'opacity-50' : ''}`}>
+                                  {updatingAdminId === inst.id ? (
+                                    <Loader2 size={12} className="animate-spin text-emerald-500" />
+                                  ) : inst.admin?.avatar ? (
+                                    <img src={getAvatarUrl(inst.admin.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Users size={14} className="text-slate-300" />
+                                  )}
+                                </div>
+                                <div className="flex flex-col min-w-0 pr-2">
+                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-0.5">Gestionnaire</span>
+                                  <span className={`text-xs text-slate-800 font-bold truncate max-w-[100px] leading-tight transition-colors ${userRole === 'AS' ? 'group-hover/popover:text-emerald-600 cursor-pointer' : ''}`}>
+                                      {inst.admin?.name || inst.admin?.email?.split('@')[0] || 'Non assigné'}
+                                  </span>
+                                </div>
+
+                                {/* Admin Selector Popover (Only AS) */}
+                                <AnimatePresence>
+                                  {userRole === 'AS' && activePopoverId === inst.id && (
+                                    <motion.div 
+                                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                      animate={{ opacity: 1, y: -8, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.95 }}
+                                      className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[60] overflow-hidden text-left"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="p-3 border-b border-slate-50 bg-slate-50/50">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réassigner le gestionnaire</span>
+                                      </div>
+                                      <div className="max-h-[180px] overflow-y-auto p-1 custom-scrollbar">
+                                        {amUsers.map((user: any) => (
+                                          <button
+                                            key={user.id}
+                                            onClick={() => handleAdminChange(inst.id, user.id)}
+                                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl transition-all ${inst.adminId === user.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-600 font-medium'}`}
+                                          >
+                                            <div className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                              {user.avatar ? <img src={getAvatarUrl(user.avatar) || ''} className="w-full h-full object-cover" /> : <Users size={14} className="text-slate-300" />}
+                                            </div>
+                                            <div className="flex flex-col items-start overflow-hidden text-left">
+                                              <span className="text-xs font-bold truncate w-full">{user.name || 'Sans nom'}</span>
+                                              <span className="text-[9px] text-slate-400 truncate w-full">{user.email}</span>
+                                            </div>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
                             </div>
                         </motion.button>
                     ))}
@@ -385,29 +522,29 @@ function OrganizationContent() {
                 </div>
 
                 <div className="flex items-center gap-6 lg:gap-8 ml-auto">
-                   <div className="flex items-center gap-4 border-r border-slate-100 pr-6 mr-2">
-                       <div className="flex items-center gap-2">
-                          <Leaf size={18} className="text-emerald-500" />
-                          <div className="flex flex-col items-end">
-                            <span className="text-lg font-black text-slate-800 leading-none">{totalCo2}kg</span>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">CO2e</span>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                          <Droplets size={18} className="text-blue-500" />
-                          <div className="flex flex-col items-end">
-                            <span className="text-lg font-black text-slate-800 leading-none">{(totalWater / 1000).toFixed(1)}m³</span>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Eau</span>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-2">
-                          <Trash2 size={18} className="text-amber-500" />
-                          <div className="flex flex-col items-end">
-                            <span className="text-lg font-black text-slate-800 leading-none">{totalWaste}kg</span>
-                            <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Déchets</span>
-                          </div>
-                       </div>
-                   </div>
+                    <div className="flex items-center gap-4 border-r border-slate-100 pr-6 mr-2">
+                        <div className="flex items-center gap-2">
+                           <Leaf size={18} className="text-emerald-500" />
+                           <div className="flex flex-col items-end">
+                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalCo2, 'co2')}</span>
+                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">CO2e</span>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Droplets size={18} className="text-blue-500" />
+                           <div className="flex flex-col items-end">
+                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWater, 'water')}</span>
+                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Eau</span>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Trash2 size={18} className="text-amber-500" />
+                           <div className="flex flex-col items-end">
+                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWaste, 'waste')}</span>
+                             <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Déchets</span>
+                           </div>
+                        </div>
+                    </div>
 
                    <div className="flex items-center gap-2">
                       <button 
@@ -566,6 +703,8 @@ function OrganizationContent() {
       />
       
           </>
+        ) : activeTab === ('settings' as any) ? (
+          <GameSettingsSection instanceId={instanceId!} currentInstance={currentInstance} />
         ) : (
           <CatalogMapping instanceId={instanceId!} />
         )}
@@ -573,6 +712,114 @@ function OrganizationContent() {
     )}
     </div>
     </>
+  );
+}
+
+function GameSettingsSection({ instanceId, currentInstance }: { instanceId: number, currentInstance: any }) {
+  const [startDate, setStartDate] = useState(currentInstance?.gameStartDate ? new Date(currentInstance.gameStartDate).toISOString().split('T')[0] : '');
+  const [periods, setPeriods] = useState(currentInstance?.gamePeriodsCount?.toString() || '24');
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setStatus(null);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}` 
+        },
+        body: JSON.stringify({
+          gameStartDate: startDate ? new Date(startDate).toISOString() : null,
+          gamePeriodsCount: parseInt(periods)
+        }),
+      });
+
+      if (resp.ok) {
+        setStatus({ type: 'success', msg: 'Paramètres du jeu enregistrés avec succès !' });
+        // Mettre à jour les données locales pour que le changement soit immédiat ailleurs
+        const instances = JSON.parse(getAuthData('managed_instances') || '[]');
+        const updated = instances.map((inst: any) => 
+          inst.id === instanceId ? { ...inst, gameStartDate: startDate, gamePeriodsCount: parseInt(periods) } : inst
+        );
+        setAuthData('managed_instances', JSON.stringify(updated));
+        window.dispatchEvent(new Event('storage'));
+      } else {
+        setStatus({ type: 'error', msg: "Erreur lors de l'enregistrement." });
+      }
+    } catch (e) {
+      setStatus({ type: 'error', msg: 'Erreur réseau.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto py-10">
+      <GlassCard className="p-8 border-none shadow-xl">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-500">
+            <BarChart2 size={24} />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Configuration du Suivi</h2>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Paramètres du jeu et des périodes</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSave} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date de début du jeu</label>
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="date" 
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <p className="text-[10px] text-slate-400 ml-1">Toutes les semaines de suivi seront calculées à partir de cette date.</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre de périodes (Semaines)</label>
+            <div className="relative">
+              <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="number" 
+                min="1"
+                max="52"
+                value={periods}
+                onChange={(e) => setPeriods(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+          </div>
+
+          <div className="pt-4">
+             {status && (
+               <div className={`p-4 rounded-xl mb-6 text-xs font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                  {status.type === 'success' ? <Check size={16} /> : <AlertTriangle size={16} />}
+                  {status.msg}
+               </div>
+             )}
+
+             <Button 
+               type="submit" 
+               disabled={saving}
+               className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl shadow-xl shadow-slate-900/10"
+             >
+                {saving ? <Loader2 size={18} className="animate-spin mr-2" /> : <BarChart2 size={18} className="mr-2" />}
+                {saving ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+             </Button>
+          </div>
+        </form>
+      </GlassCard>
+    </div>
   );
 }
 
@@ -625,9 +872,9 @@ function TeamCard({
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-50">
                 <div className="flex gap-3">
-                  <div className="flex items-center gap-1"><Leaf size={12} className="text-emerald-500"/><span className="text-[10px] font-black">{teamImpact.co2}kg</span></div>
-                  <div className="flex items-center gap-1"><Droplets size={12} className="text-blue-500"/><span className="text-[10px] font-black">{(teamImpact.water/1000).toFixed(1)}m³</span></div>
-                  <div className="flex items-center gap-1"><Trash size={12} className="text-amber-500"/><span className="text-[10px] font-black">{teamImpact.waste}kg</span></div>
+                  <div className="flex items-center gap-1"><Leaf size={12} className="text-emerald-500"/><span className="text-[10px] font-black">{formatEcoImpact(teamImpact.co2, 'co2', 1)}</span></div>
+                  <div className="flex items-center gap-1"><Droplets size={12} className="text-blue-500"/><span className="text-[10px] font-black">{formatEcoImpact(teamImpact.water, 'water', 1)}</span></div>
+                  <div className="flex items-center gap-1"><Trash size={12} className="text-amber-500"/><span className="text-[10px] font-black">{formatEcoImpact(teamImpact.waste, 'waste', 1)}</span></div>
                 </div>
                 <div className="flex items-center gap-1">
                    <button 
@@ -674,15 +921,15 @@ function TeamCard({
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-slate-600"><Leaf size={16} className="text-emerald-500"/><span className="text-xs font-bold">CO2 évité</span></div>
-                          <span className="font-black text-slate-800">{teamImpact.co2}kg</span>
+                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.co2, 'co2', 1)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-slate-600"><Droplets size={16} className="text-blue-500"/><span className="text-xs font-bold">Eau sauvée</span></div>
-                          <span className="font-black text-slate-800">{(teamImpact.water/1000).toFixed(2)}m³</span>
+                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.water, 'water', 1)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-slate-600"><Trash size={16} className="text-amber-500"/><span className="text-xs font-bold">Déchets</span></div>
-                          <span className="font-black text-slate-800">{teamImpact.waste}kg</span>
+                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.waste, 'waste', 1)}</span>
                         </div>
                       </div>
                     </div>
@@ -713,6 +960,10 @@ function TeamCard({
                              groupTotalCo2 += a.savedCo2; groupTotalWater += a.savedWater; groupTotalWaste += a.savedWaste;
                           });
                        });
+
+                       const forceTonnesCo2 = groupTotalCo2 >= 1000;
+                       const forceM3Water = groupTotalWater >= 1000;
+                       const forceTonnesWaste = groupTotalWaste >= 1000;
 
                        // Sort players: Actions Desc, then Name Asc
                        const sortedChildren = [...(group.children || [])].sort((a, b) => {
@@ -786,13 +1037,13 @@ function TeamCard({
                                            <span className="text-[10px] font-black text-amber-600">{playerActions}</span>
                                          </div>
                                          <div className="w-14 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{pCo2}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pCo2, 'co2', 1, forceTonnesCo2)}</span>
                                          </div>
                                          <div className="w-16 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{(pWater/1000).toFixed(1)}<span className="text-[8px] opacity-40 ml-0.5">m³</span></span>
+                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWater, 'water', 1, forceM3Water)}</span>
                                          </div>
                                          <div className="w-14 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{pWaste}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWaste, 'waste', 1, forceTonnesWaste)}</span>
                                          </div>
                                        </div>
                                      </div>
@@ -808,13 +1059,13 @@ function TeamCard({
                                        <span className="text-[10px] font-black text-amber-600">{groupTotalActions}</span>
                                     </div>
                                     <div className="w-14 text-right">
-                                       <span className="text-[10px] font-black text-slate-800">{groupTotalCo2}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                       <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalCo2, 'co2', 1, forceTonnesCo2)}</span>
                                     </div>
                                     <div className="w-16 text-right">
-                                       <span className="text-[10px] font-black text-slate-800">{(groupTotalWater/1000).toFixed(1)}<span className="text-[8px] opacity-40 ml-0.5">m³</span></span>
+                                       <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalWater, 'water', 1, forceM3Water)}</span>
                                     </div>
                                     <div className="w-14 text-right">
-                                       <span className="text-[10px] font-black text-slate-800">{groupTotalWaste}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                       <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalWaste, 'waste', 1, forceTonnesWaste)}</span>
                                     </div>
                                  </div>
                               </div>

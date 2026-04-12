@@ -21,4 +21,13 @@ export class CreateInstanceDto {
   @ApiProperty({ example: true, required: false })
   @IsOptional()
   isOpen?: boolean;
+
+  @ApiProperty({ example: '2025-09-01T00:00:00Z', required: false })
+  @IsOptional()
+  gameStartDate?: Date;
+
+  @ApiProperty({ example: 24, required: false })
+  @IsInt()
+  @IsOptional()
+  gamePeriodsCount?: number;
 }

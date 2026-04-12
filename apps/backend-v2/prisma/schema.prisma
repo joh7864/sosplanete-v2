@@ -72,6 +72,10 @@ model Instance {
   isOpen     Boolean  @default(false)
   createdAt  DateTime @default(now())
   
+  // Paramètres du jeu
+  gameStartDate    DateTime?
+  gamePeriodsCount Int      @default(24)
+
   // Admin local associé
   adminId    Int?
   admin      User?    @relation(fields: [adminId], references: [id])
@@ -109,6 +113,7 @@ model Child {
   password  String?  // Optionnel si connexion anonyme/pseudo simple
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id])
+  avatar    String?
   
   actionsDone ActionDone[]
 

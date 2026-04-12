@@ -191,7 +191,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
   // On laisse l'utilisateur arriver sur le dashboard global
 
   const getAmLink = (base: string) => {
-    if (role === 'AS') return base;
+    if (!activeInstanceId) return base;
     return `${base}${base.includes('?') ? '&' : '?'}instanceId=${activeInstanceId}`;
   };
 
@@ -232,6 +232,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
               active={isLinkActive('/dashboard/reference')}
               onClick={closeMenu}
             />
+            <SidebarItem 
+              icon={<LayoutDashboard size={20} />} 
+              label="Suivi jeux" 
+              href={getAmLink('/dashboard/tracking')}
+              active={isLinkActive('/dashboard/tracking')}
+              onClick={closeMenu}
+            />
           </>
         ) : (
           <>
@@ -247,6 +254,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
               label="Catalogue" 
               href={getAmLink('/dashboard/catalog')}
               active={isLinkActive('/dashboard/catalog')}
+              onClick={closeMenu}
+            />
+            <SidebarItem 
+              icon={<LayoutDashboard size={20} />} 
+              label="Suivi jeux" 
+              href={getAmLink('/dashboard/tracking')}
+              active={isLinkActive('/dashboard/tracking')}
               onClick={closeMenu}
             />
           </>
@@ -296,7 +310,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           </button>
         </header>
 
-        <div className="p-6 lg:p-10 flex-1">
+        <div className="p-4 lg:p-6 flex-1">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 10 }}
