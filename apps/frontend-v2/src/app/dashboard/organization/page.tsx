@@ -704,8 +704,16 @@ function TeamCard({
                 <div className="flex-1">
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {team.groups.map((group: any) => {
-                       const groupActions = group.children?.reduce((acc: number, c: any) => acc + (c.actionsDone?.length || 0), 0) || 0;
-                       
+                       // Pre-calculate group totals for the footer
+                       let groupTotalActions = 0, groupTotalCo2 = 0, groupTotalWater = 0, groupTotalWaste = 0;
+                       group.children?.forEach((c: any) => {
+                          const pActs = c.actionsDone?.length || 0;
+                          groupTotalActions += pActs;
+                          c.actionsDone?.forEach((a: any) => {
+                             groupTotalCo2 += a.savedCo2; groupTotalWater += a.savedWater; groupTotalWaste += a.savedWaste;
+                          });
+                       });
+
                        // Sort players: Actions Desc, then Name Asc
                        const sortedChildren = [...(group.children || [])].sort((a, b) => {
                          const actionsA = a.actionsDone?.length || 0;
@@ -724,7 +732,7 @@ function TeamCard({
                                 <div className="flex items-center gap-2 mt-0.5">
                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{group.children.length} Équipiers</p>
                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                   <p className="text-[10px] text-[var(--color-sage)] font-black uppercase tracking-widest">{groupActions} Actions</p>
+                                   <p className="text-[10px] text-[var(--color-sage)] font-black uppercase tracking-widest">{groupTotalActions} Actions</p>
                                 </div>
                               </div>
                               <div className="flex gap-1.5">
@@ -733,37 +741,83 @@ function TeamCard({
                               </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                              {sortedChildren.map((c: any) => {
-                                const playerActions = c.actionsDone?.length || 0;
-                                let pCo2 = 0, pWater = 0, pWaste = 0;
-                                c.actionsDone?.forEach((a: any) => {
-                                  pCo2 += a.savedCo2; pWater += a.savedWater; pWaste += a.savedWaste;
-                                });
+                            {/* TABLE-LIKE LIST */}
+                            <div className="flex flex-col mt-2">
+                              {/* HEADER */}
+                              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                                 <div className="flex-1">Pseudo</div>
+                                 <div className="flex items-center gap-5 shrink-0">
+                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                       <Star size={10} className="text-amber-500 opacity-70" /> Actions
+                                    </div>
+                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                       <Leaf size={10} className="text-emerald-500 opacity-70" /> CO2e
+                                    </div>
+                                    <div className="w-16 text-right flex items-center justify-end gap-1">
+                                       <Droplets size={10} className="text-blue-500 opacity-70" /> Eau
+                                    </div>
+                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                       <Trash size={10} className="text-amber-500 opacity-70" /> Déchets
+                                    </div>
+                                 </div>
+                              </div>
 
-                                return (
-                                  <div 
-                                    key={c.id} 
-                                    onClick={() => onEditPlayer(c)}
-                                    className="group/player relative inline-flex"
-                                  >
-                                    <div className="px-3.5 py-2 rounded-xl bg-slate-50 text-[10px] font-bold text-slate-600 border border-slate-100 hover:border-emerald-300 hover:text-emerald-700 hover:bg-white transition-all cursor-pointer shadow-sm">
-                                      @{c.pseudo}
-                                    </div>
-                                    
-                                    {/* TOOLTIP */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-slate-900 text-white p-3 rounded-2xl whitespace-nowrap shadow-2xl opacity-0 invisible group-hover/player:opacity-100 group-hover/player:visible transition-all z-[100] scale-90 group-hover/player:scale-100 pointer-events-none border border-slate-700">
-                                       <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
-                                          <div className="flex items-center gap-1.5 bg-slate-800 px-2 py-1 rounded-lg"><Star size={12} className="text-yellow-400"/> {playerActions} Actions</div>
-                                          <div className="flex items-center gap-1.5"><Leaf size={12} className="text-emerald-400"/> {pCo2}kg</div>
-                                          <div className="flex items-center gap-1.5"><Droplets size={12} className="text-blue-400"/> {(pWater/1000).toFixed(2)}m³</div>
-                                          <div className="flex items-center gap-1.5"><Trash size={12} className="text-amber-400"/> {pWaste}kg</div>
+                              {/* ROWS */}
+                              <div className="flex flex-col max-h-[250px] overflow-y-auto custom-scrollbar">
+                                 {sortedChildren.map((c: any) => {
+                                   const playerActions = c.actionsDone?.length || 0;
+                                   let pCo2 = 0, pWater = 0, pWaste = 0;
+                                   c.actionsDone?.forEach((a: any) => {
+                                      pCo2 += a.savedCo2; pWater += a.savedWater; pWaste += a.savedWaste;
+                                   });
+
+                                   return (
+                                     <div 
+                                       key={c.id} 
+                                       onClick={() => onEditPlayer(c)}
+                                       className="flex items-center justify-between py-0.5 px-3 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all cursor-pointer group/row"
+                                     >
+                                       <div className="flex-1 min-w-0">
+                                         <span className="text-[11px] font-black text-slate-800 truncate block">@{c.pseudo}</span>
                                        </div>
-                                       <div className="absolute top-full left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 rotate-45 -translate-y-1.5" />
+
+                                       <div className="flex items-center gap-5 shrink-0">
+                                         <div className="w-14 text-right">
+                                           <span className="text-[10px] font-black text-amber-600">{playerActions}</span>
+                                         </div>
+                                         <div className="w-14 text-right">
+                                           <span className="text-[10px] font-bold text-slate-500">{pCo2}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                         </div>
+                                         <div className="w-16 text-right">
+                                           <span className="text-[10px] font-bold text-slate-500">{(pWater/1000).toFixed(1)}<span className="text-[8px] opacity-40 ml-0.5">m³</span></span>
+                                         </div>
+                                         <div className="w-14 text-right">
+                                           <span className="text-[10px] font-bold text-slate-500">{pWaste}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                         </div>
+                                       </div>
+                                     </div>
+                                   );
+                                 })}
+                              </div>
+
+                              {/* FOOTER (TOTALS) */}
+                              <div className="flex items-center justify-between px-3 py-2 mt-1 border-t-2 border-slate-50 bg-slate-50/10 rounded-b-xl backdrop-blur-sm">
+                                 <div className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Groupe</div>
+                                 <div className="flex items-center gap-5 shrink-0">
+                                    <div className="w-14 text-right">
+                                       <span className="text-[10px] font-black text-amber-600">{groupTotalActions}</span>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                    <div className="w-14 text-right">
+                                       <span className="text-[10px] font-black text-slate-800">{groupTotalCo2}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                    </div>
+                                    <div className="w-16 text-right">
+                                       <span className="text-[10px] font-black text-slate-800">{(groupTotalWater/1000).toFixed(1)}<span className="text-[8px] opacity-40 ml-0.5">m³</span></span>
+                                    </div>
+                                    <div className="w-14 text-right">
+                                       <span className="text-[10px] font-black text-slate-800">{groupTotalWaste}<span className="text-[8px] opacity-40 ml-0.5">kg</span></span>
+                                    </div>
+                                 </div>
+                              </div>
                             </div>
                           </div>
                         </div>

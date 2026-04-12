@@ -28,11 +28,13 @@ interface SidebarItemProps {
   label: string;
   href: string;
   active?: boolean;
+  onClick?: () => void;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, href, active }) => (
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, href, active, onClick }) => (
   <Link
     href={href}
+    onClick={onClick}
     className={`
       flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-smooth
       ${active 
@@ -51,7 +53,8 @@ const SidebarDashboardDropdown: React.FC<{
   instances: any[];
   activeId: string | null;
   onSwitch: (id: string) => void;
-}> = ({ active, instances, activeId, onSwitch }) => {
+  onDashboardClick?: () => void;
+}> = ({ active, instances, activeId, onSwitch, onDashboardClick }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const router = useRouter();
@@ -61,6 +64,7 @@ const SidebarDashboardDropdown: React.FC<{
       <button
         onClick={() => {
           setIsOpen(!isOpen);
+          if (onDashboardClick) onDashboardClick();
           router.push('/dashboard');
         }}
         className={`
@@ -193,6 +197,72 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
 
   const activeSchoolName = managedInstances.find(i => i.id.toString() === activeInstanceId)?.schoolName;
 
+  const renderNavContent = (mobile = false) => {
+    const closeMenu = () => { if (mobile) setIsMobileMenuOpen(false); };
+
+    return (
+      <nav className={`flex flex-col gap-2 ${mobile ? 'mt-2' : ''}`}>
+        <SidebarDashboardDropdown
+          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/organization', '/dashboard/catalog', '/dashboard/profile'].every(forbidden => !isLinkActive(forbidden))}
+          instances={managedInstances}
+          activeId={activeInstanceId}
+          onDashboardClick={closeMenu}
+          onSwitch={(id) => {
+             setAuthData('active_instance_id', id);
+             setActiveInstanceId(id);
+             window.dispatchEvent(new Event('storage'));
+             closeMenu();
+             router.push('/dashboard/organization');
+          }}
+        />
+        
+        {userRole === 'AS' ? (
+          <>
+            <SidebarItem 
+              icon={<Users size={20} />} 
+              label="Utilisateurs" 
+              href="/dashboard/users"
+              active={isLinkActive('/dashboard/users')}
+              onClick={closeMenu}
+            />
+            <SidebarItem 
+              icon={<BookOpen size={20} />} 
+              label="Référentiel" 
+              href="/dashboard/reference"
+              active={isLinkActive('/dashboard/reference')}
+              onClick={closeMenu}
+            />
+          </>
+        ) : (
+          <>
+            <SidebarItem 
+              icon={<Globe size={20} />} 
+              label="Configuration" 
+              href={getAmLink('/dashboard/organization')}
+              active={isLinkActive('/dashboard/organization')}
+              onClick={closeMenu}
+            />
+            <SidebarItem 
+              icon={<BookOpen size={20} />} 
+              label="Catalogue" 
+              href={getAmLink('/dashboard/catalog')}
+              active={isLinkActive('/dashboard/catalog')}
+              onClick={closeMenu}
+            />
+          </>
+        )}
+        
+        <SidebarItem 
+          icon={<Settings size={20} />} 
+          label="Mon Profil" 
+          href="/dashboard/profile"
+          active={isLinkActive('/dashboard/profile')}
+          onClick={closeMenu}
+        />
+      </nav>
+    );
+  };
+
   if (!mounted) return <div className="min-h-screen bg-[var(--bg-primary)]" />;
 
   return (
@@ -213,58 +283,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
             <span className="text-xl font-black tracking-tight text-white">SOS Planète</span>
           </div>
 
-          <nav className="flex-1 flex flex-col gap-2">
-            <SidebarDashboardDropdown
-              active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/organization', '/dashboard/catalog', '/dashboard/profile'].every(forbidden => !isLinkActive(forbidden))}
-              instances={managedInstances}
-              activeId={activeInstanceId}
-              onSwitch={(id) => {
-                 setAuthData('active_instance_id', id);
-                 setActiveInstanceId(id);
-                 window.dispatchEvent(new Event('storage'));
-                 router.push('/dashboard/organization');
-              }}
-            />
-            
-            {userRole === 'AS' ? (
-              <>
-                <SidebarItem 
-                  icon={<Users size={20} />} 
-                  label="Utilisateurs" 
-                  href="/dashboard/users"
-                  active={isLinkActive('/dashboard/users')}
-                />
-                <SidebarItem 
-                  icon={<BookOpen size={20} />} 
-                  label="Référentiel" 
-                  href="/dashboard/reference"
-                  active={isLinkActive('/dashboard/reference')}
-                />
-              </>
-            ) : (
-              <>
-                <SidebarItem 
-                  icon={<Globe size={20} />} 
-                  label="Configuration" 
-                  href={getAmLink('/dashboard/organization')}
-                  active={isLinkActive('/dashboard/organization')}
-                />
-                <SidebarItem 
-                  icon={<BookOpen size={20} />} 
-                  label="Catalogue" 
-                  href={getAmLink('/dashboard/catalog')}
-                  active={isLinkActive('/dashboard/catalog')}
-                />
-              </>
-            )}
-            
-            <SidebarItem 
-              icon={<Settings size={20} />} 
-              label="Mon Profil" 
-              href="/dashboard/profile"
-              active={isLinkActive('/dashboard/profile')}
-            />
-          </nav>
+          {renderNavContent()}
         </div>
       </aside>
 
@@ -291,19 +310,51 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
+        <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
           <motion.div 
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
-            className="w-72 h-full bg-slate-900 text-white p-6 shadow-2xl border-r border-slate-800"
+            onClick={(e) => e.stopPropagation()}
+            className="w-72 h-full bg-slate-900 text-white p-6 shadow-2xl border-r border-slate-800 flex flex-col"
           >
              <div className="flex justify-between items-center mb-8">
-               <span className="font-bold text-xl text-white">Menu</span>
-               <X className="cursor-pointer" onClick={() => setIsMobileMenuOpen(false)} />
+               <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                    <img src={getAssetUrl('logo-sosplanete.png')} alt="Logo" className="w-6 h-6 object-contain" />
+                  </div>
+                  <span className="font-bold text-xl text-white">Menu</span>
+               </div>
+               <X className="cursor-pointer text-slate-400 hover:text-white" onClick={() => setIsMobileMenuOpen(false)} />
              </div>
-             <nav className="flex flex-col gap-2">
-                {/* Contenu mobile simplifié... */}
-             </nav>
+             
+             <div className="flex-1">
+                {renderNavContent(true)}
+             </div>
+
+             {/* Profile & Logout section in mobile menu */}
+             <div className="mt-auto pt-6 border-t border-slate-800 flex flex-col gap-4">
+                <div className="flex items-center gap-3 px-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700">
+                    {userAvatar ? (
+                      <img src={getAvatarUrl(userAvatar)} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={18} className="text-slate-500" />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white truncate max-w-[150px]">{userName}</span>
+                    <span className="text-xs text-slate-500">{userRole === 'AS' ? 'Administrateur' : 'Manager'}</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-200"
+                >
+                  <LogOut size={20} />
+                  <span className="font-medium">Déconnexion</span>
+                </button>
+             </div>
           </motion.div>
         </div>
       )}

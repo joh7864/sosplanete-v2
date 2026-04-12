@@ -12,9 +12,12 @@ import {
   Search,
   Check,
   AlertTriangle,
-  Info
+  Info,
+  PartyPopper,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { PremiumProgressBar } from '@/components/ui/PremiumProgressBar';
 import Papa from 'papaparse';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
@@ -41,10 +44,13 @@ interface PreviewItem extends CsvRow {
 }
 
 export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClose, onImport, instanceId }) => {
-  const [step, setStep] = useState<'upload' | 'preview'>('upload');
+  const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'success'>('upload');
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('Préparation...');
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
+  const [importStats, setImportStats] = useState<{count: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -149,9 +155,20 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
 
   const handleConfirmImport = async () => {
     setImporting(true);
+    setStep('importing');
+    setProgress(0);
+    setStatus('Validation des codes...');
+
+    // Simulate progress while API is running
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 15;
+      });
+    }, 200);
+
     try {
       const token = getAuthData('access_token');
-      // Only import valid rows
       const validActions = previewData.filter(d => d.existsInRef);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/import-codes`, {
@@ -167,13 +184,36 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
       });
 
       if (response.ok) {
-        onImport();
-        onClose();
-        setStep('upload');
-        setPreviewData([]);
+        setStatus('Synchronisation finale...');
+        // Wait at least 1.5s total
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        clearInterval(progressInterval);
+        setProgress(100);
+        setStatus('Terminé !');
+        
+        setImportStats({ count: validActions.length });
+        
+        setTimeout(() => {
+          setStep('success');
+          onImport();
+          
+          // Auto close after 3s in success state
+          setTimeout(() => {
+            onClose();
+            // Reset state for next time
+            setTimeout(() => {
+               setStep('upload');
+               setPreviewData([]);
+               setImportStats(null);
+            }, 500);
+          }, 3000);
+        }, 500);
       }
     } catch (e) {
+      clearInterval(progressInterval);
       setError("Erreur lors de l'importation finale.");
+      setStep('preview');
     } finally {
       setImporting(false);
     }
@@ -259,7 +299,7 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
                 </div>
                 {error && <p className="text-rose-500 text-xs font-bold text-center">{error}</p>}
              </div>
-           ) : (
+           ) : step === 'preview' ? (
              <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                    <div className="flex items-center gap-2">
@@ -295,6 +335,39 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
                    ))}
                 </div>
              </div>
+           ) : step === 'importing' ? (
+              <div className="py-20 px-10">
+                 <PremiumProgressBar progress={progress} status={status} />
+              </div>
+           ) : (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="py-16 flex flex-col items-center text-center gap-6"
+              >
+                 <div className="relative">
+                    <motion.div 
+                       animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
+                       transition={{ duration: 0.5, delay: 0.2 }}
+                       className="w-24 h-24 rounded-3xl bg-emerald-500 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/40 relative z-10"
+                    >
+                       <Check size={48} strokeWidth={4} />
+                    </motion.div>
+                    <Sparkles className="absolute -top-4 -right-4 text-amber-400 animate-pulse" size={32} />
+                    <PartyPopper className="absolute -bottom-4 -left-4 text-sky-400 animate-bounce" size={32} />
+                 </div>
+                 
+                 <div className="space-y-2">
+                    <h3 className="text-3xl font-black text-slate-800 tracking-tight">Importation Terminée !</h3>
+                    <p className="text-slate-500 font-medium max-w-sm">
+                       <span className="text-emerald-600 font-black">{importStats?.count}</span> actions ont été liées avec succès à votre catalogue.
+                    </p>
+                 </div>
+
+                 <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                    Fermeture automatique dans quelques secondes
+                 </div>
+              </motion.div>
            )}
         </div>
 

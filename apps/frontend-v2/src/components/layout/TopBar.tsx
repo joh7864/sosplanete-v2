@@ -52,26 +52,27 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between px-6 lg:px-10 py-3 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-6 -mt-6 lg:-mx-10 lg:-mt-10 mb-6 lg:mb-8 w-[calc(100%+3rem)] lg:w-[calc(100%+5rem)]">
       
-      {/* Dynamic Title and Badges */}
+      {/* Dynamic Title */}
       <div className="flex items-center gap-4">
         <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight">{title}</h1>
-        {selector && (
-          <div className="flex items-center">
-            {selector}
-          </div>
-        )}
       </div>
 
-      {/* Page Actions & Profile Menu */}
+      {/* Page Actions, Selector & Profile Menu */}
       <div className="flex items-center gap-6">
         {actions && (
           <div className="flex items-center gap-3 mt-1">
             {actions}
           </div>
         )}
+
+        {selector && (
+          <div className="flex items-center mt-1">
+            {selector}
+          </div>
+        )}
         
         {/* separator */}
-        <div className="hidden lg:block w-px h-6 bg-slate-100 mt-1"></div>
+        <div className="hidden lg:block w-px h-6 bg-slate-300 mt-1"></div>
 
         {/* User Profile */}
         <div className="hidden lg:flex items-center gap-3 mt-1">

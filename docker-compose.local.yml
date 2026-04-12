@@ -8,8 +8,8 @@ services:
       - POSTGRES_PASSWORD=me4nnauru
     ports:
       - "5433:5432"
-    volumes:
-      - ./apps/backend-v1/dev/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+#    volumes:
+#      - ./apps/backend-v1/dev/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
 
   backend:
     build: ./apps/backend-v1

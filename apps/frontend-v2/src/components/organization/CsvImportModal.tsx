@@ -9,10 +9,13 @@ import {
   AlertCircle, 
   Loader2,
   Eye,
-  FileSpreadsheet
+  FileSpreadsheet,
+  PartyPopper,
+  Sparkles
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
+import { PremiumProgressBar } from '@/components/ui/PremiumProgressBar';
 import Papa from 'papaparse';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
@@ -29,7 +32,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
   const [preview, setPreview] = useState<any[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'upload' | 'preview'>('upload');
+  const [step, setStep] = useState<'upload' | 'preview' | 'importing'>('upload');
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('Analyse du fichier...');
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<{teams: number, groups: number, players: number} | null>(null);
 
@@ -78,6 +83,17 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
     const reader = new FileReader();
     reader.onload = async (e) => {
       const csvContent = e.target?.result as string;
+      setStep('importing');
+      setProgress(0);
+      setStatus('Analyse de la structure...');
+
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 95) return prev;
+          return prev + Math.random() * 20;
+        });
+      }, 300);
+
       try {
         const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/import-csv?instanceId=${instanceId}`, {
           method: 'POST',
@@ -89,16 +105,32 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
         });
 
         if (resp.ok) {
+          setStatus('Finalisation de la base...');
+          await new Promise(r => setTimeout(r, 1500));
+          
+          clearInterval(progressInterval);
+          setProgress(100);
+          setStatus('Importation terminée !');
+          
           const result = await resp.json();
-          setStats(result);
-          onImport();
-          setTimeout(onClose, 3000);
+          setTimeout(() => {
+            setStats(result);
+            // Delay parent refresh to let the success screen shine
+            setTimeout(() => {
+              onImport();
+              onClose();
+            }, 4000); 
+          }, 500);
         } else {
+          clearInterval(progressInterval);
           const data = await resp.json();
           setError(data.message || "Erreur lors de l'import (500).");
+          setStep('preview');
         }
       } catch (err) {
+        clearInterval(progressInterval);
         setError("Erreur réseau.");
+        setStep('preview');
       } finally {
         setLoading(false);
       }
@@ -124,10 +156,45 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                 </div>
 
                 {stats ? (
-                  <div className="py-10 text-center space-y-4">
-                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-emerald-100 animate-bounce"><Check size={32} /></div>
-                    <h3 className="text-xl font-black text-slate-800">Import réussi !</h3>
-                    <p className="text-sm text-slate-500">{stats.teams} équipes, {stats.groups} groupes et {stats.players} joueurs créés.</p>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="py-12 flex flex-col items-center text-center gap-6"
+                  >
+                    <div className="relative">
+                      <motion.div 
+                        animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                        className="w-20 h-20 bg-emerald-500 text-white rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/40 relative z-10"
+                      >
+                         <Check size={40} strokeWidth={3} />
+                      </motion.div>
+                      <Sparkles className="absolute -top-3 -right-3 text-amber-400 animate-pulse" size={28} />
+                      <PartyPopper className="absolute -bottom-3 -left-3 text-sky-400 animate-bounce" size={28} />
+                    </div>
+
+                    <div className="space-y-2">
+                       <h3 className="text-2xl font-black text-slate-800 tracking-tight">Import réussi !</h3>
+                       <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                         L'organisation de <span className="text-emerald-600 font-bold">{instanceName}</span> a été mise à jour avec succès :
+                       </p>
+                    </div>
+
+                    <div className="flex gap-4 justify-center">
+                       {[
+                         { label: 'Équipes', value: stats.teams },
+                         { label: 'Groupes', value: stats.groups },
+                         { label: 'Joueurs', value: stats.players }
+                       ].map((s, i) => (
+                         <div key={i} className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-100 flex flex-col">
+                            <span className="text-xl font-black text-slate-800">{s.value}</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
+                         </div>
+                       ))}
+                    </div>
+                  </motion.div>
+                ) : step === 'importing' ? (
+                  <div className="py-20 px-10">
+                    <PremiumProgressBar progress={progress} status={status} />
                   </div>
                 ) : (
                   <div className="space-y-4">
