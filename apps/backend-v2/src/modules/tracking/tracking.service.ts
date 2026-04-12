@@ -236,7 +236,16 @@ export class TrackingService {
       });
     }
 
-    // 5. Batch Insert par paquets de 5000 pour éviter les limites de requête
+    // 5. Suppression des anciennes actions de l'instance
+    if (validData.length > 0) {
+      await this.prisma.actionDone.deleteMany({
+        where: {
+          child: { group: { team: { instanceId } } },
+        },
+      });
+    }
+
+    // 6. Batch Insert par paquets de 5000 pour éviter les limites de requête
     const chunkSize = 5000;
     for (let i = 0; i < validData.length; i += chunkSize) {
       const chunk = validData.slice(i, i + chunkSize);
