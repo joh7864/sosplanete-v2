@@ -37,6 +37,7 @@ interface Instance {
     water: number;
     waste: number;
   };
+  totalActionsDone: number;
 }
 
 export default function DashboardSummaryPage() {
