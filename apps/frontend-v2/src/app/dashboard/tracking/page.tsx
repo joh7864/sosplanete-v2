@@ -72,7 +72,7 @@ function TrackingContent() {
   const [showInstanceSelector, setShowInstanceSelector] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideInactive, setHideInactive] = useState(false);
-  const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | null>(null);
+  const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
 
   // Valeurs de configuration pour la densification
   const CELL_WIDTH = 32; // px
@@ -623,7 +623,7 @@ function TrackingContent() {
 
 // COMPOSANT LEADERBOARD PREMIUM
 const LeaderboardOverlay = ({ type, teamData, groupData, childData, onClose }: { 
-  type: 'child' | 'team', 
+  type: 'child' | 'team' | 'group', 
   teamData: any[], 
   groupData: any[],
   childData: any[],
