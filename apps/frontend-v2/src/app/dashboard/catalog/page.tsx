@@ -159,13 +159,14 @@ export default function CatalogPage() {
                     <LayoutGrid size={16} />
                 </button>
             </div>
-            <Button 
-                variant="sky" 
-                className="h-10 w-10 p-0 rounded-xl shadow-md shadow-sky-500/20 flex items-center justify-center border-none"
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="h-9 w-9 flex items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all border-none"
                 title="Nouvelle Action"
             >
               <Plus size={20} />
-            </Button>
+            </motion.button>
           </>
         }
       />

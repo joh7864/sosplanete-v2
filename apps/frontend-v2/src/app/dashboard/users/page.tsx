@@ -111,14 +111,15 @@ export default function UsersManagementPage() {
       <TopBar 
         title="Gestion des Utilisateurs"
         actions={
-          <Button 
-            variant="primary" 
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddModal(true)} 
-            className="h-10 w-10 p-0 rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 text-white flex items-center justify-center border-none"
+            className="h-9 w-9 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none"
             title="Nouvel Utilisateur"
           >
             <Plus size={20} />
-          </Button>
+          </motion.button>
         }
       />
       <div className="flex flex-col gap-8 max-w-7xl mx-auto px-4 lg:px-8">
