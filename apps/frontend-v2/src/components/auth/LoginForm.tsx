@@ -44,24 +44,17 @@ export const LoginForm: React.FC = () => {
       const managedInstances = data.user.managedInstances || [];
       setAuthData('managed_instances', JSON.stringify(managedInstances), rememberMe);
       
-      // Animation et redirection basée sur le rôle et le nombre d'instances
+      // Animation et redirection vers le tableau de bord global
       setTimeout(() => {
         if (data.user.role === 'AS') {
           removeAuthData('active_instance_id');
-          router.push('/dashboard/users');
-        } else if (managedInstances.length > 1) {
-          // Cas Isabelle : charger une nouvelle session fraîche (vue globale par défaut)
-          removeAuthData('active_instance_id');
-          router.push('/dashboard');
+        } else if (managedInstances.length === 1) {
+          // Instance unique : sélection automatique en arrière-plan mais redirection vers dashboard
+          setAuthData('active_instance_id', managedInstances[0].id.toString(), rememberMe);
         } else {
-          // Instance unique : sélection automatique
-          if (managedInstances.length === 1) {
-            setAuthData('active_instance_id', managedInstances[0].id.toString(), rememberMe);
-            router.push('/dashboard/organization');
-          } else {
-            router.push('/dashboard');
-          }
+          removeAuthData('active_instance_id');
         }
+        router.push('/dashboard');
       }, 500);
 
     } catch (err: any) {

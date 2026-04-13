@@ -135,7 +135,7 @@ export default function CatalogPage() {
   return (
     <>
       <TopBar 
-        title="Catalogue des Actions"
+        title="Catalogue des actions SOS Planète"
         selector={
           <span className="bg-sky-100 text-sky-700 px-2.5 py-1 rounded-lg text-xs font-bold border border-sky-200 mt-1 ml-3">
             {actions.length} ACTIONS
@@ -159,14 +159,6 @@ export default function CatalogPage() {
                     <LayoutGrid size={16} />
                 </button>
             </div>
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="h-9 w-9 flex items-center justify-center rounded-xl bg-sky-500 text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-all border-none"
-                title="Nouvelle Action"
-            >
-              <Plus size={20} />
-            </motion.button>
           </>
         }
       />

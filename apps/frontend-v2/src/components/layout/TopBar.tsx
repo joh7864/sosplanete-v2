@@ -1,22 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { LogOut, Users } from 'lucide-react';
+import { LogOut, Users, Settings } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface TopBarProps {
   title: React.ReactNode;
-  subtitle?: React.ReactNode; // Keep in interface to prevent compilation errors, but don't render
+  subtitle?: React.ReactNode;
   selector?: React.ReactNode;
   actions?: React.ReactNode;
+  bottomContent?: React.ReactNode;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
+export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions, bottomContent }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
+
+  const showSettingsIcon = pathname === '/dashboard' || pathname.includes('/organization') || pathname.includes('/reference') || pathname.includes('/catalog');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,8 +54,8 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between px-6 lg:px-10 py-3 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]">
-      
+    <header className="sticky items-start flex-col gap-0 top-0 z-40 flex px-0 lg:px-0 py-0 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]">
+      <div className="flex w-full items-center justify-between px-6 lg:px-10 py-3">
       {/* Dynamic Title */}
       <div className="flex items-center gap-4">
         <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight">{title}</h1>
@@ -71,24 +75,49 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions }) => {
           </div>
         )}
         
-        {/* separator */}
-        <div className="hidden lg:block w-px h-6 bg-slate-300 mt-1"></div>
+        {/* separator & Settings Icon */}
+        <div className="flex items-center gap-4">
+          {showSettingsIcon && (
+            <button 
+              onClick={() => router.push('/dashboard/settings')}
+              className="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all mt-1"
+              title="Paramètres"
+            >
+              <Settings size={18} />
+            </button>
+          )}
+          <div className="hidden lg:block w-px h-6 bg-slate-200 mt-1"></div>
+        </div>
 
         {/* User Profile */}
-        <div className="hidden lg:flex items-center gap-3 mt-1">
-            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
+        <div className="hidden lg:flex items-center gap-3 mt-1 cursor-pointer group" onClick={() => router.push('/dashboard/settings?tab=profile')}>
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 group-hover:border-emerald-300 transition-all">
               {userAvatar ? (
                 <img src={getAvatarUrl(userAvatar) || ''} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <Users size={14} className="text-slate-400" />
               )}
             </div>
-            <span className="text-[13px] font-bold text-slate-700">{userName}</span>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 transition-colors ml-1" title="Déconnexion">
+            <div className="flex flex-col justify-center">
+              <span className="text-[13px] font-bold text-slate-700 leading-tight group-hover:text-emerald-700 transition-colors">{userName}</span>
+            </div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleLogout(); }} 
+              className="text-slate-300 hover:text-rose-500 transition-colors ml-1 p-1" 
+              title="Déconnexion"
+            >
               <LogOut size={16} />
             </button>
         </div>
       </div>
+     </div>
+
+     {/* Bottom Content for Tabs etc. */}
+     {bottomContent && (
+       <div className="w-full flex items-center px-6 lg:px-10 overflow-x-auto custom-scrollbar">
+         {bottomContent}
+       </div>
+     )}
     </header>
   );
 };

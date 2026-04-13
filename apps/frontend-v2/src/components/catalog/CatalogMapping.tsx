@@ -280,7 +280,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
         <div className="grid grid-cols-[1fr_auto_1fr] gap-0 h-full flex-grow items-start overflow-hidden">
           
           {/* CATALOGUE LOCAL */}
-          <div className={`transition-all duration-500 overflow-hidden h-full ${isRefHidden ? 'col-span-3 px-20' : ''}`}>
+          <div className={`transition-all duration-500 overflow-hidden h-full ${isRefHidden ? 'col-span-3' : ''}`}>
              <LocalList 
                 actions={localActions} 
                 selectedIds={selectedLocalIds}

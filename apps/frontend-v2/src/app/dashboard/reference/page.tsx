@@ -100,7 +100,7 @@ export default function ReferencePage() {
   return (
     <>
       <TopBar 
-        title="Gestion du Référentiel"
+        title="Catalogue des actions SOS Planète"
         actions={
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -172,11 +172,11 @@ export default function ReferencePage() {
 
           <div className="h-8 w-[1px] bg-slate-100 mx-1" />
 
-          {/* Bouton Import Référentiel */}
+          {/* Bouton Import Catalogue */}
           <button 
             onClick={() => setShowImportModal(true)}
             className="flex items-center justify-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm group"
-            title="Importer le référentiel CSV"
+            title="Importer le catalogue (CSV)"
           >
             <Upload size={18} className="group-hover:scale-110 transition-transform" />
           </button>

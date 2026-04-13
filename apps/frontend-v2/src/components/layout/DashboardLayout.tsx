@@ -31,20 +31,22 @@ interface SidebarItemProps {
   onClick?: () => void;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, href, active, onClick }) => (
+const SidebarItem: React.FC<SidebarItemProps & { collapsed?: boolean }> = ({ icon, label, href, active, onClick, collapsed }) => (
   <Link
     href={href}
     onClick={onClick}
+    title={collapsed ? label : undefined}
     className={`
-      flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-smooth
+      flex items-center gap-3 w-full px-4 py-3 rounded-2xl transition-all duration-300
       ${active 
         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
         : 'text-slate-400 hover:bg-slate-800 hover:text-white'
       }
+      ${collapsed ? 'justify-center px-0 w-12 mx-auto' : ''}
     `}
   >
-    {icon}
-    <span className="font-medium">{label}</span>
+    <div className={collapsed ? 'scale-110' : ''}>{icon}</div>
+    {!collapsed && <span className="font-medium truncate">{label}</span>}
   </Link>
 );
 
@@ -54,7 +56,8 @@ const SidebarDashboardDropdown: React.FC<{
   activeId: string | null;
   onSwitch: (id: string) => void;
   onDashboardClick?: () => void;
-}> = ({ active, instances, activeId, onSwitch, onDashboardClick }) => {
+  collapsed?: boolean;
+}> = ({ active, instances, activeId, onSwitch, onDashboardClick, collapsed }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
   const router = useRouter();
@@ -63,29 +66,35 @@ const SidebarDashboardDropdown: React.FC<{
     <div className="relative flex flex-col w-full">
       <button
         onClick={() => {
+          if (collapsed) {
+             router.push('/dashboard');
+             return;
+          }
           setIsOpen(!isOpen);
           if (onDashboardClick) onDashboardClick();
           router.push('/dashboard');
         }}
+        title={collapsed ? "Dashboard" : undefined}
         className={`
-          flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-smooth group
+          flex items-center justify-between w-full px-4 py-3 rounded-2xl transition-all duration-300 group
           ${active 
             ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
             : 'text-slate-400 hover:bg-slate-800 hover:text-white'
           }
+          ${collapsed ? 'justify-center px-0 w-12 mx-auto' : ''}
         `}
       >
         <div className="flex items-center gap-3">
-          <LayoutDashboard size={20} />
-          <span className="font-medium">Dashboard</span>
+          <LayoutDashboard size={20} className={collapsed ? 'scale-110' : ''} />
+          {!collapsed && <span className="font-medium">Dashboard</span>}
         </div>
-        {instances.length > 0 && (
+        {!collapsed && instances.length > 0 && (
           <ChevronDown size={16} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} opacity-40 group-hover:opacity-100`} />
         )}
       </button>
 
       <AnimatePresence>
-        {isOpen && instances.length > 0 && (
+        {!collapsed && isOpen && instances.length > 0 && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
@@ -187,26 +196,32 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Suppression de la redirection forcée (Plan Premium Seamless)
-  // On laisse l'utilisateur arriver sur le dashboard global
-
   const getAmLink = (base: string) => {
     if (!activeInstanceId) return base;
     return `${base}${base.includes('?') ? '&' : '?'}instanceId=${activeInstanceId}`;
   };
 
-  const activeSchoolName = managedInstances.find(i => i.id.toString() === activeInstanceId)?.schoolName;
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    // Initial responsive check
+    if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+      setIsCollapsed(true);
+    }
+  }, []);
 
   const renderNavContent = (mobile = false) => {
     const closeMenu = () => { if (mobile) setIsMobileMenuOpen(false); };
+    const collapsed = !mobile && isCollapsed;
 
     return (
       <nav className={`flex flex-col gap-2 ${mobile ? 'mt-2' : ''}`}>
         <SidebarDashboardDropdown
-          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/organization', '/dashboard/catalog', '/dashboard/profile'].every(forbidden => !isLinkActive(forbidden))}
+          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/catalog', '/dashboard/organization', '/dashboard/settings'].every(forbidden => !isLinkActive(forbidden))}
           instances={managedInstances}
           activeId={activeInstanceId}
           onDashboardClick={closeMenu}
+          collapsed={collapsed}
           onSwitch={(id) => {
              setAuthData('active_instance_id', id);
              setActiveInstanceId(id);
@@ -216,62 +231,49 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           }}
         />
         
-        {userRole === 'AS' ? (
-          <>
-            <SidebarItem 
-              icon={<Users size={20} />} 
-              label="Utilisateurs" 
-              href="/dashboard/users"
-              active={isLinkActive('/dashboard/users')}
-              onClick={closeMenu}
-            />
-            <SidebarItem 
-              icon={<BookOpen size={20} />} 
-              label="Référentiel" 
-              href="/dashboard/reference"
-              active={isLinkActive('/dashboard/reference')}
-              onClick={closeMenu}
-            />
-            <SidebarItem 
-              icon={<LayoutDashboard size={20} />} 
-              label="Suivi jeux" 
-              href={getAmLink('/dashboard/tracking')}
-              active={isLinkActive('/dashboard/tracking')}
-              onClick={closeMenu}
-            />
-          </>
-        ) : (
-          <>
-            <SidebarItem 
-              icon={<Globe size={20} />} 
-              label="Configuration" 
-              href={getAmLink('/dashboard/organization')}
-              active={isLinkActive('/dashboard/organization')}
-              onClick={closeMenu}
-            />
-            <SidebarItem 
-              icon={<BookOpen size={20} />} 
-              label="Catalogue" 
-              href={getAmLink('/dashboard/catalog')}
-              active={isLinkActive('/dashboard/catalog')}
-              onClick={closeMenu}
-            />
-            <SidebarItem 
-              icon={<LayoutDashboard size={20} />} 
-              label="Suivi jeux" 
-              href={getAmLink('/dashboard/tracking')}
-              active={isLinkActive('/dashboard/tracking')}
-              onClick={closeMenu}
-            />
-          </>
+        {userRole === 'AS' && (
+          <SidebarItem 
+            icon={<Users size={20} />} 
+            label="Utilisateurs" 
+            href="/dashboard/users"
+            active={isLinkActive('/dashboard/users')}
+            onClick={closeMenu}
+            collapsed={collapsed}
+          />
         )}
+
+        <SidebarItem 
+          icon={<Globe size={20} />} 
+          label="Configuration" 
+          href={getAmLink('/dashboard/organization')}
+          active={isLinkActive('/dashboard/organization')}
+          onClick={closeMenu}
+          collapsed={collapsed}
+        />
+        <SidebarItem 
+          icon={<LayoutDashboard size={20} />} 
+          label="Suivi jeux" 
+          href={getAmLink('/dashboard/tracking')}
+          active={isLinkActive('/dashboard/tracking')}
+          onClick={closeMenu}
+          collapsed={collapsed}
+        />
+        <SidebarItem 
+          icon={<BookOpen size={20} />} 
+          label="Catalogue" 
+          href={getAmLink(userRole === 'AS' ? '/dashboard/reference' : '/dashboard/catalog')}
+          active={isLinkActive('/dashboard/reference') || isLinkActive('/dashboard/catalog')}
+          onClick={closeMenu}
+          collapsed={collapsed}
+        />
         
         <SidebarItem 
           icon={<Settings size={20} />} 
-          label="Mon Profil" 
-          href="/dashboard/profile"
-          active={isLinkActive('/dashboard/profile')}
+          label="Paramètres" 
+          href="/dashboard/settings"
+          active={isLinkActive('/dashboard/settings')}
           onClick={closeMenu}
+          collapsed={collapsed}
         />
       </nav>
     );
@@ -283,21 +285,41 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
     <div className="flex h-screen w-screen bg-slate-50 lg:p-2 overflow-hidden">
       <div className="flex flex-1 w-full h-full lg:rounded-2xl shadow-2xl overflow-hidden bg-[var(--bg-primary)] relative border border-slate-200/50">
       {/* Sidebar Desktop */}
-      <aside className="hidden lg:flex flex-col w-72 h-full z-50 shrink-0">
-        <div className="flex-1 flex flex-col gap-8 h-full bg-slate-900 border-r border-slate-800 p-6 pt-8">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm">
-              <img 
-                src={getAssetUrl('logo-sosplanete.png')} 
-                alt="SOS Planète" 
-                className="w-8 h-8 object-contain" 
-                onError={(e) => { (e.target as HTMLImageElement).src = '/assets/logo.png' }} // Fallback local discret au cas où
-              />
+      <aside className={`hidden lg:flex flex-col h-full z-50 shrink-0 transition-all duration-300 ${isCollapsed ? 'w-24' : 'w-72'}`}>
+        <div className={`flex-1 flex flex-col gap-8 h-full bg-slate-900 border-r border-slate-800 p-6 pt-8 transition-all duration-300 ${isCollapsed ? 'px-4' : 'p-6'}`}>
+          <div className={`flex ${isCollapsed ? 'flex-col justify-center items-center gap-6' : 'items-center justify-between px-2'}`}>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                <img 
+                  src={getAssetUrl('logo-sosplanete.png')} 
+                  alt="SOS Planète" 
+                  className="w-8 h-8 object-contain" 
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/logo.png' }} // Fallback local discret au cas où
+                />
+              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col">
+                  <span className="text-xl font-black tracking-tight text-white leading-none truncate">SOS Planète</span>
+                  <span className="text-[10px] font-bold text-emerald-500 mt-1 uppercase tracking-widest">v2.2.0</span>
+                </div>
+              )}
             </div>
-            <span className="text-xl font-black tracking-tight text-white">SOS Planète</span>
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="text-slate-500 hover:text-white transition-all flex items-center justify-center"
+              title={isCollapsed ? "Agrandir le menu" : "Réduire le menu"}
+            >
+              <div className={`transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+                <ChevronRight size={18} strokeWidth={2.5} />
+              </div>
+            </button>
           </div>
 
-          {renderNavContent()}
+          <div className="flex-1 overflow-x-hidden">
+            {renderNavContent()}
+          </div>
+
+
         </div>
       </aside>
 

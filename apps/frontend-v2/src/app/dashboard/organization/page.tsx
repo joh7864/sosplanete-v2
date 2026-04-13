@@ -33,7 +33,8 @@ import {
   Building2,
   Box,
   BarChart2,
-  Calendar
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
@@ -310,8 +311,8 @@ function OrganizationContent() {
   return (
     <>
         <TopBar 
-          title={instanceId ? `Configuration de l'Espace ${currentInstance?.schoolName || ''}` : "Configuration des Espaces"}
-          subtitle="Gérez l'académie, le catalogue et les équipes"
+          title={activeTab === 'catalog' ? "Catalogue des actions SOS Planète" : (instanceId ? `Configuration de l'Espace ${currentInstance?.schoolName || ''}` : "Configuration des Espaces")}
+          subtitle={activeTab === 'catalog' ? "Personnalisez le catalogue pour cet espace" : "Gérez l'académie, le catalogue et les équipes"}
           selector={
             managedInstances.length > 1 ? (
                   <div className="relative">
@@ -352,36 +353,36 @@ function OrganizationContent() {
                   </div>
             ) : undefined
           }
+          bottomContent={
+            instanceId ? (
+              <>
+                  <button
+                     onClick={() => setActiveTab('teams')}
+                     className={`flex items-center gap-3 py-4 pr-8 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'teams' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <Users size={18} /> Configuration des équipes
+                     {activeTab === 'teams' && (
+                       <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-0 right-8 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
+                     )}
+                  </button>
+                  
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+                  
+                  <button
+                     onClick={() => setActiveTab('catalog')}
+                     className={`flex items-center gap-3 py-4 pl-8 pr-8 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'catalog' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <BookOpen size={18} /> Configuration du catalogue
+                     {activeTab === 'catalog' && (
+                       <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-8 right-8 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
+                     )}
+                  </button>
+              </>
+            ) : undefined
+          }
         />
 
-        <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-20">
-        {/* TABS NAVIGATION */}
-        {instanceId && (
-          <div className="flex items-center gap-8 border-b border-slate-100 mb-1">
-            <button 
-              onClick={() => setActiveTab('teams')}
-              className={`pb-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'teams' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Configuration des équipes
-              {activeTab === 'teams' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-full" />}
-            </button>
-            <button 
-              onClick={() => setActiveTab('catalog')}
-              className={`pb-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'catalog' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Gestion du Catalogue
-              {activeTab === 'catalog' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-full" />}
-            </button>
-            <button 
-              onClick={() => setActiveTab('settings' as any)}
-              className={`pb-3 text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === ('settings' as any) ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Paramètres du Jeu
-              {activeTab === ('settings' as any) && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 rounded-full" />}
-            </button>
-          </div>
-        )}
-
+        <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-20 pt-6">
         {/* PAGE CONTENT */}
         {!instanceId ? (
             <div className="py-20 flex flex-col items-center gap-8 text-center max-w-2xl mx-auto">
@@ -602,6 +603,15 @@ function OrganizationContent() {
               setShowPlayerModal(true);
               setIsNewPlayer(true);
             }}
+            onSelectPlayer={(id: number) => toggleSelection('children', id)}
+            selectedChildrenIds={selectedEntities.children}
+            onDeletePlayer={(p: any) => {
+              setConfirmData({
+                title: "Supprimer l'équipier",
+                description: `Voulez-vous vraiment supprimer @${p.pseudo} ? Cette action est irréversible.`,
+                onConfirm: () => handleBulkDelete('children', [p.id])
+              });
+            }}
           />
         ))}
 
@@ -652,59 +662,77 @@ function OrganizationContent() {
       </AnimatePresence>
 
       {/* MODALS */}
-      <CsvImportModal 
-        isOpen={showImportModal} 
-        onClose={() => setShowImportModal(false)} 
-        onImport={loadData}
-        instanceId={instanceId || 0}
-        instanceName={activeInstanceName}
-      />
+      <AnimatePresence>
+        {showImportModal && (
+          <CsvImportModal 
+            isOpen={showImportModal} 
+            onClose={() => setShowImportModal(false)} 
+            onImport={loadData}
+            instanceId={instanceId || 0}
+            instanceName={activeInstanceName}
+          />
+        )}
+        
+        {showTeamModal && (
+          <TeamEditModal 
+            isOpen={showTeamModal}
+            onClose={() => setShowTeamModal(false)}
+            team={selectedTeam}
+            instanceId={instanceId || 0}
+            onUpdate={loadData}
+          />
+        )}
 
-      <EditGroupModal 
-         isOpen={showGroupModal}
-         onClose={() => setShowGroupModal(false)}
-         isNew={isNewGroup}
-         initialData={selectedGroup ? { name: selectedGroup.name, color: selectedGroup.color || '' } : undefined}
-         onSave={handleSaveGroup}
-         onDelete={!isNewGroup ? async () => {
-           setConfirmData({
-             title: "Supprimer ce groupe",
-             description: `Êtes-vous sûr de vouloir supprimer le groupe "${selectedGroup?.name}" ? Tous les joueurs associés seront également supprimés.`,
-             onConfirm: () => handleBulkDelete('groups', [selectedGroup!.id])
-           });
-         } : undefined}
-      />
+        {showGroupModal && (
+          <EditGroupModal 
+            isOpen={showGroupModal}
+            onClose={() => setShowGroupModal(false)}
+            isNew={isNewGroup}
+            initialData={selectedGroup ? { name: selectedGroup.name, color: selectedGroup.color || '' } : undefined}
+            onSave={handleSaveGroup}
+            onDelete={!isNewGroup ? async () => {
+              setConfirmData({
+                title: "Supprimer ce groupe",
+                description: `Êtes-vous sûr de vouloir supprimer le groupe "${selectedGroup?.name}" ? Tous les joueurs associés seront également supprimés.`,
+                onConfirm: () => handleBulkDelete('groups', [selectedGroup!.id])
+              });
+            } : undefined}
+          />
+        )}
 
-      <EditPlayerModal 
-         isOpen={showPlayerModal}
-         onClose={() => setShowPlayerModal(false)}
-         isNew={isNewPlayer}
-         initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '' } : undefined}
-         onSave={handleSavePlayer}
-         onDelete={!isNewPlayer ? async () => {
-           setConfirmData({
-             title: "Supprimer l'équipier",
-             description: `Supprimer définitivement l'accès pour @${selectedPlayer?.pseudo} ?`,
-             onConfirm: () => handleBulkDelete('children', [selectedPlayer!.id])
-           });
-         } : undefined}
-      />
+        {showPlayerModal && (
+          <EditPlayerModal 
+            isOpen={showPlayerModal}
+            onClose={() => setShowPlayerModal(false)}
+            isNew={isNewPlayer}
+            initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '' } : undefined}
+            onSave={handleSavePlayer}
+            onDelete={!isNewPlayer ? async () => {
+              setConfirmData({
+                title: "Supprimer l'équipier",
+                description: `Supprimer définitivement l'accès pour @${selectedPlayer?.pseudo} ?`,
+                onConfirm: () => handleBulkDelete('children', [selectedPlayer!.id])
+              });
+            } : undefined}
+          />
+        )}
 
-      <ConfirmDialog 
-         isOpen={!!confirmData}
-         onClose={() => setConfirmData(null)}
-         onConfirm={async () => {
-           await confirmData?.onConfirm();
-           setConfirmData(null);
-         }}
-         title={confirmData?.title || ''}
-         description={confirmData?.description || ''}
-         isLoading={isLoading}
-      />
+        {confirmData && (
+          <ConfirmDialog 
+            isOpen={!!confirmData}
+            onClose={() => setConfirmData(null)}
+            onConfirm={async () => {
+              await confirmData?.onConfirm();
+              setConfirmData(null);
+            }}
+            title={confirmData?.title || ''}
+            description={confirmData?.description || ''}
+            isLoading={isLoading}
+          />
+        )}
+      </AnimatePresence>
       
           </>
-        ) : activeTab === ('settings' as any) ? (
-          <GameSettingsSection instanceId={instanceId!} currentInstance={currentInstance} />
         ) : (
           <CatalogMapping instanceId={instanceId!} />
         )}
@@ -715,117 +743,10 @@ function OrganizationContent() {
   );
 }
 
-function GameSettingsSection({ instanceId, currentInstance }: { instanceId: number, currentInstance: any }) {
-  const [startDate, setStartDate] = useState(currentInstance?.gameStartDate ? new Date(currentInstance.gameStartDate).toISOString().split('T')[0] : '');
-  const [periods, setPeriods] = useState(currentInstance?.gamePeriodsCount?.toString() || '24');
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setStatus(null);
-    try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAuthData('access_token')}` 
-        },
-        body: JSON.stringify({
-          gameStartDate: startDate ? new Date(startDate).toISOString() : null,
-          gamePeriodsCount: parseInt(periods)
-        }),
-      });
-
-      if (resp.ok) {
-        setStatus({ type: 'success', msg: 'Paramètres du jeu enregistrés avec succès !' });
-        // Mettre à jour les données locales pour que le changement soit immédiat ailleurs
-        const instances = JSON.parse(getAuthData('managed_instances') || '[]');
-        const updated = instances.map((inst: any) => 
-          inst.id === instanceId ? { ...inst, gameStartDate: startDate, gamePeriodsCount: parseInt(periods) } : inst
-        );
-        setAuthData('managed_instances', JSON.stringify(updated));
-        window.dispatchEvent(new Event('storage'));
-      } else {
-        setStatus({ type: 'error', msg: "Erreur lors de l'enregistrement." });
-      }
-    } catch (e) {
-      setStatus({ type: 'error', msg: 'Erreur réseau.' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto py-10">
-      <GlassCard className="p-8 border-none shadow-xl">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-500">
-            <BarChart2 size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Configuration du Suivi</h2>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Paramètres du jeu et des périodes</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date de début du jeu</label>
-            <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="date" 
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
-            <p className="text-[10px] text-slate-400 ml-1">Toutes les semaines de suivi seront calculées à partir de cette date.</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nombre de périodes (Semaines)</label>
-            <div className="relative">
-              <Box className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="number" 
-                min="1"
-                max="52"
-                value={periods}
-                onChange={(e) => setPeriods(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-black focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4">
-             {status && (
-               <div className={`p-4 rounded-xl mb-6 text-xs font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                  {status.type === 'success' ? <Check size={16} /> : <AlertTriangle size={16} />}
-                  {status.msg}
-               </div>
-             )}
-
-             <Button 
-               type="submit" 
-               disabled={saving}
-               className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl shadow-xl shadow-slate-900/10"
-             >
-                {saving ? <Loader2 size={18} className="animate-spin mr-2" /> : <BarChart2 size={18} className="mr-2" />}
-                {saving ? 'Enregistrement...' : 'Enregistrer les paramètres'}
-             </Button>
-          </div>
-        </form>
-      </GlassCard>
-    </div>
-  );
-}
-
 function TeamCard({ 
   team, isExpanded, onToggle, vitalityCalc, setSelectedTeam, setShowTeamModal,
-  isSelectionMode, isSelected, onSelect, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer
+  isSelectionMode, isSelected, onSelect, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer,
+  onDeletePlayer, onSelectPlayer, selectedChildrenIds
 }: any) {
   const cardColor = team.color || '#40916C';
   // Résolution de l'image de l'équipe via le backend
@@ -889,7 +810,7 @@ function TeamCard({
             </div>
           ) : (
             /* EXPANDED FULL WIDTH VIEW */
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-5">
                    <div className="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
@@ -904,38 +825,33 @@ function TeamCard({
                       </div>
                    </div>
                 </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onToggle(); }} 
-                  className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100 hover:bg-emerald-100 transition-all rotate-180"
-                >
-                  <ChevronDown size={20} />
-                </button>
+                <div className="flex items-center gap-6">
+                  <div className="hidden md:flex items-center gap-6 pr-6 border-r border-slate-100">
+                    <div className="flex flex-col items-end">
+                       <div className="flex items-center gap-2 text-emerald-600 font-black"><Leaf size={14} /> {formatEcoImpact(teamImpact.co2, 'co2', 1)}</div>
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CO2 Évité</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                       <div className="flex items-center gap-2 text-blue-600 font-black"><Droplets size={14} /> {formatEcoImpact(teamImpact.water, 'water', 1)}</div>
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Eau sauvée</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                       <div className="flex items-center gap-2 text-amber-600 font-black"><Trash size={14} /> {formatEcoImpact(teamImpact.waste, 'waste', 1)}</div>
+                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Déchets</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onToggle(); }} 
+                    className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100 hover:bg-emerald-100 transition-all rotate-180"
+                  >
+                    <ChevronDown size={20} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left: Global Impact */}
-                <div className="w-full lg:w-64 shrink-0 flex flex-col gap-6">
-                  <div className="bg-slate-50/50 rounded-2xl p-6 space-y-6 border border-slate-100">
-                    <div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Impact Global</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-slate-600"><Leaf size={16} className="text-emerald-500"/><span className="text-xs font-bold">CO2 évité</span></div>
-                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.co2, 'co2', 1)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-slate-600"><Droplets size={16} className="text-blue-500"/><span className="text-xs font-bold">Eau sauvée</span></div>
-                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.water, 'water', 1)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-slate-600"><Trash size={16} className="text-amber-500"/><span className="text-xs font-bold">Déchets</span></div>
-                          <span className="font-black text-slate-800">{formatEcoImpact(teamImpact.waste, 'waste', 1)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Nouvelle classe button aligned bottom left as per screenshot */}
+                {/* Left: Actions & Info */}
+                <div className="w-full lg:w-48 shrink-0 flex flex-col gap-6">
                   <button 
                     onClick={onAddGroup} 
                     className="w-full py-10 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 hover:bg-emerald-50/20 transition-all flex flex-col items-center gap-3 group"
@@ -996,6 +912,7 @@ function TeamCard({
                             <div className="flex flex-col mt-2">
                               {/* HEADER */}
                               <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                                 <div className="w-6 shrink-0" />
                                  <div className="flex-1">Pseudo</div>
                                  <div className="flex items-center gap-5 shrink-0">
                                     <div className="w-14 text-right flex items-center justify-end gap-1">
@@ -1025,26 +942,46 @@ function TeamCard({
                                    return (
                                      <div 
                                        key={c.id} 
-                                       onClick={() => onEditPlayer(c)}
-                                       className="flex items-center justify-between py-0.5 px-3 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all cursor-pointer group/row"
+                                       className="flex items-center justify-between py-1 px-3 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group/row"
                                      >
-                                       <div className="flex-1 min-w-0">
-                                         <span className="text-[11px] font-black text-slate-800 truncate block">@{c.pseudo}</span>
+                                       <div className="flex items-center gap-3 flex-1 min-w-0">
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); onSelectPlayer(c.id); }}
+                                            className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selectedChildrenIds.includes(c.id) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200'}`}
+                                          >
+                                            {selectedChildrenIds.includes(c.id) && <Check size={10} strokeWidth={4} />}
+                                          </button>
+                                          <div 
+                                            className="min-w-0 cursor-pointer hover:text-emerald-600 transition-colors"
+                                            onClick={() => onEditPlayer(c)}
+                                          >
+                                            <span className="text-[11px] font-black text-slate-800 truncate block">@{c.pseudo}</span>
+                                          </div>
                                        </div>
 
                                        <div className="flex items-center gap-5 shrink-0">
-                                         <div className="w-14 text-right">
-                                           <span className="text-[10px] font-black text-amber-600">{playerActions}</span>
-                                         </div>
-                                         <div className="w-14 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pCo2, 'co2', 1, forceTonnesCo2)}</span>
-                                         </div>
-                                         <div className="w-16 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWater, 'water', 1, forceM3Water)}</span>
-                                         </div>
-                                         <div className="w-14 text-right">
-                                           <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWaste, 'waste', 1, forceTonnesWaste)}</span>
-                                         </div>
+                                          <div className="w-14 text-right">
+                                            <span className="text-[10px] font-black text-amber-600">{playerActions}</span>
+                                          </div>
+                                          <div className="w-14 text-right">
+                                            <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pCo2, 'co2', 1, forceTonnesCo2)}</span>
+                                          </div>
+                                          <div className="w-16 text-right">
+                                            <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWater, 'water', 1, forceM3Water)}</span>
+                                          </div>
+                                          <div className="w-14 text-right">
+                                            <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWaste, 'waste', 1, forceTonnesWaste)}</span>
+                                          </div>
+                                          
+                                          <div className="w-6 flex justify-end">
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); onDeletePlayer(c); }}
+                                              className="p-1 rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover/row:opacity-100"
+                                              title="Supprimer l'équipier"
+                                            >
+                                              <Trash2 size={12} />
+                                            </button>
+                                          </div>
                                        </div>
                                      </div>
                                    );
