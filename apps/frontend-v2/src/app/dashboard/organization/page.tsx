@@ -825,8 +825,8 @@ function TeamCard({
                       </div>
                    </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="hidden md:flex items-center gap-6 pr-6 border-r border-slate-100">
+                <div className="flex items-center gap-3 pr-6 border-r border-slate-100">
+                  <div className="hidden md:flex items-center gap-6">
                     <div className="flex flex-col items-end">
                        <div className="flex items-center gap-2 text-emerald-600 font-black"><Leaf size={14} /> {formatEcoImpact(teamImpact.co2, 'co2', 1)}</div>
                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CO2 Évité</span>
@@ -840,31 +840,25 @@ function TeamCard({
                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Déchets</span>
                     </div>
                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onAddGroup(); }}
+                    title="Ajouter un groupe"
+                    className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all"
+                  >
+                    <Plus size={20} />
+                  </button>
                   <button 
                     onClick={(e) => { e.stopPropagation(); onToggle(); }} 
-                    className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100 hover:bg-emerald-100 transition-all rotate-180"
+                    className="p-2.5 rounded-2xl bg-slate-50 text-slate-400 shadow-sm border border-slate-200 hover:bg-slate-100 transition-all rotate-180"
                   >
                     <ChevronDown size={20} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left: Actions & Info */}
-                <div className="w-full lg:w-48 shrink-0 flex flex-col gap-6">
-                  <button 
-                    onClick={onAddGroup} 
-                    className="w-full py-10 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 hover:bg-emerald-50/20 transition-all flex flex-col items-center gap-3 group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
-                       <Plus size={20} />
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest">Nouveau groupe</span>
-                  </button>
-                </div>
-
-                {/* Right: Groups Cards */}
-                <div className="flex-1">
+              <div className="w-full">
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {team.groups.map((group: any) => {
                        // Pre-calculate group totals for the footer
@@ -913,18 +907,18 @@ function TeamCard({
                               {/* HEADER */}
                               <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 text-[8px] font-black text-slate-400 uppercase tracking-[0.15em]">
                                  <div className="w-6 shrink-0" />
-                                 <div className="flex-1">Pseudo</div>
-                                 <div className="flex items-center gap-5 shrink-0">
-                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                 <div className="w-32 shrink-0">Pseudo</div>
+                                 <div className="flex items-center gap-3 shrink-0 flex-1 justify-end">
+                                    <div className="w-12 text-right flex items-center justify-end gap-1">
                                        <Star size={10} className="text-amber-500 opacity-70" /> Actions
                                     </div>
-                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                    <div className="w-14 text-right flex items-center justify-end gap-1 text-[7px]">
                                        <Leaf size={10} className="text-emerald-500 opacity-70" /> CO2e
                                     </div>
-                                    <div className="w-16 text-right flex items-center justify-end gap-1">
+                                    <div className="w-12 text-right flex items-center justify-end gap-1 text-[7px]">
                                        <Droplets size={10} className="text-blue-500 opacity-70" /> Eau
                                     </div>
-                                    <div className="w-14 text-right flex items-center justify-end gap-1">
+                                    <div className="w-12 text-right flex items-center justify-end gap-1 text-[7px]">
                                        <Trash size={10} className="text-amber-500 opacity-70" /> Déchets
                                     </div>
                                  </div>
@@ -944,10 +938,10 @@ function TeamCard({
                                        key={c.id} 
                                        className="flex items-center justify-between py-1 px-3 rounded-md hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group/row"
                                      >
-                                       <div className="flex items-center gap-3 flex-1 min-w-0">
+                                       <div className="flex items-center gap-3 w-32 shrink-0 overflow-hidden">
                                           <button 
                                             onClick={(e) => { e.stopPropagation(); onSelectPlayer(c.id); }}
-                                            className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selectedChildrenIds.includes(c.id) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200'}`}
+                                            className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${selectedChildrenIds.includes(c.id) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200'}`}
                                           >
                                             {selectedChildrenIds.includes(c.id) && <Check size={10} strokeWidth={4} />}
                                           </button>
@@ -955,21 +949,21 @@ function TeamCard({
                                             className="min-w-0 cursor-pointer hover:text-emerald-600 transition-colors"
                                             onClick={() => onEditPlayer(c)}
                                           >
-                                            <span className="text-[11px] font-black text-slate-800 truncate block">@{c.pseudo}</span>
+                                            <span className="text-[11px] font-black text-slate-800 truncate block">{c.pseudo}</span>
                                           </div>
                                        </div>
 
-                                       <div className="flex items-center gap-5 shrink-0">
-                                          <div className="w-14 text-right">
+                                       <div className="flex items-center gap-3 shrink-0 flex-1 justify-end">
+                                          <div className="w-12 text-right">
                                             <span className="text-[10px] font-black text-amber-600">{playerActions}</span>
                                           </div>
                                           <div className="w-14 text-right">
                                             <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pCo2, 'co2', 1, forceTonnesCo2)}</span>
                                           </div>
-                                          <div className="w-16 text-right">
+                                          <div className="w-12 text-right">
                                             <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWater, 'water', 1, forceM3Water)}</span>
                                           </div>
-                                          <div className="w-14 text-right">
+                                          <div className="w-12 text-right">
                                             <span className="text-[10px] font-bold text-slate-500">{formatEcoImpact(pWaste, 'waste', 1, forceTonnesWaste)}</span>
                                           </div>
                                           
@@ -991,17 +985,17 @@ function TeamCard({
                               {/* FOOTER (TOTALS) */}
                               <div className="flex items-center justify-between px-3 py-2 mt-1 border-t-2 border-slate-50 bg-slate-50/10 rounded-b-xl backdrop-blur-sm">
                                  <div className="flex-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Groupe</div>
-                                 <div className="flex items-center gap-5 shrink-0">
-                                    <div className="w-14 text-right">
+                                 <div className="flex items-center gap-3 shrink-0">
+                                    <div className="w-12 text-right">
                                        <span className="text-[10px] font-black text-amber-600">{groupTotalActions}</span>
                                     </div>
-                                    <div className="w-14 text-right">
+                                    <div className="w-12 text-right">
                                        <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalCo2, 'co2', 1, forceTonnesCo2)}</span>
                                     </div>
-                                    <div className="w-16 text-right">
+                                    <div className="w-14 text-right">
                                        <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalWater, 'water', 1, forceM3Water)}</span>
                                     </div>
-                                    <div className="w-14 text-right">
+                                    <div className="w-12 text-right">
                                        <span className="text-[10px] font-black text-slate-800">{formatEcoImpact(groupTotalWaste, 'waste', 1, forceTonnesWaste)}</span>
                                     </div>
                                  </div>
@@ -1011,7 +1005,6 @@ function TeamCard({
                         </div>
                        );
                     })}
-                  </div>
                 </div>
               </div>
             </div>
