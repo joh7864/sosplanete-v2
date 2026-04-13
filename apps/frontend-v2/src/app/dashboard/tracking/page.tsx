@@ -72,6 +72,7 @@ function TrackingContent() {
   const [showInstanceSelector, setShowInstanceSelector] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideInactive, setHideInactive] = useState(false);
+  const [hideEmptyPeriods, setHideEmptyPeriods] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
 
   // Valeurs de configuration pour la densification
@@ -209,6 +210,17 @@ function TrackingContent() {
     const matchesActivity = !hideInactive || c.total > 0;
     return matchesSearch && matchesTeam && matchesGroup && matchesActivity;
   });
+
+  // Calculs dynamiques pour le tableau uniquement
+  const computedWeeklyTotals = data.periods.map((_, weekIdx) => {
+    return filteredChildren.reduce((sum, child) => sum + (child.weeks[weekIdx] || 0), 0);
+  });
+
+  const computedTableGrandTotal = filteredChildren.reduce((sum, child) => sum + child.total, 0);
+
+  const visiblePeriodIndices = data.periods
+    .map((_, i) => i)
+    .filter(i => !hideEmptyPeriods || computedWeeklyTotals[i] > 0);
 
   const teamStats = teams.map(team => {
     const teamChildren = data.children.filter(c => c.teamId === team.id);
@@ -414,7 +426,18 @@ function TrackingContent() {
                           onChange={(e) => setHideInactive(e.target.checked)}
                           className="w-3 h-3 accent-emerald-500 rounded border-slate-300"
                         />
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">Masquer inactifs</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">Masquer enfants inactifs</span>
+                      </label>
+
+                      {/* Hide Empty Periods Toggle */}
+                      <label className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+                        <input 
+                          type="checkbox"
+                          checked={hideEmptyPeriods}
+                          onChange={(e) => setHideEmptyPeriods(e.target.checked)}
+                          className="w-3 h-3 accent-sky-500 rounded border-slate-300"
+                        />
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">Masquer périodes vides</span>
                       </label>
 
                     {/* Team Filter */}
@@ -473,14 +496,17 @@ function TrackingContent() {
                         <th className="w-[60px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 text-center bg-emerald-50/50">Total</th>
                         <th className="p-0 border-b border-slate-100">
                           <div className="flex">
-                            {data.periods.map((p, i) => (
-                              <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-0.5 text-[8px] font-black uppercase text-slate-500 tracking-tighter border-l border-slate-100/50 text-center flex flex-col items-center justify-center h-12 bg-white/50">
-                                <span className="text-slate-400 text-[7px] leading-none opacity-70">{p.label}</span>
-                                <span className="text-slate-800 font-bold mt-0.5 leading-none">
-                                  {new Date(p.start).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                                </span>
-                              </div>
-                            ))}
+                            {visiblePeriodIndices.map((idx) => {
+                              const p = data.periods[idx];
+                              return (
+                                <div key={idx} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-0.5 text-[8px] font-black uppercase text-slate-500 tracking-tighter border-l border-slate-100/50 text-center flex flex-col items-center justify-center h-12 bg-white/50">
+                                  <span className="text-slate-400 text-[7px] leading-none opacity-70">{p.label}</span>
+                                  <span className="text-slate-800 font-bold mt-0.5 leading-none">
+                                    {new Date(p.start).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </th>
                       </tr>
@@ -511,13 +537,16 @@ function TrackingContent() {
                             </td>
                             <td className="p-0">
                               <div className="flex h-full">
-                                {child.weeks.map((count, i) => (
-                                  <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="px-0.5 py-0.5 h-9 flex items-center justify-center border-l border-slate-50/50">
-                                    <div className={`w-full h-full rounded-md flex items-center justify-center text-[10px] transition-all hover:scale-110 cursor-default ${getHeatmapStyle(count)}`}>
-                                      {count > 0 ? count : <div className="w-1 h-1 rounded-full bg-slate-200" />}
+                                {visiblePeriodIndices.map((idx) => {
+                                  const count = child.weeks[idx] || 0;
+                                  return (
+                                    <div key={idx} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="px-0.5 py-0.5 h-9 flex items-center justify-center border-l border-slate-50/50">
+                                      <div className={`w-full h-full rounded-md flex items-center justify-center text-[10px] transition-all hover:scale-110 cursor-default ${getHeatmapStyle(count)}`}>
+                                        {count > 0 ? count : <div className="w-1 h-1 rounded-full bg-slate-200" />}
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </td>
                           </tr>
@@ -529,13 +558,13 @@ function TrackingContent() {
                   <table className="w-full text-left border-collapse table-fixed">
                     <tfoot>
                       <tr className="bg-slate-900 text-white">
-                        <td className="w-[340px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire</td>
-                        <td className="w-[60px] px-3 py-2 text-center font-black text-[10px] text-white">{data.grandTotal}</td>
+                        <td className="w-[340px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire Filtré</td>
+                        <td className="w-[60px] px-3 py-2 text-center font-black text-[10px] text-white">{computedTableGrandTotal}</td>
                         <td className="p-0">
                           <div className="flex">
-                            {data.weeklyTotals.map((total, i) => (
-                              <div key={i} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-1.5 text-center text-[9px] font-black text-white border-l border-white/10">
-                                {total}
+                            {visiblePeriodIndices.map((idx) => (
+                              <div key={idx} style={{ width: CELL_WIDTH, minWidth: CELL_WIDTH }} className="p-1.5 text-center text-[9px] font-black text-white border-l border-white/10">
+                                {computedWeeklyTotals[idx]}
                               </div>
                             ))}
                           </div>
