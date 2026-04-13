@@ -490,9 +490,9 @@ function TrackingContent() {
                   <table className="w-full text-left border-collapse table-fixed">
                     <thead>
                       <tr className="bg-slate-50/50">
-                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-0 bg-slate-50/50 z-20">Équipe</th>
-                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-[80px] bg-slate-50/50 z-20">Groupe</th>
-                        <th className="w-[120px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">Enfant</th>
+                        <th className="w-[120px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-0 bg-slate-50/50 z-20">Enfant</th>
+                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-[120px] bg-slate-50/50 z-20">Équipe</th>
+                        <th className="w-[80px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 sticky left-[200px] bg-slate-50/50 z-20">Groupe</th>
                         <th className="w-[60px] px-3 py-2 text-[8px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 text-center bg-emerald-50/50">Total</th>
                         <th className="p-0 border-b border-slate-100">
                           <div className="flex">
@@ -518,19 +518,19 @@ function TrackingContent() {
                       <tbody className="divide-y divide-slate-100">
                         {filteredChildren.map((child) => (
                           <tr key={child.id} className="hover:bg-slate-50/50 transition-colors group">
-                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 text-[9px] font-black text-slate-800 truncate">
-                              {child.teamName}
-                            </td>
-                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-[80px] bg-white group-hover:bg-slate-50/50 z-10 text-[8px] font-bold text-slate-400 uppercase tracking-tight truncate">
-                              {child.groupName}
-                            </td>
-                            <td className="w-[120px] px-3 py-1.5">
+                            <td className="w-[120px] px-3 py-1.5 border-b border-slate-100 sticky left-0 bg-white group-hover:bg-slate-50/50 z-10 overflow-hidden">
                               <div className="flex items-center gap-2">
                                 <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 overflow-hidden shrink-0 shadow-xs">
                                    <img src={getPlayerAvatar(child.pseudo, child.avatar)} alt="" className="w-full h-full object-cover" />
                                 </div>
-                                <span className="text-[9px] font-black text-emerald-600 truncate">{child.pseudo}</span>
+                                <span className="text-[11px] font-black text-emerald-600 truncate">{child.pseudo}</span>
                               </div>
+                            </td>
+                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-[120px] bg-white group-hover:bg-slate-50/50 z-10 text-[9px] font-black text-slate-800 truncate">
+                              {child.teamName}
+                            </td>
+                            <td className="w-[80px] px-3 py-1.5 border-b border-slate-100 sticky left-[200px] bg-white group-hover:bg-slate-50/50 z-10 text-[8px] font-bold text-slate-400 uppercase tracking-tight truncate">
+                              {child.groupName}
                             </td>
                             <td className="w-[60px] px-3 py-1.5 text-center font-black text-[10px] text-slate-800 bg-emerald-50/10">
                               {child.total}
@@ -558,7 +558,7 @@ function TrackingContent() {
                   <table className="w-full text-left border-collapse table-fixed">
                     <tfoot>
                       <tr className="bg-slate-900 text-white">
-                        <td className="w-[340px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire Filtré</td>
+                        <td className="w-[280px] px-3 py-2 text-[9px] font-black uppercase tracking-widest text-emerald-400">Total Hebdomadaire Filtré</td>
                         <td className="w-[60px] px-3 py-2 text-center font-black text-[10px] text-white">{computedTableGrandTotal}</td>
                         <td className="p-0">
                           <div className="flex">
