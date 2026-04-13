@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface TeamEditModalProps {
+  isOpen?: boolean;
   team?: any | null;
   instanceId: number;
   onClose: () => void;
@@ -47,6 +48,7 @@ const ICONS = [
 ];
 
 export const TeamEditModal: React.FC<TeamEditModalProps> = ({ 
+  isOpen,
   team, 
   instanceId, 
   onClose, 
