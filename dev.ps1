@@ -47,7 +47,7 @@ foreach ($port in $ports) {
 
 # Nettoyage par nom (Backup : tue tout process node lié à sos-planete)
 Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like "*sosplanete-v2*" } |
+    Where-Object { $_.CommandLine -like "*sosplanete*" } |
     ForEach-Object {
         Write-Host "  - Kill node sos-planete (PID: $($_.ProcessId))..." -ForegroundColor Gray
         Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue

@@ -10,7 +10,6 @@ export class LocalActionService {
     instanceId: number; 
     actionRefId: number; 
     customLabel?: string; 
-    customCategory?: string 
   }, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) {
@@ -25,7 +24,6 @@ export class LocalActionService {
         instanceId: data.instanceId,
         actionRefId: data.actionRefId,
         label: data.customLabel || actionRef.referenceName,
-        category: data.customCategory || actionRef.category,
       },
     });
   }
@@ -58,7 +56,6 @@ export class LocalActionService {
       instanceId,
       actionRefId: ref.id,
       label: ref.referenceName,
-      category: ref.category,
     }));
 
     // On utilise createMany avec skipDuplicates car nous avons maintenant une contrainte @unique
@@ -94,7 +91,6 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || null,
-          category: actionInput.category || ref.category,
         },
         create: {
           instanceId,
@@ -102,7 +98,6 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || null,
-          category: actionInput.category || ref.category,
         }
       });
       results.push(local);

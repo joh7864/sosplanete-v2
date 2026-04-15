@@ -136,44 +136,48 @@ function TrackingContent() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 size={48} className="animate-spin text-emerald-500" />
-        <p className="text-slate-500 font-medium">Analyse des performances en cours...</p>
-      </div>
+      <>
+        <TopBar title="Suivi des Jeux" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 size={48} className="animate-spin text-emerald-500" />
+          <p className="text-slate-500 font-medium">Analyse des performances en cours...</p>
+        </div>
+      </>
     );
   }
 
   if (!instanceId) {
     return (
-      <div className="flex flex-col items-center gap-10 py-10 max-w-4xl mx-auto">
-        <div className="text-center">
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Suivi des Jeux</h2>
-          <p className="text-slate-500 mt-2">Veuillez sélectionner un établissement pour consulter ses statistiques de performance.</p>
+      <>
+        <TopBar title="Suivi des Jeux" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <div className="p-5 bg-emerald-50 rounded-3xl">
+            <BarChart2 size={48} className="text-emerald-500" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-black text-slate-800 mb-2">Aucun espace sélectionné</h2>
+            <p className="text-slate-500 font-medium max-w-md px-4">
+              Veuillez sélectionner un établissement pour consulter ses statistiques de performance.
+            </p>
+          </div>
+          {managedInstances.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mt-4 px-4 w-full max-w-2xl">
+              {managedInstances.map(inst => (
+                <button
+                  key={inst.id}
+                  onClick={() => {
+                    setInstanceId(inst.id);
+                  }}
+                  className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group flex-1 min-w-[200px]"
+                >
+                  <Building2 size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  <span className="font-bold text-slate-700 group-hover:text-emerald-700 transition-colors truncate">{inst.schoolName}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full px-4">
-          {managedInstances.map(inst => (
-            <motion.button
-              key={inst.id}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setInstanceId(inst.id);
-                // Optionnel : mettre à jour l'espace actif global
-                // setAuthData('active_instance_id', inst.id.toString());
-              }}
-              className="p-8 rounded-3xl bg-white border border-slate-100 shadow-xl hover:border-emerald-500 hover:shadow-emerald-500/10 transition-all flex flex-col items-center gap-4 group text-center"
-            >
-              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
-                <Building2 size={32} />
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-lg font-black text-slate-800">{inst.schoolName}</span>
-                <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">{inst.hostUrl}</span>
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
+      </>
     );
   }
 

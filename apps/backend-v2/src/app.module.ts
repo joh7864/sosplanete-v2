@@ -14,9 +14,16 @@ import { LocalActionModule } from './modules/local-action/local-action.module';
 import { PeriodModule } from './modules/period/period.module';
 import { UsersModule } from './modules/users/users.module';
 import { TrackingModule } from './modules/tracking/tracking.module';
+import { LegacyApiModule } from './modules/legacy-api/legacy-api.module';
+
+import { ScheduleModule } from '@nestjs/schedule';
+
+import { CategoryModule } from './modules/category/category.module';
 
 @Module({
   imports: [
+    CategoryModule,
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -32,6 +39,7 @@ import { TrackingModule } from './modules/tracking/tracking.module';
       rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
       serveRoot: '/uploads',
     }),
+    LegacyApiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,6 +8,6 @@
 
   "apiRootUrl2": "http://localhost:8082/api/v2",
   "imgRootUrl2": "http://localhost:8082/static/",
-  "apiRootUrl": "/api/v2",
-  "imgRootUrl": "/static/"
+  "apiRootUrl": "http://localhost:3011/legacy",
+  "imgRootUrl": "http://localhost:3011/static/"
 }

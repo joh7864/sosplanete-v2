@@ -10,7 +10,6 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { InstanceEditModal } from '@/components/instances/InstanceEditModal';
 import { InstanceDeleteConfirm } from '@/components/instances/InstanceDeleteConfirm';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
@@ -49,8 +48,6 @@ export default function DashboardSummaryPage() {
   const [amUsers, setAmUsers] = useState<any[]>([]);
   const [activePopoverId, setActivePopoverId] = useState<number | null>(null);
   const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
-  
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
 
@@ -192,8 +189,7 @@ export default function DashboardSummaryPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
-                  setSelectedInstance(null);
-                  setShowEditModal(true);
+                  window.location.href = '/dashboard/organization?tab=general&new=true';
                 }}
                 className="h-9 w-9 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none"
                 title="Nouvel Espace"
@@ -326,12 +322,17 @@ export default function DashboardSummaryPage() {
                       <div className="flex gap-2 shrink-0">
                         {userRole === 'AS' && (
                           <>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setSelectedInstance(instance); setShowEditModal(true); }}
-                              className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100"
+                            <Link 
+                              href={`/dashboard/organization?instanceId=${instance.id}&tab=general`}
+                              className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100 flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAuthData('active_instance_id', instance.id.toString());
+                                window.dispatchEvent(new Event('storage'));
+                              }}
                             >
                               <Edit3 size={16} />
-                            </button>
+                            </Link>
                             <button 
                               onClick={(e) => { e.stopPropagation(); setSelectedInstance(instance); setShowDeleteConfirm(true); }}
                               className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-100"
@@ -501,12 +502,17 @@ export default function DashboardSummaryPage() {
                       <div className="flex items-center gap-2 pr-2">
                         {userRole === 'AS' && (
                           <>
-                            <button 
-                              onClick={() => { setSelectedInstance(instance); setShowEditModal(true); }}
-                              className="p-3 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100"
+                            <Link 
+                              href={`/dashboard/organization?instanceId=${instance.id}&tab=general`}
+                              className="p-3 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100 flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAuthData('active_instance_id', instance.id.toString());
+                                window.dispatchEvent(new Event('storage'));
+                              }}
                             >
                               <Edit3 size={18} />
-                            </button>
+                            </Link>
                             <button 
                               onClick={() => { setSelectedInstance(instance); setShowDeleteConfirm(true); }}
                               className="p-3 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-100"
@@ -535,8 +541,7 @@ export default function DashboardSummaryPage() {
             {viewMode === 'grid' && userRole === 'AS' && (
               <button 
                 onClick={() => {
-                  setSelectedInstance(null);
-                  setShowEditModal(true);
+                  window.location.href = '/dashboard/organization?tab=general&new=true';
                 }}
                 className="h-full min-h-[180px] border-4 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-4 text-slate-400 hover:border-emerald-500/30 hover:bg-emerald-50/20 hover:text-emerald-600 transition-all duration-300 group"
               >
@@ -566,8 +571,7 @@ export default function DashboardSummaryPage() {
               <Button 
                 variant="primary" 
                 onClick={() => {
-                  setSelectedInstance(null);
-                  setShowEditModal(true);
+                  window.location.href = '/dashboard/organization?tab=general&new=true';
                 }}
                 className="bg-emerald-600"
               >
@@ -579,16 +583,6 @@ export default function DashboardSummaryPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showEditModal && userRole === 'AS' && (
-          <InstanceEditModal 
-            instance={selectedInstance}
-            onClose={() => {
-              setShowEditModal(false);
-              setSelectedInstance(null);
-            }}
-            onUpdate={fetchInstances}
-          />
-        )}
         {showDeleteConfirm && userRole === 'AS' && (
           <InstanceDeleteConfirm 
             instance={selectedInstance}

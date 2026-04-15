@@ -54,7 +54,6 @@ export class ActionRefService {
                   impactLabel,
                   impactTotal,
                   weightedStars,
-                  category,
                   image,
                 },
                 create: {
@@ -67,7 +66,6 @@ export class ActionRefService {
                   impactLabel,
                   impactTotal,
                   weightedStars,
-                  category,
                   image,
                 },
               });
@@ -87,7 +85,7 @@ export class ActionRefService {
 
   async findAll() {
     return this.prisma.actionRef.findMany({
-      orderBy: { category: 'asc' },
+      orderBy: { code: 'asc' },
     });
   }
 
@@ -97,7 +95,6 @@ export class ActionRefService {
         OR: [
           { code: { contains: query, mode: 'insensitive' } },
           { referenceName: { contains: query, mode: 'insensitive' } },
-          { category: { contains: query, mode: 'insensitive' } },
         ],
       },
       take: 100,

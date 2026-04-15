@@ -23,6 +23,22 @@ export class PeriodController {
     return this.periodService.findAll(instanceId, req.user);
   }
 
+  @Get(':id/impact')
+  @ApiOperation({ summary: 'Obtenir l\'impact de la suppression d\'une période (Nb actions et détails)' })
+  async getImpact(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.periodService.getImpact(id, req.user);
+  }
+
+  @Post(':id') // Keeping to REST if they want, but let's use Patch
+  @ApiOperation({ summary: 'Mettre à jour une période (ex: isOpen)' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { startDate?: Date; endDate?: Date; isOpen?: boolean },
+    @Req() req: any
+  ) {
+    return this.periodService.update(id, body, req.user);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Supprimer une période (avec avertissement côté client si non vide)' })
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {

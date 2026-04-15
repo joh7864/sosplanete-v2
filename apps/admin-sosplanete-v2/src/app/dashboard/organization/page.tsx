@@ -12,6 +12,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TopBar } from '@/components/layout/TopBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CatalogMapping } from '@/components/catalog/CatalogMapping';
+import { GeneralSettings } from '@/components/organization/GeneralSettings';
+import { CategorySettings } from '@/components/organization/CategorySettings';
 import { 
   Plus, 
   Users, 
@@ -58,7 +60,9 @@ function OrganizationContent() {
   const [loading, setLoading] = useState(true);
   const [expandedTeamId, setExpandedTeamId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'teams' | 'catalog'>('teams');
+  const [activeTab, setActiveTab] = useState<'general' | 'teams' | 'catalog' | 'categories'>(
+    searchParams.get('tab') as any || 'general'
+  );
 
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -298,11 +302,52 @@ function OrganizationContent() {
     return { co2, water, waste };
   };
 
-  if (loading) {    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 size={48} className="animate-spin text-emerald-500" />
-        <p className="text-slate-500 font-medium">Chargement de votre organisation...</p>
-      </div>
+  if (!instanceId) {
+    return (
+      <>
+        <TopBar title="Configuration des Espaces" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <div className="p-5 bg-emerald-50 rounded-3xl">
+            <Globe size={48} className="text-emerald-500" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-black text-slate-800 mb-2">Aucun espace sélectionné</h2>
+            <p className="text-slate-500 font-medium max-w-md">
+              Veuillez sélectionner un espace dans le menu latéral pour accéder à sa configuration.
+            </p>
+          </div>
+          {managedInstances.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mt-4">
+              {managedInstances.map(inst => (
+                <button
+                  key={inst.id}
+                  onClick={() => {
+                    setAuthData('active_instance_id', inst.id.toString());
+                    setInstanceId(inst.id);
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                  className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group"
+                >
+                  <Building2 size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  <span className="font-bold text-slate-700 group-hover:text-emerald-700 transition-colors">{inst.schoolName}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  if (loading) {
+    return (
+      <>
+        <TopBar title="Configuration" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 size={48} className="animate-spin text-emerald-500" />
+          <p className="text-slate-500 font-medium">Chargement de votre organisation...</p>
+        </div>
+      </>
     );
   }
 
@@ -357,25 +402,38 @@ function OrganizationContent() {
             instanceId ? (
               <>
                   <button
+                     onClick={() => setActiveTab('general')}
+                     className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'general' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <Settings2 size={18} /> Paramètres généraux
+                     {activeTab === 'general' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-0 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  </button>
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+                  <button
                      onClick={() => setActiveTab('teams')}
-                     className={`flex items-center gap-3 py-4 pr-8 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'teams' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                     className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'teams' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                   >
                      <Users size={18} /> Configuration des équipes
-                     {activeTab === 'teams' && (
-                       <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-0 right-8 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
-                     )}
+                     {activeTab === 'teams' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
                   </button>
-                  
                   <div className="w-px h-5 bg-slate-200 shrink-0" />
                   
                   <button
                      onClick={() => setActiveTab('catalog')}
-                     className={`flex items-center gap-3 py-4 pl-8 pr-8 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'catalog' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                     className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'catalog' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                   >
                      <BookOpen size={18} /> Configuration du catalogue
-                     {activeTab === 'catalog' && (
-                       <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-8 right-8 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
-                     )}
+                     {activeTab === 'catalog' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  </button>
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+                  <button
+                     onClick={() => setActiveTab('categories')}
+                     className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'categories' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <Droplets size={18} /> Configuration des catégories
+                     {activeTab === 'categories' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
                   </button>
               </>
             ) : undefined
@@ -479,7 +537,13 @@ function OrganizationContent() {
             </div>
         ) : (
           <>
-        {activeTab === 'teams' ? (
+        {activeTab === 'general' ? (
+          <GeneralSettings instanceId={instanceId!} currentInstance={currentInstance} onUpdate={updateManagedInstances} />
+        ) : activeTab === 'categories' ? (
+          <CategorySettings instanceId={instanceId!} />
+        ) : activeTab === 'catalog' ? (
+          <CatalogMapping instanceId={instanceId!} />
+        ) : activeTab === 'teams' ? (
           <>
             {/* Global Stats Bar Integrated Actions */}
             {(() => {
@@ -733,9 +797,7 @@ function OrganizationContent() {
       </AnimatePresence>
       
           </>
-        ) : (
-          <CatalogMapping instanceId={instanceId!} />
-        )}
+        ) : null}
       </>
     )}
     </div>

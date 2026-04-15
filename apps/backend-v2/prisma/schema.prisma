@@ -47,10 +47,20 @@ model ActionRef {
   weightedStars Int?     // Etoile pondérée (1-5)
   image         String?  // Nom du fichier image (ex: B01.png)
   year          Int      @default(2025)
-  category      String?
+
 
   // Liaisons avec les actions personnalisées des instances
   localActions  LocalAction[]
+}
+
+model Category {
+  id         Int           @id @default(autoincrement())
+  name       String
+  icon       String?
+  order      Int           @default(0)
+  instanceId Int
+  instance   Instance      @relation(fields: [instanceId], references: [id])
+  localActions LocalAction[]
 }
 
 model AnnualImpactData {
@@ -75,6 +85,7 @@ model Instance {
   // Paramètres du jeu
   gameStartDate    DateTime?
   gamePeriodsCount Int      @default(24)
+  unlockedChapters Int      @default(0)
 
   // Admin local associé
   adminId    Int?
@@ -84,6 +95,7 @@ model Instance {
   teams      Team[]
   localActions LocalAction[]
   periods    Period[]
+  categories Category[]
 }
 
 model Team {
@@ -124,8 +136,9 @@ model LocalAction {
   id          Int      @id @default(autoincrement())
   label       String
   description String?
-  category    String?
   image       String?
+  categoryId  Int?     // Remplacement du champ texte
+  category    Category? @relation(fields: [categoryId], references: [id])
   
   // Lien vers le référentiel global
   actionRefId Int
@@ -149,6 +162,7 @@ model Period {
   id         Int      @id @default(autoincrement())
   startDate  DateTime
   endDate    DateTime
+  isOpen     Boolean  @default(false)
   instanceId Int
   instance   Instance @relation(fields: [instanceId], references: [id])
   
