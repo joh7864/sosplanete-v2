@@ -1,0 +1,336 @@
+.game-container {
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  border: 2px solid white;
+  background-color: rgb(255, 255, 255, 0.25);
+  justify-content: center;
+  align-items: center;
+  margin: 20px;
+  padding: 10px;
+  max-height: 90vh;
+  overflow: hidden;
+}
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.game-chrono {
+  display: flex;
+  align-items: center;
+}
+.game-card-container {
+  margin-top: 20px;
+  margin-bottom: 100px;
+  display: flex;
+  justify-items: center;
+  align-items: center;
+  gap: 20px;
+}
+.game-cards {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;
+}
+
+.game-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 300px;
+  min-height: 300px;
+  background-color: rgb(230, 230, 230, 0.6);
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px,
+    rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+}
+
+.game-chrono-cmd {
+  display: flex;
+  justify-content: space-evenly;
+  cursor: pointer;
+}
+.game-chrono-cmd-text {
+  align-self: center;
+}
+.game-score {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+}
+.game-recompense {
+  width: 34px;
+}
+
+.game-wastes {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  gap: 5px;
+}
+
+.game-dechets-container {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  align-content: space-around;
+  border-radius: 8px;
+  gap: 5px;
+  max-width: 90%;
+  padding-bottom: 5px;
+}
+.game-dechet {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  align-content: space-around;
+  border-radius: 8px;
+  border: 2px solid #800000;
+  background-color: white;
+  width: 90px;
+  height: 90px;
+  text-align: center;
+}
+.game-titre-header,
+.game-titre {
+  font-size: 3rem;
+  margin: 30px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.game-titre {
+  font-size: 1.2rem;
+}
+
+.game-info {
+  font-size: 1.5rem;
+  margin: 20px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+}
+.game-narrator {
+  display: flex;
+}
+.game-narrator > img {
+  width: 200px;
+  height: 200px;
+}
+.game-text-result {
+  font-size: 1.7rem;
+  padding: 20px;
+}
+.game-new {
+  font-size: 1.7rem;
+  cursor: pointer;
+}
+
+.game-res-item {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-align: center;
+  border: 2px;
+}
+.games-titre {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin-top: 15px;
+  text-align: center;
+}
+.choix-niveau-container {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+.medaille-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  max-width: 80px;
+}
+.medaille-container > img {
+  width: 60px;
+  height: 60px;
+}
+/*MOBILE horizontal */
+@media screen and (max-height: 400px) {
+  .game-container {
+    margin: 15px;
+    margin-bottom: 80px;
+  }
+  .game-header {
+    padding: 10px;
+  }
+  .game-cards {
+    padding: 8px;
+    flex-direction: column;
+  }
+  .game-wastes {
+    align-content: center;
+    gap: 5px;
+  }
+  .game-chrono-cmd > div {
+    display: none;
+  }
+  .game-dechet {
+    width: 55px;
+    height: 55px;
+  }
+  .game-dechet-texte {
+    font-size: 0.5rem;
+  }
+  .game-titre {
+    font-size: 1.1rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 25px;
+  }
+  .game-info {
+    font-size: 1.3rem;
+    margin: 5px;
+    padding: 5px;
+  }
+  .game-narrator > img {
+    width: 100px;
+    height: 100px;
+  }
+  .game-new {
+    font-size: 1.1rem;
+  }
+  .game-score {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    max-width: 200px;
+  }
+  .game-recompense {
+    width: 14px;
+  }
+
+  .game-recompense > img {
+    width: 12px;
+  }
+  .game-res-item {
+    width: 60px;
+    height: 60px;
+  }
+  .game-res-item-texte {
+    font-size: 0.6rem;
+  }
+  .game-res-item-icon {
+    display: none;
+  }
+  .game-text-result {
+    font-size: 1.4rem;
+    padding: 5px;
+  }
+  .games-titre {
+    font-size: 1.7rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    margin-top: 0;
+  }
+}
+/*MOBILE vertical */
+@media screen and (max-width: 480px) {
+  .game-container {
+    margin: 15px;
+    margin-bottom: 80px;
+  }
+  .game-header {
+    padding: 10px;
+  }
+  .game-cards {
+    padding: 8px;
+    flex-direction: column;
+  }
+  .game-wastes {
+    align-content: center;
+    gap: 5px;
+  }
+  .game-chrono-cmd > div {
+    display: none;
+  }
+  .game-dechet {
+    width: 55px;
+    height: 55px;
+  }
+  .game-dechet-texte {
+    font-size: 0.5rem;
+  }
+  .game-titre {
+    font-size: 1.1rem;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 25px;
+  }
+  .game-info {
+    font-size: 1.3rem;
+    margin: 5px;
+    padding: 5px;
+  }
+  .game-narrator > img {
+    width: 100px;
+    height: 100px;
+  }
+  .game-new {
+    font-size: 1.1rem;
+  }
+  .game-score {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    max-width: 200px;
+  }
+  .game-recompense {
+    width: 14px;
+  }
+
+  .game-recompense > img {
+    width: 12px;
+  }
+  .game-res-item {
+    width: 60px;
+    height: 60px;
+  }
+  .game-res-item-texte {
+    font-size: 0.6rem;
+  }
+  .game-res-item-icon {
+    display: none;
+  }
+  .game-text-result {
+    font-size: 1.4rem;
+    padding: 5px;
+  }
+  .games-titre {
+    font-size: 1.7rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 8px;
+    margin-top: 0;
+  }
+}

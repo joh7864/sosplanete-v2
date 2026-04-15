@@ -1,0 +1,306 @@
+.animation-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 50;
+  width: 80%;
+  border-radius: 20px;
+  background-color: rgb(255, 255, 255, 0.25);
+  margin-top: 80px;
+  padding: 10px;
+  margin-bottom: 30px;
+  -webkit-box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.58);
+  box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.38);
+}
+.deblocage-v {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.deblocage-h {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+  width: 90%;
+}
+.titre-animaux-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+.animaux-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.deblocage-cercle {
+  background-color: rgba(255, 244, 255, 0.6);
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 rgba(100, 244, 255, 0.9),
+    3px 2px 1rem rgba(10, 10, 255, 0.2);
+}
+.deblocage-cercle > img {
+  width: 70%;
+  height: 70%;
+}
+.img-reload {
+  width: 40%;
+  height: 40%;
+  position: relative;
+  top: -52px;
+  cursor: pointer;
+}
+.img-reload:hover {
+  transition: rotate(180°);
+}
+.planete-animee {
+  position: relative;
+  max-width: 600px;
+}
+/* iPad en mode portrait */
+@media screen and (max-width: 1139px) {
+  .animation-container {
+    margin-top: 10px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .planete-animee {
+    position: relative;
+    min-width: 520px;
+  }
+
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}
+
+/* iPad en mode portrait */
+@media screen and (max-width: 1025px) {
+  .animation-container {
+    margin-top: 10px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .planete-animee {
+    position: relative;
+    min-width: 520px;
+  }
+
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}
+
+/* Tablette en mode portrait */
+@media screen and (max-width: 780px) {
+  .animation-container {
+    margin-top: 80px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .planete-animee {
+    position: relative;
+    min-width: 380px;
+  }
+
+  .deblocage-cercle {
+    position: relative;
+    z-index: 3;
+    border: 1px solid rgb(127, 219, 250);
+    cursor: pointer;
+    max-width: 150px;
+    max-height: 150px;
+  }
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}
+
+/* iPhone XR en mode paysage */
+@media screen and (max-width: 950px) and (max-height: 430px) {
+  .animation-container {
+    width: 90%;
+  }
+}
+/* iPas air en mode Portrait */
+@media screen and (max-width: 920px) and (max-height: 1370px) {
+  .animation-container {
+    width: 90%;
+  }
+  .deblocage-cercle {
+    width: 180px;
+    height: 180px;
+  }
+}
+/* iPhone XR en mode paysage */
+@media screen and (max-width: 845px) and (max-height: 390px) {
+  .animation-container {
+    width: 95%;
+  }
+}
+/* iPas air en mode Portrait */
+@media screen and (max-width: 820px) and (max-height: 1180px) {
+  .animation-container {
+    width: 90%;
+  }
+  .deblocage-cercle {
+    width: 180px;
+    height: 180px;
+  }
+}
+/* Galaxy en mode paysage */
+@media screen and (max-width: 660px) and (max-height: 320px) {
+  .animation-container {
+    margin-top: 150px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .animation-container {
+    width: 95%;
+  }
+}
+/* Galaxy en mode paysage */
+@media screen and (max-width: 640px) and (max-height: 360px) {
+  .animation-container {
+    margin-top: 150px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .animation-container {
+    width: 95%;
+  }
+}
+@media screen and (max-width: 540px) {
+  .animation-container {
+    margin-top: 150px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .deblocage-cercle {
+    position: absolute;
+    top: 32%;
+    left: 29%;
+    z-index: 3;
+    border: 1px solid rgb(127, 219, 250);
+    cursor: pointer;
+    max-width: 150px;
+    max-height: 150px;
+  }
+}
+
+/* pixel 7 en mode portrait */
+
+@media screen and (max-width: 420px) {
+  .planete-animee {
+    position: relative;
+  }
+  .animation-container {
+    width: 90%;
+    margin-top: 80px;
+    padding: 10px;
+    margin-bottom: 30px;
+  }
+  .animaux-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .deblocage-cercle {
+    position: absolute;
+    top: 30%;
+    left: 25%;
+    z-index: 3;
+    border: 1px solid rgb(127, 219, 250);
+    cursor: pointer;
+    width: 150px;
+    height: 150px;
+  }
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}
+
+/* MOBILE DE LA MAITRESSE */
+@media screen and (max-width: 390px) {
+  .planete-animee {
+    position: relative;
+  }
+  .animation-container {
+    width: 90%;
+  }
+  .animaux-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .deblocage-cercle {
+    position: absolute;
+    top: 29%;
+    left: 23%;
+    z-index: 3;
+    border: 1px solid rgb(127, 219, 250);
+    cursor: pointer;
+    width: 150px;
+    height: 150px;
+  }
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}
+
+@media screen and (max-width: 300px) {
+  .planete-animee {
+    position: relative;
+    width: 90%;
+  }
+  .animation-container {
+    width: 90%;
+  }
+  .deblocage-cercle {
+    position: absolute;
+    top: 30%;
+    left: 15%;
+    z-index: 3;
+    border: 1px solid rgb(127, 219, 250);
+    cursor: pointer;
+    width: 140px;
+    height: 140px;
+  }
+  .img-reload {
+    position: relative;
+    cursor: pointer;
+    z-index: 150;
+  }
+}

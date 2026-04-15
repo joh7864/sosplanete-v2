@@ -1,0 +1,130 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  /* justify-content: center; */
+  align-items: center;
+
+  background-image: url("/image/fond.png");
+  background-repeat: no-repeat;
+  /* background-size: contain; */
+  background-position: bottom;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  /* padding: 0 40px; */
+}
+.page-container {
+  display: flex;
+  max-width: 1290px;
+  /* padding: 0 40px; */
+}
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100vw;
+  height: 100px;
+  z-index: 99;
+}
+.dot {
+  background-color: var(--alt-color);
+  border-radius: 50%;
+  display: inline-flex;
+}
+.dot > img {
+  width: 32px;
+  height: 32px;
+  margin: 5px;
+  cursor: pointer;
+}
+.dot:hover {
+  background-color: var(--bg-color);
+  border: 3px solid var(--alt-color);
+}
+/* containers génériques*/
+.container,
+.container-v,
+.container-h {
+  display: flex;
+  align-items: center;
+}
+
+.container {
+  height: 100vh;
+}
+
+.container-v {
+  flex-direction: column;
+  justify-content: start;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+.container-h {
+  flex-direction: row;
+  justify-content: center;
+  height: 100vh;
+  flex-wrap: wrap;
+}
+.branche {
+  width: 100vw;
+  margin: 0;
+  z-index: 2;
+  position: relative;
+}
+/* Spécificités devices */
+@media only screen and (max-width: 660px) {
+  .footer {
+    height: 64px;
+    background: var(--alt-color);
+  }
+}
+/* Animations */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes bounce {
+  from {
+    top: 0px;
+  }
+  12% {
+    top: 8px;
+  }
+  25% {
+    top: 16px;
+  }
+  50% {
+    top: 32px;
+  }
+  75% {
+    top: 16px;
+  }
+  87% {
+    top: 8px;
+  }
+  to {
+    top: 0px;
+  }
+}
+@keyframes flip-with-scale {
+  0% {
+    transform: perspective(400px) scaleX(1);
+  }
+  100% {
+    transform: perspective(400px) scaleX(-1);
+  }
+}
+
+.header--link {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+}

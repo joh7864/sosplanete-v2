@@ -1,0 +1,61 @@
+{
+    "menu" : {
+        "fiche": "Ma fiche",
+        "moi": "Moi",
+        "score": "Scores",
+        "impacts": "Impacts",
+        "profile": "Profil"
+    },
+    "login" : {
+        "user": "Ton pseudo",
+        "password": "Mot de passe",
+        "erreur-speciaux": "Ton {FIELD} contient des caractères spéciaux, c'est interdit !",
+        "erreur-accents": "Ton {FIELD} contient des caractères accentués, c'est interdit !",
+        "erreur-authentification": "Votre pseudo ou votre mot de passe est incorrect ! {ERROR}",
+        "rester-connecte": "Rester connecté",
+        "connexion": "Connexion",
+        "mdp-perdu": "Mot de passe perdu ?",
+        "mdp-perdu-message": "Veuillez contacter votre maitresse pour récupérer les pseudos et mots de passe"
+    },
+    "fiche" : {
+        "mascotte-titre": "Salut ",
+        "mascotte-l1": "Bonjour, une belle journée s'annonce !",
+        "mascotte-l2": "Tu es prêt à compléter tes actions du jour ?"
+    },
+    "moi" : {
+        "mascotte-titre": null,
+        "mascotte-l1": "C'est bien, tu as {arbres} arbre(s).",
+        "mascotte-l2": "Continues comme cela, tu progresse vite :)",
+        "titre-semaine": "Semaine",
+        "titre-total": "Total",
+        "titre-actions": "Tes dernières actions"
+    },
+    "actions" : {
+        "mascotte-titre-success": "Bravo !",
+        "mascotte-l1-success": "Tu as validé toutes tes actions pour la période.",
+        "mascotte-l2-success": null,
+        "mascotte-titre-zero": null,
+        "mascotte-l1-zero": "Tu n'as pas encore saisi d'action, ce n'est pas grave.",
+        "mascotte-l2-zero": null
+    },
+    "scores" : {
+        "titre-semaine": "Semaine",
+        "titre-total": "Total",
+        "titre-actions": "Tes dernières actions"
+    },
+    "impacts" : {
+        "onglet-eco": "Economie",
+        "titre-eco": "Economie",
+        "text-eco": "Grâce à vos actions, vous avez réussi à économiser, ...",
+        "titre-co2": "{TCO2} tCO2e (équivalent)",
+        "text-co2": "Tonnes d'équivalent CO², qui ne se sont pas dissipées",
+        "titre-dechet": "{kg} kg",
+        "text-dechet": "Grâce à vos actions, vous avez réussi à économiser, ...",
+        "titre-eau": "{l} l",
+        "text-eau": "Quantité d'eau économisée.",
+        "titre-j-depassement": "{l} l",
+        "text-j-depassement": "Si tout le monde faisait comme nous, il nous faudrait : {NB} planètes",
+        "text-sans-sos": "Aujourd'hui SANS les actions SOS planète le jour de dépassement est le :",
+        "text-avec-sos": "Aujourd'hui avec les actions SOS planète le jour de dépassement est le :"
+    }
+}

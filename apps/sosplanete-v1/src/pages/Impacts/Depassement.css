@@ -1,0 +1,70 @@
+.depassement-card-container {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	border-radius: 20px;
+	gap: 10px;
+	max-width: 40%;
+	padding: 16px;
+}
+.depassement-card-date-container {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+}
+.depassement-card-date-icon > img {
+	margin: 0;
+	height: 40px;
+	width: 40px;
+}
+.depassement-card-date-text {
+	font-size: 2rem;
+	font-weight: 700;
+}
+.depassement-card-text {
+	text-align: center;
+	font-size: 1.1rem;
+	font-weight: 450;
+	margin-bottom: 24px;
+}
+
+@media screen and (max-width: 1024px) {
+	.depassement-card-container {
+		max-width: 48%;
+	}
+}
+
+@media screen and (max-width: 990px) {
+	.depassement-card-container {
+		max-width: 42%;
+	}
+}
+
+@media screen and (max-width: 660px) {
+	.depassement-card-container {
+		max-width: 49%;
+	}
+
+	.depassement-card-text {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 8px;
+	}
+
+	.depassement-card-date-icon > img {
+		width: 24px;
+		height: 24px;
+	}
+	.depassement-card-date-text {
+		font-size: 1.125rem;
+	}
+}
+
+@media screen and (max-width: 480px) {
+	.depassement-card-container {
+		padding: 12px;
+	}
+}

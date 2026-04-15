@@ -18,8 +18,8 @@ function FinalCleanup {
 
 Write-Host "[CLEAN] Arret des anciens processus..." -ForegroundColor Magenta
 
-# Nettoyage par ports (3010 = Front, 3011 = Back)
-$ports = @(3010, 3011)
+# Nettoyage par ports (3010 = Admin, 3011 = Back, 3012 = Jeu v1)
+$ports = @(3010, 3011, 3012)
 foreach ($port in $ports) {
     $pidsToKill = @()
 
@@ -108,8 +108,8 @@ Write-Host "[BACK] Demarrage du Backend (Port 3011)..." -ForegroundColor Cyan
 # On force le port via variable d'environnement
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/backend-v2; `$env:PORT=3011; npm run start:dev" -WindowStyle Normal
 
-# 4. Démarrage Frontend-v2
-Write-Host "[FRONT] Attente de la disponibilite du Backend..." -ForegroundColor Cyan
+# 4. Démarrage Admin-v2
+Write-Host "[ADMIN] Attente de la disponibilite du Backend..." -ForegroundColor Cyan
 npx wait-on tcp:3011 --timeout 30000
 if ($LastExitCode -ne 0) {
     Write-Host "ERREUR : Le Backend n'a pas demarre a temps sur le port 3011." -ForegroundColor Red
@@ -117,12 +117,15 @@ if ($LastExitCode -ne 0) {
     exit 1
 }
 
-Write-Host "[FRONT] Lancement du Frontend (Port 3010)..." -ForegroundColor Cyan
-# Utilisation de Start-Process pour ne pas bloquer le répertoire courant du shell appelant
-# Ou exécution dans un bloc fils
+Write-Host "[ADMIN] Lancement de l'Admin (Port 3010)..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/admin-sosplanete-v2; `$env:PORT=3010; npm run dev" -WindowStyle Normal
+
+# 5. Démarrage Jeu-v1
+Write-Host "[JEU] Lancement du Jeu v1 (Port 3012)..." -ForegroundColor Cyan
+# Exécution dans un bloc fils pour bloquer le shell appelant
 & {
-    Set-Location apps/frontend-v2
-    $env:PORT=3010
+    Set-Location apps/sosplanete-v1
+    $env:PORT=3012
     npm run dev
 }
 FinalCleanup

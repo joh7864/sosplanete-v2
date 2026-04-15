@@ -1,0 +1,21 @@
+.slide-container {
+    animation-name: slideIn;
+  }
+  
+  .slide-container.left {
+    animation-direction: normal;
+  }
+  
+  .slide-container.right {
+    animation-direction: reverse;
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  

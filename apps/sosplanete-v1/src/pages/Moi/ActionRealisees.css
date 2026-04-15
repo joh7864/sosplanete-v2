@@ -1,0 +1,167 @@
+.vignettes-action-container {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* grid-template-rows: repeat(4, 1fr); */
+  grid-column-gap: 24px;
+  grid-row-gap: 24px;
+  margin-bottom: 12vh;
+}
+
+.vignette-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  background-image: url("/image/cadremoi.svg");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  min-height: 300px;
+  cursor: pointer;
+}
+.vignette-action-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.vignette-action-content > img {
+  width: 136px;
+  max-height: 120px;
+  margin-top: 20px;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.vignette-action-content-title {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 4rem;
+  padding-right: 4rem;
+  margin-bottom: 20px;
+}
+/* MOBILE */
+@media screen and (min-width: 1440px) {
+  .vignette-action-content {
+    width: 50%;
+  }
+  .vignette-action-content-title {
+    padding-left: 4.5rem;
+    padding-right: 4.5rem;
+    margin-bottom: 15px;
+  }
+}
+
+/* MOBILE */
+@media screen and (max-width: 1370px) {
+  .vignette-action-content-title {
+    width: 130%;
+  }
+}
+
+@media screen and (max-width: 1281px) {
+  .vignette-action {
+    min-height: 350px;
+  }
+
+  .vignette-action-content > img {
+    margin-top: 40px;
+    width: 120px;
+    height: 120px;
+  }
+  .vignette-action-content-title {
+    width: 135%;
+  }
+}
+@media screen and (max-width: 1124px) {
+  .vignette-action-content-title {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    margin-bottom: 15px;
+  }
+}
+
+@media screen and (max-width: 1025px) {
+  .vignettes-action-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .vignette-action-content > img {
+    width: 130px;
+    height: 130px;
+    margin-top: 20px;
+  }
+  .vignette-action-content-title {
+    font-size: 1rem;
+    width: 90%;
+    text-align: center;
+    padding: 8px;
+  }
+}
+
+/*MOBILE */
+
+@media screen and (max-width: 900px) {
+  .vignette-action {
+    min-width: 205px;
+    min-height: 253px;
+  }
+  .vignette-action-content-title {
+    display: None;
+  }
+}
+
+@media screen and (max-width: 660px) {
+  .vignettes-action-container {
+    margin-bottom: 84px;
+    width: 100%;
+    grid-column-gap: 0px;
+    grid-row-gap: 16px;
+  }
+  .vignette-action {
+    min-width: 102px;
+    min-height: 153px;
+  }
+
+  .vignette-action-content {
+    width: 67%;
+  }
+
+  .vignette-action-content > img {
+    width: 70%;
+    height: auto;
+  }
+
+  .vignette-action-content-title {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .vignette-action {
+    min-width: 120px;
+    min-height: 120px;
+  }
+  .vignettes-action-container {
+    width: 74%;
+    margin-bottom: 26vh;
+  }
+  .vignette-action {
+    width: 96px;
+    height: 112px;
+  }
+  .vignette-action-content > img {
+    width: 69px;
+    height: 69px;
+  }
+  .vignette-action-content-title {
+    display: none;
+  }
+}

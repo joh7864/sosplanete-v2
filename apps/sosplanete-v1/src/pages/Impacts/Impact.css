@@ -1,0 +1,175 @@
+.impact-card-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 415px;
+  height: 451px;
+  padding: 24px;
+  background-image: url("/image/cardimpact.svg");
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  margin-bottom: 24px;
+}
+
+.spacing-element {
+  /* justify-content: space-evenly; */
+  gap: 32px;
+  height: auto;
+  width: 100%;
+  margin-bottom: 6vh;
+}
+
+.outlet::-webkit-scrollbar {
+  display: none;
+}
+
+.outlet {
+  width: 100vw;
+  height: 92vh;
+  /* border-radius: 20px; */
+  padding: 0 40px;
+  /* margin-top: 50px; */
+  overflow: scroll;
+  /* overflow-x: hidden; */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.container-v > .impact-card-info-text {
+  margin-bottom: 24px;
+}
+
+.impact-card-infos-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 10px;
+  gap: 15px;
+}
+.impact-card-icon {
+  margin-top: 20px;
+}
+.impact-card-icon > img {
+  width: 188px;
+  height: 188px;
+}
+.impact-card-info-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+.impact-card-info-text {
+  font-weight: 500;
+  font-size: 1.25rem;
+  text-align: center;
+  height: 52px;
+  letter-spacing: -0.2px;
+}
+.impact-card-info-complement {
+  font-weight: 450;
+  font-size: 1rem;
+  font-style: italic;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+@media screen and (max-width: 1620px) {
+  .impact-card-container {
+    width: 388px;
+    height: 400px;
+  }
+
+  .impact-card-icon > img {
+    width: 149px;
+    height: 149px;
+  }
+}
+
+@media screen and (max-width: 1440px) {
+  .impact-card-container {
+    width: 306px;
+    height: 334px;
+    padding: 8px;
+  }
+  .impact-card-icon > img {
+    width: 100px;
+    height: 88px;
+  }
+  .impact-card-infos-container {
+    gap: 8px;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+}
+/*MOBILE */
+@media screen and (max-width: 660px) {
+  .outlet {
+    padding: 56px 0 0 0;
+  }
+  .impact-card-info-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+
+  .impact-card-container {
+    background-image: url("/image/cardimpact.svg");
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 457px;
+    height: 474px;
+    margin-bottom: 16px;
+  }
+
+  .impact-card-info-title {
+    font-size: 1.125rem;
+    margin-bottom: 8px;
+  }
+
+  .impact-card-icon img {
+    height: 154px;
+    width: 154px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .impact-card-container {
+    background-image: url("/image/cardimpact.svg");
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 306px;
+    height: 324px;
+    margin-bottom: 16px;
+    padding: 20px;
+  }
+
+  .impact-card-icon {
+    width: auto;
+    margin: 0;
+  }
+
+  .impact-card-infos-container {
+    width: 100%;
+  }
+
+  .impact-card-info-title,
+  .impact-card-info-text,
+  .impact-card-info-complement {
+    text-align: center;
+  }
+
+  .impact-card-icon img {
+    height: 84px;
+    width: 84px;
+  }
+}
+@media screen and (max-width: 430px) {
+  .impact-card-container {
+    padding: 8px;
+  }
+}

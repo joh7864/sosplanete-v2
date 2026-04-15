@@ -1,0 +1,179 @@
+.animation-inactive {
+  opacity: 0;
+}
+
+.animation-active {
+  /*animation-fill-mode: both;*/
+  opacity: 1;
+}
+
+@keyframes zoom-in-zoom-out {
+  0% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.5, 1.5);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+/* Animation pour le premier groupe */
+@keyframes deplacement1-x {
+  0% {
+    transform: translate(-100px, -200px);
+  }
+  20% {
+    transform: translate(-75x, -150px);
+  }
+  40% {
+    transform: translate(-50px, -125px);
+  }
+  60% {
+    transform: translate(-25px, -80px);
+  }
+  80% {
+    transform: translate(-10px, -40px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes deplacement2-x {
+  0% {
+    transform: translate(100px, 200px);
+  }
+  20% {
+    transform: translate(75x, 150px);
+  }
+  40% {
+    transform: translate(50px, 125px);
+  }
+  60% {
+    transform: translate(25px, 80px);
+  }
+  80% {
+    transform: translate(10px, 40px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes deplacement3-x {
+  0% {
+    transform: translate(100px, 200px);
+  }
+  20% {
+    transform: translate(75x, 150px);
+  }
+  40% {
+    transform: translate(50px, 125px);
+  }
+  60% {
+    transform: translate(25px, 80px);
+  }
+  80% {
+    transform: translate(10px, 40px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Animation pour le deuxième groupe */
+@keyframes nage-x {
+  0% {
+    transform: rotate(340deg);
+  }
+  50% {
+    transform: rotate(350deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nages2-x {
+  0% {
+    transform: rotate(320deg);
+  }
+  50% {
+    transform: rotate(340deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nages3-x {
+  0% {
+    transform: rotate(45deg);
+  }
+  50% {
+    transform: rotate(22deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Animation pour le troisième groupe */
+@keyframes fade-x {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Appliquer les animations aux groupes respectifs */
+#ecureuil-on {
+  animation: fade 1s ease;
+  animation-iteration-count: 1;
+}
+
+#loup-on {
+  animation: deplacement2 2s linear;
+  animation-iteration-count: 1;
+  animation-delay: 2s;
+}
+#lion-on {
+  animation: deplacement3 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 4s;
+}
+#ours-on {
+  animation: deplacement1 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 6s;
+}
+#elephant-on {
+  animation: deplacement1 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 6s;
+}
+#petitspoissons-on {
+  animation: fade 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 8s;
+}
+#grospoissons-on {
+  animation: nages3 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 8s;
+}
+#requin-on {
+  animation: nage 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 10s;
+}
+#baleine-on {
+  animation: nage2 1.5s linear;
+  animation-iteration-count: 1;
+  animation-delay: 12s;
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "categorieAge": "default",
+    "textes": [
+      {
+        "key": "mascotte",
+        "text": "En garde !"
+      },
+      {
+        "key": "question",
+        "text": "Alors, a ton avis, quelle est l'action la plus efficace ?"
+      },
+      {
+        "key": "gagne",
+        "text": "Bravo, tu as fait un excellent choix !"
+      },
+      {
+        "key": "egalite",
+        "text": "Ces actions sont équivalentes, bravo, continue !"
+      },
+      {
+        "key": "perdu",
+        "text": "Dommage, mais persévère, tu vas y arriver..."
+      }
+    ]
+  },
+  {
+    "categorieAge": "petits",
+    "textes": [
+      {
+        "key": "mascotte",
+        "text": "Prêt pour jouer !"
+      },
+      {
+        "key": "question",
+        "text": "Laquelle préfère-tu ?"
+      },
+      {
+        "key": "gagne",
+        "text": "Youpy"
+      },
+      {
+        "key": "egalite",
+        "text": "Bravo c'est pareil"
+      },
+      {
+        "key": "perdu",
+        "text": "Badaboum..."
+      }
+    ]
+  }
+]

@@ -1,0 +1,147 @@
+/* CSS du composant vignette */
+.categorie-container {
+	background-image: url('/image/cartelayout.svg');
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+	width: 227px;
+	height: 238px;
+	background-repeat: no-repeat;
+	background-size: cover;
+	position: relative;
+}
+.categorie-container:hover {
+	box-shadow: none;
+}
+.categorie-validated {
+	display: flex;
+}
+.categorie-validated > img {
+	margin: 0;
+}
+
+.categorie-image > img {
+	display: flex;
+	width: 72%;
+	position: absolute;
+	left: 25px;
+	top: 12px;
+}
+
+/* 
+.categorie-image:hover {
+	animation: flip-with-scale 0.7s ease-in-out;
+}
+*/
+
+.categorie-title {
+	display: flex;
+	width: 90%;
+	height: 40px;
+	justify-content: space-between;
+	align-items: center;
+	padding: 5px;
+	margin-bottom: 13px;
+}
+.categorie-name {
+	font-size: var(--sec-font);
+	font-weight: var(--w-two);
+}
+
+.categorie-count {
+	margin-top: 4px;
+	width: 35px;
+	font-size: var(--deskcard-count);
+}
+
+.CircularProgressbar-path {
+	stroke: red;
+}
+.CircularProgressbar-trail {
+	stroke: gray;
+}
+.CircularProgressbar-text {
+	fill: yellow;
+}
+.CircularProgressbar-background {
+	fill: green;
+}
+
+@media only screen and (max-width: 1024px) {
+	.categorie-validated > img {
+		height: 24px;
+		margin: 0;
+	}
+}
+
+@media only screen and (max-width: 790px) {
+	.categorie-container {
+		background-image: url('/image/cartelayout.svg');
+		width: 198px;
+		height: 208px;
+		position: relative;
+	}
+
+	.categorie-image > img {
+		width: 146px;
+		height: 146px;
+		position: absolute;
+		top: 11px;
+		left: 19px;
+	}
+
+	.categorie-name {
+		font-size: var(--mobcard-title);
+	}
+
+	.categorie-title {
+		padding: 5px;
+		margin-bottom: 8px;
+		height: 32px;
+	}
+
+	/* .categorie-count {
+		font-size: var(--mobscore-name);
+	} */
+	.categorie-count {
+		margin-top: 4px;
+		width: 25px;
+		font-size: var(--mobcard-count);
+	}
+}
+
+@media only screen and (max-width: 430px) {
+	.categorie-container {
+		width: 163px;
+		height: 170.101px;
+	}
+	.categorie-image > img {
+		width: 102px;
+		height: 102px;
+		top: 10px;
+		left: 22px;
+	}
+	.categorie-title {
+		padding: 0;
+		margin-bottom: 4px;
+	}
+	.categorie-name {
+		font-size: var(--basic-font);
+	}
+}
+
+@media only screen and (max-width: 375px) {
+	.categorie-container {
+		width: 146px;
+		height: 153.101px;
+	}
+
+	.categorie-container > img {
+		width: 110px;
+		height: 110px;
+		top: -10px;
+		left: 1px;
+	}
+}

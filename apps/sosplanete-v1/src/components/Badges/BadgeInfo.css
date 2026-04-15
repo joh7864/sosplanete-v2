@@ -1,0 +1,32 @@
+.dot-blue {
+	width: 48px;
+	height: 48px;
+	margin-left: 16px;
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+	border-radius: 50%;
+	background-color: var(--alt-color);
+	justify-content: center;
+}
+.dot-blue > img {
+	/* margin-top: 7px; */
+	margin: 0;
+	width: 24px;
+	height: 24px;
+	cursor: pointer;
+	border-radius: 50%;
+}
+.dot-blue:hover {
+	border-inline-color: var(--bg-color);
+}
+
+@media screen and (max-width: 480px) {
+	.dot-blue {
+		height: 32px;
+		width: 32px;
+	}
+	.dot-blue > img {
+		height: 16px;
+	}
+}

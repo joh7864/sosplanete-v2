@@ -1,0 +1,12 @@
+.vignettes-container {
+  display: flex;
+  justify-items: center;
+  align-items: center;
+}
+.vignette-chapitre-container {
+  display: flex;
+  justify-items: center;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid blue;
+}

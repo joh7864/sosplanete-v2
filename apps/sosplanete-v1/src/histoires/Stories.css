@@ -1,0 +1,137 @@
+.story-page-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+.story-page-container {
+  margin-bottom: 120px;
+  display: flex;
+  justify-content: start;
+  align-items: start;
+}
+.story-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 100%;
+}
+.chapitres {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.chapitre {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0;
+  max-width: 370px;
+}
+.chapitre-quitter {
+  cursor: pointer;
+  border-radius: 12px;
+  background-color: black;
+  color: white;
+  padding: 4px;
+  text-align: center;
+}
+.chapitre-quitter:hover {
+  color: #7fdcfa;
+}
+.chapitre-sous-titre {
+  cursor: pointer;
+}
+.chapitre-images {
+  align-self: center;
+  width: 100%;
+  cursor: pointer;
+  object-fit: cover;
+  object-position: center;
+}
+.chapitre-titre-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+}
+.chapitre-image-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 80%;
+  align-self: center;
+  gap: 50px;
+}
+.p-10 {
+  padding: 10px;
+}
+
+.chapitre-image-nav-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 6, 13, 0.9);
+  color: beige;
+  font-size: 1rem;
+  cursor: pointer;
+}
+@media only screen and (max-width: 1024px) {
+  .chapitres {
+    width: 100%;
+  }
+  .chapitre {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0;
+    max-width: 380px;
+    min-height: 630px;
+    max-height: 630px;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .story-page-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .story-container {
+    max-width: 100%;
+  }
+  .chapitres {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+  .chapitre {
+    max-width: 95%;
+    min-width: 95%;
+  }
+  .chapitre-images {
+    min-height: 370px;
+    max-height: 370px;
+  }
+  .chapitre-quitter {
+    border-radius: 12px;
+    background-color: black;
+    color: white;
+    padding: 2px;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+}

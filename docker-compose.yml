@@ -38,12 +38,12 @@ services:
       - "traefik.http.routers.sos-api.tls.certresolver=myresolver"
       - "traefik.http.services.sos-api.loadbalancer.server.port=3011"
 
-  frontend:
+  admin:
     build: 
-      context: ./apps/frontend-v2
+      context: ./apps/admin-sosplanete-v2
       args:
         - NEXT_PUBLIC_API_URL=https://api-sosplanete.nnauru.net
-    container_name: sos_frontend_v2
+    container_name: sos_admin_v2
     restart: always
     depends_on:
       - backend
@@ -53,10 +53,30 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=wagmoo_wagmoo_net"
-      - "traefik.http.routers.sos-v2.rule=Host(`sosplanete.nnauru.net`)"
-      - "traefik.http.routers.sos-v2.entrypoints=websecure"
-      - "traefik.http.routers.sos-v2.tls.certresolver=myresolver"
-      - "traefik.http.services.sos-v2.loadbalancer.server.port=3010"
+      - "traefik.http.routers.sos-admin-v2.rule=Host(`admin-sosplanete.nnauru.net`)"
+      - "traefik.http.routers.sos-admin-v2.entrypoints=websecure"
+      - "traefik.http.routers.sos-admin-v2.tls.certresolver=myresolver"
+      - "traefik.http.services.sos-admin-v2.loadbalancer.server.port=3010"
+
+  jeu:
+    build: 
+      context: ./apps/sosplanete-v1
+      args:
+        - REACT_APP_API_ROOT_URL=https://api-sosplanete.nnauru.net
+    container_name: sos_jeu_v1
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - sos_internal
+      - wagmoo_wagmoo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=wagmoo_wagmoo_net"
+      - "traefik.http.routers.sos-jeu.rule=Host(`sosplanete.nnauru.net`)"
+      - "traefik.http.routers.sos-jeu.entrypoints=websecure"
+      - "traefik.http.routers.sos-jeu.tls.certresolver=myresolver"
+      - "traefik.http.services.sos-jeu.loadbalancer.server.port=80"
 
 networks:
   sos_internal:

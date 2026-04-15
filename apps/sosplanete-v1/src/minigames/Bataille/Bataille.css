@@ -1,0 +1,211 @@
+.bataille-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 100px;
+  width: 85%;
+}
+.bataille-panel-container {
+  border-radius: 20px;
+  /*  border: 2px solid white;*/
+  background-color: rgb(255, 255, 255, 0.25);
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 20px;
+  -webkit-box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.58);
+  box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.38);
+  min-width: 100%;
+}
+.bataille-titre-principal {
+  text-align: center;
+  font-size: 1.4rem;
+  padding: 8px;
+}
+.bataille-titre {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+.bataille-actions-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.bataille-card-bandeau {
+  border-top-right-radius: 12px;
+  border-top-left-radius: 12px;
+}
+.bataille-card-images {
+  background-color: white;
+  width: 90%;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 180px;
+  margin-top: 6%;
+}
+.bataille-card-image-category-container {
+  background-color: white;
+  position: relative;
+  top: -82px;
+  left: 22px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid black;
+  border-radius: 50%;
+}
+.bataille-card-image-info-container {
+  background-color: white;
+  position: relative;
+  top: -82px;
+  right: 22px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid black;
+  border-radius: 50%;
+  z-index: 99;
+}
+.bataille-action-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  background-color: white;
+  border-radius: 12px;
+  -webkit-box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.58);
+  box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.38);
+  cursor: pointer;
+  max-height: 360px;
+  min-height: 360px;
+  max-width: 240px;
+  min-width: 240px;
+}
+.bataille-card-footer {
+  margin-bottom: 5%;
+}
+
+.bataille-card-image-category {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+.bataille-card-image-action {
+  width: 100px;
+  height: 100px;
+}
+.bataille-actions-titre {
+  text-align: center;
+  font-weight: 700;
+  max-width: 230px;
+  min-width: inherit;
+  padding: 8px;
+  border-bottom-right-radius: 12px;
+  border-bottom-left-radius: 12px;
+  color: white;
+  min-height: 100px;
+}
+.bataille-next-container {
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+  font-weight: 500;
+}
+.bataille-next {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: black;
+  color: white;
+  font-size: 1.6rem;
+  max-width: 50px;
+  max-height: 50px;
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+@media screen and (max-width: 480px) {
+  .bataille-container {
+    width: 99%;
+  }
+  .bataille-panel-container {
+    min-width: 90%;
+  }
+  .bataille-titre-principal {
+    font-size: 0.9rem;
+    padding: 4px;
+  }
+  .bataille-titre {
+    font-size: 1rem;
+    margin-bottom: 20px;
+  }
+  .bataille-panel-container {
+    max-width: 98%;
+  }
+  .bataille-action-container {
+    max-height: 260px;
+    min-height: 260px;
+    max-width: 170px;
+    min-width: 170px;
+    border-radius: 12px;
+    -webkit-box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.58);
+    box-shadow: 5px 7px 30px -10px rgba(0, 0, 0, 0.38);
+    cursor: pointer;
+  }
+  .bataille-card-images {
+    min-height: 120px;
+  }
+  .bataille-card-image-category-container {
+    top: -52px;
+    left: 14px;
+    width: 30px;
+    height: 30px;
+  }
+  .bataille-card-image-info-container {
+    top: -52px;
+    left: -14px;
+    width: 30px;
+    height: 30px;
+  }
+  .bataille-card-image-category {
+    width: 20px;
+    height: 20px;
+  }
+  .bataille-card-image-action {
+    max-width: 50px;
+    max-height: 50px;
+  }
+  .bataille-actions-titre {
+    font-size: 0.8rem;
+  }
+  .bataille-card-image-action {
+    width: 60%;
+  }
+  .bataille-next {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    color: white;
+    font-size: 1.1rem;
+    max-width: 30px;
+    max-height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+}

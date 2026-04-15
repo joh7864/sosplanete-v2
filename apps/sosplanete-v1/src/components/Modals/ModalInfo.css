@@ -1,0 +1,44 @@
+.modalBackground {
+    width: 100vw;
+    height: 100vh;
+    top:0;
+    left: 0;
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modalContainer {
+    background-color: #9de3f8;
+    width: 80%;
+    height: 50%;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    padding: 25px;
+  }
+  .modalContainer .title {
+    background-color: transparent;
+    display: inline-block;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 1.2rem;
+
+  }
+  .modalContainer .title h1 {
+    background-color: transparent;
+  }
+  .modalContainer .body {
+    background-color: #9de3f8;
+    flex: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  .modalContainer .body p {
+    background-color: transparent;
+  }
+  

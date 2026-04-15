@@ -1,0 +1,13 @@
+{
+  "sosUrl": "https://www.sosplanete.fr",
+  "sosTermoUrl": "https://www.sosplanete.fr/terre-mometre",
+  "maFicheCategorieUrl": "https://www.sosplanete.fr/tutoriels",
+  "maFicheActionUrl": "https://www.sosplanete.fr/tutoriels",
+  "scoreUrl": "https://www.sosplanete.fr/tutoriels",
+  "impactUrl": "https://www.sosplanete.fr/tutoriels",
+
+  "apiRootUrl2": "http://localhost:8082/api/v2",
+  "imgRootUrl2": "http://localhost:8082/static/",
+  "apiRootUrl": "/api/v2",
+  "imgRootUrl": "/static/"
+}

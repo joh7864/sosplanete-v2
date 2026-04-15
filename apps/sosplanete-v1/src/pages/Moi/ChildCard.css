@@ -1,0 +1,228 @@
+.child-card-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-repeat: no-repeat;
+  background-image: url("/image/panneaudesk2.svg");
+  background-size: 100% 100%;
+  width: 55%;
+  padding: 7em 96px 0px;
+  margin-top: 134px;
+  max-width: 98%;
+}
+
+.child-card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: center;
+  width: 100%;
+}
+
+.child-card-content > .icon {
+  margin-right: 8px;
+}
+.user-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 35px;
+  margin: 0 0 20px 0;
+}
+.user-container > .icon-card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 5px;
+}
+.user-container > .user-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  border-left: 2px solid rgb(170 105 38 / 23%);
+  padding: 0 0 0 8px;
+}
+.user-icon {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  position: relative;
+  margin: 0;
+}
+
+/* .user-icon img {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 44px;
+	border-radius: 40px;
+} */
+
+.user-infos {
+  font-weight: 700;
+  font-size: 2.5rem;
+}
+.user-team {
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+img {
+  margin: 10px;
+  background-color: transparent;
+  width: 32px;
+}
+.bold-counter {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.text > .titre {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 0;
+}
+
+@media only screen and (max-width: 1620px) {
+  .child-card-container {
+    margin-top: 104px;
+    width: 80%;
+  }
+}
+
+@media only screen and (max-width: 1280px) {
+  .child-card-container {
+    margin-top: 84px;
+    width: 95%;
+  }
+}
+
+@media only screen and (max-width: 1124px) {
+  .child-card-container {
+    width: 885px;
+    height: 305px;
+    padding: 6em 77px 0px;
+    margin-top: 69px;
+  }
+  .user-icon {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    position: relative;
+    margin: 0;
+  }
+}
+
+@media only screen and (max-width: 1124px) {
+  .child-card-container {
+    margin-top: 88px;
+  }
+}
+
+@media only screen and (max-width: 990px) {
+  .child-card-container {
+    width: 784px;
+    height: 268px;
+    padding: 5em 48px 0px;
+  }
+
+  .user-icon {
+    width: 120px;
+    height: 120px;
+  }
+
+  .user-icon img {
+    margin: 0;
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-infos {
+    font-size: 2rem;
+  }
+  .user-team {
+    font-size: 1.2rem;
+  }
+
+  .child-card-content .icon img {
+    width: 24px;
+  }
+  .bold-counter {
+    font-size: 1.3rem;
+  }
+}
+
+@media only screen and (max-width: 900px) {
+  .child-card-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* padding: 0 72px 55px; */
+    background-size: 100% 100%;
+    background-image: url("/image/panneautabmob.svg");
+    background-repeat: no-repeat;
+    width: 548px;
+    height: 485px;
+    margin-top: 74px;
+  }
+  .stats-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    border-left: none;
+    padding: 0;
+  }
+
+  .child-card-content > .text {
+    width: 140px;
+  }
+}
+
+@media only screen and (max-width: 660px) {
+  .child-card-container {
+    width: 465px;
+    height: 408px;
+    margin-top: 117px;
+  }
+  .user-container {
+    width: 100%;
+  }
+}
+
+@media only screen and (max-width: 480px) {
+  .child-card-container {
+    width: 366px;
+    height: 321px;
+    margin-top: 102px;
+  }
+  .child-card-content > .text {
+    width: 120px;
+  }
+  .child-card-content > .icon {
+    margin-right: -4px;
+  }
+  .child-card-content:nth-child(1) {
+    border-right: 1px solid rgb(35, 32, 31, 0.2);
+  }
+}
+@media only screen and (max-width: 390px) {
+  .child-card-container {
+    width: 366px;
+    height: 321px;
+    margin-top: 112px;
+  }
+}

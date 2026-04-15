@@ -1,0 +1,147 @@
+.divider {
+	margin: 50px;
+}
+
+.login-page-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
+}
+
+.login-container {
+	display: flex;
+	justify-content: flex-start;
+	flex-wrap: nowrap;
+	background: #fefefe;
+	box-shadow: 0px 1px 17px 9px rgba(73, 149, 235, 0.19);
+	flex-direction: column;
+	border-radius: 20px;
+	width: 520px;
+	padding: 64px;
+	z-index: 299;
+}
+
+input[type='text'],
+input[type='password'] {
+	height: 64px;
+}
+
+/* Password viewer */
+.pwd-container {
+	position: relative;
+}
+
+.pwd-container img {
+	cursor: pointer;
+	position: absolute;
+	width: 32px;
+	right: 20px;
+	top: 16px;
+	background-color: transparent;
+	margin: 0;
+}
+
+.pwd-container img:hover {
+	width: 32px;
+}
+.error-message {
+	color: #fa7318;
+}
+/* Boutons */
+
+.btn {
+	display: block;
+	cursor: pointer;
+	border: none;
+	background-color: var(--bg-color);
+	color: #231f1f;
+	padding: 1em 1em;
+	transition: 0.3s;
+	text-decoration: none;
+	line-height: normal;
+	-webkit-border-radius: 30px;
+	-moz-border-radius: 30px;
+	border-radius: 15px;
+	font-weight: var(--w-one);
+}
+*:disabled {
+	background-color: dimgrey;
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.btn:hover:not(.btn:disabled) {
+	background-color: #67d4f7;
+	color: #000;
+}
+.kids-container {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	position: absolute;
+	bottom: 0;
+}
+.kids-container > img {
+	width: 25%;
+}
+
+.center-text {
+	width: 100%;
+	text-decoration: none;
+	display: inline-block;
+	font-size: var(--basic-font);
+	font-weight: var(--w-three);
+	line-height: var(--mob-title-lineHeight);
+	text-align: center;
+}
+.login-version {
+	text-align: right;
+	font-size: var(--mobscore-nam);
+	position: relative;
+	top: 40px;
+}
+
+@media only screen and (max-width: 1280px) {
+	.login-container {
+		margin-top: 32px;
+		width: 432px;
+		padding: 48px;
+	}
+}
+
+@media only screen and (max-width: 560px) {
+	.login-page-container {
+		width: 100%;
+		display: flex;
+		justify-content: space-around;
+	}
+	.pwd-container img {
+		top: 12px;
+	}
+
+	input[type='text'],
+	input[type='password'] {
+		height: 48px;
+	}
+}
+
+@media only screen and (max-width: 480px) {
+	.login-container {
+		max-width: 340px;
+		min-width: 200px;
+		min-height: 210px;
+		padding: 40px 25px;
+	}
+
+	input[type='text'],
+	input[type='password'] {
+		height: 48px;
+	}
+	.pwd-container img {
+		top: 8px;
+	}
+
+	.kids-container > img {
+		width: 18%;
+	}
+}
