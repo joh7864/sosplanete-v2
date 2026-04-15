@@ -1,7 +1,23 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -15,6 +31,68 @@ interface Category {
   icon: string | null;
   order: number;
   _count?: { localActions: number };
+}
+
+function SortableCategoryItem({ 
+  cat, 
+  openEdit, 
+  setDeleteConfirm 
+}: { 
+  cat: Category; 
+  openEdit: (cat: Category) => void; 
+  setDeleteConfirm: (id: number) => void; 
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: cat.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group/card">
+      <GlassCard className={`p-6 border-none shadow-xl bg-white/90 flex flex-col items-center text-center transition-all ${isDragging ? 'ring-2 ring-emerald-500 shadow-2xl' : 'hover:scale-[1.02] border-2 border-transparent hover:border-emerald-100'}`}>
+        {/* Drag Handle */}
+        <div 
+          {...attributes} 
+          {...listeners} 
+          className="absolute top-4 left-4 p-1 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-100 transition-opacity"
+        >
+          <GripVertical size={20} />
+        </div>
+
+        <div className="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-100 shadow-inner overflow-hidden">
+          {cat.icon ? (
+            <img src={getAssetUrl(`categories/${cat.icon}`) || ''} alt={cat.name} className="w-10 h-10 object-contain" />
+          ) : (
+            <FolderOpen size={24} className="text-emerald-500" />
+          )}
+        </div>
+        <h3 className="font-black text-slate-800 text-lg mb-1">{cat.name}</h3>
+        <div className="px-3 py-1 bg-indigo-50 text-indigo-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-indigo-100 mb-2">
+          {cat._count?.localActions || 0} actions au catalogue
+        </div>
+
+        <div className="flex items-center gap-2 mt-6 w-full pt-4 border-t border-slate-100">
+          <button onClick={() => openEdit(cat)} className="flex-1 py-2.5 flex items-center justify-center gap-2 bg-slate-50 text-slate-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 font-black text-[10px] uppercase tracking-widest transition-all">
+            <Edit3 size={14} /> Modifier
+          </button>
+          <button onClick={() => setDeleteConfirm(cat.id)} className="w-11 py-2.5 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-100 hover:text-rose-600 transition-all">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </GlassCard>
+    </div>
+  );
 }
 
 export function CategorySettings({ instanceId }: { instanceId: number }) {
@@ -31,6 +109,13 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     fetchCategories();
   }, [instanceId]);
@@ -44,6 +129,42 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
       if (resp.ok) setCategories(await resp.json());
     } catch (e) {} finally {
       setLoading(false);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setCategories((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        
+        // Sync with API
+        syncOrder(newOrder);
+        
+        return newOrder;
+      });
+    }
+  };
+
+  const syncOrder = async (newOrder: Category[]) => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/reorder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`
+        },
+        body: JSON.stringify({
+          instanceId,
+          categoryIds: newOrder.map(c => c.id)
+        })
+      });
+    } catch (e) {
+      console.error('Erreur lors de la synchronisation du tri', e);
+      fetchCategories(); // Rollback if error
     }
   };
 
@@ -116,38 +237,33 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
       {loading ? (
         <div className="flex justify-center p-10"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((cat) => (
-            <GlassCard key={cat.id} className="p-6 border-none shadow-xl bg-white/90 flex flex-col items-center text-center group transition-all hover:scale-[1.02] border-2 border-transparent hover:border-emerald-100">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center mb-4 border border-emerald-100 shadow-inner overflow-hidden">
-                {cat.icon ? (
-                  <img src={getAssetUrl(`categories/${cat.icon}`) || ''} alt={cat.name} className="w-10 h-10 object-contain" />
-                ) : (
-                  <FolderOpen size={24} className="text-emerald-500" />
-                )}
-              </div>
-              <h3 className="font-black text-slate-800 text-lg mb-1">{cat.name}</h3>
-              <div className="px-3 py-1 bg-indigo-50 text-indigo-500 text-[10px] font-black uppercase tracking-widest rounded-full border border-indigo-100 mb-2">
-                {cat._count?.localActions || 0} actions au catalogue
-              </div>
-
-              <div className="flex items-center gap-2 mt-6 w-full pt-4 border-t border-slate-100">
-                <button onClick={() => openEdit(cat)} className="flex-1 py-2.5 flex items-center justify-center gap-2 bg-slate-50 text-slate-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 font-black text-[10px] uppercase tracking-widest transition-all">
-                  <Edit3 size={14} /> Modifier
-                </button>
-                <button onClick={() => setDeleteConfirm(cat.id)} className="w-11 py-2.5 flex items-center justify-center bg-rose-50 text-rose-400 rounded-xl hover:bg-rose-100 hover:text-rose-600 transition-all">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </GlassCard>
-          ))}
-          {categories.length === 0 && (
-            <div className="col-span-full py-10 text-center flex flex-col items-center">
-              <FolderOpen size={48} className="text-slate-200 mb-4" />
-              <p className="text-lg font-bold text-slate-400 font-black uppercase tracking-widest">Aucune catégorie</p>
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={categories.map(c => c.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((cat) => (
+                <SortableCategoryItem 
+                  key={cat.id} 
+                  cat={cat} 
+                  openEdit={openEdit} 
+                  setDeleteConfirm={setDeleteConfirm} 
+                />
+              ))}
+              {categories.length === 0 && (
+                <div className="col-span-full py-10 text-center flex flex-col items-center">
+                  <FolderOpen size={48} className="text-slate-200 mb-4" />
+                  <p className="text-lg font-bold text-slate-400 font-black uppercase tracking-widest">Aucune catégorie</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       {showModal && (

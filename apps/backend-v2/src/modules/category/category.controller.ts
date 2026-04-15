@@ -23,6 +23,12 @@ export class CategoryController {
     return this.categoryService.findAll(instanceId, req.user);
   }
 
+  @Post('reorder')
+  @ApiOperation({ summary: 'Reorder categories' })
+  reorder(@Body() body: { categoryIds: number[]; instanceId: number }, @Req() req: any) {
+    return this.categoryService.reorder(body, req.user);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Updates a category' })
   update(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {

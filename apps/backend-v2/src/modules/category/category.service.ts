@@ -62,4 +62,19 @@ export class CategoryService {
     await this.prisma.category.delete({ where: { id } });
     return { success: true };
   }
+
+  async reorder(data: { categoryIds: number[]; instanceId: number }, user: any) {
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
+    if (!isAllowed) throw new ForbiddenException('Non autorisé');
+
+    const updates = data.categoryIds.map((id, index) =>
+      this.prisma.category.update({
+        where: { id },
+        data: { order: index },
+      }),
+    );
+
+    await this.prisma.$transaction(updates);
+    return { success: true };
+  }
 }
