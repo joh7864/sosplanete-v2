@@ -12,9 +12,10 @@ interface TopBarProps {
   selector?: React.ReactNode;
   actions?: React.ReactNode;
   bottomContent?: React.ReactNode;
+  className?: string;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions, bottomContent }) => {
+export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actions, bottomContent, className }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [userName, setUserName] = useState('');
@@ -54,11 +55,12 @@ export const TopBar: React.FC<TopBarProps> = ({ title, selector, actions, bottom
   };
 
   return (
-    <header className="sticky items-start flex-col gap-0 top-0 z-40 flex px-0 lg:px-0 py-0 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)]">
+    <header className={`sticky items-start flex-col gap-0 top-0 z-40 flex px-0 lg:px-0 py-0 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)] ${className || ''}`}>
       <div className="flex w-full items-center justify-between px-6 lg:px-10 py-3">
       {/* Dynamic Title */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight">{title}</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight leading-none">{title}</h1>
+        {subtitle && <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{subtitle}</p>}
       </div>
 
       {/* Page Actions, Selector & Profile Menu */}
