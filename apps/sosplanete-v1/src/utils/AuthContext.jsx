@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
   const [childInfos, setChildInfos] = useState(null);
   const [errorAuthentification, setErrorAuthentification] = useState("");
   const [rootUrl, setrootUrl] = useState(appcfg.apiRootUrl);
+  const [activeSchoolName, setActiveSchoolName] = useState(null);
 
   const loginUser = async (userInfo) => {
     setLoading(true);
@@ -42,6 +43,12 @@ export const AuthProvider = ({ children }) => {
       await axios
         .get(rootUrl + "/check_auth", { headers })
         .then((result) => {
+          if (result.data.instanceId) {
+            headers["x-instance-id"] = result.data.instanceId;
+            setActiveSchoolName(result.data.schoolName);
+            localStorage.setItem("instanceId", result.data.instanceId.toString());
+          }
+
           // récup de la période en cours
           axios
             .get(rootUrl + "/week", { headers })
@@ -132,7 +139,9 @@ export const AuthProvider = ({ children }) => {
     setCurrentWeek(null);
     setTeams(null);
     setActions(null);
+    setActiveSchoolName(null);
     localStorage.setItem("inProgress", "off");
+    localStorage.removeItem("instanceId");
   };
 
   const checkUserStatus = async () => {
@@ -164,6 +173,7 @@ export const AuthProvider = ({ children }) => {
     childEquipeColor,
     childEquipeImage,
     rootUrl,
+    activeSchoolName,
     loginUser,
     logoutUser,
   };

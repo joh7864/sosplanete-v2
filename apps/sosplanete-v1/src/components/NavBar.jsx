@@ -14,7 +14,7 @@ import Games from './Icons/GamePad'
 import Book from './Icons/Book'
 
 const NavBar = () => {
-	const { user, logoutUser, pseudo, currentWeek } = useAuth();
+	const { user, logoutUser, pseudo, currentWeek, activeSchoolName } = useAuth();
 	const [showNavbar, setShowNavbar] = useState(false);
 	const [navbarItemSelected, setNavbarItemSelected] = useState("/fiche");
 
@@ -44,7 +44,10 @@ const NavBar = () => {
 			{user ? (
 				<nav className="nav-footer">
 					<div className={`nav-items  ${showNavbar && 'active'}`}>
-						<div className='btn-quitter' onClick={() => logoutUser()}><NavBarMenu title="Quitter" icon={logout}/></div>
+						<div className='btn-quitter' onClick={() => logoutUser()} style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+							<NavBarMenu title="Quitter" icon={logout}/>
+							{activeSchoolName && <span style={{fontSize: '0.65rem', color: '#888', marginTop: '-4px', textAlign: 'center', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{activeSchoolName}</span>}
+						</div>
 						
 						<div onClick={() => handleMenuSelected("/fiche")}>
 							<Link to="/fiche" className={navbarItemSelected === "/fiche" ? "header--link active" : "header--link"}>

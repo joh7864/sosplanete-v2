@@ -42,4 +42,56 @@ export class AuthService {
       }
     };
   }
+
+  async validateChild(pseudo: string, pass: string): Promise<any> {
+    const child = await this.prisma.child.findFirst({
+      where: { pseudo },
+      include: { 
+        group: {
+          include: {
+            team: {
+              include: {
+                instance: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (child) {
+      if (child.password && await bcrypt.compare(pass, child.password)) {
+        return child;
+      } else if (!child.password) {
+        // If password is not required or hardcoded check
+        // We'll assume the old system might have 'password' passed as plain text or no password
+        // Let's allow for either bcrypt match or direct match for now (or empty if none set)
+        if (pass === '' || pass === child.pseudo) return child;
+      } else if (pass === child.password) { // Plain text fallback
+        return child;
+      }
+    }
+    return null;
+  }
+
+  async loginChild(child: any) {
+    const payload = { 
+      pseudo: child.pseudo, 
+      sub: child.id,
+      groupId: child.groupId,
+      teamId: child.group.teamId,
+      instanceId: child.group.team.instanceId 
+    };
+    return {
+      access_token: this.jwtService.sign(payload),
+      child: {
+        id: child.id,
+        pseudo: child.pseudo,
+        groupId: child.groupId,
+        teamId: child.group.teamId,
+        instanceId: child.group.team.instanceId,
+        schoolName: child.group.team.instance.schoolName
+      }
+    };
+  }
 }

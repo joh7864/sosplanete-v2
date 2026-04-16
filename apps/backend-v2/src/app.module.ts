@@ -35,10 +35,16 @@ import { CategoryModule } from './modules/category/category.module';
     LocalActionModule,
     PeriodModule,
     TrackingModule,
-    ServeStaticModule.forRoot({
-      rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
-      serveRoot: '/uploads',
-    }),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
+        serveRoot: '/uploads',
+      },
+      {
+        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
+        serveRoot: '/static',
+      }
+    ),
     LegacyApiModule,
   ],
   controllers: [AppController],
