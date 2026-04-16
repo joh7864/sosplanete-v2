@@ -12,8 +12,15 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
   app.enableCors({
-    origin: true,
+    origin: [
+      'https://sosplanete.nnauru.net',
+      'https://admin.sosplanete.nnauru.net',
+      'http://localhost:3000',
+      'http://localhost:3010',
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With, X-Instance-Id',
   });
 
   // Sécurisation de Swagger en production
