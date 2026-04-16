@@ -17,6 +17,7 @@ async function bootstrap() {
       'https://admin.sosplanete.nnauru.net',
       'http://localhost:3000',
       'http://localhost:3010',
+      'http://localhost:5173',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,

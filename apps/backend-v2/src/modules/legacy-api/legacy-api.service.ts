@@ -106,9 +106,18 @@ export class LegacyApiService {
     const instanceId = await this.getInstanceId(origin, instanceIdStr);
     const period = await this.getOpenPeriod(instanceId);
     
-    // The payload must contain the localActionId (sometimes mapped to action_id in v1)
-    const localActionId = parseInt(payload.action_id || payload.id); 
+    // Support array payload format used by game v1
+    const data = Array.isArray(payload) ? payload[0] : payload;
+    if (!data) throw new UnauthorizedException('Payload invalide');
+
+    // The payload might contain id_action (v1), action_id (v2) or id
+    const actionIdRaw = data.id_action || data.action_id || data.id;
+    const localActionId = typeof actionIdRaw === 'number' ? actionIdRaw : parseInt(actionIdRaw, 10);
     
+    if (isNaN(localActionId)) {
+      throw new UnauthorizedException('ID d\'action invalide (NaN)');
+    }
+
     const action = await this.prisma.localAction.findUnique({
       where: { id: localActionId },
       include: { actionRef: true }
