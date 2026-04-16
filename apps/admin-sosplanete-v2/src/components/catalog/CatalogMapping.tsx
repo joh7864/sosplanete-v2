@@ -58,6 +58,7 @@ interface CatalogMappingProps {
 export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) => {
   const [referenceActions, setReferenceActions] = useState<ActionRef[]>([]);
   const [localActions, setLocalActions] = useState<LocalAction[]>([]);
+  const [instanceCategories, setInstanceCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefHidden, setIsRefHidden] = useState(false);
   
@@ -89,17 +90,21 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
     setLoading(true);
     try {
       const token = getAuthData('access_token');
-      const [refRes, localRes] = await Promise.all([
+      const [refRes, localRes, catRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions?instanceId=${instanceId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
 
       if (refRes.ok) setReferenceActions(await refRes.json());
       if (localRes.ok) setLocalActions(await localRes.json());
+      if (catRes.ok) setInstanceCategories(await catRes.json());
     } catch (e) {
       console.error("Fetch error:", e);
     } finally {
@@ -194,6 +199,26 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
                 Filtres
                 {activeFiltersCount > 0 && <span className="w-4 h-4 rounded-full bg-white text-emerald-600 flex items-center justify-center text-[9px]">{activeFiltersCount}</span>}
               </button>
+
+              {/* Bulk Delete Local Selection (Icon only) */}
+              <AnimatePresence>
+                {selectedLocalIds.length > 0 && (
+                  <motion.button 
+                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                    onClick={() => {
+                      if (window.confirm(`Voulez-vous vraiment supprimer les ${selectedLocalIds.length} actions sélectionnées ?`)) {
+                        handleUnmapActions(selectedLocalIds);
+                      }
+                    }}
+                    title="Supprimer la sélection"
+                    className="w-11 h-11 flex items-center justify-center rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20"
+                  >
+                    <Trash2 size={18} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
 
               {/* Visibility Toggle (Icon only) */}
               <button 
@@ -347,6 +372,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
 
       <LocalActionEditModal 
         action={editingAction}
+        categories={instanceCategories}
         isOpen={!!editingAction}
         onClose={() => setEditingAction(null)}
         onSave={() => {

@@ -29,6 +29,14 @@ export interface Team {
   groups: Group[];
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  icon?: string | null;
+  order: number;
+  instanceId: number;
+}
+
 export interface ActionRef {
   id: number;
   code: string;
@@ -46,7 +54,8 @@ export interface ActionRef {
 export interface LocalAction {
   id: number;
   label: string;
-  category: string;
+  categoryId?: number | null;
+  category?: Category | null;
   image?: string | null;
   description?: string | null;
   actionRefId: number;

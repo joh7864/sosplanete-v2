@@ -12,6 +12,35 @@ function FinalCleanup {
     Set-Location $originalDir
 }
 
+# Chargement des fichiers d'environnement
+$envFiles = @(".env", ".env.local")
+$envLoaded = $false
+
+foreach ($file in $envFiles) {
+    if (Test-Path $file) {
+        Write-Host "[CONFIG] Chargement des variables depuis $file..." -ForegroundColor Gray
+        Get-Content $file | Where-Object { $_ -match '=' -and $_ -notmatch '^#' } | ForEach-Object {
+            $name, $value = $_.Split('=', 2)
+            $varName = $name.Trim()
+            $varValue = if ($value) { $value.Trim() } else { '' }
+            
+            if ([string]::IsNullOrWhiteSpace($varValue)) {
+                # Valeur vide = effacer la variable (permet à .env.local de "vider" une valeur de .env)
+                [System.Environment]::SetEnvironmentVariable($varName, $null)
+                Remove-Item -Path "Env:\$varName" -ErrorAction SilentlyContinue
+            } else {
+                [System.Environment]::SetEnvironmentVariable($varName, $varValue)
+                Set-Item -Path "Env:\$varName" -Value $varValue
+            }
+        }
+        $envLoaded = $true
+    }
+}
+
+if (-not $envLoaded) {
+    Write-Host "[WARNING] Aucun fichier d'environnement (.env.local ou .env) trouvé. Utilisation des valeurs par défaut." -ForegroundColor Yellow
+}
+
 # Piège pour l'arrêt (Ctrl+C)
 # Note: Dans un script interactif PowerShell, le comportement peut varier,
 # on va donc aussi s'assurer que la dernière commande ne change pas le PID shell.

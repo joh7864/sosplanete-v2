@@ -1,15 +1,20 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class LocalActionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private categoryService: CategoryService
+  ) {}
 
   async create(data: { 
     instanceId: number; 
     actionRefId: number; 
     customLabel?: string; 
+    categoryId?: number;
   }, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) {
@@ -24,6 +29,7 @@ export class LocalActionService {
         instanceId: data.instanceId,
         actionRefId: data.actionRefId,
         label: data.customLabel || actionRef.referenceName,
+        categoryId: data.categoryId,
       },
     });
   }
@@ -74,10 +80,25 @@ export class LocalActionService {
       where: { code: { in: codes } }
     });
 
+    // Récupération des catégories existantes pour cet espace pour le mapping
+    const existingCategories = await this.prisma.category.findMany({
+      where: { instanceId }
+    });
+
     const results = [];
     for (const actionInput of actions) {
       const ref = actionRefs.find(r => r.code === actionInput.actionRef);
       if (!ref) continue;
+
+      // Mapping de la catégorie par nom (normalisé)
+      let categoryId = undefined;
+      if (actionInput.category) {
+        const normCatName = this.categoryService.normalizeString(actionInput.category);
+        const match = existingCategories.find(c => this.categoryService.normalizeString(c.name) === normCatName);
+        if (match) {
+          categoryId = match.id;
+        }
+      }
 
       // upsert pour mettre à jour si ça existe déjà ou créer
       const local = await this.prisma.localAction.upsert({
@@ -91,6 +112,7 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || null,
+          categoryId: categoryId, // Mise à jour de la catégorie si trouvée
         },
         create: {
           instanceId,
@@ -98,6 +120,7 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || null,
+          categoryId: categoryId, // Association de la catégorie si trouvée
         }
       });
       results.push(local);
@@ -105,7 +128,7 @@ export class LocalActionService {
     return results;
   }
 
-  async update(id: number, data: { label?: string, description?: string, image?: string }, user: any) {
+  async update(id: number, data: { label?: string, description?: string, image?: string, categoryId?: number }, user: any) {
     const localAction = await this.prisma.localAction.findUnique({
       where: { id }
     });
@@ -119,7 +142,8 @@ export class LocalActionService {
       data: {
         label: data.label,
         description: data.description,
-        image: data.image
+        image: data.image,
+        categoryId: data.categoryId,
       }
     });
   }

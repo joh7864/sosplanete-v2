@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon, GripVertical } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon, GripVertical, Search, Upload } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/Input';
 import { getAuthData } from '@/utils/storage';
 import { getAssetUrl } from '@/utils/assets';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CategoryImportModal } from './CategoryImportModal';
 
 interface Category {
   id: number;
@@ -98,8 +99,10 @@ function SortableCategoryItem({
 export function CategorySettings({ instanceId }: { instanceId: number }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedCat, setSelectedCat] = useState<Category | null>(null);
   
   const [name, setName] = useState('');
@@ -131,6 +134,19 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
       setLoading(false);
     }
   };
+
+  const normalize = (text: string) => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery) return categories;
+    const lowQuery = normalize(searchQuery);
+    return categories.filter(c => normalize(c.name).includes(lowQuery));
+  }, [categories, searchQuery]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -223,19 +239,44 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Configuration des catégories</h2>
-          <p className="text-sm text-slate-500 mt-1">Gérez les catégories d'actions pour cette école.</p>
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col gap-6">
+        {/* Toolbar */}
+        <div className="w-full flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/50 p-2 rounded-3xl border border-white/40 shadow-sm backdrop-blur-md">
+           <div className="relative w-full sm:flex-1 max-w-2xl">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <Search size={18} />
+              </div>
+              <input 
+                type="text"
+                placeholder="Rechercher une catégorie..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-12 pl-12 pr-4 bg-white/70 border-none rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+              />
+           </div>
+
+           <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowImportModal(true)}
+                title="Importer des catégories (CSV)"
+                className="w-12 h-12 flex items-center justify-center bg-white text-emerald-600 rounded-2xl border border-emerald-50 shadow-sm hover:bg-emerald-50 hover:scale-110 transition-all active:scale-95"
+              >
+                 <Upload size={20} />
+              </button>
+              <button 
+                onClick={openNew}
+                title="Nouvelle catégorie"
+                className="w-12 h-12 flex items-center justify-center bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 hover:scale-110 transition-all active:scale-95"
+              >
+                 <Plus size={24} />
+              </button>
+           </div>
         </div>
-        <Button onClick={openNew} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl px-6 py-3 h-auto shadow-lg shadow-emerald-500/20 text-[11px] font-black uppercase tracking-widest transition-all">
-          <Plus size={18} className="mr-2" /> Nouvelle catégorie
-        </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-10"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>
+        <div className="flex justify-center p-20"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
       ) : (
         <DndContext 
           sensors={sensors}
@@ -243,11 +284,11 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
           onDragEnd={handleDragEnd}
         >
           <SortableContext 
-            items={categories.map(c => c.id)}
+            items={filteredCategories.map(c => c.id)}
             strategy={rectSortingStrategy}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <SortableCategoryItem 
                   key={cat.id} 
                   cat={cat} 
@@ -255,10 +296,12 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
                   setDeleteConfirm={setDeleteConfirm} 
                 />
               ))}
-              {categories.length === 0 && (
-                <div className="col-span-full py-10 text-center flex flex-col items-center">
+              {filteredCategories.length === 0 && (
+                <div className="col-span-full py-20 text-center flex flex-col items-center bg-slate-50/50 rounded-[3rem] border border-dashed border-slate-200">
                   <FolderOpen size={48} className="text-slate-200 mb-4" />
-                  <p className="text-lg font-bold text-slate-400 font-black uppercase tracking-widest">Aucune catégorie</p>
+                  <p className="text-lg font-bold text-slate-300 font-black uppercase tracking-widest">
+                    {searchQuery ? 'Aucun résultat' : 'Aucune catégorie'}
+                  </p>
                 </div>
               )}
             </div>
@@ -289,6 +332,14 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
           </div>
         </div>
       )}
+
+      <CategoryImportModal 
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        instanceId={instanceId}
+        instanceName="cet établissement"
+        onImport={fetchCategories}
+      />
 
       {deleteConfirm && (
         <ConfirmDialog 

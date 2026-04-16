@@ -81,8 +81,10 @@ function OrganizationContent() {
     const savedInstances = getAuthData('managed_instances');
     if (savedInstances) setManagedInstances(JSON.parse(savedInstances));
 
-    // Si pas d'ID dans l'URL, on cherche dans le localStorage
-    if (!instanceId) {
+    const isNewInstance = searchParams.get('new') === 'true';
+
+    // Si pas d'ID dans l'URL, on cherche dans le localStorage (sauf si on crée une nouvelle instance)
+    if (!instanceId && !isNewInstance) {
       const savedActiveId = getAuthData('active_instance_id');
       if (savedActiveId) {
         setInstanceId(parseInt(savedActiveId));
@@ -159,7 +161,11 @@ function OrganizationContent() {
   };
 
   useEffect(() => {
-    if (instanceId) fetchTeams();
+    if (instanceId) {
+      fetchTeams();
+    } else if (searchParams.get('new') === 'true') {
+      setLoading(false);
+    }
   }, [instanceId]);
 
   const fetchTeams = async () => {
@@ -302,7 +308,9 @@ function OrganizationContent() {
     return { co2, water, waste };
   };
 
-  if (!instanceId) {
+  const isNewInstance = searchParams.get('new') === 'true';
+
+  if (!instanceId && !isNewInstance) {
     return (
       <>
         <TopBar title="Configuration des Espaces" />
@@ -356,8 +364,8 @@ function OrganizationContent() {
   return (
     <>
         <TopBar 
-          title={activeTab === 'catalog' ? "Catalogue des actions SOS Planète" : (instanceId ? `Configuration de l'Espace ${currentInstance?.schoolName || ''}` : "Configuration des Espaces")}
-          subtitle={activeTab === 'catalog' ? "Personnalisez le catalogue pour cet espace" : "Gérez l'académie, le catalogue et les équipes"}
+          title={activeTab === 'catalog' ? "Catalogue des actions SOS Planète" : (isNewInstance ? "Création d'un nouvel Espace" : (instanceId ? `Configuration de l'Espace ${currentInstance?.schoolName || ''}` : "Configuration des Espaces"))}
+          subtitle={activeTab === 'catalog' ? "Personnalisez le catalogue pour cet espace" : (isNewInstance ? "Remplissez les informations de base pour démarrer" : "Gérez l'académie, le catalogue et les équipes")}
           selector={
             managedInstances.length > 1 ? (
                   <div className="relative">
@@ -398,6 +406,7 @@ function OrganizationContent() {
                   </div>
             ) : undefined
           }
+          className={isNewInstance ? "border-b-0" : ""}
           bottomContent={
             instanceId ? (
               <>
@@ -442,7 +451,7 @@ function OrganizationContent() {
 
         <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-20 pt-6">
         {/* PAGE CONTENT */}
-        {!instanceId ? (
+        {!instanceId && !isNewInstance ? (
             <div className="py-20 flex flex-col items-center gap-8 text-center max-w-2xl mx-auto">
                 <div className="w-24 h-24 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-500 shadow-inner">
                     <Building2 size={48} />

@@ -35,6 +35,12 @@ export class CategoryController {
     return this.categoryService.update(id, body, req.user);
   }
 
+  @Post('import-csv')
+  @ApiOperation({ summary: 'Bulk import categories for an instance from CSV' })
+  importCsv(@Query('instanceId', ParseIntPipe) instanceId: number, @Body() body: { csvContent: string }, @Req() req: any) {
+    return this.categoryService.importCsv(instanceId, body.csvContent, req.user);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a category' })
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {

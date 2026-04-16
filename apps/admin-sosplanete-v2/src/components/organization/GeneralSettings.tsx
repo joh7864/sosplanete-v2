@@ -16,7 +16,11 @@ interface Period {
   _count?: { actionsDone: number };
 }
 
-export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { instanceId: number, currentInstance: any, onUpdate: () => void }) {
+import { useRouter } from 'next/navigation';
+
+export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { instanceId: number | null, currentInstance: any, onUpdate: () => void }) {
+  const router = useRouter();
+  const isNew = !instanceId;
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
@@ -113,6 +117,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
         endDate: new Date(editEndDate).toISOString(),
         ...(isNew ? { instanceId } : {})
       };
+      if (!instanceId) return; // Sécurité
 
       const resp = await fetch(url, {
         method,
@@ -145,8 +150,8 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
       if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
     fetchAMUsers();
-    fetchPeriods();
-  }, [currentInstance]);
+    if (instanceId) fetchPeriods();
+  }, [currentInstance, instanceId]);
 
   const fetchAMUsers = async () => {
     try {
@@ -156,6 +161,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
   };
 
   const fetchPeriods = async () => {
+    if (!instanceId) return;
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) {
@@ -168,8 +174,14 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
     if (e) e.preventDefault();
     setSaving(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}`, {
-        method: 'PATCH',
+      const url = isNew 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/instances`
+        : `${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}`;
+      
+      const method = isNew ? 'POST' : 'PATCH';
+
+      const resp = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
         body: JSON.stringify({ 
           schoolName, 
@@ -181,10 +193,18 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
           gamePeriodsCount: parseInt(gamePeriodsCount) 
         }),
       });
+
       if (resp.ok) {
-        setStatus({ type: 'success', msg: 'Paramètres enregistrés !' });
+        const data = await resp.json();
+        setStatus({ type: 'success', msg: isNew ? 'Espace créé avec succès !' : 'Paramètres enregistrés !' });
         setTimeout(() => setStatus(null), 3000);
-        onUpdate();
+        
+        if (isNew && data.id) {
+          // Si c'est une création, on redirige vers la page de l'instance
+          router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
+        } else {
+          onUpdate();
+        }
       } else {
         setStatus({ type: 'error', msg: "Erreur d'enregistrement." });
       }
@@ -356,8 +376,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
         </GlassCard>
       </div>
 
-      {/* BLOC 3 : Périodes de Saisie avec format TABLEAU CONDENSÉ */}
-      <GlassCard className="p-6 border-none shadow-xl bg-white/95">
+      {/* BLOC 3 : Périodes de Saisie avec format TABLEAU CONDENSÉ - CACHÉ LORS D'UNE CRÉATION */}
+      {!isNew && (
+        <GlassCard className="p-6 border-none shadow-xl bg-white/95">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-50 rounded-xl text-indigo-500"><Calendar size={20} /></div>
@@ -568,6 +589,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
           </div>
         </div>
       </GlassCard>
+    )}
 
       {status && (
           <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-4 duration-300">

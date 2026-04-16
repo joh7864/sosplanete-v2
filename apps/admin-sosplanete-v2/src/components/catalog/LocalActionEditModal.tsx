@@ -20,11 +20,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAssetUrl } from '@/utils/assets';
 
-import { ActionRef, LocalAction } from '@/types';
+import { ActionRef, LocalAction, Category } from '@/types';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 
 interface LocalActionEditModalProps {
   action: LocalAction | null;
+  categories?: Category[];
   isOpen: boolean;
   onClose: () => void;
   onSave: (updated: LocalAction) => void;
@@ -32,6 +33,7 @@ interface LocalActionEditModalProps {
 
 export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({ 
   action, 
+  categories = [],
   isOpen, 
   onClose, 
   onSave 
@@ -39,19 +41,57 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [isPreview, setIsPreview] = useState(false);
   
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (action) {
       setLabel(action.label || '');
       setDescription(action.description || '');
       setImage(action.image || '');
+      setCategoryId(action.categoryId || null);
       setError(null);
     }
   }, [action]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !action) return;
+
+    setUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = getAuthData('access_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/${action.id}/image`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        setImage(url);
+      } else {
+        setError("Erreur lors de l'upload de l'image.");
+      }
+    } catch (e) {
+      setError("Erreur réseau lors de l'upload.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!action) return;
@@ -69,7 +109,8 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
         body: JSON.stringify({
           label,
           description: description || undefined,
-          image: image || undefined
+          image: image || undefined,
+          categoryId: categoryId ? Number(categoryId) : null
         })
       });
 
@@ -128,19 +169,44 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
               {/* Preview & Image Selection */}
               <div className="flex flex-col gap-3">
                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Icône / Image</span>
-                 <div className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center relative group overflow-hidden shadow-inner">
-                    <img 
-                      src={image || (action.actionRef.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo-sosplanete.png'))}
-                      className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500"
-                      onError={(e) => { (e.target as HTMLImageElement).src = getAssetUrl('logo-sosplanete.png'); }}
-                    />
-                 </div>
-                 <Input 
-                  placeholder="URL de l'image (si vide, logo par défaut)" 
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="text-[10px] h-8 bg-slate-50/50 border-none rounded-xl"
+                 <input 
+                   type="file" 
+                   ref={fileInputRef} 
+                   onChange={handleFileUpload} 
+                   accept="image/*" 
+                   className="hidden" 
                  />
+                 <div 
+                   onClick={() => fileInputRef.current?.click()}
+                   className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center relative group overflow-hidden shadow-inner cursor-pointer hover:border-emerald-300 transition-all"
+                 >
+                    {uploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="animate-spin text-emerald-500" size={32} />
+                        <span className="text-[10px] font-black text-emerald-500 uppercase">Envoi...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <img 
+                          src={image || (action.actionRef.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo-sosplanete.png'))}
+                          className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500"
+                          onError={(e) => { (e.target as HTMLImageElement).src = getAssetUrl('logo-sosplanete.png'); }}
+                        />
+                        <div className="absolute inset-0 bg-emerald-500/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white p-4 text-center">
+                           <ImageIcon size={24} className="mb-2" />
+                           <span className="text-[10px] font-black uppercase tracking-widest">Changer l'image</span>
+                        </div>
+                      </>
+                    )}
+                 </div>
+                 <Button 
+                   variant="ghost" 
+                   size="xs" 
+                   onClick={() => setImage('')} 
+                   className="text-[9px] h-7 uppercase font-black tracking-widest text-slate-400 hover:text-rose-500"
+                 >
+                   Rétablir par défaut
+                 </Button>
               </div>
 
               {/* Form Fields */}
@@ -155,6 +221,22 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
                       onChange={(e) => setLabel(e.target.value)}
                       className="h-14 bg-slate-50 border-none rounded-2xl text-lg font-black text-slate-800 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner"
                     />
+                 </div>
+
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
+                       <Settings2 size={12} className="text-emerald-500" /> Catégorie de l'Action
+                    </label>
+                    <select 
+                      value={categoryId || ''}
+                      onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner appearance-none outline-none"
+                    >
+                      <option value="">-- Sans catégorie --</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
                  </div>
 
                  <div className="flex flex-col gap-2">
