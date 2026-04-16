@@ -49,7 +49,7 @@ export const LocalList: React.FC<LocalListProps> = ({
   const filteredLocal = useMemo(() => {
     return actions.filter(la => {
       const matchSearch = la.label.toLowerCase().includes(globalSearch.toLowerCase()) || la.actionRef.code.toLowerCase().includes(globalSearch.toLowerCase());
-      const matchCat = !filterCategory || la.category === filterCategory;
+      const matchCat = !filterCategory || (la.category && (typeof la.category === 'string' ? la.category === filterCategory : la.category.name === filterCategory));
       const matchStars = (la.actionRef.weightedStars || 0) >= minStars;
       
       const matchCo2 = !impactFilters.co2 || (la.actionRef.defaultCo2 ?? 0) > 0;
@@ -155,7 +155,7 @@ export const LocalList: React.FC<LocalListProps> = ({
                       action={{
                         ...action.actionRef,
                         referenceName: action.label, // Use local label
-                        category: action.category
+                        category: typeof action.category === 'string' ? action.category : (action.category?.name || 'Référence')
                       }} 
                     />
                    </div>
@@ -197,7 +197,9 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove }: an
           <span className="text-[12px] font-black text-slate-700 truncate">{action.label}</span>
         </div>
         <div className="flex items-center gap-3">
-           <span className="text-[9px] font-bold text-slate-400 truncate max-w-[120px]">{action.category}</span>
+           <span className="text-[9px] font-bold text-slate-400 truncate max-w-[120px]">
+             {typeof action.category === 'string' ? action.category : (action.category?.name || 'Sans catégorie')}
+           </span>
            <div className="flex items-center gap-1 opacity-70">
               <Star size={10} className="fill-amber-400 text-amber-400" />
               <span className="text-[10px] font-black text-slate-400">{action.actionRef.weightedStars}</span>
