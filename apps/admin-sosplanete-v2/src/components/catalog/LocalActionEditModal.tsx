@@ -201,7 +201,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
                  </div>
                  <Button 
                    variant="ghost" 
-                   size="xs" 
+                   size="sm" 
                    onClick={() => setImage('')} 
                    className="text-[9px] h-7 uppercase font-black tracking-widest text-slate-400 hover:text-rose-500"
                  >
