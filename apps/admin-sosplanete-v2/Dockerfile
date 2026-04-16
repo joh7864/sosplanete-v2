@@ -16,7 +16,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Environment variables for build time
-ARG NEXT_PUBLIC_API_URL=https://api-sosplanete.nnauru.net
+ARG NEXT_PUBLIC_API_URL=https://api.sosplanete.nnauru.net
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build

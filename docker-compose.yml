@@ -33,7 +33,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=wagmoo_wagmoo_net"
-      - "traefik.http.routers.sos-api.rule=Host(`api-sosplanete.nnauru.net`)"
+      - "traefik.http.routers.sos-api.rule=Host(`api.sosplanete.nnauru.net`)"
       - "traefik.http.routers.sos-api.entrypoints=websecure"
       - "traefik.http.routers.sos-api.tls.certresolver=myresolver"
       - "traefik.http.services.sos-api.loadbalancer.server.port=3011"
@@ -42,7 +42,7 @@ services:
     build: 
       context: ./apps/admin-sosplanete-v2
       args:
-        - NEXT_PUBLIC_API_URL=https://api-sosplanete.nnauru.net
+        - NEXT_PUBLIC_API_URL=https://api.sosplanete.nnauru.net
     container_name: sos_admin_v2
     restart: always
     depends_on:
@@ -53,7 +53,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=wagmoo_wagmoo_net"
-      - "traefik.http.routers.sos-admin-v2.rule=Host(`admin-sosplanete.nnauru.net`)"
+      - "traefik.http.routers.sos-admin-v2.rule=Host(`admin.sosplanete.nnauru.net`)"
       - "traefik.http.routers.sos-admin-v2.entrypoints=websecure"
       - "traefik.http.routers.sos-admin-v2.tls.certresolver=myresolver"
       - "traefik.http.services.sos-admin-v2.loadbalancer.server.port=3010"

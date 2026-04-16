@@ -6,8 +6,8 @@
   "scoreUrl": "https://www.sosplanete.fr/tutoriels",
   "impactUrl": "https://www.sosplanete.fr/tutoriels",
 
-  "apiRootUrl2": "https://api-sosplanete.nnauru.net/api/v2",
-  "imgRootUrl2": "https://api-sosplanete.nnauru.net/static/",
-  "apiRootUrl": "https://api-sosplanete.nnauru.net/legacy",
-  "imgRootUrl": "https://api-sosplanete.nnauru.net/static/"
+  "apiRootUrl2": "https://api.sosplanete.nnauru.net/api/v2",
+  "imgRootUrl2": "https://api.sosplanete.nnauru.net/static/",
+  "apiRootUrl": "https://api.sosplanete.nnauru.net/legacy",
+  "imgRootUrl": "https://api.sosplanete.nnauru.net/static/"
 }
