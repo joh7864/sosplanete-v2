@@ -17,12 +17,19 @@ async function bootstrap() {
   });
 
   // Sécurisation de Swagger en production
+  const swaggerUser = process.env.SWAGGER_USER || 'admin';
+  const swaggerPass = process.env.SWAGGER_PASSWORD;
+
+  if (process.env.NODE_ENV === 'production' && !swaggerPass) {
+    console.warn('⚠️ WARNING: SWAGGER_PASSWORD is not set in production!');
+  }
+
   app.use(
     ['/api', '/api-json'],
     basicAuth({
       challenge: true,
       users: {
-        nnauru: "nnauruc'estch0ue!!e",
+        [swaggerUser]: swaggerPass || "nnauruc'estch0ue!!e", // Fallback temporaire pour éviter de bloquer l'accès immédiatement
       },
     }),
   );

@@ -6,9 +6,9 @@ services:
     container_name: sos_db_v2
     restart: always
     environment:
-      - POSTGRES_DB=nnauru
-      - POSTGRES_USER=nnauru
-      - POSTGRES_PASSWORD=me4nnauru
+      - POSTGRES_DB=${POSTGRES_DB:-nnauru}
+      - POSTGRES_USER=${POSTGRES_USER:-nnauru}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-me4nnauru}
     volumes:
       - sos_db_data_v2:/var/lib/postgresql/data
     networks:
@@ -21,10 +21,13 @@ services:
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://nnauru:me4nnauru@db:5432/nnauru?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-nnauru}:${POSTGRES_PASSWORD:-me4nnauru}@db:5432/${POSTGRES_DB:-nnauru}?schema=public
       - PORT=3011
       - NODE_ENV=production
-      - UPLOADS_DIR=/app/uploads
+      - UPLOADS_DIR=${UPLOADS_DIR:-/app/uploads}
+      - SWAGGER_USER=${SWAGGER_USER:-admin}
+      - SWAGGER_PASSWORD=${SWAGGER_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - ./uploads:/app/uploads
     networks:
@@ -42,7 +45,7 @@ services:
     build: 
       context: ./apps/admin-sosplanete-v2
       args:
-        - NEXT_PUBLIC_API_URL=https://api.sosplanete.nnauru.net
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.sosplanete.nnauru.net}
     container_name: sos_admin_v2
     restart: always
     depends_on:
