@@ -183,7 +183,15 @@ export class LegacyApiService {
       totalWaste += a.savedWaste;
     }
 
-    return { totalCo2: Math.round(totalCo2), totalWater: Math.round(totalWater), totalWaste: Math.round(totalWaste) };
+    return {
+      totalCo2: Math.round(totalCo2),
+      totalWater: Math.round(totalWater),
+      totalWaste: Math.round(totalWaste),
+      bravotitre: "C'est un bon début !",
+      bravotext: `Vous avez déjà économisé ${Math.round(totalCo2)} kg de CO2 !`,
+      deblocageanimal: "Continuez comme ça pour débloquer le prochain animal !",
+      animalnum: 0, // À dynamiser plus tard si besoin
+    };
   }
 
   async getTeams(origin?: string, instanceIdStr?: string) {
@@ -195,7 +203,7 @@ export class LegacyApiService {
       id: t.id.toString(),
       name: t.name,
       color: t.color || '#40916C',
-      icon: (t.icon || '').split('.')[0]
+      icon: t.icon ? `teams/${t.icon}` : 'teams/Chat.png' // Ajout du dossier et conservation de l'extension
     }));
   }
 
@@ -230,7 +238,13 @@ export class LegacyApiService {
           });
         });
       });
-      return { team_id: t.id.toString(), total_points: total };
+      return {
+        id: t.id.toString(), // Attendu par ScoresTotal / ScoresSemaine
+        team_id: t.id.toString(),
+        count_total: total, // Attendu par ScoresTotal
+        count_week: total,  // Attendu par ScoresSemaine (simplifié)
+        total_points: total
+      };
     });
   }
 
@@ -240,7 +254,8 @@ export class LegacyApiService {
     if (!inst) throw new NotFoundException('Ecole introuvable');
     return {
       name: inst.schoolName,
-      objective: 1000 // Fixed for now or computed
+      objective: 1000, // À dynamiser si besoin
+      numchapter: inst.unlockedChapters // Ajout pour débloquer l'histoire dans le jeu v1
     };
   }
 
@@ -253,6 +268,8 @@ export class LegacyApiService {
       name: `Période ouverte`,
       start_date: period.startDate,
       end_date: period.endDate,
+      begin: period.startDate, // Alias pour le jeu v1
+      end: period.endDate,     // Alias pour le jeu v1
       status: period.isOpen ? '1' : '0'
     };
   }
