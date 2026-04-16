@@ -4,7 +4,7 @@ import { NnauruAPI } from "../../api/nnauruAPI";
 //import fond from "../../assets/scorecarddesk.svg";
 
 import "../../components/Tabs/Tabs.css";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import useBreakpoints from "../../hooks/useBreakpoints";
 import { useAuth } from "../../utils/AuthContext";
 

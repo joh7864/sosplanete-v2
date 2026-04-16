@@ -1,7 +1,7 @@
 import React from "react";
 import SlideIn from "../../components/animations/Slides/SlideIn/SlideIn";
 import ZoomIn from "../../components/animations/ZoomIn/ZoomIn";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import useBreakpoints from "../../hooks/useBreakpoints";
 import "./ChildCard.css";
 

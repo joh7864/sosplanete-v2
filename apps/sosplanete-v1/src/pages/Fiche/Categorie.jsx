@@ -3,7 +3,7 @@ import { CircularProgressbarWithChildren } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { NnauruAPI } from "../../api/nnauruAPI";
 import checked from "../../assets/checked.svg";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import { useAuth } from "../../utils/AuthContext";
 import "./Categories.css";
 

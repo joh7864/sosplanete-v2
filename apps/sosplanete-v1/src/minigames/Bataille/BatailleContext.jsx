@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
-//import appcfg from "../../config.json"
+//import appcfg from "../../config.js"
 
 const BatailleContext = createContext()
 

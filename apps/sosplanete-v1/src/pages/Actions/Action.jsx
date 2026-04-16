@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NnauruAPI } from "../../api/nnauruAPI";
 import Exclamation from "../../assets/exclamation.svg";
 import ToggleSwitch from "../../components/Toggles/ToggleSwitch";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import Star from "../../minigames/images/etoile.svg";
 import { useAuth } from "../../utils/AuthContext";
 import "./Action.css";

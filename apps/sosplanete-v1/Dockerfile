@@ -1,4 +1,6 @@
 # Stage 1: Build
+# Vite utilise automatiquement .env.production lors du build (npm run build)
+# Les URLs dev/prod sont gérées dans .env et .env.production
 FROM node:20-alpine as builder
 
 WORKDIR /app

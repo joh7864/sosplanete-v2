@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import useBreakpoints from "../../hooks/useBreakpoints";
 
 const Histogramme = ({ id, count, refTeams, totalActions }) => {

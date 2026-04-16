@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Env files — .env et .env.production sont versionnés (pas de secrets)
+# .env.local permet des surcharges perso non committées
+.env.local
 package-lock.json
 
 # Editor directories and files

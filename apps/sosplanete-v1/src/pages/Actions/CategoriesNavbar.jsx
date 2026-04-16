@@ -5,7 +5,7 @@ import arrowleft from '../../assets/arrowleft.svg';
 import arrowright from '../../assets/arrowright.svg';
 import { CircularProgressbarWithChildren } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import appcfg from '../../config.json';
+import appcfg from '../../config.js';
 
 //----------------------------------------
 // Composant de navigation entre les catégories de la pages actions

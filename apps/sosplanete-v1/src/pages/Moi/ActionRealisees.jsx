@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import "./ActionRealisees.css";
 
 //----------------------------------------------------------

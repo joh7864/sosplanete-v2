@@ -18,7 +18,7 @@ import chat from "../../assets/chat.svg";
 import iconInfo from "../../assets/info.svg";
 import tropheeIcon from "../../assets/trophee.svg";
 import "../../components/Tabs/Tabs.css";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import useBreakpoints from "../../hooks/useBreakpoints";
 import "./DeblocageAnimaux.css";
 import "./Scores.css";

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-//import appcfg from "../../config.json"
+//import appcfg from "../../config.js"
 
 const GameContext = createContext();
 

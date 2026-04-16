@@ -4,7 +4,7 @@ import oops from "../../assets/Oops.png";
 import icon from "../../assets/logout.svg";
 import Header from "../../components/Header";
 import Mascotte from "../../components/Mascotte/Mascotte";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import { useAuth } from "../../utils/AuthContext";
 import Categories from "./Categories";
 import "./Fiche.css";

@@ -1,6 +1,6 @@
 import React from "react";
 //import fond from "../../assets/scoreequipedesk.svg";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 
 function ScoresTeams({ teams, ecole }) {
   return (

@@ -1,5 +1,5 @@
 import axios from "axios"
-import appcfg from "../../config.json"
+import appcfg from "../../config.js"
 //import appcfg from "/public/cfg/url.json"
 
 export const api = axios.create({

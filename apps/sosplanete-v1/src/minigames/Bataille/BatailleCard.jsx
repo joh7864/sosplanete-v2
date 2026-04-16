@@ -1,5 +1,5 @@
 import React from "react";
-import appcfg from "../../config.json";
+import appcfg from "../../config.js";
 import Star from "../images/etoile.svg";
 
 const BatailleCard = ({

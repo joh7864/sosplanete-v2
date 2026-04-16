@@ -59,10 +59,7 @@ services:
       - "traefik.http.services.sos-admin-v2.loadbalancer.server.port=3010"
 
   jeu:
-    build: 
-      context: ./apps/sosplanete-v1
-      args:
-        - REACT_APP_API_ROOT_URL=https://api-sosplanete.nnauru.net
+    build: ./apps/sosplanete-v1
     container_name: sos_jeu_v1
     restart: always
     depends_on:
