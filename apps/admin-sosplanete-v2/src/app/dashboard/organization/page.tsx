@@ -835,10 +835,10 @@ function TeamCard({
     <motion.div layout className={`relative transition-all duration-500 ${isExpanded ? 'col-span-full' : ''}`}>
       <GlassCard 
         padding="none" 
-        className={`border-none shadow-xl overflow-hidden flex flex-col transition-all bg-white/70 ${isExpanded ? 'ring-1 ring-slate-200' : 'hover:scale-[1.02] cursor-pointer ring-1 ring-slate-100 hover:ring-emerald-200'}`}
+        className={`border-none shadow-xl flex flex-col transition-all bg-white/70 ${isExpanded ? 'ring-1 ring-slate-200' : 'hover:scale-[1.02] cursor-pointer ring-1 ring-slate-100 hover:ring-emerald-200'}`}
         onClick={() => { if (isSelectionMode) onSelect(team.id); else if (!isExpanded) onToggle(); }}
       >
-        <div className="h-1.5 w-full" style={{ backgroundColor: cardColor }} />
+        <div className="h-1.5 w-full rounded-t-2xl" style={{ backgroundColor: cardColor }} />
         
         {isSelectionMode && (
           <div className="absolute top-6 left-6 z-10">

@@ -76,27 +76,41 @@
 		height: 100%;
 	}
 	.nav-items {
-		gap: 24px;
+		gap: 0;
 		padding: 0;
 		width: 100%;
+		max-width: none !important; /* Débloque la limite de 80% du bureau */
 		border: 0;
 		margin: 0;
 		border-radius: 0;
 		justify-content: space-evenly;
 		background-color: transparent;
 	}
+	/* Cible tous les enfants directs (Quitter, Fiche, Moi, etc) */
+	.nav-items > div, 
+	.nav-items > a {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		min-width: 0; /* Évite qu'un label long n'éclate la cellule */
+	}
 	.item-menu-container {
 		display: none;
 	}
-	.item-menu-img-container > img {
-		width: 24px;
+	.item-menu-img-container > img,
+	.item-menu-img-container > svg {
+		width: 32px !important;
+		height: 32px !important;
+		margin: 0 !important;
 	}
 	.btn-quitter {
-		display: none;
+		/* display: none;  -- Supprimé pour permettre l'utilisation sur mobile */
 	}
 
 	.header--link img {
-		height: 40px;
-		width: 40px;
+		width: 32px !important;
+		height: 32px !important;
 	}
 }

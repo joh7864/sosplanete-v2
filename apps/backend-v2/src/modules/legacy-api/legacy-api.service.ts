@@ -203,7 +203,7 @@ export class LegacyApiService {
       id: t.id.toString(),
       name: t.name,
       color: t.color || '#40916C',
-      icon: t.icon ? `teams/${t.icon}` : 'teams/Chat.png' // Ajout du dossier et conservation de l'extension
+      icon: t.icon ? `teams/${t.icon.split('/').pop()}` : 'teams/Chat.png' // Ajout du dossier et conservation de l'extension
     }));
   }
 
