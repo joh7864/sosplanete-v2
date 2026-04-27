@@ -207,9 +207,9 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
 
                     {importResult && importResult.errors.length > 0 && (
                         <div className="border border-slate-100 bg-slate-50/50 rounded-2xl overflow-hidden">
-                            <button 
+                            <div 
                                 onClick={() => setShowLogs(!showLogs)}
-                                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100 transition-colors"
+                                className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-2 text-xs font-black text-slate-600 uppercase tracking-widest">
                                     <Info size={14} className="text-rose-500" />
@@ -225,7 +225,7 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
                                     </button>
                                     <div className="p-1.5">{showLogs ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</div>
                                 </div>
-                            </button>
+                            </div>
                             
                             <AnimatePresence>
                                 {showLogs && (

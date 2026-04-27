@@ -1,11 +1,17 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
 import * as bcrypt from 'bcrypt';
+import { ImpactService } from '../impact/impact.service';
 
 @Injectable()
 export class LegacyApiService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(LegacyApiService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private impactService: ImpactService
+  ) {}
 
   async checkAuthChild(pseudo: string, pass: string) {
     const child = await this.prisma.child.findFirst({
@@ -169,28 +175,29 @@ export class LegacyApiService {
 
   async getImpact(weekId?: string, origin?: string, instanceIdStr?: string) {
     const instanceId = await this.getInstanceId(origin, instanceIdStr);
-    const period = await this.prisma.period.findFirst({ where: { instanceId, isOpen: true } });
-    if (!period) return { totalCo2: 0, totalWater: 0, totalWaste: 0 };
+    
+    // On appelle le nouveau ImpactService pour l'année en cours
+    const currentYear = new Date().getFullYear();
+    const impactData = await this.impactService.calculateImpact(currentYear, instanceId);
 
-    const actions = await this.prisma.actionDone.findMany({
-      where: { periodId: period.id }
-    });
-
-    let totalCo2 = 0, totalWater = 0, totalWaste = 0;
-    for (const a of actions) {
-      totalCo2 += a.savedCo2;
-      totalWater += a.savedWater;
-      totalWaste += a.savedWaste;
-    }
-
+    // Formate les données pour l'affichage attendu par le jeu V1
     return {
-      totalCo2: Math.round(totalCo2),
-      totalWater: Math.round(totalWater),
-      totalWaste: Math.round(totalWaste),
-      bravotitre: "C'est un bon début !",
-      bravotext: `Vous avez déjà économisé ${Math.round(totalCo2)} kg de CO2 !`,
+      ScoreGlobal: impactData.sums.totalCo2,
+      ScoreWater: impactData.sums.totalWater,
+      ScorePollution: impactData.sums.totalWaste,
+      totalCo2: impactData.sums.totalCo2,
+      totalWater: impactData.sums.totalWater,
+      totalWaste: impactData.sums.totalWaste,
+      
+      // Résultats supplémentaires issus de la nouvelle logique
+      DepassementNombrePlanetes: impactData.results.nbPlanetes,
+      jourDepassementAvec: impactData.results.dateDepassement,
+      jourDepassementSans: impactData.results.dateDepassementSans,
+      
+      bravotitre: "Génial !",
+      bravotext: `Vous avez un impact positif direct aujourd'hui : vos actions ont permis d'économiser collectivement des tonnes de CO2, beaucoup d'eau et d'éviter des déchets !`,
       deblocageanimal: "Continuez comme ça pour débloquer le prochain animal !",
-      animalnum: 0, // À dynamiser plus tard si besoin
+      animalnum: 0, // À dynamiser plus tard
     };
   }
 

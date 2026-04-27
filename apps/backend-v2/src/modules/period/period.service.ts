@@ -100,7 +100,12 @@ export class PeriodService {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(period.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
 
-    await this.prisma.period.delete({ where: { id } });
+    // Suppression en cascade : d'abord les actions, puis la période
+    await this.prisma.$transaction(async (tx) => {
+      await tx.actionDone.deleteMany({ where: { periodId: id } });
+      await tx.period.delete({ where: { id } });
+    });
+
     return { success: true };
   }
 

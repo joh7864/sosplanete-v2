@@ -12,8 +12,10 @@ export class TrackingController {
   @Get('stats')
   @ApiOperation({ summary: 'Obtenir les statistiques de suivi hebdomadaire' })
   @ApiQuery({ name: 'instanceId', type: Number })
-  async getStats(@Query('instanceId') instanceId: string) {
-    return this.trackingService.getTrackingStats(parseInt(instanceId));
+  @ApiQuery({ name: 'year', type: Number, required: false })
+  async getStats(@Query('instanceId') instanceId: string, @Query('year') yearStr?: string) {
+    const year = yearStr ? parseInt(yearStr) : new Date().getFullYear();
+    return this.trackingService.getTrackingStats(parseInt(instanceId), year);
   }
 
   @Post('import-actions-csv')

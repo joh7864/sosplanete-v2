@@ -6,7 +6,7 @@ import * as Papa from 'papaparse';
 export class TrackingService {
   constructor(private prisma: PrismaService) {}
 
-  async getTrackingStats(instanceId: number) {
+  async getTrackingStats(instanceId: number, year: number) {
     const instance = await this.prisma.instance.findUnique({
       where: { id: instanceId },
     });
@@ -15,26 +15,45 @@ export class TrackingService {
       throw new NotFoundException(`Instance #${instanceId} non trouvée`);
     }
 
-    const startDate = instance.gameStartDate || instance.createdAt;
-    const periodsCount = instance.gamePeriodsCount || 24;
+    const startOfYear = new Date(`${year}-08-01`);
+    const endOfYear = new Date(`${year + 1}-08-01`);
 
-    // Récupérer toutes les actions de l'instance
+    // 1. Récupérer les périodes réelles de l'instance
+    const dbPeriods = await this.prisma.period.findMany({
+      where: { instanceId },
+      orderBy: { startDate: 'asc' },
+    });
+
+    // 2. Récupérer les actions liées aux périodes de l'instance (pas de filtre par date)
+    const allPeriodIds = dbPeriods.map(p => p.id);
     const actions = await this.prisma.actionDone.findMany({
       where: {
         child: { group: { team: { instanceId } } },
-      },
-      include: {
-        child: {
-          include: {
-            group: {
-              include: { team: true },
-            },
-          },
-        },
+        periodId: { in: allPeriodIds },
       },
     });
 
-    // Récupérer tous les enfants de l'instance pour s'assurer qu'ils apparaissent même sans actions
+    // Filtrer pour ne garder que les périodes dans le "count" officiel,
+    // ou celles qui possèdent au moins une action.
+    const activePeriodIds = new Set(actions.map(a => a.periodId));
+    const periodsToDisplay = dbPeriods.filter((p, index) => 
+      index < (instance.gamePeriodsCount || 24) || activePeriodIds.has(p.id)
+    );
+
+    const periodsCount = periodsToDisplay.length;
+    
+    // Créer une map pour retrouver l'index de la semaine par periodId
+    const periodIdToIndex = new Map<number, number>();
+    const periodsHeader = periodsToDisplay.map((p, i) => {
+      periodIdToIndex.set(p.id, i);
+      return {
+        label: `S${i + 1}`,
+        start: p.startDate.toISOString(),
+        end: p.endDate.toISOString(),
+      };
+    });
+
+    // 3. Récupérer tous les enfants
     const allChildren = await this.prisma.child.findMany({
       where: { group: { team: { instanceId } } },
       include: {
@@ -44,21 +63,16 @@ export class TrackingService {
       },
     });
 
-    // Structure de réponse
+    // 4. Calculer les statistiques par enfant
     const childrenStats = allChildren.map((child) => {
       const weeks = Array(periodsCount).fill(0);
       let total = 0;
 
-      // Filtrer les actions de cet enfant
       const childActions = actions.filter((a) => a.childId === child.id);
 
       childActions.forEach((action) => {
-        const actionDate = new Date(action.createdAt);
-        const diffMs = actionDate.getTime() - new Date(startDate).getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const weekIndex = Math.floor(diffDays / 7);
-
-        if (weekIndex >= 0 && weekIndex < periodsCount) {
+        const weekIndex = periodIdToIndex.get(action.periodId);
+        if (weekIndex !== undefined && weekIndex < periodsCount) {
           weeks[weekIndex]++;
           total++;
         }
@@ -77,7 +91,6 @@ export class TrackingService {
       };
     });
 
-    // Calculer les totaux par semaine
     const weeklyTotals = Array(periodsCount).fill(0);
     childrenStats.forEach((c) => {
       c.weeks.forEach((count, i) => {
@@ -85,28 +98,12 @@ export class TrackingService {
       });
     });
 
-    // Générer les en-têtes de périodes (dates)
-    const periods = Array(periodsCount)
-      .fill(null)
-      .map((_, i) => {
-        const start = new Date(startDate);
-        start.setDate(start.getDate() + i * 7);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 6);
-
-        return {
-          label: `S${i + 1}`,
-          start: start.toISOString(),
-          end: end.toISOString(),
-        };
-      });
-
     return {
       config: {
-        startDate: startDate.toISOString(),
+        startDate: instance.gameStartDate?.toISOString() || startOfYear.toISOString(),
         periodsCount,
       },
-      periods,
+      periods: periodsHeader,
       children: childrenStats,
       weeklyTotals,
       grandTotal: weeklyTotals.reduce((a, b) => a + b, 0),

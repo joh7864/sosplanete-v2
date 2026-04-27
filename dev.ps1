@@ -25,7 +25,6 @@ foreach ($file in $envFiles) {
             $varValue = if ($value) { $value.Trim() } else { '' }
             
             if ([string]::IsNullOrWhiteSpace($varValue)) {
-                # Valeur vide = effacer la variable (permet à .env.local de "vider" une valeur de .env)
                 [System.Environment]::SetEnvironmentVariable($varName, $null)
                 Remove-Item -Path "Env:\$varName" -ErrorAction SilentlyContinue
             } else {
@@ -41,18 +40,17 @@ if (-not $envLoaded) {
     Write-Host "[WARNING] Aucun fichier d'environnement (.env.local ou .env) trouvé. Utilisation des valeurs par défaut." -ForegroundColor Yellow
 }
 
-# Piège pour l'arrêt (Ctrl+C)
-# Note: Dans un script interactif PowerShell, le comportement peut varier,
-# on va donc aussi s'assurer que la dernière commande ne change pas le PID shell.
-
 Write-Host "[CLEAN] Arret des anciens processus..." -ForegroundColor Magenta
 
-# Nettoyage par ports (3010 = Admin, 3011 = Back, 3012 = Jeu v1)
+# 1. Libération des ports bloqués par Docker (Ciblé : SOS Planète uniquement)
+Write-Host "  - Verification des ports Docker (sos_backend_v2, sos_admin_v2)..." -ForegroundColor Gray
+docker stop sos_backend_v2 sos_admin_v2 2>$null
+
+# 2. Nettoyage par ports Windows (3010 = Admin, 3011 = Back, 3012 = Jeu v1)
 $ports = @(3010, 3011, 3012)
 foreach ($port in $ports) {
     $pidsToKill = @()
 
-    # Méthode 1 : Get-NetTCPConnection
     $connections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
         if ($conn.OwningProcess -gt 0 -and $conn.OwningProcess -ne 4) {
@@ -60,13 +58,11 @@ foreach ($port in $ports) {
         }
     }
 
-    # Méthode 2 : netstat
     $netstatLines = netstat -ano 2>$null | Select-String ":$port\s" | ForEach-Object {
         if ($_ -match '\s(\d+)\s*$') { [int]$Matches[1] }
     }
     if ($netstatLines) { $pidsToKill += $netstatLines }
 
-    # Dédoublonner et tuer
     $pidsToKill = $pidsToKill | Sort-Object -Unique | Where-Object { $_ -gt 0 -and $_ -ne 4 }
     foreach ($processId in $pidsToKill) {
         Write-Host "  - Liberation du port $port (PID: $processId)..." -ForegroundColor Gray
@@ -96,7 +92,7 @@ foreach ($port in $ports) {
     }
 }
 
-# 1. Vérification / Démarrage Docker Desktop
+# 3. Vérification / Démarrage Docker Desktop
 Write-Host "[CHECK] Verification de Docker..." -ForegroundColor Yellow
 docker version >$null 2>&1
 if ($LastExitCode -ne 0) {
@@ -104,9 +100,9 @@ if ($LastExitCode -ne 0) {
     $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     if (Test-Path $dockerPath) {
         Start-Process $dockerPath
-        Write-Host "  - En attente du demarrage complet de Docker (cela peut prendre du temps)..." -ForegroundColor Gray
+        Write-Host "  - En attente du demarrage complet de Docker..." -ForegroundColor Gray
         $dockerReady = $false
-        $timeout = 60 # 5 minutes (5s * 60)
+        $timeout = 60 # 5 minutes
         $elapsed = 0
         while (-not $dockerReady -and $elapsed -lt $timeout) {
             Start-Sleep -Seconds 5
@@ -119,39 +115,38 @@ if ($LastExitCode -ne 0) {
             exit 1
         }
     } else {
-        Write-Host "ERREUR : Docker Desktop non trouve au chemin par defaut." -ForegroundColor Red
+        Write-Host "ERREUR : Docker Desktop non trouve." -ForegroundColor Red
         exit 1
     }
 }
 
-# 2. Vérification Base de données (Conteneur local)
+# 4. Vérification Base de données (Conteneur local)
 Write-Host "[CHECK] Verification des conteneurs (DB)..." -ForegroundColor Yellow
-$dockerStatus = docker-compose -f docker-compose.local.yml ps --format json
+$dockerStatus = docker-compose -f docker-compose.local.yml ps --format json 2>$null
 if ($dockerStatus -notlike "*running*") {
     Write-Host "[DOCKER] Demarrage des conteneurs via docker-compose.local.yml..." -ForegroundColor Gray
     docker-compose -f docker-compose.local.yml up -d
+    Write-Host "  - Attente initialisation DB (5s)..." -ForegroundColor Gray
+    Start-Sleep -Seconds 5
 }
 
-# 3. Démarrage Backend-v2
+# 5. Démarrage Backend-v2
 Write-Host "[BACK] Demarrage du Backend (Port 3011)..." -ForegroundColor Cyan
-# On force le port via variable d'environnement
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/backend-v2; `$env:PORT=3011; npm run start:dev" -WindowStyle Normal
 
-# 4. Démarrage Admin-v2
+# 6. Démarrage Admin-v2
 Write-Host "[ADMIN] Attente de la disponibilite du Backend..." -ForegroundColor Cyan
 npx wait-on tcp:3011 --timeout 30000
 if ($LastExitCode -ne 0) {
     Write-Host "ERREUR : Le Backend n'a pas demarre a temps sur le port 3011." -ForegroundColor Red
-    Write-Host "Verifiez les logs de la fenetre Backend." -ForegroundColor Gray
     exit 1
 }
 
 Write-Host "[ADMIN] Lancement de l'Admin (Port 3010)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/admin-sosplanete-v2; `$env:PORT=3010; npm run dev" -WindowStyle Normal
 
-# 5. Démarrage Jeu-v1
+# 7. Démarrage Jeu-v1
 Write-Host "[JEU] Lancement du Jeu v1 (Port 3012)..." -ForegroundColor Cyan
-# Exécution dans un bloc fils pour bloquer le shell appelant
 & {
     Set-Location apps/sosplanete-v1
     $env:PORT=3012

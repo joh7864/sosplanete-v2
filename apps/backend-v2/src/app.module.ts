@@ -19,10 +19,12 @@ import { LegacyApiModule } from './modules/legacy-api/legacy-api.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { CategoryModule } from './modules/category/category.module';
+import { ImpactModule } from './modules/impact/impact.module';
 
 @Module({
   imports: [
     CategoryModule,
+    ImpactModule,
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,

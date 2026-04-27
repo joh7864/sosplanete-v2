@@ -42,7 +42,7 @@ services:
       - "traefik.http.services.sos-api.loadbalancer.server.port=3011"
 
   admin:
-    build: 
+    build:
       context: ./apps/admin-sosplanete-v2
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.sosplanete.nnauru.net}

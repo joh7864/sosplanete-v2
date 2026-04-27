@@ -64,11 +64,13 @@ model Category {
 }
 
 model AnnualImpactData {
-  id          Int      @id @default(autoincrement())
-  year        Int      @unique
-  waterImpact Float
-  co2Impact   Float
-  wasteImpact Float
+  id              Int      @id @default(autoincrement())
+  year            Int      @unique
+  dActuel         Int?     // Jour du dépassement mondial (ex: 214)
+  moyCo2Monde     Float?   // Empreinte CO2 par habitant en tCO2e/an
+  moyEauMonde     Float?   // Empreinte Eau par habitant en L/an ou m3/an
+  moyDechetsMonde Float?   // Empreinte Déchets en kg/an
+  popMonde        Float?   // Population mondiale (ex: 8.1 pour 8.1 milliards)
 }
 
 // ---------------------------------------------------------

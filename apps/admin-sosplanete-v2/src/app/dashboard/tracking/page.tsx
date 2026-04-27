@@ -20,13 +20,15 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Sparkles
+  Sparkles,
+  HelpCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { getAuthData } from '@/utils/storage';
 import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ActionsImportModal } from '@/components/tracking/ActionsImportModal';
+import { IndicatorsTab } from './IndicatorsTab';
 
 interface TrackingData {
   config: {
@@ -74,15 +76,28 @@ function TrackingContent() {
   const [hideInactive, setHideInactive] = useState(false);
   const [hideEmptyPeriods, setHideEmptyPeriods] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
+  const [activeTab, setActiveTab] = useState<'actions' | 'indicators'>('actions');
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // Valeurs de configuration pour la densification
   const CELL_WIDTH = 32; // px
   const STATIC_COLS_WIDTH = 340; // Total des colonnes de gauche
 
 
+  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const years = [2024, 2025, 2026, 2027];
+
   useEffect(() => {
     fetchInstances();
+    const savedYear = sessionStorage.getItem('sos_tracking_year');
+    if (savedYear) {
+      setSelectedYear(parseInt(savedYear, 10));
+    }
   }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('sos_tracking_year', selectedYear.toString());
+  }, [selectedYear]);
 
   const fetchInstances = async () => {
     try {
@@ -107,7 +122,7 @@ function TrackingContent() {
       if (savedActiveId) {
         setInstanceId(parseInt(savedActiveId));
       } else {
-        setLoading(false); // Eviter le chargement infini si aucun espace n'est sélectionné
+        setLoading(false); 
       }
     } else {
       fetchStats();
@@ -116,12 +131,12 @@ function TrackingContent() {
     const handleClickOutside = () => setShowInstanceSelector(false);
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
-  }, [instanceId]);
+  }, [instanceId, selectedYear]); // On refetch si l'année change aussi
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}&year=${selectedYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -136,13 +151,13 @@ function TrackingContent() {
 
   if (loading) {
     return (
-      <>
-        <TopBar title="Suivi des Jeux" />
+      <div className="flex flex-col">
+        <TopBar title="Analyse des performances..." />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <Loader2 size={48} className="animate-spin text-emerald-500" />
-          <p className="text-slate-500 font-medium">Analyse des performances en cours...</p>
+          <p className="text-slate-500 font-medium">Récupération des données {selectedYear-1}-{selectedYear}...</p>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -274,7 +289,38 @@ function TrackingContent() {
         title={`Suivi Jeux ${activeInstanceName ? `• ${activeInstanceName}` : ''}`} 
         actions={
           <div className="flex items-center gap-2">
-            {userRole === 'AS' && instanceId && (
+            {/* YEAR SELECTOR - ALWAYS VISIBLE */}
+            {/* SÉLECTEUR D'ANNÉE SCOLAIRE - UNIQUEMENT POUR L'IMPACT */}
+            {activeTab === 'indicators' && (
+              <div className="flex items-center gap-2">
+                <div className="relative group">
+                  <div className="flex flex-col items-end mr-4">
+                    <div className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 transition-colors px-3 py-1.5 rounded-xl cursor-pointer">
+                      <Calendar size={14} className="text-emerald-500" />
+                      <select 
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        className="bg-transparent border-none font-black text-[11px] text-slate-700 outline-none cursor-pointer pr-1"
+                      >
+                        {years.map(y => (
+                          <option key={y} value={y}>{y-1}-{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setHelpOpen(true)}
+                  className="p-2.5 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm flex items-center justify-center group"
+                  title="Comprendre le calcul de l'impact"
+                >
+                  <HelpCircle size={20} className="group-hover:rotate-12 transition-transform" />
+                </button>
+              </div>
+            )}
+
+            {userRole === 'AS' && instanceId && activeTab === 'actions' && (
               <button 
                 onClick={() => setShowImportModal(true)}
                 className="p-2 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm"
@@ -284,50 +330,77 @@ function TrackingContent() {
               </button>
             )}
 
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button 
-                onClick={() => setShowInstanceSelector(!showInstanceSelector)}
-                className={`p-2 rounded-xl transition-all border shadow-sm ${showInstanceSelector ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-100 hover:text-emerald-600 hover:bg-emerald-50'}`}
-                title="Changer d'établissement"
-              >
-                <Building2 size={20} />
-              </button>
+            {/* INSTANCE SELECTOR - ONLY ON ACTIONS TAB */}
+            {activeTab === 'actions' && (
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <button 
+                  onClick={() => setShowInstanceSelector(!showInstanceSelector)}
+                  className={`p-2 rounded-xl transition-all border shadow-sm ${showInstanceSelector ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-100 hover:text-emerald-600 hover:bg-emerald-50'}`}
+                  title="Changer d'établissement"
+                >
+                  <Building2 size={20} />
+                </button>
 
-              <AnimatePresence>
-                {showInstanceSelector && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden"
-                  >
-                    <div className="p-2 border-b border-slate-50">
-                      <p className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Espaces gérés</p>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto p-1">
-                      {managedInstances.map(inst => (
-                        <button
-                          key={inst.id}
-                          onClick={() => {
-                            setInstanceId(inst.id);
-                            setShowInstanceSelector(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${instanceId === inst.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-600'}`}
-                        >
-                          <span className="text-xs font-bold truncate">{inst.schoolName}</span>
-                          {instanceId === inst.id && <Check size={14} strokeWidth={3} />}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {showInstanceSelector && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-xl border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden"
+                    >
+                      <div className="p-2 border-b border-slate-50">
+                        <p className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Espaces gérés</p>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto p-1">
+                        {managedInstances.map(inst => (
+                          <button
+                            key={inst.id}
+                            onClick={() => {
+                              setInstanceId(inst.id);
+                              setShowInstanceSelector(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors ${instanceId === inst.id ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-slate-50 text-slate-600'}`}
+                          >
+                            <span className="text-xs font-bold truncate">{inst.schoolName}</span>
+                            {instanceId === inst.id && <Check size={14} strokeWidth={3} />}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
+        }
+        bottomContent={
+          instanceId ? (
+            <>
+              <button
+                onClick={() => setActiveTab('actions')}
+                className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'actions' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+              >
+                <BarChart2 size={18} /> Suivi des actions
+                {activeTab === 'actions' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-0 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+              </button>
+              <div className="w-px h-5 bg-slate-200 shrink-0" />
+              <button
+                onClick={() => setActiveTab('indicators')}
+                className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'indicators' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+              >
+                <TrendingUp size={18} /> Suivi des indicateurs
+                {activeTab === 'indicators' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+              </button>
+            </>
+          ) : undefined
         }
       />
 
-      {/* KPI Cards */}
+      {activeTab === 'actions' ? (
+        <>
+          {/* Rest of Actions Tab content... */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
         <GlassCard className="p-4 flex flex-col justify-between h-[110px]">
           <div className="flex items-start justify-between w-full">
@@ -650,6 +723,16 @@ function TrackingContent() {
           />
         )}
       </AnimatePresence>
+        </>
+      ) : (
+        <IndicatorsTab 
+          instanceId={null} 
+          userRole={userRole} 
+          year={selectedYear} 
+          helpOpen={helpOpen} 
+          setHelpOpen={setHelpOpen} 
+        />
+      )}
     </div>
   );
 }

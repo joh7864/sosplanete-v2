@@ -16,7 +16,47 @@ async function main() {
     },
   });
 
-  console.log('Admin AS seeded:', admin.email);
+  const passwordJo = await bcrypt.hash('jo', 10);
+  
+  const adminJo = await prisma.user.upsert({
+    where: { email: 'jo@dev.fr' },
+    update: {
+      password: passwordJo,
+      role: 'AS',
+    },
+    create: {
+      email: 'jo@dev.fr',
+      password: passwordJo,
+      role: 'AS',
+    },
+  });
+
+  // Données d'impact mondiales
+  await prisma.annualImpactData.upsert({
+    where: { year: 2024 },
+    update: {},
+    create: {
+      year: 2024,
+      dActuel: 214, // 1er août env.
+      moyCo2Monde: 4.7,
+      moyEauMonde: 1200000,
+      moyDechetsMonde: 450,
+    }
+  });
+
+  await prisma.annualImpactData.upsert({
+    where: { year: 2025 },
+    update: {},
+    create: {
+      year: 2025,
+      dActuel: 211, // Un peu plus tôt
+      moyCo2Monde: 4.8,
+      moyEauMonde: 1210000,
+      moyDechetsMonde: 455,
+    }
+  });
+
+  console.log('Seed terminé. Admins :', admin.email, adminJo.email);
 }
 
 main()
