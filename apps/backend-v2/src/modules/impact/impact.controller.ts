@@ -1,5 +1,9 @@
-import { Controller, Get, Param, Query, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body, UseGuards } from '@nestjs/common';
 import { ImpactService } from './impact.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('impact')
 export class ImpactController {
@@ -24,6 +28,8 @@ export class ImpactController {
   }
 
   @Post('constants')
+  @Roles(Role.AS)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async updateAnnualConstants(@Body() body: any) {
     return this.impactService.updateAnnualConstants(body);
   }
