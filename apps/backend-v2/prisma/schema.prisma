@@ -86,8 +86,10 @@ model Instance {
   
   // Paramètres du jeu
   gameStartDate    DateTime?
+  gameEndDate      DateTime?
   gamePeriodsCount Int      @default(24)
   unlockedChapters Int      @default(0)
+
 
   // Admin local associé
   adminId    Int?

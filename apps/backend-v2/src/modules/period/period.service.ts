@@ -19,6 +19,18 @@ export class PeriodService {
       });
     }
 
+    // Vérification de recouvrement
+    const overlap = await this.prisma.period.findFirst({
+      where: {
+        instanceId: data.instanceId,
+        OR: [
+          { startDate: { lte: new Date(data.endDate) }, endDate: { gte: new Date(data.startDate) } }
+        ]
+      }
+    });
+    if (overlap) throw new ForbiddenException('La période chevauche un calendrier existant');
+
+
     return this.prisma.period.create({
       data: {
         startDate: new Date(data.startDate),
@@ -50,14 +62,13 @@ export class PeriodService {
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     if (data.isOpen === true) {
-      // Ferme toutes les autres périodes ouvertes
       await this.prisma.period.updateMany({
         where: { instanceId: period.instanceId, id: { not: id }, isOpen: true },
         data: { isOpen: false },
       });
     }
 
-    return this.prisma.period.update({
+    const updatedPeriod = await this.prisma.period.update({
       where: { id },
       data: {
         startDate: data.startDate ? new Date(data.startDate) : undefined,
@@ -65,7 +76,45 @@ export class PeriodService {
         isOpen: data.isOpen,
       },
     });
+
+    // Recalcul en cascade si les dates changent
+    if (data.startDate || data.endDate) {
+      const futurePeriods = await this.prisma.period.findMany({
+        where: {
+          instanceId: period.instanceId,
+          startDate: { gt: period.startDate },
+          id: { not: id }
+        },
+        orderBy: { startDate: 'asc' }
+      });
+
+      let currentEnd = new Date(updatedPeriod.endDate);
+
+      for (const fp of futurePeriods) {
+        const nextStart = new Date(currentEnd.getTime() + 1000);
+        nextStart.setHours(0, 0, 0, 0);
+        
+        const d = new Date(nextStart);
+        const day = d.getDay();
+        let diffToWednesday = day - 3;
+        if (diffToWednesday < 0) diffToWednesday += 7;
+        
+        const pStart = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
+        pStart.setHours(0, 0, 0, 0);
+        const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+        pEnd.setHours(23, 59, 59, 999);
+
+        await this.prisma.period.update({
+          where: { id: fp.id },
+          data: { startDate: pStart, endDate: pEnd }
+        });
+        currentEnd = pEnd;
+      }
+    }
+
+    return updatedPeriod;
   }
+
 
   async getImpact(id: number, user: any) {
     const period = await this.prisma.period.findUnique({ where: { id } });

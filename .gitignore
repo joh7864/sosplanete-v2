@@ -51,3 +51,9 @@ apps/backend-v1/dev/src/admin/static/animation/*
 !apps/backend-v1/dev/src/admin/static/image/.gitkeep
 !apps/backend-v1/dev/src/admin/static/animation/.gitkeep
 uploads/
+
+# --- IMPORT FILES OLD ---
+.docs/3-fct/OldFiles/
+docs/3-fct/OldFiles/
+
+

@@ -33,7 +33,17 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
 
   // Settings Config Jeu
   const [gameStartDate, setGameStartDate] = useState('');
+  const [gameEndDate, setGameEndDate] = useState('');
   const [gamePeriodsCount, setGamePeriodsCount] = useState('24');
+
+  const calculatedWeeks = useMemo(() => {
+    if (!gameStartDate || !gameEndDate) return 0;
+    const start = new Date(gameStartDate);
+    const end = new Date(gameEndDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffDays / 7);
+  }, [gameStartDate, gameEndDate]);
 
   // Périodes de saisies
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -147,6 +157,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
       if (currentInstance.gameStartDate) setGameStartDate(new Date(currentInstance.gameStartDate).toISOString().split('T')[0]);
+      if (currentInstance.gameEndDate) setGameEndDate(new Date(currentInstance.gameEndDate).toISOString().split('T')[0]);
       if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
     fetchAMUsers();
@@ -190,7 +201,8 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
           unlockedChapters: parseInt(unlockedChapters), 
           adminId, 
           gameStartDate: gameStartDate ? new Date(gameStartDate).toISOString() : null, 
-          gamePeriodsCount: parseInt(gamePeriodsCount) 
+          gameEndDate: gameEndDate ? new Date(gameEndDate).toISOString() : null, 
+          gamePeriodsCount: calculatedWeeks 
         }),
       });
 
@@ -223,6 +235,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
       if (currentInstance.gameStartDate) setGameStartDate(new Date(currentInstance.gameStartDate).toISOString().split('T')[0]);
+      if (currentInstance.gameEndDate) setGameEndDate(new Date(currentInstance.gameEndDate).toISOString().split('T')[0]);
       if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
   };
@@ -349,14 +362,15 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-sky-50 rounded-xl text-sky-500"><Calendar size={20} /></div>
             <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight">Configuration Jeu</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Période scolaire active</p>
+              <h2 className="text-lg font-black text-slate-800 tracking-tight">Configuration des périodes</h2>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calendrier de l'espace</p>
             </div>
           </div>
           
           <div className="space-y-4 flex-1">
             <Input label="Date de début du jeu" type="date" value={gameStartDate} onChange={(e) => setGameStartDate(e.target.value)} icon={<Calendar size={16} />} />
-            <Input label="Durée totale (semaines)" type="number" min="1" max="52" value={gamePeriodsCount} onChange={(e) => setGamePeriodsCount(e.target.value)} icon={<Box size={16} />} />
+            <Input label="Date de fin du jeu" type="date" value={gameEndDate} onChange={(e) => setGameEndDate(e.target.value)} icon={<Calendar size={16} />} />
+            <Input label="Durée totale (semaines)" type="number" value={calculatedWeeks} disabled icon={<Box size={16} />} />
             
             <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 mt-4">
               <p className="text-[10px] font-bold text-sky-600 leading-relaxed uppercase tracking-tight">

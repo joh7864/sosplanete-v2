@@ -22,6 +22,8 @@ import {
 import { GlassCard } from '../ui/GlassCard';
 import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import pkg from '../../../package.json';
+
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -300,8 +302,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
               {!isCollapsed && (
                 <div className="flex flex-col">
                   <span className="text-xl font-black tracking-tight text-white leading-none truncate">SOS Planète</span>
-                  <span className="text-[10px] font-bold text-emerald-500 mt-1 uppercase tracking-widest">v2.2.0</span>
+                  <span className="text-[10px] font-bold text-emerald-500 mt-1 uppercase tracking-widest">v{pkg.version}</span>
                 </div>
+
               )}
             </div>
             <button 
