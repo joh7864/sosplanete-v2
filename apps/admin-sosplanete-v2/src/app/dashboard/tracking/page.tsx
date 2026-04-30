@@ -286,7 +286,7 @@ function TrackingContent() {
   return (
     <div className="flex flex-col gap-4 pb-20">
       <TopBar 
-        title={`Suivi Jeux ${activeInstanceName ? `• ${activeInstanceName}` : ''}`} 
+        title={`Suivi jeux`} 
         actions={
           <div className="flex items-center gap-2">
             {/* YEAR SELECTOR - ALWAYS VISIBLE */}
@@ -381,7 +381,7 @@ function TrackingContent() {
                 onClick={() => setActiveTab('actions')}
                 className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'actions' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
               >
-                <BarChart2 size={18} /> Suivi des actions
+                <BarChart2 size={18} /> Suivi actions - {activeInstanceName}
                 {activeTab === 'actions' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-0 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
               </button>
               <div className="w-px h-5 bg-slate-200 shrink-0" />

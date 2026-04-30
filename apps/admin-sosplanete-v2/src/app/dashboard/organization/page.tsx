@@ -679,9 +679,12 @@ function OrganizationContent() {
             onSelectPlayer={(id: number) => toggleSelection('children', id)}
             selectedChildrenIds={selectedEntities.children}
             onDeletePlayer={(p: any) => {
+              const hasActions = p.actionsDone?.length > 0;
               setConfirmData({
                 title: "Supprimer l'équipier",
-                description: `Voulez-vous vraiment supprimer @${p.pseudo} ? Cette action est irréversible.`,
+                description: hasActions 
+                  ? `Voulez-vous vraiment supprimer @${p.pseudo} ? Attention : ce joueur a déjà réalisé des actions. Sa suppression effacera définitivement tout son historique d'impact.`
+                  : `Voulez-vous vraiment supprimer @${p.pseudo} ? Cette action est irréversible.`,
                 onConfirm: () => handleBulkDelete('children', [p.id])
               });
             }}
@@ -781,9 +784,12 @@ function OrganizationContent() {
             initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '' } : undefined}
             onSave={handleSavePlayer}
             onDelete={!isNewPlayer ? async () => {
+              const hasActions = selectedPlayer?.actionsDone?.length > 0;
               setConfirmData({
                 title: "Supprimer l'équipier",
-                description: `Supprimer définitivement l'accès pour @${selectedPlayer?.pseudo} ?`,
+                description: hasActions
+                  ? `Voulez-vous vraiment supprimer @${selectedPlayer?.pseudo} ? Attention : ce joueur a déjà réalisé des actions. Sa suppression effacera définitivement tout son historique d'impact.`
+                  : `Supprimer définitivement l'accès pour @${selectedPlayer?.pseudo} ?`,
                 onConfirm: () => handleBulkDelete('children', [selectedPlayer!.id])
               });
             } : undefined}
@@ -1041,7 +1047,7 @@ function TeamCard({
                                           <div className="w-6 flex justify-end">
                                             <button 
                                               onClick={(e) => { e.stopPropagation(); onDeletePlayer(c); }}
-                                              className="p-1 rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover/row:opacity-100"
+                                              className="p-1 rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-40 group-hover/row:opacity-100"
                                               title="Supprimer l'équipier"
                                             >
                                               <Trash2 size={12} />

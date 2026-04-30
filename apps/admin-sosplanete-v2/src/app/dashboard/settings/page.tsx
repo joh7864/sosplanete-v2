@@ -34,7 +34,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'constants'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'constants'>('constants');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {

@@ -178,7 +178,7 @@ model ActionDone {
   createdAt     DateTime @default(now())
   
   childId       Int
-  child         Child    @relation(fields: [childId], references: [id])
+  child         Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
   
   localActionId Int
   localAction   LocalAction @relation(fields: [localActionId], references: [id])
