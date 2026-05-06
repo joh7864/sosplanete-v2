@@ -8,7 +8,8 @@ async function main() {
   });
   console.log(`Found ${actions.length} LocalActions to migrate.`);
   
-  for (const action of actions) {
+  for (const a of actions) {
+    const action = a as any;
     if (!action.oldCategory) continue;
     
     // Find or create category for this instance

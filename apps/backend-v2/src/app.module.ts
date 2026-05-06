@@ -20,6 +20,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { CategoryModule } from './modules/category/category.module';
 import { ImpactModule } from './modules/impact/impact.module';
+import { StimulationModule } from './modules/stimulation/stimulation.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { ImpactModule } from './modules/impact/impact.module';
       }
     ),
     LegacyApiModule,
+    StimulationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

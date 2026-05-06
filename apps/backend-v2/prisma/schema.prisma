@@ -20,57 +20,57 @@ enum Role {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String?
-  avatar    String?
+  id         Int       @id @default(autoincrement())
+  email      String    @unique
+  password   String
+  name       String?
+  avatar     String?
   lastSeenAt DateTime? @updatedAt
-  role      Role     @default(AM)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role       Role      @default(AM)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // Un utilisateur (AM) gère une ou plusieurs instances (généralement une seule école)
   managedInstances Instance[]
 }
 
 model ActionRef {
-  id            Int      @id @default(autoincrement())
-  code          String   @unique // Identifiant métier (ex: W01, E01)
+  id            Int     @id @default(autoincrement())
+  code          String  @unique // Identifiant métier (ex: W01, E01)
   referenceName String
-  defaultCo2    Float?   // Valeur par défaut si non surchargée
+  defaultCo2    Float? // Valeur par défaut si non surchargée
   defaultWater  Float?
   defaultWaste  Float?
-  co2Year       Float?   // CO2e /an du fichier CSV
-  impactLabel   String?  // Impact (Low, Medium, High)
-  impactTotal   Float?   // Impact total
-  weightedStars Int?     // Etoile pondérée (1-5)
-  image         String?  // Nom du fichier image (ex: B01.png)
-  year          Int      @default(2025)
-
+  defaultEnergy Float? // NOUVEAU: kWh économisés
+  co2Year       Float? // CO2e /an du fichier CSV
+  impactLabel   String? // Impact (Low, Medium, High)
+  impactTotal   Float? // Impact total
+  weightedStars Int? // Etoile pondérée (1-5)
+  image         String? // Nom du fichier image (ex: B01.png)
+  year          Int     @default(2025)
 
   // Liaisons avec les actions personnalisées des instances
-  localActions  LocalAction[]
+  localActions LocalAction[]
 }
 
 model Category {
-  id         Int           @id @default(autoincrement())
-  name       String
-  icon       String?
-  order      Int           @default(0)
-  instanceId Int
-  instance   Instance      @relation(fields: [instanceId], references: [id])
+  id           Int           @id @default(autoincrement())
+  name         String
+  icon         String?
+  order        Int           @default(0)
+  instanceId   Int
+  instance     Instance      @relation(fields: [instanceId], references: [id])
   localActions LocalAction[]
 }
 
 model AnnualImpactData {
-  id              Int      @id @default(autoincrement())
-  year            Int      @unique
-  dActuel         Int?     // Jour du dépassement mondial (ex: 214)
-  moyCo2Monde     Float?   // Empreinte CO2 par habitant en tCO2e/an
-  moyEauMonde     Float?   // Empreinte Eau par habitant en L/an ou m3/an
-  moyDechetsMonde Float?   // Empreinte Déchets en kg/an
-  popMonde        Float?   // Population mondiale (ex: 8.1 pour 8.1 milliards)
+  id              Int    @id @default(autoincrement())
+  year            Int    @unique
+  dActuel         Int? // Jour du dépassement mondial (ex: 214)
+  moyCo2Monde     Float? // Empreinte CO2 par habitant en tCO2e/an
+  moyEauMonde     Float? // Empreinte Eau par habitant en L/an ou m3/an
+  moyDechetsMonde Float? // Empreinte Déchets en kg/an
+  popMonde        Float? // Population mondiale (ex: 8.1 pour 8.1 milliards)
 }
 
 // ---------------------------------------------------------
@@ -83,79 +83,84 @@ model Instance {
   hostUrl    String?  @unique
   isOpen     Boolean  @default(false)
   createdAt  DateTime @default(now())
-  
+
   // Paramètres du jeu
   gameStartDate    DateTime?
   gameEndDate      DateTime?
-  gamePeriodsCount Int      @default(24)
-  unlockedChapters Int      @default(0)
+  gamePeriodsCount Int       @default(24)
+  unlockedChapters Int       @default(0)
 
+  // Stimulation v2
+  animalUnlocks     InstanceAnimalUnlock[]
+  terreThermometers TerreThermometerSnapshot[]
+  gameConfig        GameConfig?
 
   // Admin local associé
-  adminId    Int?
-  admin      User?    @relation(fields: [adminId], references: [id])
+  adminId Int?
+  admin   User? @relation(fields: [adminId], references: [id])
 
   // Structure de l'école
-  teams      Team[]
+  teams        Team[]
   localActions LocalAction[]
-  periods    Period[]
-  categories Category[]
+  periods      Period[]
+  categories   Category[]
 }
 
 model Team {
   id         Int      @id @default(autoincrement())
   name       String
-  color      String?  // Code Hexa ou nom de couleur pastel
-  icon       String?  // Identifiant d'icône (Lucide ou SVG)
+  color      String? // Code Hexa ou nom de couleur pastel
+  icon       String? // Identifiant d'icône (Lucide ou SVG)
   instanceId Int
   instance   Instance @relation(fields: [instanceId], references: [id])
-  
-  groups     Group[]
+
+  groups Group[]
 }
 
 model Group {
-  id       Int      @id @default(autoincrement())
-  name     String
-  color    String?
-  teamId   Int
-  team     Team     @relation(fields: [teamId], references: [id])
-  
+  id     Int     @id @default(autoincrement())
+  name   String
+  color  String?
+  teamId Int
+  team   Team    @relation(fields: [teamId], references: [id])
+
   children Child[]
 }
 
 model Child {
-  id        Int      @id @default(autoincrement())
-  pseudo    String
-  password  String?  // Optionnel si connexion anonyme/pseudo simple
-  groupId   Int
-  group     Group    @relation(fields: [groupId], references: [id])
-  avatar    String?
-  
+  id       Int     @id @default(autoincrement())
+  pseudo   String
+  password String? // Optionnel si connexion anonyme/pseudo simple
+  groupId  Int
+  group    Group   @relation(fields: [groupId], references: [id])
+  avatar   String?
+
   actionsDone ActionDone[]
 
   @@unique([pseudo, groupId]) // Pseudo unique par classe
 }
 
 model LocalAction {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   label       String
   description String?
   image       String?
-  categoryId  Int?     // Remplacement du champ texte
+  categoryId  Int? // Remplacement du champ texte
   category    Category? @relation(fields: [categoryId], references: [id])
-  
+
   // Lien vers le référentiel global
   actionRefId Int
   actionRef   ActionRef @relation(fields: [actionRefId], references: [id])
-  
+
   // Appartenance à l'instance
-  instanceId  Int
-  instance    Instance  @relation(fields: [instanceId], references: [id])
+  instanceId Int
+  instance   Instance @relation(fields: [instanceId], references: [id])
 
   // Surcharges éventuelles des poids d'impact par instance
-  specificCo2   Float?
-  specificWater Float?
-  specificWaste Float?
+  specificCo2    Float?
+  specificWater  Float?
+  specificWaste  Float?
+  specificEnergy Float?
 
   actionsDone ActionDone[]
 
@@ -169,27 +174,28 @@ model Period {
   isOpen     Boolean  @default(false)
   instanceId Int
   instance   Instance @relation(fields: [instanceId], references: [id])
-  
+
   actionsDone ActionDone[]
 }
 
 model ActionDone {
-  id            Int      @id @default(autoincrement())
-  createdAt     DateTime @default(now())
-  
-  childId       Int
-  child         Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
-  
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  childId Int
+  child   Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
   localActionId Int
   localAction   LocalAction @relation(fields: [localActionId], references: [id])
-  
-  periodId      Int
-  period        Period      @relation(fields: [periodId], references: [id])
+
+  periodId Int
+  period   Period @relation(fields: [periodId], references: [id])
 
   // Valeurs calculées au moment de l'enregistrement pour historique stable
-  savedCo2      Float
-  savedWater    Float
-  savedWaste    Float
+  savedCo2    Float
+  savedWater  Float
+  savedWaste  Float
+  savedEnergy Float?
 }
 
 // ---------------------------------------------------------
@@ -197,8 +203,64 @@ model ActionDone {
 // ---------------------------------------------------------
 
 model AnimalRelease {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
-  unlockOrder Int      @unique // 1 à 9
+  unlockOrder Int     @unique // 1 à 9
   imageUrl    String?
+}
+
+// ---------------------------------------------------------
+// 🚀 SYSTEME DE STIMULATION (V2)
+// ---------------------------------------------------------
+
+// Paramètres de l'instance
+model GameConfig {
+  id                          Int   @id @default(autoincrement())
+  instanceId                  Int   @unique
+  avgActionsPerChildPerPeriod Int   @default(8)
+  animalAdvanceMargin         Int   @default(2)
+  bienveillanceThreshold      Float @default(0.40)
+
+  instance Instance @relation(fields: [instanceId], references: [id])
+}
+
+// Paramètres Mondiaux
+model SystemConfig {
+  id                     Int   @id @default(autoincrement())
+  emissionsParHabitantAn Float @default(11.0)
+  temperatureMalade      Float @default(42.0)
+  temperatureSaine       Float @default(37.0)
+  populationReference    Int   @default(68000000)
+}
+
+model InstanceAnimalUnlock {
+  id           Int      @id @default(autoincrement())
+  instanceId   Int
+  period       Int
+  periodDate   DateTime
+  animalsCount Int
+  createdAt    DateTime @default(now())
+  instance     Instance @relation(fields: [instanceId], references: [id])
+
+  @@unique([instanceId, period])
+}
+
+model EcoBarRaceSnapshot {
+  id         Int      @id @default(autoincrement())
+  period     Int
+  periodDate DateTime
+  rankings   Json
+  createdAt  DateTime @default(now())
+}
+
+model TerreThermometerSnapshot {
+  id                Int      @id @default(autoincrement())
+  instanceId        Int
+  period            Int
+  periodDate        DateTime
+  temperatureValue  Float
+  totalCo2Saved     Float
+  nbChildrenPlaying Int
+  createdAt         DateTime @default(now())
+  instance          Instance @relation(fields: [instanceId], references: [id])
 }

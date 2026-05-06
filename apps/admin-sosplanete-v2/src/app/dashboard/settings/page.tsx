@@ -34,7 +34,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'constants'>('constants');
+  const [activeTab, setActiveTab] = useState<'profile' | 'constants' | 'animals' | 'terreMometre'>('profile');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -73,8 +73,24 @@ function SettingsContent() {
                   onClick={() => setActiveTab('constants')}
                   className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'constants' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                 >
-                  <Globe size={18} /> Paramètres mondiaux
+                  <Globe size={18} /> Impact Annuel
                   {activeTab === 'constants' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                </button>
+                <div className="w-px h-5 bg-slate-200 shrink-0" />
+                <button
+                  onClick={() => setActiveTab('animals')}
+                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'animals' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                >
+                  Animaux
+                  {activeTab === 'animals' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                </button>
+                <div className="w-px h-5 bg-slate-200 shrink-0" />
+                <button
+                  onClick={() => setActiveTab('terreMometre')}
+                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'terreMometre' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                >
+                  Terre-momètre
+                  {activeTab === 'terreMometre' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
                 </button>
               </>
             )}
@@ -84,11 +100,10 @@ function SettingsContent() {
 
       <div className="pb-20 pt-10">
         <div className="max-w-5xl mx-auto">
-          {activeTab === 'profile' ? (
-            <ProfileSection />
-          ) : (
-            <GlobalDataSettings />
-          )}
+          {activeTab === 'profile' && <ProfileSection />}
+          {activeTab === 'constants' && <GlobalDataSettings />}
+          {activeTab === 'animals' && <AnimalsSettings />}
+          {activeTab === 'terreMometre' && <TerreMometreSettings />}
         </div>
       </div>
     </>
@@ -583,6 +598,102 @@ function GlobalDataSettings() {
              </Button>
           </div>
         </form>
+      </div>
+    </GlassCard>
+  );
+}
+
+function AnimalsSettings() {
+  const [config, setConfig] = useState({
+    avgActionsPerChildPerPeriod: 8,
+    animalAdvanceMargin: 2,
+    bienveillanceThreshold: 0.40
+  });
+
+  return (
+    <GlassCard className="p-10 rounded-3xl border-none shadow-2xl bg-white/95">
+      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-6">Paramètres Déblocage Animaux</h2>
+      <div className="space-y-4">
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Actions attendues par enfant par période</label>
+           <Input 
+             type="number"
+             value={config.avgActionsPerChildPerPeriod}
+             onChange={e => setConfig(prev => ({ ...prev, avgActionsPerChildPerPeriod: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Marge d'avance max (Plafond)</label>
+           <Input 
+             type="number"
+             value={config.animalAdvanceMargin}
+             onChange={e => setConfig(prev => ({ ...prev, animalAdvanceMargin: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Seuil de bienveillance (ex: 0.40 pour 40%)</label>
+           <Input 
+             type="number" step="0.01"
+             value={config.bienveillanceThreshold}
+             onChange={e => setConfig(prev => ({ ...prev, bienveillanceThreshold: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
+function TerreMometreSettings() {
+  const [config, setConfig] = useState({
+    emissionsParHabitantAn: 11.0,
+    temperatureMalade: 42.0,
+    temperatureSaine: 37.0,
+    populationReference: 68000000
+  });
+
+  return (
+    <GlassCard className="p-10 rounded-3xl border-none shadow-2xl bg-white/95">
+      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-6">Paramètres Terre-momètre</h2>
+      <div className="space-y-4">
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Émissions France par habitant/an (tCO2e)</label>
+           <Input 
+             type="number" step="0.1"
+             value={config.emissionsParHabitantAn}
+             onChange={e => setConfig(prev => ({ ...prev, emissionsParHabitantAn: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Température "Malade" (°C)</label>
+           <Input 
+             type="number" step="0.1"
+             value={config.temperatureMalade}
+             onChange={e => setConfig(prev => ({ ...prev, temperatureMalade: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Température "Saine" (°C)</label>
+           <Input 
+             type="number" step="0.1"
+             value={config.temperatureSaine}
+             onChange={e => setConfig(prev => ({ ...prev, temperatureSaine: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Population de référence (ex: 68000000)</label>
+           <Input 
+             type="number"
+             value={config.populationReference}
+             onChange={e => setConfig(prev => ({ ...prev, populationReference: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
       </div>
     </GlassCard>
   );

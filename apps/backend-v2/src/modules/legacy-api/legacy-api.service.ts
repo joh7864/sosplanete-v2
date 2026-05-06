@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
 import * as bcrypt from 'bcrypt';
 import { ImpactService } from '../impact/impact.service';
+import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
 
 @Injectable()
 export class LegacyApiService {
@@ -10,7 +11,8 @@ export class LegacyApiService {
 
   constructor(
     private prisma: PrismaService,
-    private impactService: ImpactService
+    private impactService: ImpactService,
+    private animalUnlockService: AnimalUnlockService
   ) {}
 
   async checkAuthChild(pseudo: string, pass: string) {
@@ -197,7 +199,7 @@ export class LegacyApiService {
       bravotitre: "Génial !",
       bravotext: `Vous avez un impact positif direct aujourd'hui : vos actions ont permis d'économiser collectivement des tonnes de CO2, beaucoup d'eau et d'éviter des déchets !`,
       deblocageanimal: "Continuez comme ça pour débloquer le prochain animal !",
-      animalnum: 0, // À dynamiser plus tard
+      animalnum: (await this.animalUnlockService.getCurrentUnlock(instanceId)).animalsUnlocked,
     };
   }
 

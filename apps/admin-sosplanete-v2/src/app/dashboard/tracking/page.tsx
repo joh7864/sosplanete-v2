@@ -21,9 +21,10 @@ import {
   Minimize2,
   X,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  RefreshCcw
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ReferenceLine } from 'recharts';
 import { getAuthData } from '@/utils/storage';
 import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -76,8 +77,10 @@ function TrackingContent() {
   const [hideInactive, setHideInactive] = useState(false);
   const [hideEmptyPeriods, setHideEmptyPeriods] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
-  const [activeTab, setActiveTab] = useState<'actions' | 'indicators'>('actions');
+  const [activeTab, setActiveTab] = useState<'actions' | 'indicators' | 'animals' | 'graphic'>('actions');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [animalsRefreshKey, setAnimalsRefreshKey] = useState(0);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
   // Valeurs de configuration pour la densification
   const CELL_WIDTH = 32; // px
@@ -146,6 +149,24 @@ function TrackingContent() {
       console.error('Failed to fetch tracking stats', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRecalculateAnimals = async () => {
+    if (!instanceId) return;
+    setIsRecalculating(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/recalculate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        setAnimalsRefreshKey(prev => prev + 1);
+      }
+    } catch (e) {
+      console.error('Recalculate animals error:', e);
+    } finally {
+      setIsRecalculating(false);
     }
   };
 
@@ -330,8 +351,19 @@ function TrackingContent() {
               </button>
             )}
 
-            {/* INSTANCE SELECTOR - ONLY ON ACTIONS TAB */}
-            {activeTab === 'actions' && (
+            {activeTab === 'animals' && instanceId && (
+              <button 
+                onClick={handleRecalculateAnimals}
+                disabled={isRecalculating}
+                className={`p-2.5 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm flex items-center justify-center group ${isRecalculating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Recalculer les animaux débloqués"
+              >
+                <RefreshCcw size={20} className={`${isRecalculating ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+              </button>
+            )}
+
+            {/* INSTANCE SELECTOR - SUR ACTIONS ET ANIMAUX */}
+            {(activeTab === 'actions' || activeTab === 'animals') && (
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button 
                   onClick={() => setShowInstanceSelector(!showInstanceSelector)}
@@ -386,11 +418,27 @@ function TrackingContent() {
               </button>
               <div className="w-px h-5 bg-slate-200 shrink-0" />
               <button
+                onClick={() => setActiveTab('animals')}
+                className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'animals' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+              >
+                <CheckCircle2 size={18} /> Déblocage Animaux - {activeInstanceName}
+                {activeTab === 'animals' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+              </button>
+              <div className="w-px h-5 bg-slate-200 shrink-0" />
+              <button
                 onClick={() => setActiveTab('indicators')}
                 className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'indicators' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
               >
-                <TrendingUp size={18} /> Suivi des indicateurs
+                <TrendingUp size={18} /> Impact SOS Planète
                 {activeTab === 'indicators' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+              </button>
+              <div className="w-px h-5 bg-slate-200 shrink-0" />
+              <button
+                onClick={() => setActiveTab('graphic')}
+                className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'graphic' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+              >
+                <BarChart2 size={18} /> Suivi Graphique
+                {activeTab === 'graphic' && <motion.div layoutId="activeTrackingTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
               </button>
             </>
           ) : undefined
@@ -724,15 +772,206 @@ function TrackingContent() {
         )}
       </AnimatePresence>
         </>
-      ) : (
+      ) : activeTab === 'indicators' ? (
         <IndicatorsTab 
-          instanceId={null} 
+          instanceId={instanceId} 
           userRole={userRole} 
           year={selectedYear} 
           helpOpen={helpOpen} 
           setHelpOpen={setHelpOpen} 
         />
+      ) : activeTab === 'animals' ? (
+        <AnimalsTrackingTab instanceId={instanceId} refreshKey={animalsRefreshKey} />
+      ) : (
+        <GraphicTrackingTab instanceId={instanceId} />
       )}
+    </div>
+  );
+}
+
+const ANIMAL_NAMES = ['', '🐿️ Écureuil', '🐺 Loup', '🦁 Lion', '🐻 Ours', '🐘 Éléphant', '🐟 Petits poissons', '🐟 Thon', '🦈 Requin', '🐳 Baleine'];
+
+function AnimalsTrackingTab({ instanceId, refreshKey }: { instanceId: number, refreshKey: number }) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [gameConfig, setGameConfig] = useState<any>(null);
+  const [totalPeriods, setTotalPeriods] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const headers = { Authorization: `Bearer ${getAuthData('access_token')}` };
+        const [currentResp, historyResp, configResp, periodsResp] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/current`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/history`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}`, { headers }),
+        ]);
+
+        const [currentData, historyData] = await Promise.all([
+          currentResp.json(),
+          historyResp.json(),
+        ]);
+        const configData = configResp.ok ? await configResp.json() : null;
+        const periodsData = periodsResp.ok ? await periodsResp.json() : [];
+
+        setCurrent(currentData.animalsUnlocked);
+        setHistory(Array.isArray(historyData) ? historyData : []);
+        setGameConfig(configData);
+        setTotalPeriods(Array.isArray(periodsData) ? periodsData.length : 0);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [instanceId, refreshKey]);
+
+  // Construire les données graphique pour TOUTES les périodes de 1 à totalPeriods
+  const chartData = Array.from({ length: totalPeriods || 1 }, (_, i) => {
+    const periodeIdx = i + 1;
+    const h = history.find(hist => hist.period === periodeIdx);
+    
+    const total = totalPeriods || 1;
+    const margin = gameConfig?.animalAdvanceMargin ?? 2;
+    const min = Math.round(9 * (periodeIdx / total));
+    const max = Math.min(min + margin, 9);
+
+    return {
+      name: `P${periodeIdx}`,
+      animaux: h ? h.animalsCount : (periodeIdx < (history[0]?.period || 0) ? min : null), // On ne trace que jusqu'au présent ou on extrapole le passé
+      min,
+      max,
+      date: h ? new Date(h.periodDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : `Période ${periodeIdx}`,
+      isPlaceholder: !h
+    };
+  });
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const val = payload.find((p: any) => p.dataKey === 'animaux')?.value;
+    return (
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-xl p-4 text-sm">
+        <p className="font-black text-slate-800 mb-1">{label} — {payload[0]?.payload?.date}</p>
+        {val !== undefined && (
+          <p className="text-emerald-600 font-bold">
+            {val} {val > 1 ? 'animaux' : 'animal'}
+            {val > 0 ? ` — ${ANIMAL_NAMES[val]}` : ''}
+          </p>
+        )}
+        {payload.find((p: any) => p.dataKey === 'min') && (
+          <p className="text-slate-400 text-xs mt-1">Tunnel : {payload.find((p: any) => p.dataKey === 'min')?.value} – {payload.find((p: any) => p.dataKey === 'max')?.value}</p>
+        )}
+      </div>
+    );
+  };
+
+  const CustomYAxisTick = ({ x, y, payload }: any) => {
+    const val = payload.value;
+    if (val === 0) return <text x={x - 80} y={y} dy={4} fontSize={11} fill="#94a3b8" fontWeight={700}>Aucun</text>;
+    
+    const parts = ANIMAL_NAMES[val]?.split(' ') || [];
+    const icon = parts[0];
+    const name = parts[1];
+
+    return (
+      <g transform={`translate(${x - 85},${y})`}>
+        <text x={0} y={4} fontSize={11} fill="#64748b" fontWeight={700} textAnchor="start">
+          {name}
+        </text>
+        <text x={70} y={4} fontSize={12} textAnchor="end">
+          {icon}
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <div className="p-8 space-y-6">
+      {/* Graphique unique avec Header intégré */}
+      <GlassCard className="p-8 rounded-3xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <h3 className="text-lg font-black text-slate-800 whitespace-nowrap">Évolution des déblocages par période</h3>
+          
+          <div className="flex items-center gap-6 bg-slate-50/50 px-6 py-3 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Actuellement débloqués</p>
+              <p className="text-3xl font-black text-slate-800 leading-none">{current} / 9</p>
+            </div>
+            {current > 0 && (
+              <div className="flex items-center gap-3 border-l border-slate-200 pl-6">
+                <span 
+                  className="text-4xl" 
+                  style={{ 
+                    filter: 'drop-shadow(0 10px 8px rgb(0 0 0 / 0.1))',
+                    animation: 'float 3s ease-in-out infinite'
+                  }}
+                >
+                  {ANIMAL_NAMES[current]?.split(' ')[0]}
+                </span>
+                <p className="text-emerald-600 font-black text-sm uppercase tracking-wide">{ANIMAL_NAMES[current]?.split(' ')[1]}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+          }
+        `}</style>
+
+        {chartData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[200px] text-slate-400">
+            <BarChart2 size={40} className="mb-3 opacity-30" />
+            <p className="font-medium">Aucune donnée de déblocage pour le moment.</p>
+            <p className="text-xs mt-1">Utilisez le bouton ↺ pour lancer un premier calcul.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 700, fill: '#94a3b8' }} />
+              <YAxis
+                domain={[0, 9]}
+                ticks={[0,1,2,3,4,5,6,7,8,9]}
+                tick={<CustomYAxisTick />}
+                width={100}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="min" stroke="#e2e8f0" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Min tunnel" />
+              <Line type="monotone" dataKey="max" stroke="#cbd5e1" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Max tunnel" />
+              <Line
+                type="monotone"
+                dataKey="animaux"
+                stroke="#10b981"
+                strokeWidth={3}
+                dot={{ r: 6, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 8, fill: '#059669' }}
+                name="Animaux débloqués"
+              />
+              <ReferenceLine y={9} stroke="#fbbf24" strokeDasharray="4 4" label={{ value: 'Max', position: 'right', fontSize: 11, fill: '#fbbf24' }} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </GlassCard>
+    </div>
+  );
+}
+
+function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
+  return (
+    <div className="p-8">
+      <GlassCard className="p-10 rounded-3xl flex flex-col items-center justify-center min-h-[400px]">
+        <BarChart2 size={48} className="text-slate-300 mb-4" />
+        <h2 className="text-xl font-black text-slate-800">Suivi Graphique en construction</h2>
+        <p className="text-slate-500">L'Eco-Bar-Race et le Terre-momètre seront affichés ici.</p>
+      </GlassCard>
     </div>
   );
 }

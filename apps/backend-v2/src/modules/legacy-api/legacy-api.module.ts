@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
-import { LegacyApiController } from './legacy-api.controller';
 import { LegacyApiService } from './legacy-api.service';
+import { LegacyApiController } from './legacy-api.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
-
 import { ImpactModule } from '../impact/impact.module';
+import { StimulationModule } from '../stimulation/stimulation.module';
 
 @Module({
-  imports: [PrismaModule, ImpactModule],
+  imports: [PrismaModule, ImpactModule, StimulationModule],
+  providers: [LegacyApiService],
   controllers: [LegacyApiController],
-  providers: [LegacyApiService]
+  exports: [LegacyApiService],
 })
 export class LegacyApiModule {}
