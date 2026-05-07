@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
 
@@ -12,10 +13,12 @@ const packagePaths = [
 
 let currentVersion = '2.0.0';
 try {
-  const rootPkg = JSON.parse(fs.readFileSync(packagePaths[0], 'utf8'));
-  currentVersion = rootPkg.version;
+  if (fs.existsSync(packagePaths[0])) {
+    const rootPkg = JSON.parse(fs.readFileSync(packagePaths[0], 'utf8'));
+    currentVersion = rootPkg.version || '2.0.0';
+  }
 } catch (e) {
-  console.error('Impossible de lire le package.json racine');
+  console.error('Erreur lors de la lecture du package.json racine :', e.message);
 }
 
 let newVersion = '';
@@ -42,15 +45,19 @@ if (forceVersion) {
   newVersion = parts.join('.');
 }
 
-console.log(`Passage de la version ${currentVersion} à ${newVersion}`);
+console.log(`🚀 Passage de la version ${currentVersion} à ${newVersion}`);
 
 packagePaths.forEach(pkgPath => {
   if (fs.existsSync(pkgPath)) {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    pkg.version = newVersion;
-    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-    console.log(`Mise à jour de ${pkgPath}`);
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      pkg.version = newVersion;
+      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+      console.log(`✅ Mise à jour de ${pkgPath}`);
+    } catch (e) {
+      console.error(`❌ Erreur sur ${pkgPath} :`, e.message);
+    }
   }
 });
 
-console.log('Version mise à jour avec succès !');
+console.log('✨ Opération terminée avec succès !');
