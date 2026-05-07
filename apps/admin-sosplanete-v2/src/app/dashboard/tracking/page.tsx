@@ -1220,7 +1220,7 @@ function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
                           style={{ borderColor: entry.color }}
                         >
                           {entry.icon.startsWith('/') || entry.icon.startsWith('http') ? (
-                            <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${entry.icon}`} className="w-full h-full object-cover" alt="" />
+                            <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${entry.icon}`} className="w-full h-full object-cover" alt="" />
                           ) : (
                             <span className="text-[14px] leading-none drop-shadow-sm">{entry.icon}</span>
                           )}

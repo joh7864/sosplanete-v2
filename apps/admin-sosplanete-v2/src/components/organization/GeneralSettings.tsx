@@ -370,7 +370,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
                 >
                   {icon ? (
                     icon.startsWith('/') || icon.startsWith('http') ? (
-                      <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${icon}`} className="w-full h-full object-cover" alt="Icon" />
+                      <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${icon}`} className="w-full h-full object-cover" alt="Icon" />
                     ) : (
                       <span className="text-2xl">{icon}</span> // Fallback if emoji
                     )
