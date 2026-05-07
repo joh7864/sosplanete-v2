@@ -2,13 +2,15 @@ import { Controller, Get, Post, Body, Param, UseGuards, Put, Request } from '@ne
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { EcoBarRaceService } from './eco-bar-race.service';
 
 @Controller('stimulation')
 @UseGuards(JwtAuthGuard)
 export class StimulationController {
   constructor(
     private readonly stimulationService: StimulationService,
-    private readonly animalUnlockService: AnimalUnlockService
+    private readonly animalUnlockService: AnimalUnlockService,
+    private readonly ecoBarRaceService: EcoBarRaceService,
   ) {}
 
   @Get('system-config')
@@ -44,5 +46,17 @@ export class StimulationController {
   @Post('animals/:instanceId/recalculate')
   recalculateAnimals(@Param('instanceId') instanceId: string) {
     return this.animalUnlockService.recalculateAllPeriods(+instanceId);
+  }
+
+  // --- ECO-BAR-RACE ---
+
+  @Get('eco-bar-race/history')
+  getEcoBarRaceHistory() {
+    return this.ecoBarRaceService.getHistory();
+  }
+
+  @Post('eco-bar-race/recalculate')
+  recalculateEcoBarRace() {
+    return this.ecoBarRaceService.recalculateAllHistory();
   }
 }

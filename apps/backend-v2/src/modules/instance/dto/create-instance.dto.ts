@@ -22,6 +22,11 @@ export class CreateInstanceDto {
   @IsOptional()
   isOpen?: boolean;
 
+  @ApiProperty({ example: '🦊', required: false })
+  @IsString()
+  @IsOptional()
+  icon?: string;
+
   @ApiProperty({ example: '2025-09-01T00:00:00Z', required: false })
   @IsOptional()
   gameStartDate?: Date;

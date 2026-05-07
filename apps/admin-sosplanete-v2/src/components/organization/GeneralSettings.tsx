@@ -23,9 +23,11 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
   const isNew = !instanceId;
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Settings Ecole
   const [schoolName, setSchoolName] = useState(currentInstance?.schoolName || '');
+  const [icon, setIcon] = useState(currentInstance?.icon || '');
   const [hostUrl, setHostUrl] = useState(currentInstance?.hostUrl || '');
   const [isOpen, setIsOpen] = useState(currentInstance?.isOpen || false);
   const [unlockedChapters, setUnlockedChapters] = useState(currentInstance?.unlockedChapters?.toString() || '0');
@@ -152,6 +154,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
   useEffect(() => {
     if (currentInstance) {
       setSchoolName(currentInstance.schoolName || '');
+      setIcon(currentInstance.icon || '');
       setHostUrl(currentInstance.hostUrl || '');
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
@@ -196,6 +199,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
         body: JSON.stringify({ 
           schoolName, 
+          icon,
           hostUrl, 
           isOpen, 
           unlockedChapters: parseInt(unlockedChapters), 
@@ -230,6 +234,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
   const handleReset = () => {
     if (currentInstance) {
       setSchoolName(currentInstance.schoolName || '');
+      setIcon(currentInstance.icon || '');
       setHostUrl(currentInstance.hostUrl || '');
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
@@ -237,6 +242,39 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
       if (currentInstance.gameStartDate) setGameStartDate(new Date(currentInstance.gameStartDate).toISOString().split('T')[0]);
       if (currentInstance.gameEndDate) setGameEndDate(new Date(currentInstance.gameEndDate).toISOString().split('T')[0]);
       if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
+    }
+  };
+
+  const handleIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!instanceId) {
+      alert("Veuillez d'abord enregistrer l'établissement avant d'ajouter une icône.");
+      return;
+    }
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSaving(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}/icon`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getAuthData('access_token')}`
+        },
+        body: formData,
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        setIcon(data.url);
+        onUpdate();
+      }
+    } catch (e) {
+      console.error('Icon upload failed', e);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -320,6 +358,33 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
 
           <div className="space-y-4 flex-1">
             <Input label="Nom de l'établissement" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} required icon={<Building2 size={16} />} />
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Icône / Logo de l'établissement</label>
+              <div className="flex items-center gap-4">
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleIconChange} />
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 hover:border-emerald-400 flex items-center justify-center bg-slate-50 hover:bg-emerald-50 transition-all shadow-sm shrink-0 overflow-hidden"
+                >
+                  {icon ? (
+                    icon.startsWith('/') || icon.startsWith('http') ? (
+                      <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${icon}`} className="w-full h-full object-cover" alt="Icon" />
+                    ) : (
+                      <span className="text-2xl">{icon}</span> // Fallback if emoji
+                    )
+                  ) : (
+                    <Plus className="text-slate-400" size={24} />
+                  )}
+                </button>
+                <div className="text-xs text-slate-400">
+                  <p>Formats: JPG, PNG, WEBP.</p>
+                  <p>Ratio 1:1 recommandé (Max: 2Mo)</p>
+                </div>
+              </div>
+            </div>
+
             <Input label="URL personnalisée" value={hostUrl} onChange={(e) => setHostUrl(e.target.value)} icon={<LinkIcon size={16} />} />
             
             <div className="grid grid-cols-2 gap-4 pt-2">

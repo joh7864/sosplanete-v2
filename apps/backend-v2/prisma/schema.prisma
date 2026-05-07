@@ -82,6 +82,7 @@ model Instance {
   schoolName String
   hostUrl    String?  @unique
   isOpen     Boolean  @default(false)
+  icon       String?
   createdAt  DateTime @default(now())
 
   // Paramètres du jeu
