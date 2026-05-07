@@ -40,12 +40,8 @@ import { StimulationModule } from './modules/stimulation/stimulation.module';
     TrackingModule,
     ServeStaticModule.forRoot(
       {
-        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
-        serveRoot: '/uploads',
-      },
-      {
-        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
-        serveRoot: '/static',
+        rootPath: process.env.UPLOADS_DIR ? join(process.env.UPLOADS_DIR, '..') : join(__dirname, '..', '..', '..'),
+        serveRoot: '/',
       }
     ),
     LegacyApiModule,
