@@ -1186,7 +1186,7 @@ function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
                   className="flex items-center gap-3"
                 >
                   {/* NOM de l'école */}
-                  <div className="w-[132px] text-right shrink-0">
+                  <div className="w-[148px] pr-4 text-right shrink-0">
                     <span
                       className="text-[13px] font-black truncate block"
                       style={{ color: entry.isCurrent ? entry.color : '#334155' }}
@@ -1277,23 +1277,45 @@ function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
             </div>
 
             {/* Dates étalées sous les barres comme axe X */}
-            <div className="flex-1 flex justify-between">
-              {representativePeriods.map(h => (
-                <button
-                  key={h.period}
-                  onClick={() => { setIsPlaying(false); setSelectedPeriod(h.period); }}
-                  className={`flex flex-col items-center gap-0.5 text-[10px] font-black transition-all whitespace-nowrap ${
-                    selectedPeriod === h.period
-                      ? 'text-emerald-600'
-                      : 'text-slate-400 hover:text-slate-700'
-                  }`}
+            <div className="flex-1 relative flex flex-col pt-1">
+              {/* Ligne de l'axe (Track) */}
+              <div className="absolute top-[5px] left-0 right-0 h-[2px] bg-slate-100 rounded-full" />
+              
+              {/* Curseur vert mobile */}
+              {history.length > 0 && (
+                <motion.div 
+                  className="absolute top-0 z-20 flex flex-col items-center"
+                  style={{ x: '-50%' }}
+                  animate={{ 
+                    left: `${(history.findIndex(h => h.period === selectedPeriod) / Math.max(history.length - 1, 1)) * 100}%` 
+                  }}
+                  transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
                 >
-                  <div className={`w-px h-2 ${
-                    selectedPeriod === h.period ? 'bg-emerald-500' : 'bg-slate-300'
-                  }`} />
-                  {h.periodDate ? formatPeriodDate(h.periodDate) : `P${h.period}`}
-                </button>
-              ))}
+                  {/* Pointe du curseur */}
+                  <div className="w-3 h-3 bg-emerald-500 rounded-full border-2 border-white shadow-md mb-1" />
+                  {/* Ligne de rappel verticale fine (monte vers les barres) */}
+                  <div className="absolute top-[-440px] w-px h-[440px] bg-emerald-500/10 pointer-events-none" />
+                </motion.div>
+              )}
+
+              <div className="flex justify-between w-full">
+                {representativePeriods.map(h => (
+                  <button
+                    key={h.period}
+                    onClick={() => { setIsPlaying(false); setSelectedPeriod(h.period); }}
+                    className={`relative flex flex-col items-center gap-0.5 text-[10px] font-black transition-all whitespace-nowrap z-10 ${
+                      selectedPeriod === h.period
+                        ? 'text-emerald-600'
+                        : 'text-slate-400 hover:text-slate-700'
+                    }`}
+                  >
+                    <div className={`w-px h-2 ${
+                      selectedPeriod === h.period ? 'bg-emerald-500' : 'bg-slate-200'
+                    }`} />
+                    {h.periodDate ? formatPeriodDate(h.periodDate) : `P${h.period}`}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
