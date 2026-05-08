@@ -233,17 +233,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           }}
         />
         
-        {userRole === 'AS' && (
-          <SidebarItem 
-            icon={<Users size={20} />} 
-            label="Utilisateurs" 
-            href="/dashboard/users"
-            active={isLinkActive('/dashboard/users')}
-            onClick={closeMenu}
-            collapsed={collapsed}
-          />
-        )}
-
         <SidebarItem 
           icon={<Globe size={20} />} 
           label="Configuration" 
@@ -260,15 +249,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           onClick={closeMenu}
           collapsed={collapsed}
         />
-        <SidebarItem 
-          icon={<BookOpen size={20} />} 
-          label="Catalogue" 
-          href={getAmLink(userRole === 'AS' ? '/dashboard/reference' : '/dashboard/catalog')}
-          active={isLinkActive('/dashboard/reference') || isLinkActive('/dashboard/catalog')}
-          onClick={closeMenu}
-          collapsed={collapsed}
-        />
-        
+
         <SidebarItem 
           icon={<Settings size={20} />} 
           label="Paramètres" 
