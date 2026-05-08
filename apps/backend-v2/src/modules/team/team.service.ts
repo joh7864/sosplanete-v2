@@ -117,99 +117,120 @@ export class TeamService {
 
     const stats = { teams: 0, groups: 0, players: 0 };
 
+    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 1 (HORS TRANSACTION) : Pré-hasher tous les mots de passe
+    // bcrypt est une opération CPU lente — la faire dans la transaction
+    // consomme le timeout avant même d'atteindre les insertions SQL.
+    // ─────────────────────────────────────────────────────────────
+    const rows = data as any[];
+    const hashedPasswords = new Map<number, string | null>();
+    for (let i = 0; i < rows.length; i++) {
+      const password = rows[i]['password']?.toString().trim() || null;
+      hashedPasswords.set(i, password ? await bcrypt.hash(password, 10) : null);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 2 (HORS TRANSACTION) : Pré-charger les équipes et groupes
+    // existants en mémoire pour éviter les N+1 à l'intérieur de la tx.
+    // ─────────────────────────────────────────────────────────────
+    const existingTeams = await this.prisma.team.findMany({
+      where: { instanceId, schoolYear },
+      include: { groups: true },
+    });
+
+    // Cache : teamName → team (avec ses groupes)
+    const teamCache = new Map<string, any>(
+      existingTeams.map(t => [t.name.toLowerCase(), t])
+    );
+    // Cache : `${teamId}:${groupName}` → group
+    const groupCache = new Map<string, any>();
+    for (const team of existingTeams) {
+      for (const group of team.groups) {
+        groupCache.set(`${team.id}:${group.name.toLowerCase()}`, group);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 3 : Transaction SQL pure, sans bcrypt, avec timeout élevé.
+    // Seules les opérations de lecture/écriture en base restent ici.
+    // ─────────────────────────────────────────────────────────────
     try {
       await this.prisma.$transaction(async (tx) => {
-        for (const row of data as any[]) {
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
           const teamName = row['equipe']?.toString().trim() || null;
           const groupName = row['group']?.toString().trim() || null;
           const pseudo = row['pseudo']?.toString().trim() || null;
-          const password = row['password']?.toString().trim() || null;
           const teamIcon = row['logo equipe']?.toString().trim() || null;
           const teamColor = row['couleur equipe']?.toString().trim() || null;
           const groupColor = row['couleur groupe']?.toString().trim() || null;
+          const hashedPassword = hashedPasswords.get(i);
 
           if (!teamName) continue;
 
-          // 1. Gérer l'Équipe
-          let team = await tx.team.findFirst({
-            where: { name: teamName, instanceId, schoolYear }
-          });
+          // 1. Gérer l'Équipe (via cache)
+          let team = teamCache.get(teamName.toLowerCase());
 
           if (!team) {
             console.log(`[CSV Import] Creating new team: ${teamName}`);
             team = await tx.team.create({
-              data: { 
-                name: teamName, 
-                instanceId,
-                schoolYear,
-                color: teamColor,
-                icon: teamIcon
-              }
+              data: { name: teamName, instanceId, schoolYear, color: teamColor, icon: teamIcon }
             });
+            team.groups = [];
+            teamCache.set(teamName.toLowerCase(), team);
             stats.teams++;
-          } else {
-            // Force update of icon and color if they differ or are provided
-            console.log(`[CSV Import] Updating existing team: ${teamName} (Icon: ${teamIcon})`);
+          } else if (teamIcon || teamColor) {
             team = await tx.team.update({
               where: { id: team.id },
-              data: { 
+              data: {
                 color: teamColor || team.color,
-                icon: teamIcon || team.icon
+                icon: teamIcon || team.icon,
               }
             });
+            team.groups = existingTeams.find(t => t.id === team.id)?.groups || [];
+            teamCache.set(teamName.toLowerCase(), team);
           }
 
           if (!groupName) continue;
 
-          // 2. Gérer le Groupe
-          let group = await tx.group.findFirst({
-            where: { name: groupName, teamId: team.id }
-          });
+          // 2. Gérer le Groupe (via cache)
+          const groupKey = `${team.id}:${groupName.toLowerCase()}`;
+          let group = groupCache.get(groupKey);
 
           if (!group) {
             group = await tx.group.create({
-              data: { 
-                name: groupName, 
-                teamId: team.id,
-                color: groupColor
-              }
+              data: { name: groupName, teamId: team.id, color: groupColor }
             });
+            groupCache.set(groupKey, group);
             stats.groups++;
-          } else if (groupColor) {
+          } else if (groupColor && groupColor !== group.color) {
             group = await tx.group.update({
               where: { id: group.id },
               data: { color: groupColor }
             });
+            groupCache.set(groupKey, group);
           }
 
           if (!pseudo) continue;
 
-          // 3. Gérer le Joueur (upsert)
+          // 3. Gérer le Joueur (upsert basé sur pseudo + groupId)
           const existing = await tx.child.findFirst({
             where: { pseudo, groupId: group.id }
           });
 
           if (!existing) {
-            // Création d'un nouveau joueur
-            const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
             await tx.child.create({
-              data: { 
-                pseudo, 
-                groupId: group.id,
-                password: hashedPassword
-              }
+              data: { pseudo, groupId: group.id, password: hashedPassword }
             });
             stats.players++;
-          } else if (password) {
-            // Joueur existant : on met à jour le mot de passe (et on le sécurise)
-            const hashedPassword = await bcrypt.hash(password, 10);
+          } else if (hashedPassword) {
             await tx.child.update({
               where: { id: existing.id },
               data: { password: hashedPassword }
             });
           }
         }
-      });
+      }, { timeout: 60000 }); // 60s pour absorber les gros imports
     } catch (error) {
       console.error('[CSV Import] FULL ERROR:', error);
       throw new BadRequestException(`Import échoué: ${error.message || error}`);
