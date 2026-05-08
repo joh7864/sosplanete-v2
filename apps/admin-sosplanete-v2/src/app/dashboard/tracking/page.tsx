@@ -831,7 +831,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId
         const [currentResp, historyResp, configResp, periodsResp] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/current?schoolYear=${schoolYear}`, { headers }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/history?schoolYear=${schoolYear}`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}?schoolYear=${schoolYear}`, { headers }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers }),
         ]);
 
