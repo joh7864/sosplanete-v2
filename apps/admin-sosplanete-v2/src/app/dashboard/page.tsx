@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/Input';
 import { InstanceDeleteConfirm } from '@/components/instances/InstanceDeleteConfirm';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
 
 interface Instance {
   id: number;
@@ -51,14 +52,9 @@ export default function DashboardSummaryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
 
-  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+  const { schoolYear } = useSchoolYear();
 
   useEffect(() => {
-    const handleStorage = () => {
-      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
-    };
-    window.addEventListener('storage', handleStorage);
-    
     const role = getAuthData('user_role');
     setUserRole(role);
     if (role === 'AS') {
@@ -68,7 +64,6 @@ export default function DashboardSummaryPage() {
     const handleClickOutside = () => setActivePopoverId(null);
     window.addEventListener('click', handleClickOutside);
     return () => {
-      window.removeEventListener('storage', handleStorage);
       window.removeEventListener('click', handleClickOutside);
     };
   }, []);

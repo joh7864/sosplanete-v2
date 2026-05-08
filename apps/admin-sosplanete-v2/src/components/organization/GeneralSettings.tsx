@@ -257,21 +257,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
 
       if (resp.ok) {
         const data = await resp.json();
-        const finalInstanceId = isNew ? data.id : instanceId;
-
-        // Bug #4 — Correction URL (path param) + méthode HTTP (PUT au lieu de POST)
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${finalInstanceId}?schoolYear=${schoolYear}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
-          body: JSON.stringify({
-            gameStartDate: gameStartDate ? new Date(gameStartDate).toISOString() : null,
-            gameEndDate: gameEndDate ? new Date(gameEndDate).toISOString() : null,
-            gamePeriodsCount: calculatedWeeks,
-            avgActionsPerChildPerPeriod: 8, // defaults or keep current
-            animalAdvanceMargin: 2,
-            bienveillanceThreshold: 0.40
-          })
-        });
 
         setStatus({ type: 'success', msg: isNew ? 'Espace créé avec succès !' : 'Paramètres enregistrés !' });
         setTimeout(() => setStatus(null), 3000);
@@ -284,6 +269,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
         } else {
           fetchPeriods();
+          fetchGameConfig(); // Recharger la config depuis le serveur pour synchroniser les refs
           onUpdate();
         }
       } else if (resp.status === 409) {

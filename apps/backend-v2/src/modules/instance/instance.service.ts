@@ -303,7 +303,7 @@ export class InstanceService {
     // --- VALIDATION AVANT TOUTE MUTATION ---
     if (currentPeriods.length > generatedPeriods.length) {
       const toDelete = currentPeriods.slice(generatedPeriods.length);
-      const periodIdsToDelete = toDelete.map(p => p.id);
+      const periodIdsToDelete = toDelete.map((p: { id: number }) => p.id);
       const affectedActions = await client.actionDone.count({
         where: { periodId: { in: periodIdsToDelete } }
       });

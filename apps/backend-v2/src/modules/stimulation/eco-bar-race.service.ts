@@ -20,7 +20,6 @@ export class EcoBarRaceService {
     });
 
     const results = [];
-    let snapshotDate: Date = new Date();
 
     for (const instance of instances) {
       // Récupérer les N premières périodes de cette instance pour cette année scolaire
@@ -31,11 +30,10 @@ export class EcoBarRaceService {
       });
       const periodIds = periods.map(p => p.id);
 
-      // Utiliser l'endDate de la Neme période comme date du snapshot
-      if (periods.length > 0) {
-        const lastPeriod = periods[periods.length - 1];
-        snapshotDate = lastPeriod.endDate;
-      }
+      // Calculer la date du snapshot LOCALEMENT par instance (pas une variable partagée)
+      const snapshotDate: Date = periods.length > 0
+        ? periods[periods.length - 1].endDate
+        : new Date();
 
       // Cumul des impacts enregistrés dans ActionDone
       const impacts = await this.prisma.actionDone.aggregate({
@@ -55,6 +53,7 @@ export class EcoBarRaceService {
         instanceId: instance.id,
         instanceName: instance.schoolName,
         icon: instance.icon,
+        snapshotDate,
         co2Total: impacts._sum.savedCo2 || 0,
         waterTotal: impacts._sum.savedWater || 0,
         wasteTotal: impacts._sum.savedWaste || 0,
@@ -70,6 +69,11 @@ export class EcoBarRaceService {
       rank: index + 1
     }));
 
+    // La date du snapshot global = date de fin de la Nème période (max parmi toutes les instances)
+    const globalSnapshotDate: Date = results.reduce((latest, r) => {
+      return r.snapshotDate > latest ? r.snapshotDate : latest;
+    }, new Date(0));
+
     // 3. Sauvegarder le snapshot avec la vraie date de la période et l'année scolaire
     const existing = await this.prisma.ecoBarRaceSnapshot.findFirst({
       where: { period: periodNumber, schoolYear }
@@ -79,7 +83,7 @@ export class EcoBarRaceService {
       return this.prisma.ecoBarRaceSnapshot.update({
         where: { id: existing.id },
         data: {
-          periodDate: snapshotDate,
+          periodDate: globalSnapshotDate,
           rankings: rankedResults as any
         }
       });
@@ -89,7 +93,7 @@ export class EcoBarRaceService {
       data: {
         period: periodNumber,
         schoolYear,
-        periodDate: snapshotDate,
+        periodDate: globalSnapshotDate,
         rankings: rankedResults as any
       }
     });
@@ -123,21 +127,33 @@ export class EcoBarRaceService {
    */
   async recalculateAllHistory(schoolYear: string) {
     this.logger.log(`Début du recalcul COMPLET de l'historique Eco-Bar-Race pour ${schoolYear}...`);
-    
-    // Déterminer la période max parmi toutes les instances
-    const maxPeriod = await this.prisma.period.aggregate({
-      _max: { id: true }, // Attention, id de période != numéro de période
+
+    // Déterminer le nombre RÉEL de périodes à traiter :
+    // on prend le max des gamePeriodsCount parmi toutes les instances pour cette année
+    const configs = await this.prisma.gameConfig.findMany({
+      where: { schoolYear },
+      select: { gamePeriodsCount: true }
     });
 
-    // En fait, on peut se baser sur le gamePeriodsCount de l'instance de référence ou juste boucler 
-    // jusqu'à la période actuelle la plus haute.
-    // Pour simplifier et être robuste, on va boucler jusqu'à la période 43 (max théorique)
-    // mais ne traiter que les périodes qui ont au moins une ActionDone.
-    
-    const maxPeriodNumber = 43; // Sécurité
+    const realMaxPeriod = configs.length > 0
+      ? Math.max(...configs.map(c => c.gamePeriodsCount ?? 0))
+      : 0;
+
+    if (realMaxPeriod === 0) {
+      this.logger.warn(`Aucune configuration de jeu trouvée pour ${schoolYear}. Recalcul annulé.`);
+      return [];
+    }
+
+    this.logger.log(`Recalcul sur ${realMaxPeriod} périodes réelles pour ${schoolYear}`);
+
+    // Supprimer les snapshots orphelins au-delà du nombre réel de périodes
+    await this.prisma.ecoBarRaceSnapshot.deleteMany({
+      where: { schoolYear, period: { gt: realMaxPeriod } }
+    });
+
     const updatedCount = [];
 
-    for (let p = 1; p <= maxPeriodNumber; p++) {
+    for (let p = 1; p <= realMaxPeriod; p++) {
       try {
         const snapshot = await this.calculateRankingsForPeriod(p, schoolYear);
         if (snapshot) updatedCount.push(snapshot);
@@ -146,6 +162,7 @@ export class EcoBarRaceService {
       }
     }
 
+    this.logger.log(`Recalcul terminé : ${updatedCount.length} snapshots mis à jour.`);
     return updatedCount;
   }
 }
