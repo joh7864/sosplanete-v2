@@ -34,6 +34,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ActionsImportModal } from '@/components/tracking/ActionsImportModal';
 import { IndicatorsTab } from './IndicatorsTab';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
 
 interface TrackingData {
   config: {
@@ -94,6 +95,7 @@ function TrackingContent() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [animalsRefreshKey, setAnimalsRefreshKey] = useState(0);
+  const [ecoBarRaceRefreshKey, setEcoBarRaceRefreshKey] = useState(0);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   // Valeurs de configuration pour la densification
@@ -101,16 +103,11 @@ function TrackingContent() {
   const STATIC_COLS_WIDTH = 340; // Total des colonnes de gauche
 
 
-  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+  const { schoolYear } = useSchoolYear();
 
   useEffect(() => {
     fetchInstances();
-    const handleStorage = () => {
-      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [schoolYear]);
 
 
   const fetchInstances = async () => {
@@ -128,6 +125,7 @@ function TrackingContent() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     const role = getAuthData('user_role');
     setUserRole(role);
 
@@ -139,25 +137,31 @@ function TrackingContent() {
         setLoading(false); 
       }
     } else {
-      fetchStats();
+      fetchStats(controller.signal);
     }
 
     const handleClickOutside = () => setShowInstanceSelector(false);
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    return () => {
+      controller.abort(); // Annuler la requête en cours si le composant re-render
+      window.removeEventListener('click', handleClickOutside);
+    };
   }, [instanceId, schoolYear]); // On refetch si l'année change aussi
 
-  const fetchStats = async () => {
+  const fetchStats = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+        signal,
       });
       if (resp.ok) {
         setData(await resp.json());
       }
-    } catch (e) {
-      console.error('Failed to fetch tracking stats', e);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        console.error('Failed to fetch tracking stats', e);
+      }
     } finally {
       setLoading(false);
     }
@@ -189,7 +193,7 @@ function TrackingContent() {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
-        window.location.reload();
+        setEcoBarRaceRefreshKey(prev => prev + 1); // Rafraîchissement ciblé sans reload brutal
       }
     } catch (e) {
       console.error('Recalculate eco-bar-race error:', e);
@@ -804,7 +808,7 @@ function TrackingContent() {
       ) : activeTab === 'animals' ? (
         <AnimalsTrackingTab instanceId={instanceId as number} refreshKey={animalsRefreshKey} schoolYear={schoolYear} />
       ) : (
-        <GraphicTrackingTab instanceId={instanceId as number} schoolYear={schoolYear} />
+        <GraphicTrackingTab instanceId={instanceId as number} schoolYear={schoolYear} refreshKey={ecoBarRaceRefreshKey} />
       )}
     </div>
   );
@@ -1013,7 +1017,7 @@ const formatPeriodDate = (dateStr: string): string => {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '');
 };
 
-function GraphicTrackingTab({ instanceId, schoolYear }: { instanceId: number, schoolYear: string }) {
+function GraphicTrackingTab({ instanceId, schoolYear, refreshKey }: { instanceId: number, schoolYear: string, refreshKey: number }) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
@@ -1049,7 +1053,7 @@ function GraphicTrackingTab({ instanceId, schoolYear }: { instanceId: number, sc
       }
     };
     fetchHistory();
-  }, [schoolYear]);
+  }, [schoolYear, refreshKey]);
 
   // Lecteur automatique
   useEffect(() => {

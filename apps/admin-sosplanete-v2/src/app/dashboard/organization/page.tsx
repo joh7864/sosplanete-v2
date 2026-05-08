@@ -43,6 +43,7 @@ import { Button } from '@/components/ui/Button';
 import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
 
 export default function OrganizationPage() {
   return (
@@ -83,7 +84,7 @@ function OrganizationContent() {
   const [activePopoverId, setActivePopoverId] = useState<number | null>(null);
   const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+  const { schoolYear } = useSchoolYear();
 
   useEffect(() => {
     // Check managed instances
@@ -106,18 +107,10 @@ function OrganizationContent() {
       fetchAMUsers();
     }
 
-    const handleStorageChange = () => {
-      const year = getAuthData('active_school_year') || '2024-2025';
-      setSchoolYear(year);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
     const handleClickOutside = () => setActivePopoverId(null);
     window.addEventListener('click', handleClickOutside);
     return () => {
       window.removeEventListener('click', handleClickOutside);
-      window.removeEventListener('storage', handleStorageChange);
     };
   }, [instanceId]);
 

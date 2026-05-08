@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { getAssetUrl } from '@/utils/assets';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
 
 export default function SettingsPage() {
   return (
@@ -36,14 +37,9 @@ export default function SettingsPage() {
 function SettingsContent() {
   const [activeTab, setActiveTab] = useState<'profile' | 'constants' | 'animals' | 'terreMometre'>('profile');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+  const { schoolYear } = useSchoolYear();
 
   useEffect(() => {
-    const handleStorage = () => {
-      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
-    };
-    window.addEventListener('storage', handleStorage);
-    
     const fetchRole = async () => {
       try {
         const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
@@ -56,7 +52,6 @@ function SettingsContent() {
       } catch (e) { /* ignore */ }
     };
     fetchRole();
-    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   return (

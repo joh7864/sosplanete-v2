@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Users, Settings, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getAssetUrl } from '@/utils/assets';
-import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import { getAuthData, removeAuthData } from '@/utils/storage';
 import { ChevronDown, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InitializeYearModal } from '@/components/organization/InitializeYearModal';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
 
 interface TopBarProps {
   title: React.ReactNode;
@@ -23,7 +24,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
   const pathname = usePathname();
   const [userName, setUserName] = useState('');
   const [userAvatar, setUserAvatar] = useState('');
-  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+  const { schoolYear, setSchoolYear } = useSchoolYear();
   const [isYearOpen, setIsYearOpen] = useState(false);
 
   const [availableYears, setAvailableYears] = useState<string[]>([]);
@@ -86,9 +87,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
       
       if (resp.ok) {
         setAvailableYears(prev => [...prev, year].sort());
-        setSchoolYear(year);
-        setAuthData('active_school_year', year);
-        window.dispatchEvent(new Event('storage'));
+        setSchoolYear(year); // Le hook propage automatiquement à tous les composants
         setIsYearOpen(false);
         setShowInitConfirm(false);
       }
@@ -149,9 +148,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
                     <button
                       key={year}
                       onClick={() => {
-                        setSchoolYear(year);
-                        setAuthData('active_school_year', year);
-                        window.dispatchEvent(new Event('storage'));
+                        setSchoolYear(year); // Le hook propage automatiquement
                         setIsYearOpen(false);
                       }}
                       className={`w-full flex items-center px-4 py-2 rounded-xl text-sm font-bold transition-all ${schoolYear === year ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
