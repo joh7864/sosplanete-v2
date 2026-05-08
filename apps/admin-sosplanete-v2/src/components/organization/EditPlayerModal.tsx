@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Key, Trash2, Save } from 'lucide-react';
+import { X, User, Key, Trash2, Save, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface EditPlayerModalProps {
@@ -23,11 +23,21 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isHashed, setIsHashed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPseudo(initialData?.pseudo || '');
-      setPassword(initialData?.password || '');
+      const rawPass = initialData?.password || '';
+      
+      // Détection du hash bcrypt ($2b$10$...)
+      const hashed = rawPass.startsWith('$2b$') || rawPass.startsWith('$2a$');
+      setIsHashed(hashed);
+      
+      // Si c'est un hash, on ne l'affiche pas dans l'input pour ne pas polluer l'UI
+      setPassword(hashed ? '' : rawPass);
+      setShowPassword(false);
     }
   }, [isOpen, initialData]);
 
@@ -106,14 +116,27 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 <div className="relative group">
                    <Key className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-slate-500 transition-colors" size={18} />
                    <input 
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-12 pr-6 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 font-bold focus:ring-2 focus:ring-slate-500/10 focus:border-slate-400 transition-all outline-none"
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (isHashed) setIsHashed(false); // Si on tape, ce n'est plus le hash existant
+                    }}
+                    placeholder={isHashed ? '•••••••• (Sécurisé)' : '••••••••'}
+                    className="w-full pl-12 pr-12 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-800 font-bold focus:ring-2 focus:ring-slate-500/10 focus:border-slate-400 transition-all outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 <p className="text-[9px] text-slate-400 px-1 font-medium leading-relaxed italic">
-                  Note : Les élèves utilisent ce mot de passe pour se connecter sur leur interface locale.
+                  {isHashed 
+                    ? "Ce mot de passe est déjà sécurisé. Laissez le champ vide pour le conserver, ou tapez-en un nouveau pour le changer."
+                    : "Note : Les élèves utilisent ce mot de passe pour se connecter sur leur interface locale."}
                 </p>
               </div>
 

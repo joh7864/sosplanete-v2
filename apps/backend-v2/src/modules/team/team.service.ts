@@ -4,6 +4,7 @@ import { Role } from '@prisma/client';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import * as Papa from 'papaparse';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class TeamService {
@@ -189,14 +190,23 @@ export class TeamService {
           });
 
           if (!existing) {
+            // Création d'un nouveau joueur
+            const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
             await tx.child.create({
               data: { 
                 pseudo, 
                 groupId: group.id,
-                password: password
+                password: hashedPassword
               }
             });
             stats.players++;
+          } else if (password) {
+            // Joueur existant : on met à jour le mot de passe (et on le sécurise)
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await tx.child.update({
+              where: { id: existing.id },
+              data: { password: hashedPassword }
+            });
           }
         }
       });
@@ -231,17 +241,24 @@ export class TeamService {
     });
   }
 
-  // --- JOUEURS (CHILDREN) ---
+  // SEC-02 — Bcrypt du mot de passe à la création
   async createChild(groupId: number, pseudo: string, password?: string) {
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     return this.prisma.child.create({
-      data: { pseudo, groupId, password }
+      data: { pseudo, groupId, password: hashedPassword }
     });
   }
 
+  // SEC-02 — Bcrypt du mot de passe à la modification (si fourni)
   async updateChild(id: number, data: { pseudo?: string, password?: string }) {
+    const updateData: { pseudo?: string, password?: string | null } = {};
+    if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
+    if (data.password !== undefined) {
+      updateData.password = data.password ? await bcrypt.hash(data.password, 10) : null;
+    }
     return this.prisma.child.update({
       where: { id },
-      data
+      data: updateData
     });
   }
 

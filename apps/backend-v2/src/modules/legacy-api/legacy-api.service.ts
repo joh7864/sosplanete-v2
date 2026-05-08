@@ -35,11 +35,24 @@ export class LegacyApiService {
     for (const child of children) {
       let isValid = false;
       if (child.password) {
-        // Mot de passe bcrypté (v2)
+        // 1. Essai bcrypt (v2 ou mots de passe déjà migrés)
         isValid = await bcrypt.compare(pass, child.password);
+
+        if (!isValid) {
+          // 2. Fallback plaintext legacy : si le hash n'est pas du bcrypt et correspond en clair
+          const isLikelyBcrypt = child.password.startsWith('$2b$') || child.password.startsWith('$2a$');
+          if (!isLikelyBcrypt && pass === child.password) {
+            // SEC-02 — Migration automatique on-login : rehash en bcrypt et autoriser
+            const upgraded = await bcrypt.hash(pass, 10);
+            await this.prisma.child.update({
+              where: { id: child.id },
+              data: { password: upgraded }
+            });
+            isValid = true;
+          }
+        }
       } else {
-        // SEC-02 — Legacy v1 : enfant sans mot de passe bcrypté
-        // On n'accepte plus les comparaisons en clair
+        // Enfant sans mot de passe
         isValid = pass === '' || pass === child.pseudo;
       }
 

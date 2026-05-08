@@ -62,13 +62,25 @@ export class AuthService {
     if (!child) return null;
 
     if (child.password) {
-      // Mot de passe bcrypté (v2)
-      const isValid = await bcrypt.compare(pass, child.password);
-      return isValid ? child : null;
+      // 1. Essai bcrypt (v2 ou mots de passe déjà migrés)
+      const isBcryptValid = await bcrypt.compare(pass, child.password);
+      if (isBcryptValid) return child;
+
+      // 2. Fallback : le hash ressemble-t-il à du bcrypt ? Si non, c'est du plaintext legacy
+      const isLikelyBcrypt = child.password.startsWith('$2b$') || child.password.startsWith('$2a$');
+      if (!isLikelyBcrypt && pass === child.password) {
+        // SEC-02 — Migration automatique : on rehash à la volée avant de valider
+        const upgraded = await bcrypt.hash(pass, 10);
+        await this.prisma.child.update({
+          where: { id: child.id },
+          data: { password: upgraded }
+        });
+        return child;
+      }
+
+      return null;
     } else {
-      // SEC-02 — Enfant sans mot de passe (migration v1 non encore bcryptée)
-      // On accepte uniquement la chaîne vide ou le pseudo comme mot de passe vide
-      // Note : les passwords en clair stockés tels quels ne sont PLUS acceptés
+      // Enfant sans mot de passe (créé sans MDP dans l'admin)
       return (pass === '' || pass === child.pseudo) ? child : null;
     }
   }
