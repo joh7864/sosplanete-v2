@@ -109,44 +109,48 @@ function SettingsContent() {
       />
 
       <div className="pb-20 pt-10">
-        <div className="max-w-5xl mx-auto">
-          {activeTab === 'profile' && <ProfileSection />}
 
-          {activeTab === 'users' && isAS && <UsersSection />}
+        {/* Catalogue — pleine largeur */}
+        {activeTab === 'catalog' && (
+          <CatalogSection
+            role={userRole ?? 'AM'}
+            instanceId={instanceId ?? undefined}
+            schoolYear={schoolYear}
+          />
+        )}
 
-          {activeTab === 'catalog' && (
-            <CatalogSection
-              role={userRole ?? 'AM'}
-              instanceId={instanceId ?? undefined}
-              schoolYear={schoolYear}
-            />
-          )}
-
-          {activeTab === 'data' && isAS && (
-            <div className="flex flex-col gap-6">
-              {/* Sous-onglets */}
-              <div className="flex items-center gap-1 p-1 bg-white/80 rounded-2xl border border-slate-100 shadow-sm w-fit">
-                {([
-                  { id: 'impact', label: 'Impact Annuel' },
-                  { id: 'animals', label: 'Animaux' },
-                  { id: 'terreMometre', label: 'Terre-momètre' },
-                ] as { id: ActiveDataTab; label: string }[]).map(sub => (
-                  <button
-                    key={sub.id}
-                    onClick={() => setActiveDataTab(sub.id)}
-                    className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeDataTab === sub.id ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
-                  >
-                    {sub.label}
-                  </button>
-                ))}
-              </div>
-
-              {activeDataTab === 'impact' && <GlobalDataSettings schoolYear={schoolYear} />}
-              {activeDataTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
-              {activeDataTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
+        {/* Données de calcul — pleine largeur */}
+        {activeTab === 'data' && isAS && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-1 p-1 bg-white/80 rounded-2xl border border-slate-100 shadow-sm w-fit">
+              {([
+                { id: 'impact', label: 'Impact Annuel' },
+                { id: 'animals', label: 'Animaux' },
+                { id: 'terreMometre', label: 'Terre-momètre' },
+              ] as { id: ActiveDataTab; label: string }[]).map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => setActiveDataTab(sub.id)}
+                  className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeDataTab === sub.id ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
+                >
+                  {sub.label}
+                </button>
+              ))}
             </div>
-          )}
-        </div>
+            {activeDataTab === 'impact' && <GlobalDataSettings schoolYear={schoolYear} />}
+            {activeDataTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
+            {activeDataTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
+          </div>
+        )}
+
+        {/* Profil & Utilisateurs — largeur contrainte pour lisibilité */}
+        {(activeTab === 'profile' || activeTab === 'users') && (
+          <div className="max-w-5xl mx-auto">
+            {activeTab === 'profile' && <ProfileSection />}
+            {activeTab === 'users' && isAS && <UsersSection />}
+          </div>
+        )}
+
       </div>
     </>
   );
