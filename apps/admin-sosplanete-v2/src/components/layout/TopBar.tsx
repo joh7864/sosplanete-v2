@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Users, Settings, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getAssetUrl } from '@/utils/assets';
-import { getAuthData, removeAuthData } from '@/utils/storage';
+import { getAuthData } from '@/utils/storage';
 import { ChevronDown, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InitializeYearModal } from '@/components/organization/InitializeYearModal';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { useSession } from '@/hooks/useSession';
 
 interface TopBarProps {
   title: React.ReactNode;
@@ -22,39 +23,18 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actions, bottomContent, className }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const [userName, setUserName] = useState('');
-  const [userAvatar, setUserAvatar] = useState('');
   const { schoolYear, setSchoolYear } = useSchoolYear();
+  const { user, logout } = useSession();
   const [isYearOpen, setIsYearOpen] = useState(false);
-
   const [availableYears, setAvailableYears] = useState<string[]>([]);
   const [showInitConfirm, setShowInitConfirm] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [nextYear, setNextYear] = useState('');
-  const [userRole, setUserRole] = useState<string | null>(null);
 
   const showSettingsIcon = pathname === '/dashboard' || pathname.includes('/organization') || pathname.includes('/reference') || pathname.includes('/catalog');
   const hideYearSelector = pathname.includes('/dashboard/users') || pathname.includes('/dashboard/reference') || pathname.includes('/dashboard/catalog') || pathname.includes('/dashboard/players') || pathname.includes('/dashboard/profile');
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = getAuthData('access_token');
-      if (!token) return;
-      
-      try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (resp.ok) {
-          const data = await resp.json();
-          setUserName(data.name || data.email || 'Utilisateur');
-          setUserAvatar(data.avatar || '');
-          setUserRole(data.role);
-        }
-      } catch (e) {
-        console.error('Failed to fetch user context', e);
-      }
-    };
     const fetchYears = async () => {
       try {
         const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/years`, {
@@ -68,8 +48,6 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
         console.error('Failed to fetch school years', e);
       }
     };
-
-    fetchProfile();
     fetchYears();
   }, []);
 
@@ -99,9 +77,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
   };
 
   const handleLogout = () => {
-    removeAuthData('access_token');
-    removeAuthData('user_role');
-    router.push('/');
+    logout(); // Le hook nettoie le state et redirige
   };
 
   const getAvatarUrl = (path: string | null) => {
@@ -157,7 +133,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
                     </button>
                   ))}
                   
-                  {userRole === 'AS' && (
+                  {user?.role === 'AS' && (
                     <div className="border-t border-slate-50 mt-2 pt-2">
                       <button
                         onClick={() => {
@@ -205,14 +181,14 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
         {/* User Profile */}
         <div className="hidden lg:flex items-center gap-3 mt-1 cursor-pointer group" onClick={() => router.push('/dashboard/settings?tab=profile')}>
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 group-hover:border-emerald-300 transition-all">
-              {userAvatar ? (
-                <img src={getAvatarUrl(userAvatar) || ''} alt="Avatar" className="w-full h-full object-cover" />
+              {user?.avatar ? (
+                <img src={getAvatarUrl(user.avatar) || ''} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <Users size={14} className="text-slate-400" />
               )}
             </div>
             <div className="flex flex-col justify-center">
-              <span className="text-[13px] font-bold text-slate-700 leading-tight group-hover:text-emerald-700 transition-colors">{userName}</span>
+              <span className="text-[13px] font-bold text-slate-700 leading-tight group-hover:text-emerald-700 transition-colors">{user?.name || user?.email || 'Utilisateur'}</span>
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); handleLogout(); }} 
