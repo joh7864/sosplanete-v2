@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Put, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put, Request, Query, HttpCode } from '@nestjs/common';
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -42,8 +42,12 @@ export class StimulationController {
   }
 
   @Put('game-config/:instanceId')
-  updateGameConfig(@Param('instanceId') instanceId: string, @Body() data: any, @Query('schoolYear') schoolYear: string, @Request() req: any) {
-    return this.stimulationService.updateGameConfig(+instanceId, data, schoolYear, req.user);
+  @HttpCode(410)
+  updateGameConfig() {
+    // DÉPRÉCIÉE — La config du jeu est désormais gérée exclusivement via PATCH /instances/:id
+    // qui garantit l'atomicité via une transaction Prisma unique.
+    // Cette route ne sera plus utilisée et sera supprimée dans une prochaine version.
+    throw new Error('Cette route est dépréciée. Utilisez PATCH /instances/:id pour modifier la configuration du jeu.');
   }
 
   @Get('animals/:instanceId/history')

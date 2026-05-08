@@ -158,6 +158,14 @@ export class TrackingService {
 
     const actionRefsByCode = new Map(allActionRefs.map(r => [r.code, r]));
 
+    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 1 : Validation complète de toutes les lignes.
+    // Les LocalAction manquantes sont collectées ici (sans écriture en base)
+    // pour éviter des données orphelines si l'import échoue en cours de validation.
+    // ─────────────────────────────────────────────────────────────
+    // actionRefCode -> ActionRef (LocalAction à créer après validation)
+    const localActionsToCreate = new Map<string, any>();
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const lineNum = i + 2;
@@ -180,7 +188,7 @@ export class TrackingService {
         continue;
       }
 
-      // 2. Validation de l'action
+      // 2. Validation de l'action (collecte sans écriture)
       let localActionId = localActionsMap.get(actionRefCode);
       if (!localActionId) {
         const actionRef = actionRefsByCode.get(actionRefCode);
@@ -188,21 +196,12 @@ export class TrackingService {
           errors.push(`Ligne ${lineNum}: Code action "${actionRefCode}" inconnu.`);
           continue;
         }
-
-        // Création à la volée de la LocalAction si manquante (non interdit par l'utilisateur)
-        const newLocalAction = await this.prisma.localAction.create({
-          data: {
-            label: actionRef.referenceName,
-            actionRefId: actionRef.id,
-            instanceId,
-            schoolYear,
-            specificCo2: actionRef.defaultCo2 || 0,
-            specificWater: actionRef.defaultWater || 0,
-            specificWaste: actionRef.defaultWaste || 0,
-          },
-        });
-        localActionId = newLocalAction.id;
-        localActionsMap.set(actionRefCode, localActionId);
+        // Marquer pour création batch après validation — pas d'écriture ici
+        if (!localActionsToCreate.has(actionRefCode)) {
+          localActionsToCreate.set(actionRefCode, actionRef);
+        }
+        // Placeholder : sera résolu après création batch
+        localActionId = -1;
       }
 
       // 3. Parsing date
@@ -228,6 +227,7 @@ export class TrackingService {
       }
 
       validData.push({
+        actionRefCode, // conservé pour résoudre l'ID après création batch
         childId,
         localActionId,
         createdAt: dateObj,
@@ -236,6 +236,40 @@ export class TrackingService {
         savedWater: parseFloat(row['Eco eau']?.toString().replace(',', '.') || '0'),
         savedWaste: parseFloat(row['Eco dechets']?.toString().replace(',', '.') || '0'),
       });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 2 : Création batch des LocalAction manquantes (après validation).
+    // Si la validation a échoué sur toutes les lignes, rien n'est créé.
+    // ─────────────────────────────────────────────────────────────
+    if (localActionsToCreate.size > 0 && validData.length > 0) {
+      for (const [code, actionRef] of localActionsToCreate.entries()) {
+        const created = await this.prisma.localAction.create({
+          data: {
+            label: actionRef.referenceName,
+            actionRefId: actionRef.id,
+            instanceId,
+            schoolYear,
+            specificCo2: actionRef.defaultCo2 || 0,
+            specificWater: actionRef.defaultWater || 0,
+            specificWaste: actionRef.defaultWaste || 0,
+          },
+        });
+        localActionsMap.set(code, created.id);
+      }
+
+      // Résoudre les IDs placeholder (-1) dans validData
+      for (const entry of validData) {
+        if (entry.localActionId === -1) {
+          entry.localActionId = localActionsMap.get(entry.actionRefCode);
+        }
+        delete entry.actionRefCode; // Nettoyer le champ technique
+      }
+    } else {
+      // Nettoyer les champs techniques si pas de création nécessaire
+      for (const entry of validData) {
+        delete entry.actionRefCode;
+      }
     }
 
     // 5. Suppression des anciennes actions de l'instance pour cette année scolaire uniquement
@@ -261,7 +295,7 @@ export class TrackingService {
     return {
       imported: validData.length,
       total: rows.length,
-      errors: errors.slice(0, 500), // On peut renvoyer un peu plus de logs maintenant
+      errors: errors.slice(0, 500),
       hasMoreErrors: errors.length > 500,
     };
   }

@@ -23,7 +23,7 @@ const getCategoryColor = (category: string) => {
 };
 
 export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({ action }) => {
-  const colorClasses = getCategoryColor(action.category);
+  const colorClasses = getCategoryColor(action.category ?? '');
   const [imgSrc, setImgSrc] = React.useState(getAssetUrl(action.image ? `actions/${action.image}` : null));
   const [fallbackTried, setFallbackTried] = React.useState(false);
 

@@ -218,7 +218,7 @@ export class InstanceService {
       }
 
       return updated;
-    });
+    }, { timeout: 30000 }); // Évite le timeout sur les grosses instances (syncPeriods)
   }
 
   private getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {

@@ -151,6 +151,20 @@ export class TeamService {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 2b (HORS TRANSACTION) : Pré-charger les Child existants.
+    // Évite les N+1 dans la transaction (1 findFirst par joueur).
+    // ─────────────────────────────────────────────────────────────
+    const existingGroupIds = existingTeams.flatMap(t => t.groups.map((g: any) => g.id));
+    const existingChildren = existingGroupIds.length > 0
+      ? await this.prisma.child.findMany({ where: { groupId: { in: existingGroupIds } } })
+      : [];
+    // Cache : `${groupId}:${pseudo}` → child
+    const childCache = new Map<string, any>();
+    for (const child of existingChildren) {
+      childCache.set(`${child.groupId}:${child.pseudo.toLowerCase()}`, child);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // ÉTAPE 3 : Transaction SQL pure, sans bcrypt, avec timeout élevé.
     // Seules les opérations de lecture/écriture en base restent ici.
     // ─────────────────────────────────────────────────────────────
@@ -213,15 +227,15 @@ export class TeamService {
 
           if (!pseudo) continue;
 
-          // 3. Gérer le Joueur (upsert basé sur pseudo + groupId)
-          const existing = await tx.child.findFirst({
-            where: { pseudo, groupId: group.id }
-          });
+          // 3. Gérer le Joueur (via cache — plus de findFirst dans la transaction)
+          const childKey = `${group.id}:${pseudo.toLowerCase()}`;
+          const existing = childCache.get(childKey);
 
           if (!existing) {
-            await tx.child.create({
+            const created = await tx.child.create({
               data: { pseudo, groupId: group.id, password: hashedPassword }
             });
+            childCache.set(childKey, created);
             stats.players++;
           } else if (hashedPassword) {
             await tx.child.update({

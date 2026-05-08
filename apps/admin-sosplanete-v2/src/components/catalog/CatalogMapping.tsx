@@ -162,7 +162,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
     }
   };
 
-  const categories = useMemo(() => Array.from(new Set(referenceActions.map(a => a.category))).sort(), [referenceActions]);
+  const categories = useMemo(() => Array.from(new Set(referenceActions.map(a => a.category).filter((c): c is string => !!c))).sort(), [referenceActions]);
   const activeFiltersCount = (filterCategory ? 1 : 0) + (minStars > 0 ? 1 : 0) + (impactFilters.co2 ? 1 : 0) + (impactFilters.water ? 1 : 0) + (impactFilters.waste ? 1 : 0);
 
   return (
