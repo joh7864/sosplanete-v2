@@ -773,6 +773,7 @@ function OrganizationContent() {
             onImport={loadData}
             instanceId={instanceId || 0}
             instanceName={activeInstanceName}
+            schoolYear={schoolYear}
           />
         )}
         

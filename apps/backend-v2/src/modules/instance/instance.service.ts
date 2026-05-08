@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateInstanceDto } from './dto/update-instance.dto';
@@ -170,53 +170,55 @@ export class InstanceService {
     return instance;
   }
 
-  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string }) {
-    const { schoolYear, gameStartDate, gameEndDate, gamePeriodsCount, ...updateData } = data;
+  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean }) {
+    const { schoolYear, gameStartDate, gameEndDate, gamePeriodsCount, force, ...updateData } = data;
 
     const sy = schoolYear || (await this.prisma.instance.findUnique({ where: { id } }))?.currentSchoolYear || "2024-2025";
 
-    const updated = await this.prisma.instance.update({
-      where: { id },
-      data: updateData,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.instance.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Mise à jour de la configuration de jeu si nécessaire
+      if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
+        await tx.gameConfig.upsert({
+          where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
+          update: {
+            ...(gameStartDate && { gameStartDate: new Date(gameStartDate) }),
+            ...(gameEndDate && { gameEndDate: new Date(gameEndDate) }),
+            ...(gamePeriodsCount !== undefined && { gamePeriodsCount }),
+          },
+          create: {
+            instanceId: id,
+            schoolYear: sy,
+            gameStartDate: gameStartDate ? new Date(gameStartDate) : undefined,
+            gameEndDate: gameEndDate ? new Date(gameEndDate) : undefined,
+            gamePeriodsCount: gamePeriodsCount ?? 24,
+          }
+        });
+      }
+
+      // Cascade fermeture (uniquement si demandé explicitement à false)
+      if (data.isOpen === false) {
+        await tx.period.updateMany({
+          where: { instanceId: id, schoolYear: sy },
+          data: { isOpen: false },
+        });
+      }
+
+      if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
+        await this.syncPeriods(id, sy, force, tx);
+      }
+
+      // Toujours forcer l'activation dynamique de la période courante à l'ouverture
+      if (updated.isOpen === true) {
+        await this.handleCurrentPeriodActivation(id, sy, tx);
+      }
+
+      return updated;
     });
-
-    // Mise à jour de la configuration de jeu si nécessaire
-    if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
-      await this.prisma.gameConfig.upsert({
-        where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
-        update: {
-          ...(gameStartDate && { gameStartDate: new Date(gameStartDate) }),
-          ...(gameEndDate && { gameEndDate: new Date(gameEndDate) }),
-          ...(gamePeriodsCount !== undefined && { gamePeriodsCount }),
-        },
-        create: {
-          instanceId: id,
-          schoolYear: sy,
-          gameStartDate: gameStartDate ? new Date(gameStartDate) : undefined,
-          gameEndDate: gameEndDate ? new Date(gameEndDate) : undefined,
-          gamePeriodsCount: gamePeriodsCount ?? 24,
-        }
-      });
-    }
-
-    // Cascade fermeture (uniquement si demandé explicitement à false)
-    if (data.isOpen === false) {
-      await this.prisma.period.updateMany({
-        where: { instanceId: id, schoolYear: schoolYear || updated.currentSchoolYear },
-        data: { isOpen: false },
-      });
-    }
-
-    if (data.gameStartDate !== undefined || data.gameEndDate !== undefined || data.gamePeriodsCount !== undefined) {
-      await this.syncPeriods(id, schoolYear || updated.currentSchoolYear);
-    }
-
-    // Toujours forcer l'activation dynamique de la période courante à l'ouverture
-    if (updated.isOpen === true) {
-      await this.handleCurrentPeriodActivation(id, schoolYear || updated.currentSchoolYear);
-    }
-
-    return updated;
   }
 
   private getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {
@@ -237,15 +239,16 @@ export class InstanceService {
     return { startDate, endDate };
   }
 
-  private async handleCurrentPeriodActivation(instanceId: number, schoolYear: string) {
+  private async handleCurrentPeriodActivation(instanceId: number, schoolYear: string, tx?: any) {
+    const client = tx || this.prisma;
     const now = new Date();
-    const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
+    const instance = await client.instance.findUnique({ where: { id: instanceId } });
     if (!instance) return;
 
     const boundaries = this.getPeriodBoundaries(now);
 
     // Recherche de la période active dans l'année scolaire demandée
-    const period = await this.prisma.period.findFirst({
+    const period = await client.period.findFirst({
       where: {
         instanceId,
         schoolYear,
@@ -255,11 +258,11 @@ export class InstanceService {
     });
 
     if (period) {
-      await this.prisma.period.updateMany({
+      await client.period.updateMany({
         where: { instanceId, schoolYear, isOpen: true },
         data: { isOpen: false },
       });
-      await this.prisma.period.update({
+      await client.period.update({
         where: { id: period.id },
         data: { isOpen: true },
       });
@@ -267,8 +270,9 @@ export class InstanceService {
   }
 
 
-  private async syncPeriods(instanceId: number, schoolYear: string) {
-    const config = await this.prisma.gameConfig.findUnique({
+  private async syncPeriods(instanceId: number, schoolYear: string, force: boolean = false, tx?: any) {
+    const client = tx || this.prisma;
+    const config = await client.gameConfig.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear } }
     });
 
@@ -277,7 +281,7 @@ export class InstanceService {
     const gameStart = new Date(config.gameStartDate);
     const gameEnd = new Date(config.gameEndDate);
 
-    const currentPeriods = await this.prisma.period.findMany({
+    const currentPeriods = await client.period.findMany({
       where: { instanceId, schoolYear },
       orderBy: { startDate: 'asc' },
     });
@@ -296,28 +300,42 @@ export class InstanceService {
       pEnd.setHours(23, 59, 59, 999);
     }
 
+    // --- VALIDATION AVANT TOUTE MUTATION ---
+    if (currentPeriods.length > generatedPeriods.length) {
+      const toDelete = currentPeriods.slice(generatedPeriods.length);
+      const periodIdsToDelete = toDelete.map(p => p.id);
+      const affectedActions = await client.actionDone.count({
+        where: { periodId: { in: periodIdsToDelete } }
+      });
+
+      if (affectedActions > 0 && !force) {
+        throw new ConflictException(JSON.stringify({
+          warning: true,
+          affectedActions,
+          message: `Ce changement de dates supprimera ${affectedActions} actions enregistrées par les élèves. Voulez-vous continuer ?`
+        }));
+      }
+
+      // Suppression effective
+      for (const p of toDelete) {
+        await client.actionDone.deleteMany({ where: { periodId: p.id } });
+        await client.period.delete({ where: { id: p.id } });
+      }
+    }
+
+    // --- MISE À JOUR / CRÉATION ---
     for (let i = 0; i < generatedPeriods.length; i++) {
       const p = generatedPeriods[i];
       if (currentPeriods[i]) {
-        await this.prisma.period.update({
+        await client.period.update({
           where: { id: currentPeriods[i].id },
           data: { startDate: p.startDate, endDate: p.endDate },
         });
       } else {
-        await this.prisma.period.create({
+        await client.period.create({
           data: { instanceId, schoolYear, startDate: p.startDate, endDate: p.endDate, isOpen: false },
         });
       }
-    }
-
-    if (currentPeriods.length > generatedPeriods.length) {
-      const toDelete = currentPeriods.slice(generatedPeriods.length);
-      await this.prisma.$transaction(async (tx) => {
-        for (const p of toDelete) {
-          await tx.actionDone.deleteMany({ where: { periodId: p.id } });
-          await tx.period.delete({ where: { id: p.id } });
-        }
-      });
     }
   }
 

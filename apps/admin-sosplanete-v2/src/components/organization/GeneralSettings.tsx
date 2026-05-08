@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Calendar, Box, Loader2, Save, CheckCircle, AlertTriangle, Building2, Link as LinkIcon, Lock, Unlock, Trash2, RotateCcw, Plus, ArrowUpDown, ChevronUp, ChevronDown, Edit3, Check, X } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +38,11 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   const [gameEndDate, setGameEndDate] = useState('');
   const [gamePeriodsCount, setGamePeriodsCount] = useState('24');
 
+  // Références aux valeurs enregistrées en BDD (pour restauration lors d'un Annuler)
+  const savedGameStartDate = useRef('');
+  const savedGameEndDate = useRef('');
+  const savedGamePeriodsCount = useRef('24');
+
   const calculatedWeeks = useMemo(() => {
     if (!gameStartDate || !gameEndDate) return 0;
     const start = new Date(gameStartDate);
@@ -58,6 +63,8 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editStartDate, setEditStartDate] = useState('');
   const [editEndDate, setEditEndDate] = useState('');
+  const [deleteWarning, setDeleteWarning] = useState<{ affectedActions: number, message: string } | null>(null);
+
   
   // Utiliser la récupération des utilisateurs AM pour le select
   const [amUsers, setAmUsers] = useState<any[]>([]);
@@ -199,20 +206,25 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}?schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) {
         const data = await resp.json();
-        if (data.gameStartDate) setGameStartDate(new Date(data.gameStartDate).toISOString().split('T')[0]);
-        else setGameStartDate('');
-        
-        if (data.gameEndDate) setGameEndDate(new Date(data.gameEndDate).toISOString().split('T')[0]);
-        else setGameEndDate('');
-        
-        if (data.gamePeriodsCount) setGamePeriodsCount(data.gamePeriodsCount.toString());
+        const start = data.gameStartDate ? new Date(data.gameStartDate).toISOString().split('T')[0] : '';
+        const end = data.gameEndDate ? new Date(data.gameEndDate).toISOString().split('T')[0] : '';
+        const periods = data.gamePeriodsCount ? data.gamePeriodsCount.toString() : '24';
+
+        setGameStartDate(start);
+        setGameEndDate(end);
+        setGamePeriodsCount(periods);
+
+        // Mémoriser les valeurs sauvegardées pour restauration lors d'un Annuler
+        savedGameStartDate.current = start;
+        savedGameEndDate.current = end;
+        savedGamePeriodsCount.current = periods;
       }
     } catch (e) {
       console.error('[GeneralSettings] fetchGameConfig failed:', e);
     }
   };
 
-  const handleSaveGeneral = async (e?: React.FormEvent) => {
+  const handleSaveGeneral = async (e?: React.FormEvent, force: boolean = false) => {
     if (e) e.preventDefault();
     setSaving(true);
     try {
@@ -239,6 +251,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           ...(gameEndDate && { gameEndDate: new Date(gameEndDate).toISOString() }),
           ...(calculatedWeeks > 0 && { gamePeriodsCount: calculatedWeeks }),
           schoolYear, // requis par update() pour cibler la bonne année dans syncPeriods()
+          force,
         }),
       });
 
@@ -270,9 +283,16 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           await onUpdate();
           router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
         } else {
-          // Rafraîchir les périodes pour afficher celles qui viennent d'être générées par syncPeriods()
           fetchPeriods();
           onUpdate();
+        }
+      } else if (resp.status === 409) {
+        const data = await resp.json();
+        try {
+          const parsed = JSON.parse(data.message);
+          setDeleteWarning({ affectedActions: parsed.affectedActions, message: parsed.message });
+        } catch (err) {
+          setDeleteWarning({ affectedActions: data.affectedActions || 0, message: data.message });
         }
       } else {
         setStatus({ type: 'error', msg: "Erreur d'enregistrement." });
@@ -283,6 +303,20 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setSaving(false);
     }
   };
+
+  const handleConfirmDeleteWarning = async () => {
+    setDeleteWarning(null);
+    await handleSaveGeneral(undefined, true);
+  };
+
+  const handleCancelDeleteWarning = () => {
+    setDeleteWarning(null);
+    // Restaurer immédiatement les valeurs depuis les refs (valeurs réelles en BDD)
+    setGameStartDate(savedGameStartDate.current);
+    setGameEndDate(savedGameEndDate.current);
+    setGamePeriodsCount(savedGamePeriodsCount.current);
+  };
+
 
   const handleReset = () => {
     if (currentInstance) {
@@ -740,6 +774,16 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           onConfirm={() => deletePeriod(showConfirm.id)} 
           title="Attention: Suppression de période" 
           description={showConfirm.message} 
+        />
+      )}
+
+      {deleteWarning && (
+        <ConfirmDialog 
+          isOpen={true} 
+          onClose={handleCancelDeleteWarning} 
+          onConfirm={handleConfirmDeleteWarning} 
+          title="⚠️ Attention : Risque de perte de données" 
+          description={deleteWarning.message} 
         />
       )}
     </div>

@@ -45,7 +45,11 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
-      await onSave({ pseudo, password });
+      const payload: { pseudo: string; password?: string } = { pseudo };
+      if (password && password.trim() !== '') {
+        payload.password = password;
+      }
+      await onSave(payload);
       onClose();
     } catch (error) {
       console.error('Error saving player:', error);

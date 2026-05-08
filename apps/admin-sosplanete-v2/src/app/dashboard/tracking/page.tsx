@@ -81,7 +81,17 @@ function TrackingContent() {
   const [hideInactive, setHideInactive] = useState(false);
   const [hideEmptyPeriods, setHideEmptyPeriods] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
-  const [activeTab, setActiveTab] = useState<'actions' | 'indicators' | 'animals' | 'graphic'>('actions');
+  const [activeTab, setActiveTab] = useState<'actions' | 'indicators' | 'animals' | 'graphic'>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('trackingActiveTab') as 'actions' | 'indicators' | 'animals' | 'graphic') || 'actions';
+    }
+    return 'actions';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem('trackingActiveTab', activeTab);
+  }, [activeTab]);
+
   const [helpOpen, setHelpOpen] = useState(false);
   const [animalsRefreshKey, setAnimalsRefreshKey] = useState(0);
   const [isRecalculating, setIsRecalculating] = useState(false);
@@ -530,7 +540,9 @@ function TrackingContent() {
           </div>
           <div className="flex items-baseline gap-2">
             <h3 className="text-3xl font-black text-slate-800">
-              {Math.round((data.children.filter(c => c.total > 0).length / data.children.length) * 100)}%
+              {data.children.length > 0 
+                ? Math.round((data.children.filter(c => c.total > 0).length / data.children.length) * 100) 
+                : 0}%
             </h3>
             <p className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{data.children.filter(c => c.total > 0).length} enfants actifs</p>
           </div>

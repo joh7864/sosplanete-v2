@@ -17,6 +17,41 @@ export class StimulationService {
     return config;
   }
 
+  async getAvailableYears() {
+    const years = await this.prisma.systemConfig.findMany({
+      select: { schoolYear: true },
+      orderBy: { schoolYear: 'asc' }
+    });
+    
+    let yearList = years.map(y => y.schoolYear);
+    
+    // Sécurité : Si la base est vide (reset), on s'assure que les années par défaut existent
+    if (yearList.length === 0) {
+      await this.getSystemConfig("2023-2024");
+      await this.getSystemConfig("2024-2025");
+      yearList = ["2023-2024", "2024-2025"];
+    }
+    
+    return yearList;
+  }
+
+  async initializeYear(schoolYear: string, user: any) {
+    if (user.role !== Role.AS) {
+      throw new ForbiddenException('Action non autorisée');
+    }
+    
+    // 1. Créer le SystemConfig pour la nouvelle année
+    const systemConfig = await this.getSystemConfig(schoolYear);
+    
+    // 2. Créer les GameConfig par défaut pour toutes les instances existantes
+    const instances = await this.prisma.instance.findMany();
+    for (const inst of instances) {
+      await this.getGameConfig(inst.id, schoolYear, user);
+    }
+    
+    return systemConfig;
+  }
+
   async updateSystemConfig(data: any, schoolYear: string, user: any) {
     if (user.role !== Role.AS) {
       throw new ForbiddenException('Action non autorisée');

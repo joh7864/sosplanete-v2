@@ -25,9 +25,10 @@ interface CsvImportModalProps {
   instanceName: string;
   onClose: () => void;
   onImport: () => void;
+  schoolYear: string;
 }
 
-export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instanceId, instanceName, onClose, onImport }) => {
+export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instanceId, instanceName, onClose, onImport, schoolYear }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<any[]>([]);
   const [totalRows, setTotalRows] = useState(0);
@@ -95,7 +96,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
       }, 300);
 
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/import-csv?instanceId=${instanceId}`, {
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/import-csv?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -86,21 +86,35 @@ export class LegacyApiService {
     };
   }
 
-  async getInstanceId(origin?: string, instanceIdStr?: string): Promise<number> {
+  async getInstanceContext(origin?: string, instanceIdStr?: string): Promise<{ instanceId: number; schoolYear: string }> {
+    let instanceId: number | null = null;
     if (instanceIdStr) {
       const parsed = parseInt(instanceIdStr, 10);
-      if (!isNaN(parsed)) return parsed;
+      if (!isNaN(parsed)) instanceId = parsed;
     }
     
-    if (origin) {
+    if (!instanceId && origin) {
       const inst = await this.prisma.instance.findFirst({
         where: { hostUrl: { contains: origin }, isOpen: true }
       });
-      if (inst) return inst.id;
+      if (inst) instanceId = inst.id;
     }
-    const fallback = await this.prisma.instance.findFirst({ where: { isOpen: true } });
-    if (!fallback) throw new NotFoundException('Aucune école ouverte.');
-    return fallback.id;
+
+    if (!instanceId) {
+      const fallback = await this.prisma.instance.findFirst({ where: { isOpen: true } });
+      if (!fallback) throw new NotFoundException('Aucune école ouverte.');
+      instanceId = fallback.id;
+    }
+
+    const instance = await this.prisma.instance.findUnique({
+      where: { id: instanceId },
+      select: { currentSchoolYear: true }
+    });
+
+    return { 
+      instanceId, 
+      schoolYear: instance?.currentSchoolYear || "2024-2025" 
+    };
   }
 
   async getOpenPeriod(instanceId: number) {
@@ -110,9 +124,9 @@ export class LegacyApiService {
   }
 
   async getCategories(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const cats = await this.prisma.category.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       orderBy: { order: 'asc' }
     });
     return cats.map(c => ({
@@ -124,9 +138,9 @@ export class LegacyApiService {
 
   async getActionsByCategory(categoryId: string, origin?: string, instanceIdStr?: string) {
     const catId = parseInt(categoryId);
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const actions = await this.prisma.localAction.findMany({
-      where: { categoryId: catId, instanceId },
+      where: { categoryId: catId, instanceId, schoolYear },
       include: { actionRef: true }
     });
 
@@ -147,7 +161,7 @@ export class LegacyApiService {
   }
 
   async postActionDone(childId: string, payload: any, origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId } = await this.getInstanceContext(origin, instanceIdStr);
     const period = await this.getOpenPeriod(instanceId);
     
     // Support array payload format used by game v1
@@ -212,15 +226,7 @@ export class LegacyApiService {
   }
 
   async getImpact(weekId?: string, origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
-    
-    // Récupère l'année scolaire configurée pour cette école
-    const instance = await this.prisma.instance.findUnique({
-      where: { id: instanceId },
-      select: { currentSchoolYear: true }
-    });
-
-    const schoolYear = instance?.currentSchoolYear || "2024-2025";
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const impactData: any = await this.impactService.calculateImpact(schoolYear, instanceId);
 
     // Formate les données pour l'affichage attendu par le jeu V1
@@ -245,9 +251,9 @@ export class LegacyApiService {
   }
 
   async getTeams(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const teams = await this.prisma.team.findMany({
-      where: { instanceId }
+      where: { instanceId, schoolYear }
     });
     return teams.map(t => ({
       id: t.id.toString(),
@@ -258,18 +264,12 @@ export class LegacyApiService {
   }
 
   async getTeamsTotal(weekId: string, origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
-    const period = await this.prisma.period.findFirst({ where: { instanceId, isOpen: true } });
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
+    const period = await this.prisma.period.findFirst({ where: { instanceId, schoolYear, isOpen: true } });
     if (!period) return [];
 
-    const instance = await this.prisma.instance.findUnique({
-      where: { id: instanceId },
-      select: { currentSchoolYear: true }
-    });
-    const schoolYear = instance?.currentSchoolYear || "2024-2025";
-
     const teams = await this.prisma.team.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       include: {
         groups: {
           include: {
@@ -311,7 +311,7 @@ export class LegacyApiService {
   }
 
   async getSchool(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId } = await this.getInstanceContext(origin, instanceIdStr);
     const inst = await this.prisma.instance.findUnique({ where: { id: instanceId } });
     if (!inst) throw new NotFoundException('Ecole introuvable');
     return {
@@ -322,8 +322,8 @@ export class LegacyApiService {
   }
 
   async getWeek(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
-    const period = await this.prisma.period.findFirst({ where: { instanceId, isOpen: true } });
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
+    const period = await this.prisma.period.findFirst({ where: { instanceId, schoolYear, isOpen: true } });
     if (!period) return {};
     return {
       id: period.id.toString(),
@@ -337,10 +337,10 @@ export class LegacyApiService {
   }
 
   async getChildren(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const children = await this.prisma.child.findMany({
       where: {
-        group: { team: { instanceId } }
+        group: { team: { instanceId, schoolYear } }
       },
       include: { group: { include: { team: true } } }
     });
@@ -377,9 +377,9 @@ export class LegacyApiService {
   }
 
   async getActions(origin?: string, instanceIdStr?: string) {
-    const instanceId = await this.getInstanceId(origin, instanceIdStr);
+    const { instanceId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const actions = await this.prisma.localAction.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       include: { actionRef: true }
     });
     return actions.map(a => ({

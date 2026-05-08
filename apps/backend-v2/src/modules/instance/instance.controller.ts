@@ -54,7 +54,7 @@ export class InstanceController {
   @ApiOperation({ summary: "Mettre à jour une école" })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateInstanceDto: UpdateInstanceDto,
+    @Body() updateInstanceDto: UpdateInstanceDto & { force?: boolean; schoolYear?: string },
   ) {
     return this.instanceService.update(id, updateInstanceDto);
   }

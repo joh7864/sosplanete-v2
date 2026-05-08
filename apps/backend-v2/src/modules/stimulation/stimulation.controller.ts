@@ -3,10 +3,23 @@ import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EcoBarRaceService } from './eco-bar-race.service';
+import { ApiOperation } from '@nestjs/swagger';
 
 @Controller('stimulation')
 @UseGuards(JwtAuthGuard)
 export class StimulationController {
+  @Get('years')
+  @ApiOperation({ summary: "Liste des années scolaires disponibles" })
+  getAvailableYears() {
+    return this.stimulationService.getAvailableYears();
+  }
+
+  @Post('initialize-year')
+  @ApiOperation({ summary: "Initialiser une nouvelle année scolaire (global)" })
+  initializeYear(@Body() data: { schoolYear: string }, @Request() req: any) {
+    return this.stimulationService.initializeYear(data.schoolYear, req.user);
+  }
+
   constructor(
     private readonly stimulationService: StimulationService,
     private readonly animalUnlockService: AnimalUnlockService,

@@ -7,6 +7,7 @@ import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { ChevronDown, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { InitializeYearModal } from '@/components/organization/InitializeYearModal';
 
 interface TopBarProps {
   title: React.ReactNode;
@@ -25,7 +26,10 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
   const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
   const [isYearOpen, setIsYearOpen] = useState(false);
 
-  const [availableYears, setAvailableYears] = useState(["2023-2024", "2024-2025"]);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [showInitConfirm, setShowInitConfirm] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [nextYear, setNextYear] = useState('');
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const showSettingsIcon = pathname === '/dashboard' || pathname.includes('/organization') || pathname.includes('/reference') || pathname.includes('/catalog');
@@ -50,20 +54,48 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
         console.error('Failed to fetch user context', e);
       }
     };
+    const fetchYears = async () => {
+      try {
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/years`, {
+          headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+        });
+        if (resp.ok) {
+          const years = await resp.json();
+          setAvailableYears(years);
+        }
+      } catch (e) {
+        console.error('Failed to fetch school years', e);
+      }
+    };
+
     fetchProfile();
+    fetchYears();
   }, []);
 
-  const handleCreateYear = async () => {
-    const lastYear = availableYears[availableYears.length - 1];
-    const [start, end] = lastYear.split('-').map(Number);
-    const nextYear = `${start + 1}-${end + 1}`;
-    
-    if (confirm(`Voulez-vous initialiser l'année scolaire ${nextYear} ?`)) {
-      setAvailableYears([...availableYears, nextYear]);
-      setSchoolYear(nextYear);
-      setAuthData('active_school_year', nextYear);
-      window.dispatchEvent(new Event('storage'));
-      setIsYearOpen(false);
+  const handleCreateYear = async (year: string) => {
+    setIsInitializing(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/initialize-year`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}` 
+        },
+        body: JSON.stringify({ schoolYear: year }),
+      });
+      
+      if (resp.ok) {
+        setAvailableYears(prev => [...prev, year].sort());
+        setSchoolYear(year);
+        setAuthData('active_school_year', year);
+        window.dispatchEvent(new Event('storage'));
+        setIsYearOpen(false);
+        setShowInitConfirm(false);
+      }
+    } catch (e) {
+      console.error('Failed to initialize year', e);
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -129,12 +161,17 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
                   ))}
                   
                   {userRole === 'AS' && (
-                    <button
-                      onClick={handleCreateYear}
-                      className="w-full flex items-center gap-2 px-4 py-2 mt-2 rounded-xl text-[11px] font-black text-emerald-600 hover:bg-emerald-50 transition-all border-t border-slate-50 pt-3"
-                    >
-                      <Plus size={14} /> Initialiser nouvelle année
-                    </button>
+                    <div className="border-t border-slate-50 mt-2 pt-2">
+                      <button
+                        onClick={() => {
+                          setShowInitConfirm(true);
+                          setIsYearOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black text-emerald-600 hover:bg-emerald-50 transition-all"
+                      >
+                        <Plus size={14} /> Nouvelle année
+                      </button>
+                    </div>
                   )}
                 </motion.div>
               )}
@@ -189,6 +226,14 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
             </button>
         </div>
       </div>
+      
+      <InitializeYearModal 
+        isOpen={showInitConfirm}
+        onClose={() => setShowInitConfirm(false)}
+        onConfirm={handleCreateYear}
+        currentYears={availableYears}
+        isLoading={isInitializing}
+      />
      </div>
 
      {/* Bottom Content for Tabs etc. */}

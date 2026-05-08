@@ -15,10 +15,30 @@ export class AuthService {
       where: { email },
       include: { managedInstances: true }
     });
-    if (user && (await bcrypt.compare(pass, user.password))) {
+    
+    if (!user) return null;
+
+    // 1. Essai bcrypt
+    const isBcryptValid = await bcrypt.compare(pass, user.password);
+    
+    if (isBcryptValid) {
       const { password, ...result } = user;
       return result;
     }
+
+    // 2. Fallback : est-ce un mot de passe en clair (legacy) ?
+    const isLikelyBcrypt = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
+    if (!isLikelyBcrypt && pass === user.password) {
+      // SEC-02 — Migration automatique : rehash à la volée
+      const upgraded = await bcrypt.hash(pass, 10);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: upgraded }
+      });
+      const { password, ...result } = user;
+      return result;
+    }
+
     return null;
   }
 

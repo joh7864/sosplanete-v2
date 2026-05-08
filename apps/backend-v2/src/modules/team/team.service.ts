@@ -253,8 +253,8 @@ export class TeamService {
   async updateChild(id: number, data: { pseudo?: string, password?: string }) {
     const updateData: { pseudo?: string, password?: string | null } = {};
     if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
-    if (data.password !== undefined) {
-      updateData.password = data.password ? await bcrypt.hash(data.password, 10) : null;
+    if (data.password && data.password.trim() !== '') {
+      updateData.password = await bcrypt.hash(data.password, 10);
     }
     return this.prisma.child.update({
       where: { id },

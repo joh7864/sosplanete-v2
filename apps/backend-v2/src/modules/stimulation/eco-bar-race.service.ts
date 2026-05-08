@@ -16,7 +16,6 @@ export class EcoBarRaceService {
 
     // 1. Récupérer toutes les instances actives
     const instances = await this.prisma.instance.findMany({
-      where: { isOpen: true },
       select: { id: true, schoolName: true, icon: true }
     });
 
@@ -139,19 +138,9 @@ export class EcoBarRaceService {
     const updatedCount = [];
 
     for (let p = 1; p <= maxPeriodNumber; p++) {
-      // Vérifier si au moins une instance a des données pour cette période et cette année scolaire
-      const hasData = await this.prisma.actionDone.findFirst({
-        where: { 
-          period: { 
-            id: { gte: 0 },
-            schoolYear
-          } 
-        }
-      });
-
       try {
         const snapshot = await this.calculateRankingsForPeriod(p, schoolYear);
-        updatedCount.push(snapshot);
+        if (snapshot) updatedCount.push(snapshot);
       } catch (e) {
         this.logger.warn(`Période ${p} ignorée ou erreur : ${e.message}`);
       }
