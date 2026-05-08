@@ -38,13 +38,11 @@ export default function SettingsPage() {
 
 function SettingsContent() {
   type ActiveTab = 'profile' | 'users' | 'catalog' | 'data';
-  type ActiveDataTab = 'impact' | 'animals' | 'terreMometre';
 
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('tab') as ActiveTab) || 'profile';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
-  const [activeDataTab, setActiveDataTab] = useState<ActiveDataTab>('impact');
   const { schoolYear } = useSchoolYear();
 
   // Lecture du rôle via useSession (remplace le fetch manuel)
@@ -119,27 +117,17 @@ function SettingsContent() {
           />
         )}
 
-        {/* Données de calcul — pleine largeur */}
+        {/* Données de calcul — grille de cards, pleine largeur */}
         {activeTab === 'data' && isAS && (
           <div className="flex flex-col gap-6">
-            <div className="flex items-center gap-1 p-1 bg-white/80 rounded-2xl border border-slate-100 shadow-sm w-fit">
-              {([
-                { id: 'impact', label: 'Impact Annuel' },
-                { id: 'animals', label: 'Animaux' },
-                { id: 'terreMometre', label: 'Terre-momètre' },
-              ] as { id: ActiveDataTab; label: string }[]).map(sub => (
-                <button
-                  key={sub.id}
-                  onClick={() => setActiveDataTab(sub.id)}
-                  className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeDataTab === sub.id ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
-                >
-                  {sub.label}
-                </button>
-              ))}
+            {/* Impact Annuel : card principale, pleine largeur */}
+            <GlobalDataSettings schoolYear={schoolYear} />
+
+            {/* Animaux + Terre-momètre : 2 colonnes */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <AnimalsSettings schoolYear={schoolYear} />
+              <TerreMometreSettings schoolYear={schoolYear} />
             </div>
-            {activeDataTab === 'impact' && <GlobalDataSettings schoolYear={schoolYear} />}
-            {activeDataTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
-            {activeDataTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
           </div>
         )}
 
