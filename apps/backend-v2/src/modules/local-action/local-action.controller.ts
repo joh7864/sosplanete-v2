@@ -16,27 +16,30 @@ import { v4 as uuidv4 } from 'uuid';
 export class LocalActionController {
   constructor(private readonly localActionService: LocalActionService) {}
 
-  async create(@Body() body: { instanceId: number; actionRefId: number; customLabel?: string; categoryId?: number }, @Req() req: any) {
+  @Post()
+  @ApiOperation({ summary: "Créer une action personnalisée pour l'instance" })
+  async create(@Body() body: { instanceId: number; actionRefId: number; customLabel?: string; categoryId?: number; schoolYear?: string }, @Req() req: any) {
     return this.localActionService.create(body, req.user);
   }
 
   @Post('bulk-import')
   @ApiOperation({ summary: 'Importation en masse d\'actions du référentiel' })
-  async bulkImport(@Body() body: { instanceId: number; actionRefIds: number[] }, @Req() req: any) {
-    return this.localActionService.importFromRef(body.instanceId, body.actionRefIds, req.user);
+  async bulkImport(@Body() body: { instanceId: number; actionRefIds: number[]; schoolYear: string }, @Req() req: any) {
+    return this.localActionService.importFromRef(body.instanceId, body.actionRefIds, body.schoolYear, req.user);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lister le catalogue d\'actions de l\'instance' })
   @ApiQuery({ name: 'instanceId', type: Number })
-  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Req() req: any) {
-    return this.localActionService.findAll(instanceId, req.user);
+  @ApiQuery({ name: 'schoolYear', type: String, required: false })
+  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Req() req: any) {
+    return this.localActionService.findAll(instanceId, schoolYear, req.user);
   }
 
   @Post('import-codes')
   @ApiOperation({ summary: 'Importation en masse par codes' })
-  async importCodes(@Body() body: { instanceId: number; actions: any[] }, @Req() req: any) {
-    return this.localActionService.importByCodes(body.instanceId, body.actions, req.user);
+  async importCodes(@Body() body: { instanceId: number; actions: any[]; schoolYear: string }, @Req() req: any) {
+    return this.localActionService.importByCodes(body.instanceId, body.actions, body.schoolYear, req.user);
   }
 
   async update(@Param('id', ParseIntPipe) id: number, @Body() body: { label?: string, description?: string, image?: string, categoryId?: number }, @Req() req: any) {

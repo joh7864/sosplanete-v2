@@ -11,7 +11,7 @@ export class EcoBarRaceService {
    * Calcule et enregistre le classement global pour une période donnée.
    * Cette fonction compare toutes les instances (écoles) entre elles.
    */
-  async calculateRankingsForPeriod(periodNumber: number) {
+  async calculateRankingsForPeriod(periodNumber: number, schoolYear: string) {
     this.logger.log(`Calcul du classement Eco-Bar-Race pour la période ${periodNumber}...`);
 
     // 1. Récupérer toutes les instances actives
@@ -24,9 +24,9 @@ export class EcoBarRaceService {
     let snapshotDate: Date = new Date();
 
     for (const instance of instances) {
-      // Récupérer les N premières périodes de cette instance
+      // Récupérer les N premières périodes de cette instance pour cette année scolaire
       const periods = await this.prisma.period.findMany({
-        where: { instanceId: instance.id },
+        where: { instanceId: instance.id, schoolYear },
         orderBy: { startDate: 'asc' },
         take: periodNumber
       });
@@ -41,7 +41,7 @@ export class EcoBarRaceService {
       // Cumul des impacts enregistrés dans ActionDone
       const impacts = await this.prisma.actionDone.aggregate({
         where: { 
-          child: { group: { team: { instanceId: instance.id } } },
+          child: { group: { team: { instanceId: instance.id, schoolYear } } },
           periodId: { in: periodIds }
         },
         _sum: {
@@ -71,9 +71,9 @@ export class EcoBarRaceService {
       rank: index + 1
     }));
 
-    // 3. Sauvegarder le snapshot avec la vraie date de la période
+    // 3. Sauvegarder le snapshot avec la vraie date de la période et l'année scolaire
     const existing = await this.prisma.ecoBarRaceSnapshot.findFirst({
-      where: { period: periodNumber }
+      where: { period: periodNumber, schoolYear }
     });
 
     if (existing) {
@@ -89,6 +89,7 @@ export class EcoBarRaceService {
     return this.prisma.ecoBarRaceSnapshot.create({
       data: {
         period: periodNumber,
+        schoolYear,
         periodDate: snapshotDate,
         rankings: rankedResults as any
       }
@@ -98,8 +99,9 @@ export class EcoBarRaceService {
   /**
    * Récupère le dernier classement disponible
    */
-  async getLatestSnapshot() {
+  async getLatestSnapshot(schoolYear: string) {
     return this.prisma.ecoBarRaceSnapshot.findFirst({
+      where: { schoolYear },
       orderBy: { period: 'desc' }
     });
   }
@@ -110,8 +112,9 @@ export class EcoBarRaceService {
   /**
    * Récupère l'historique complet pour l'animation Bar Chart Race
    */
-  async getHistory() {
+  async getHistory(schoolYear: string) {
     return this.prisma.ecoBarRaceSnapshot.findMany({
+      where: { schoolYear },
       orderBy: { period: 'asc' }
     });
   }
@@ -119,8 +122,8 @@ export class EcoBarRaceService {
   /**
    * Recalcule l'intégralité de l'historique des snapshots.
    */
-  async recalculateAllHistory() {
-    this.logger.log('Début du recalcul COMPLET de l\'historique Eco-Bar-Race...');
+  async recalculateAllHistory(schoolYear: string) {
+    this.logger.log(`Début du recalcul COMPLET de l'historique Eco-Bar-Race pour ${schoolYear}...`);
     
     // Déterminer la période max parmi toutes les instances
     const maxPeriod = await this.prisma.period.aggregate({
@@ -136,13 +139,18 @@ export class EcoBarRaceService {
     const updatedCount = [];
 
     for (let p = 1; p <= maxPeriodNumber; p++) {
-      // Vérifier si au moins une instance a des données pour cette période
+      // Vérifier si au moins une instance a des données pour cette période et cette année scolaire
       const hasData = await this.prisma.actionDone.findFirst({
-        where: { period: { id: { gte: 0 } } } // Simplifié : on délègue au calculateRankingsForPeriod
+        where: { 
+          period: { 
+            id: { gte: 0 },
+            schoolYear
+          } 
+        }
       });
 
       try {
-        const snapshot = await this.calculateRankingsForPeriod(p);
+        const snapshot = await this.calculateRankingsForPeriod(p, schoolYear);
         updatedCount.push(snapshot);
       } catch (e) {
         this.logger.warn(`Période ${p} ignorée ou erreur : ${e.message}`);

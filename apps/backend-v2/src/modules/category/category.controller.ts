@@ -13,14 +13,14 @@ export class CategoryController {
 
   @Post()
   @ApiOperation({ summary: 'Creates a new category for an instance' })
-  create(@Body() body: { name: string; icon?: string; order?: number; instanceId: number }, @Req() req: any) {
+  create(@Body() body: { name: string; icon?: string; order?: number; instanceId: number; schoolYear?: string }, @Req() req: any) {
     return this.categoryService.create(body, req.user);
   }
 
   @Get()
   @ApiOperation({ summary: 'List categories of an instance' })
-  findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Req() req: any) {
-    return this.categoryService.findAll(instanceId, req.user);
+  findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Req() req: any) {
+    return this.categoryService.findAll(instanceId, req.user, schoolYear);
   }
 
   @Post('reorder')
@@ -37,8 +37,13 @@ export class CategoryController {
 
   @Post('import-csv')
   @ApiOperation({ summary: 'Bulk import categories for an instance from CSV' })
-  importCsv(@Query('instanceId', ParseIntPipe) instanceId: number, @Body() body: { csvContent: string }, @Req() req: any) {
-    return this.categoryService.importCsv(instanceId, body.csvContent, req.user);
+  importCsv(
+    @Query('instanceId', ParseIntPipe) instanceId: number, 
+    @Query('schoolYear') schoolYear: string,
+    @Body() body: { csvContent: string }, 
+    @Req() req: any
+  ) {
+    return this.categoryService.importCsv(instanceId, body.csvContent, schoolYear, req.user);
   }
 
   @Delete(':id')

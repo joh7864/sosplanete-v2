@@ -15,6 +15,7 @@ export class LocalActionService {
     actionRefId: number; 
     customLabel?: string; 
     categoryId?: number;
+    schoolYear?: string;
   }, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) {
@@ -30,25 +31,28 @@ export class LocalActionService {
         actionRefId: data.actionRefId,
         label: data.customLabel || actionRef.referenceName,
         categoryId: data.categoryId,
+        schoolYear: data.schoolYear,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any) {
+  async findAll(instanceId: number, schoolYear: string, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
+    const sy = schoolYear || "2024-2025";
+
     return this.prisma.localAction.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear: sy },
       include: {
         actionRef: true
       }
     });
   }
 
-  async importFromRef(instanceId: number, actionRefIds: number[], user: any) {
+  async importFromRef(instanceId: number, actionRefIds: number[], schoolYear: string, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
@@ -62,6 +66,7 @@ export class LocalActionService {
       instanceId,
       actionRefId: ref.id,
       label: ref.referenceName,
+      schoolYear,
     }));
 
     // On utilise createMany avec skipDuplicates car nous avons maintenant une contrainte @unique
@@ -71,7 +76,7 @@ export class LocalActionService {
     });
   }
 
-  async importByCodes(instanceId: number, actions: any[], user: any) {
+  async importByCodes(instanceId: number, actions: any[], schoolYear: string, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
@@ -80,9 +85,9 @@ export class LocalActionService {
       where: { code: { in: codes } }
     });
 
-    // Récupération des catégories existantes pour cet espace pour le mapping
+    // Récupération des catégories existantes pour cet espace et cette année scolaire pour le mapping
     const existingCategories = await this.prisma.category.findMany({
-      where: { instanceId }
+      where: { instanceId, schoolYear }
     });
 
     const results = [];
@@ -103,9 +108,10 @@ export class LocalActionService {
       // upsert pour mettre à jour si ça existe déjà ou créer
       const local = await this.prisma.localAction.upsert({
         where: {
-          instanceId_actionRefId: {
+          instanceId_actionRefId_schoolYear: {
             instanceId,
-            actionRefId: ref.id
+            actionRefId: ref.id,
+            schoolYear,
           }
         },
         update: {
@@ -120,7 +126,8 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || null,
-          categoryId: categoryId, // Association de la catégorie si trouvée
+          categoryId: categoryId,
+          schoolYear,
         }
       });
       results.push(local);

@@ -21,4 +21,9 @@ export class CreateTeamDto {
   @ApiProperty({ example: 1 })
   @IsNotEmpty()
   instanceId: number;
+
+  @ApiProperty({ example: '2024-2025', required: false })
+  @IsString()
+  @IsOptional()
+  schoolYear?: string;
 }

@@ -24,6 +24,60 @@ export const AuthProvider = ({ children }) => {
   const [errorAuthentification, setErrorAuthentification] = useState("");
   const [rootUrl, setrootUrl] = useState(appcfg.apiRootUrl);
   const [activeSchoolName, setActiveSchoolName] = useState(null);
+  const [instanceChoices, setInstanceChoices] = useState(null);
+
+  const finishLogin = (instanceId, schoolName, headers, loginPseudo) => {
+    const currentPseudo = loginPseudo || pseudo;
+    headers["x-instance-id"] = instanceId;
+    setActiveSchoolName(schoolName);
+    localStorage.setItem("instanceId", instanceId.toString());
+    localStorage.setItem("sos_last_instance_id", instanceId.toString());
+    
+    // récup de la période en cours
+    axios
+      .get(rootUrl + "/week", { headers })
+      .then((result) => {
+        setCurrentWeek(result.data);
+      })
+      .catch((error) => setCurrentWeek(null));
+
+    localStorage.setItem("inProgress", "on");
+    setErrorAuthentification("");
+
+    // Chargement des principales données
+    axios
+      .get(rootUrl + "/children", { headers })
+      .then((result) => setChildrens(result.data))
+      .catch((error) => setUser(null));
+
+    let url = rootUrl + "/children/" + currentPseudo + "/pseudo";
+    axios
+      .get(url, { headers })
+      .then((result) => {
+        setChildId(result.data.id);
+        axios
+          .get(rootUrl + "/child/" + result.data?.id, { headers })
+          .then((result) => {
+            setChildInfos(result.data);
+            axios
+              .get(rootUrl + "/teams", { headers })
+              .then((result) => {
+                setTeams(result.data);
+                axios
+                  .get(rootUrl + "/actions", { headers })
+                  .then((result) => setActions(result.data))
+                  .catch((error) => setTeams(null));
+                axios
+                  .get(rootUrl + "/school", { headers })
+                  .then((result) => setSchool(result.data))
+                  .catch((error) => setTeams(null));
+              })
+              .catch((error) => setTeams(null));
+          })
+          .catch((error) => setChildInfos(null));
+      })
+      .catch((error) => setChildId(null));
+  };
 
   const loginUser = async (userInfo) => {
     setLoading(true);
@@ -43,77 +97,21 @@ export const AuthProvider = ({ children }) => {
       await axios
         .get(rootUrl + "/check_auth", { headers })
         .then((result) => {
-          if (result.data.instanceId) {
-            headers["x-instance-id"] = result.data.instanceId;
-            setActiveSchoolName(result.data.schoolName);
-            localStorage.setItem("instanceId", result.data.instanceId.toString());
+          if (result.data.status === 'multiple_choices') {
+            const lastUsed = localStorage.getItem("sos_last_instance_id");
+            const choices = result.data.choices;
+            const autoChoice = lastUsed ? choices.find(c => c.instanceId.toString() === lastUsed) : null;
+            
+            if (autoChoice) {
+              finishLogin(autoChoice.instanceId, autoChoice.schoolName, headers, userInfo.pseudo);
+            } else {
+              setInstanceChoices(choices);
+              localStorage.setItem("inProgress", "on"); // keep auth alive
+              navigate("/discovery");
+            }
+          } else if (result.data.instanceId) {
+            finishLogin(result.data.instanceId, result.data.schoolName, headers, userInfo.pseudo);
           }
-
-          // récup de la période en cours
-          axios
-            .get(rootUrl + "/week", { headers })
-            .then((result) => {
-              setCurrentWeek(result.data);
-              console.log("Week :", result.data);
-            })
-            .catch((error) => setCurrentWeek(null));
-
-          console.log("OK, authentifié, on continue ! ");
-          localStorage.setItem("inProgress", "on");
-
-          setErrorAuthentification("");
-
-          // Chargement des principales données
-          // récup de la liste des enfant
-          axios
-            .get(rootUrl + "/children", { headers })
-            .then((result) => setChildrens(result.data))
-            .catch((error) => setUser(null));
-
-          // Construction des informations contexturlles de l'enfant
-          let url = rootUrl + "/children/" + userInfo.pseudo + "/pseudo";
-          axios
-            .get(url, { headers })
-            .then((result) => {
-              setChildId(result.data.id);
-              console.log("Id :", result.data);
-
-              axios
-                .get(rootUrl + "/child/" + result.data?.id, { headers })
-                .then((result) => {
-                  setChildInfos(result.data);
-                  console.log("Child infos :", result.data);
-
-                  // récup de la liste des équipes
-                  axios
-                    .get(rootUrl + "/teams", { headers })
-                    .then((result) => {
-                      setTeams(result.data);
-                      console.log("Teams :", result.data);
-
-                      // récup de la liste des actions
-                      axios
-                        .get(rootUrl + "/actions", { headers })
-                        .then((result) => {
-                          setActions(result.data);
-                          console.log("Actions :", result.data);
-
-                          // récup de la liste des actions
-                          axios
-                            .get(rootUrl + "/school", { headers })
-                            .then((result) => {
-                              setSchool(result.data);
-                              console.log("school :", result.data);
-                            })
-                            .catch((error) => setTeams(null));
-                        })
-                        .catch((error) => setTeams(null));
-                    })
-                    .catch((error) => setTeams(null));
-                })
-                .catch((error) => setChildInfos(null));
-            })
-            .catch((error) => setChildId(null));
         })
         .catch((error) => {
           setUser(null);
@@ -174,7 +172,9 @@ export const AuthProvider = ({ children }) => {
     childEquipeImage,
     rootUrl,
     activeSchoolName,
+    instanceChoices,
     loginUser,
+    finishLogin,
     logoutUser,
   };
 

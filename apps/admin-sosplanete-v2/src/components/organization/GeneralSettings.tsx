@@ -18,7 +18,7 @@ interface Period {
 
 import { useRouter } from 'next/navigation';
 
-export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { instanceId: number | null, currentInstance: any, onUpdate: () => void }) {
+export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolYear }: { instanceId: number | null, currentInstance: any, onUpdate: () => void, schoolYear: string }) {
   const router = useRouter();
   const isNew = !instanceId;
   const [saving, setSaving] = useState(false);
@@ -164,8 +164,12 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
       if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
     fetchAMUsers();
-    if (instanceId) fetchPeriods();
-  }, [currentInstance, instanceId]);
+    
+    if (instanceId) {
+      fetchPeriods();
+      fetchGameConfig();
+    }
+  }, [currentInstance, instanceId, schoolYear]);
 
   const fetchAMUsers = async () => {
     try {
@@ -177,9 +181,26 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
   const fetchPeriods = async () => {
     if (!instanceId) return;
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) {
         setPeriods(await resp.json());
+      }
+    } catch (e) {}
+  };
+
+  const fetchGameConfig = async () => {
+    if (!instanceId) return;
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.gameStartDate) setGameStartDate(new Date(data.gameStartDate).toISOString().split('T')[0]);
+        else setGameStartDate('');
+        
+        if (data.gameEndDate) setGameEndDate(new Date(data.gameEndDate).toISOString().split('T')[0]);
+        else setGameEndDate('');
+        
+        if (data.gamePeriodsCount) setGamePeriodsCount(data.gamePeriodsCount.toString());
       }
     } catch (e) {}
   };
@@ -203,15 +224,29 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
           hostUrl, 
           isOpen, 
           unlockedChapters: parseInt(unlockedChapters), 
-          adminId, 
-          gameStartDate: gameStartDate ? new Date(gameStartDate).toISOString() : null, 
-          gameEndDate: gameEndDate ? new Date(gameEndDate).toISOString() : null, 
-          gamePeriodsCount: calculatedWeeks 
+          adminId,
+          currentSchoolYear: schoolYear
         }),
       });
 
       if (resp.ok) {
         const data = await resp.json();
+        const finalInstanceId = isNew ? data.id : instanceId;
+
+        // Save GameConfig (dates)
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${finalInstanceId}&schoolYear=${schoolYear}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
+          body: JSON.stringify({
+            gameStartDate: gameStartDate ? new Date(gameStartDate).toISOString() : null,
+            gameEndDate: gameEndDate ? new Date(gameEndDate).toISOString() : null,
+            gamePeriodsCount: calculatedWeeks,
+            avgActionsPerChildPerPeriod: 8, // defaults or keep current
+            animalAdvanceMargin: 2,
+            bienveillanceThreshold: 0.40
+          })
+        });
+
         setStatus({ type: 'success', msg: isNew ? 'Espace créé avec succès !' : 'Paramètres enregistrés !' });
         setTimeout(() => setStatus(null), 3000);
         
@@ -297,7 +332,8 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate }: { ins
         body: JSON.stringify({ 
           startDate: nextStart.toISOString(), 
           endDate: nextEnd.toISOString(), 
-          instanceId: instanceId 
+          instanceId: instanceId,
+          schoolYear: schoolYear
         }),
       });
 

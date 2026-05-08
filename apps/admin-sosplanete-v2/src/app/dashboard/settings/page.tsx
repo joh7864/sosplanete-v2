@@ -36,8 +36,14 @@ export default function SettingsPage() {
 function SettingsContent() {
   const [activeTab, setActiveTab] = useState<'profile' | 'constants' | 'animals' | 'terreMometre'>('profile');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
 
   useEffect(() => {
+    const handleStorage = () => {
+      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
+    };
+    window.addEventListener('storage', handleStorage);
+    
     const fetchRole = async () => {
       try {
         const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
@@ -50,6 +56,7 @@ function SettingsContent() {
       } catch (e) { /* ignore */ }
     };
     fetchRole();
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   return (
@@ -101,9 +108,9 @@ function SettingsContent() {
       <div className="pb-20 pt-10">
         <div className="max-w-5xl mx-auto">
           {activeTab === 'profile' && <ProfileSection />}
-          {activeTab === 'constants' && <GlobalDataSettings />}
-          {activeTab === 'animals' && <AnimalsSettings />}
-          {activeTab === 'terreMometre' && <TerreMometreSettings />}
+          {activeTab === 'constants' && <GlobalDataSettings schoolYear={schoolYear} />}
+          {activeTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
+          {activeTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
         </div>
       </div>
     </>
@@ -379,11 +386,10 @@ function ProfileSection() {
   );
 }
 
-function GlobalDataSettings() {
+function GlobalDataSettings({ schoolYear }: { schoolYear: string }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(2025); // Année de fin (2024-2025)
   const [constants, setConstants] = useState({
     dActuel: 0,
     moyCo2Monde: 0,
@@ -392,7 +398,7 @@ function GlobalDataSettings() {
     popMonde: 0
   });
 
-  const years = [2024, 2025, 2026, 2027];
+  const selectedYear = parseInt(schoolYear.split('-')[1]); // Année de fin
 
   useEffect(() => {
     fetchConstants(selectedYear);
@@ -401,9 +407,7 @@ function GlobalDataSettings() {
   const fetchConstants = async (year: number) => {
     setLoading(true);
     try {
-      // On cherche les données mondiales de l'année précédente (year - 1)
-      const dataYear = year - 1;
-      const constResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/impact/constants?year=${dataYear}`, {
+      const constResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/impact/constants?schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (constResp.ok) {
@@ -436,7 +440,7 @@ function GlobalDataSettings() {
           Authorization: `Bearer ${getAuthData('access_token')}`,
         },
         body: JSON.stringify({
-          year: selectedYear - 1,
+          schoolYear,
           dActuel: Number(constants.dActuel),
           moyCo2Monde: Number(constants.moyCo2Monde),
           moyEauMonde: Number(constants.moyEauMonde),
@@ -474,22 +478,9 @@ function GlobalDataSettings() {
             <div>
               <h2 className="text-xl font-black text-slate-800 tracking-tight">Constantes d'Impact Mondiales</h2>
               <p className="text-sm font-medium text-slate-500">
-                Configuration des seuils planétaires de référence.
+                Configuration des seuils planétaires de référence pour l'année <strong>{schoolYear}</strong>.
               </p>
             </div>
-          </div>
-
-          <div className="flex flex-col items-end gap-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Année Scolaire du Bilan</label>
-            <select 
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-slate-100 border-none h-10 px-4 rounded-xl font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500/20"
-            >
-              {years.map(y => (
-                <option key={y} value={y}>{y-1}-{y}</option>
-              ))}
-            </select>
           </div>
         </div>
         
@@ -603,17 +594,75 @@ function GlobalDataSettings() {
   );
 }
 
-function AnimalsSettings() {
+function AnimalsSettings({ schoolYear }: { schoolYear: string }) {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [config, setConfig] = useState({
     avgActionsPerChildPerPeriod: 8,
     animalAdvanceMargin: 2,
     bienveillanceThreshold: 0.40
   });
 
+  useEffect(() => {
+    fetchConfig();
+  }, [schoolYear]);
+
+  const fetchConfig = async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data) {
+          setConfig({
+            avgActionsPerChildPerPeriod: data.avgActionsPerChildPerPeriod || 8,
+            animalAdvanceMargin: data.animalAdvanceMargin || 2,
+            bienveillanceThreshold: data.bienveillanceThreshold || 0.40
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+        body: JSON.stringify(config),
+      });
+      if (resp.ok) {
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <GlassCard className="p-10 rounded-3xl border-none shadow-2xl bg-white/95">
-      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-6">Paramètres Déblocage Animaux</h2>
-      <div className="space-y-4">
+      <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">Réglages Stimulation (Animaux)</h2>
+          <p className="text-sm font-medium text-slate-500">Configuration par défaut pour l'année {schoolYear}.</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-2">
            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Actions attendues par enfant par période</label>
            <Input 
@@ -642,11 +691,32 @@ function AnimalsSettings() {
            />
         </div>
       </div>
+      
+      <div className="flex justify-end items-center gap-4 mt-10 pt-6 border-t border-slate-100">
+        <AnimatePresence>
+          {success && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-emerald-600 font-bold text-xs">
+              Configuration enregistrée !
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <Button 
+          onClick={handleSave}
+          disabled={saving}
+          className="h-14 px-8 font-black rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-widest"
+        >
+          {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+          Enregistrer (Année {schoolYear})
+        </Button>
+      </div>
     </GlassCard>
   );
 }
 
-function TerreMometreSettings() {
+function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [config, setConfig] = useState({
     emissionsParHabitantAn: 11.0,
     temperatureMalade: 42.0,
@@ -654,10 +724,67 @@ function TerreMometreSettings() {
     populationReference: 68000000
   });
 
+  useEffect(() => {
+    fetchConfig();
+  }, [schoolYear]);
+
+  const fetchConfig = async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setConfig(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+        body: JSON.stringify(config),
+      });
+      if (resp.ok) {
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <Loader2 className="animate-spin text-emerald-600" size={32} />
+      </div>
+    );
+  }
+
   return (
     <GlassCard className="p-10 rounded-3xl border-none shadow-2xl bg-white/95">
-      <h2 className="text-xl font-black text-slate-800 tracking-tight mb-6">Paramètres Terre-momètre</h2>
-      <div className="space-y-4">
+      <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">Paramètres Terre-momètre</h2>
+          <p className="text-sm font-medium text-slate-500">Configuration mondiale pour l'année {schoolYear}.</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-2">
            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Émissions France par habitant/an (tCO2e)</label>
            <Input 
@@ -694,6 +821,24 @@ function TerreMometreSettings() {
              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
            />
         </div>
+      </div>
+
+      <div className="flex justify-end items-center gap-4 mt-10 pt-6 border-t border-slate-100">
+         <AnimatePresence>
+            {success && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-emerald-600 font-bold text-xs">
+                Configuration enregistrée !
+              </motion.div>
+            )}
+         </AnimatePresence>
+         <Button 
+            onClick={handleSave}
+            disabled={saving}
+            className="h-14 px-8 font-black rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-widest"
+         >
+            {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            Enregistrer (Année {schoolYear})
+         </Button>
       </div>
     </GlassCard>
   );

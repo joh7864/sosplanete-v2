@@ -20,25 +20,35 @@ export class InstanceService {
         schoolName: data.schoolName,
         hostUrl: data.hostUrl,
         adminId: data.adminId,
-        isOpen: data.isOpen ?? false,
+        isOpen: false, // Forcé à false par défaut pour les nouveaux espaces
+      },
+    });
+
+    // Création de la configuration de jeu par défaut pour la première année
+    await this.prisma.gameConfig.create({
+      data: {
+        instanceId: instance.id,
+        schoolYear: instance.currentSchoolYear,
         gameStartDate: data.gameStartDate,
         gameEndDate: data.gameEndDate,
         gamePeriodsCount: data.gamePeriodsCount ?? 24,
-      },
+      }
     });
 
 
     // Génération initiale des périodes
-    await this.syncPeriods(instance.id);
+    await this.syncPeriods(instance.id, instance.currentSchoolYear);
 
     return instance;
   }
 
-  async findAll(userId?: number, role?: string) {
+  async findAll(userId?: number, role?: string, schoolYear?: string) {
     const where: any = {};
     if (role === 'AM' && userId) {
       where.adminId = userId;
     }
+
+    const sy = schoolYear || "2024-2025";
 
     const instances = await this.prisma.instance.findMany({
       where,
@@ -54,23 +64,26 @@ export class InstanceService {
         },
         _count: {
           select: {
-            teams: true,
-            localActions: true,
-            periods: true
+            teams: { where: { schoolYear: sy } },
+            localActions: { where: { schoolYear: sy } },
+            periods: { where: { schoolYear: sy } }
           }
         }
       },
     });
 
     return Promise.all(instances.map(async (instance) => {
-      // Compte total des joueurs dans l'instance
+      // Compte total des joueurs dans l'instance pour l'année choisie
       const playersCount = await this.prisma.child.count({
-        where: { group: { team: { instanceId: instance.id } } }
+        where: { group: { team: { instanceId: instance.id, schoolYear: sy } } }
       });
 
-      // Comptage exact du nombre d'actions réalisées
+      // Comptage exact du nombre d'actions réalisées pour l'année choisie
       const totalActionsDone = await this.prisma.actionDone.count({
-        where: { child: { group: { team: { instanceId: instance.id } } } }
+        where: { 
+          child: { group: { team: { instanceId: instance.id, schoolYear: sy } } },
+          period: { schoolYear: sy }
+        }
       });
 
       // Somme des impacts de ces actions
@@ -80,7 +93,10 @@ export class InstanceService {
           savedWater: true,
           savedWaste: true
         },
-        where: { child: { group: { team: { instanceId: instance.id } } } }
+        where: { 
+          child: { group: { team: { instanceId: instance.id, schoolYear: sy } } },
+          period: { schoolYear: sy }
+        }
       });
 
       return {
@@ -128,34 +144,50 @@ export class InstanceService {
     return instance;
   }
 
-  async update(id: number, data: UpdateInstanceDto) {
-    if (data.gameStartDate && typeof data.gameStartDate === 'string') {
-      data.gameStartDate = new Date(data.gameStartDate);
-    }
-    if (data.gameEndDate && typeof data.gameEndDate === 'string') {
-      data.gameEndDate = new Date(data.gameEndDate);
-    }
+  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string }) {
+    const { schoolYear, gameStartDate, gameEndDate, gamePeriodsCount, ...updateData } = data;
+
+    const sy = schoolYear || (await this.prisma.instance.findUnique({ where: { id } }))?.currentSchoolYear || "2024-2025";
 
     const updated = await this.prisma.instance.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
-    // Cascade fermeture
+    // Mise à jour de la configuration de jeu si nécessaire
+    if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
+      await this.prisma.gameConfig.upsert({
+        where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
+        update: {
+          ...(gameStartDate && { gameStartDate: new Date(gameStartDate) }),
+          ...(gameEndDate && { gameEndDate: new Date(gameEndDate) }),
+          ...(gamePeriodsCount !== undefined && { gamePeriodsCount }),
+        },
+        create: {
+          instanceId: id,
+          schoolYear: sy,
+          gameStartDate: gameStartDate ? new Date(gameStartDate) : undefined,
+          gameEndDate: gameEndDate ? new Date(gameEndDate) : undefined,
+          gamePeriodsCount: gamePeriodsCount ?? 24,
+        }
+      });
+    }
+
+    // Cascade fermeture (uniquement si demandé explicitement à false)
     if (data.isOpen === false) {
       await this.prisma.period.updateMany({
-        where: { instanceId: id },
+        where: { instanceId: id, schoolYear: schoolYear || updated.currentSchoolYear },
         data: { isOpen: false },
       });
     }
 
     if (data.gameStartDate !== undefined || data.gameEndDate !== undefined || data.gamePeriodsCount !== undefined) {
-      await this.syncPeriods(id);
+      await this.syncPeriods(id, schoolYear || updated.currentSchoolYear);
     }
 
     // Toujours forcer l'activation dynamique de la période courante à l'ouverture
     if (updated.isOpen === true) {
-      await this.handleCurrentPeriodActivation(id);
+      await this.handleCurrentPeriodActivation(id, schoolYear || updated.currentSchoolYear);
     }
 
     return updated;
@@ -179,122 +211,48 @@ export class InstanceService {
     return { startDate, endDate };
   }
 
-  private async handleCurrentPeriodActivation(instanceId: number) {
+  private async handleCurrentPeriodActivation(instanceId: number, schoolYear: string) {
     const now = new Date();
     const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
     if (!instance) return;
 
     const boundaries = this.getPeriodBoundaries(now);
 
-    if (instance.gameEndDate && instance.gameEndDate < now) {
-      // Rallonger de 3 périodes
-      const p1Start = boundaries.startDate;
-      const p1End = boundaries.endDate;
+    // Recherche de la période active dans l'année scolaire demandée
+    const period = await this.prisma.period.findFirst({
+      where: {
+        instanceId,
+        schoolYear,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+    });
 
-      const p2Start = new Date(p1Start.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const p2End = new Date(p1End.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      const p3Start = new Date(p2Start.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const p3End = new Date(p2End.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      const dates = [
-        { start: p1Start, end: p1End, open: true },
-        { start: p2Start, end: p2End, open: false },
-        { start: p3Start, end: p3End, open: false }
-      ];
-
+    if (period) {
       await this.prisma.period.updateMany({
-        where: { instanceId, isOpen: true },
+        where: { instanceId, schoolYear, isOpen: true },
         data: { isOpen: false },
       });
-
-      for (const d of dates) {
-        const existing = await this.prisma.period.findFirst({
-          where: {
-            instanceId,
-            startDate: d.start,
-            endDate: d.end
-          }
-        });
-
-        if (existing) {
-          await this.prisma.period.update({
-            where: { id: existing.id },
-            data: { isOpen: d.open }
-          });
-        } else {
-          await this.prisma.period.create({
-            data: {
-              instanceId,
-              startDate: d.start,
-              endDate: d.end,
-              isOpen: d.open
-            }
-          });
-        }
-      }
-
-      const totalPeriods = await this.prisma.period.count({ where: { instanceId } });
-      await this.prisma.instance.update({
-        where: { id: instanceId },
-        data: {
-          gameEndDate: p3End,
-          gamePeriodsCount: totalPeriods
-        }
+      await this.prisma.period.update({
+        where: { id: period.id },
+        data: { isOpen: true },
       });
-
-    } else {
-      await this.prisma.period.updateMany({
-        where: { instanceId, isOpen: true },
-        data: { isOpen: false },
-      });
-
-      const period = await this.prisma.period.findFirst({
-        where: {
-          instanceId,
-          startDate: { lte: now },
-          endDate: { gte: now },
-        },
-      });
-
-      if (period) {
-        await this.prisma.period.update({
-          where: { id: period.id },
-          data: { isOpen: true },
-        });
-      } else {
-        await this.prisma.period.create({
-          data: {
-            instanceId,
-            startDate: boundaries.startDate,
-            endDate: boundaries.endDate,
-            isOpen: true,
-          },
-        });
-        const totalPeriods = await this.prisma.period.count({ where: { instanceId } });
-        await this.prisma.instance.update({
-          where: { id: instanceId },
-          data: { gamePeriodsCount: totalPeriods }
-        });
-      }
     }
   }
 
 
-  private async syncPeriods(instanceId: number) {
-    const instance = await this.prisma.instance.findUnique({
-      where: { id: instanceId },
+  private async syncPeriods(instanceId: number, schoolYear: string) {
+    const config = await this.prisma.gameConfig.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } }
     });
 
-    if (!instance || !instance.gameStartDate) return;
+    if (!config || !config.gameStartDate || !config.gameEndDate) return;
 
-    const gameStart = new Date(instance.gameStartDate);
-    const gameEnd = instance.gameEndDate 
-      ? new Date(instance.gameEndDate) 
-      : new Date(gameStart.getTime() + (instance.gamePeriodsCount || 24) * 7 * 24 * 60 * 60 * 1000);
+    const gameStart = new Date(config.gameStartDate);
+    const gameEnd = new Date(config.gameEndDate);
 
     const currentPeriods = await this.prisma.period.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       orderBy: { startDate: 'asc' },
     });
 
@@ -321,7 +279,7 @@ export class InstanceService {
         });
       } else {
         await this.prisma.period.create({
-          data: { instanceId, startDate: p.startDate, endDate: p.endDate, isOpen: false },
+          data: { instanceId, schoolYear, startDate: p.startDate, endDate: p.endDate, isOpen: false },
         });
       }
     }

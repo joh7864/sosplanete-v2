@@ -10,21 +10,21 @@ export class ImpactController {
   constructor(private readonly impactService: ImpactService) {}
 
   @Get('global')
-  async getGlobalImpact(@Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.calculateImpact(year, null);
+  async getGlobalImpact(@Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.calculateImpact(sy, null);
   }
 
   @Get('summary')
-  async getSummary(@Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.getImpactSummary(year);
+  async getSummary(@Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.getImpactSummary(sy);
   }
 
   @Get('constants')
-  async getAnnualConstants(@Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.getAnnualConstants(year);
+  async getAnnualConstants(@Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.getAnnualConstants(sy);
   }
 
   @Post('constants')
@@ -35,20 +35,20 @@ export class ImpactController {
   }
 
   @Get('history')
-  async getGlobalHistory(@Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.getImpactHistory(year, null);
+  async getGlobalHistory(@Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.getImpactHistory(sy, null);
   }
 
   @Get('history/:instanceId')
-  async getInstanceHistory(@Param('instanceId') instanceId: string, @Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.getImpactHistory(year, parseInt(instanceId, 10));
+  async getInstanceHistory(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.getImpactHistory(sy, parseInt(instanceId, 10));
   }
 
   @Get('instance/:instanceId')
-  async getInstanceImpact(@Param('instanceId') instanceId: string, @Query('year') yearStr?: string) {
-    const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
-    return this.impactService.calculateImpact(year, parseInt(instanceId, 10));
+  async getInstanceImpact(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.impactService.calculateImpact(sy, parseInt(instanceId, 10));
   }
 }

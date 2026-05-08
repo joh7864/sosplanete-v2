@@ -3,6 +3,7 @@ import React from "react";
 import appcfg from "../../config.js";
 
 function ScoresTeams({ teams, ecole }) {
+  if (!teams || !Array.isArray(teams)) return null;
   return (
     <>
       <div className="panel-container" style={{ width: "33%" }}>

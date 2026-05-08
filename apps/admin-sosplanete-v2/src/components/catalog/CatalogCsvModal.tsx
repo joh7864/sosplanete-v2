@@ -26,6 +26,7 @@ interface CatalogCsvModalProps {
   onClose: () => void;
   onImport: () => void;
   instanceId: number;
+  schoolYear: string;
 }
 
 interface CsvRow {
@@ -43,7 +44,7 @@ interface PreviewItem extends CsvRow {
   refCategory?: string;
 }
 
-export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClose, onImport, instanceId }) => {
+export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClose, onImport, instanceId, schoolYear }) => {
   const [step, setStep] = useState<'upload' | 'preview' | 'importing' | 'success'>('upload');
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -179,6 +180,7 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
         },
         body: JSON.stringify({
           instanceId,
+          schoolYear,
           actions: validActions
         })
       });

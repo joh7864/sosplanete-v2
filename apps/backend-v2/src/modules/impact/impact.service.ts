@@ -11,16 +11,33 @@ export class ImpactService {
    * Calculate impact for a specific year and optional instanceId.
    * If instanceId is null, calculates globally across all instances.
    */
-  async calculateImpact(year: number, instanceId: number | null = null) {
+  async calculateImpact(yearOrSchoolYear: number | string, instanceId: number | null = null) {
+    let year: number;
+    let schoolYearFilter: string | null = null;
+
+    if (typeof yearOrSchoolYear === 'string' && yearOrSchoolYear.includes('-')) {
+      schoolYearFilter = yearOrSchoolYear;
+      year = parseInt(yearOrSchoolYear.split('-')[0], 10);
+    } else {
+      year = Number(yearOrSchoolYear);
+    }
+
     try {
       // 1. Charger les constantes annuelles (DataRef)
-      const annualDataYear = year - 1; // 2025 utilise les données de 2024
-      const annualData = await this.prisma.annualImpactData.findUnique({
-        where: { year: annualDataYear },
+      // On cherche l'année de référence (ex: 2024 pour l'année scolaire 2024-2025)
+      // Si non trouvé, on prend la plus récente.
+      let annualData = await this.prisma.annualImpactData.findUnique({
+        where: { year },
       });
 
       if (!annualData) {
-        this.logger.warn(`Constantes Annuelles manquantes pour l'année ${annualDataYear}`);
+        annualData = await this.prisma.annualImpactData.findFirst({
+          orderBy: { year: 'desc' }
+        });
+      }
+
+      if (!annualData) {
+        this.logger.warn(`Aucune constante annuelle trouvée en base.`);
         return this.fallbackImpact();
       }
 
@@ -39,6 +56,11 @@ export class ImpactService {
       const actionFilter: any = {};
       if (instanceId !== null) {
         actionFilter.period = { instanceId };
+        if (schoolYearFilter) {
+          actionFilter.period.schoolYear = schoolYearFilter;
+        }
+      } else if (schoolYearFilter) {
+        actionFilter.period = { schoolYear: schoolYearFilter };
       }
       
       const actionsDone = await this.prisma.actionDone.findMany({
@@ -67,8 +89,11 @@ export class ImpactService {
       
       let gameDuration = 52; // Valeur par défaut pour une année scolaire complète
       if (instanceId !== null) {
-        const inst = await this.prisma.instance.findUnique({ where: { id: instanceId } });
-        gameDuration = inst?.gamePeriodsCount || 52;
+        const sy = schoolYearFilter || `${year}-${year + 1}`;
+        const config = await this.prisma.gameConfig.findUnique({ 
+          where: { instanceId_schoolYear: { instanceId, schoolYear: sy } } 
+        });
+        gameDuration = config?.gamePeriodsCount || 52;
       }
       
       const totalPossibleEntries = nbChildrenTotal * catalogSize * gameDuration;
@@ -177,10 +202,10 @@ export class ImpactService {
     }
   }
 
-  async getImpactSummary(year: number) {
+  async getImpactSummary(yearOrSchoolYear: string) {
     // 1. Récupérer toutes les instances pour calculer individuellement
     const instances = await this.prisma.instance.findMany({
-      select: { id: true, schoolName: true, gamePeriodsCount: true }
+      select: { id: true, schoolName: true }
     });
 
     const instancesImpact = [];
@@ -197,7 +222,7 @@ export class ImpactService {
     let sumProjWaste = 0;
 
     for (const inst of instances) {
-      const impact = await this.calculateImpact(year, inst.id);
+      const impact = await this.calculateImpact(yearOrSchoolYear, inst.id);
       const impactData = impact as any;
       
       instancesImpact.push({
@@ -234,6 +259,7 @@ export class ImpactService {
     
     // Formatage du Jour du Dépassement Moyen
     const avgJourAnnee = totalJourAnnee / count;
+    const year = parseInt(yearOrSchoolYear.split('-')[0], 10);
     const eodDate = new Date(`${year}-01-01`);
     eodDate.setDate(eodDate.getDate() + Math.floor(avgJourAnnee) - 1);
 
@@ -260,7 +286,8 @@ export class ImpactService {
     };
   }
 
-  async getAnnualConstants(year: number) {
+  async getAnnualConstants(schoolYear: string) {
+    const year = parseInt(schoolYear.split('-')[0], 10);
     let data = await this.prisma.annualImpactData.findUnique({ where: { year } });
     if (!data) {
       data = await this.prisma.annualImpactData.create({
@@ -271,7 +298,7 @@ export class ImpactService {
   }
 
   async updateAnnualConstants(payload: any) {
-    const year = payload.year || new Date().getFullYear();
+    const year = parseInt(payload.schoolYear.split('-')[0], 10);
     return this.prisma.annualImpactData.upsert({
       where: { year },
       update: {
@@ -301,6 +328,11 @@ export class ImpactService {
         totalWater: 0,
         totalWaste: 0,
       },
+      realSums: {
+        totalCo2: 0,
+        totalWater: 0,
+        totalWaste: 0,
+      },
       virtualChild: {
         avgCo2: 0,
         avgWater: 0,
@@ -322,8 +354,9 @@ export class ImpactService {
     };
   }
 
-  async getImpactHistory(year: number, targetInstanceId: number | null = null) {
+  async getImpactHistory(yearOrSchoolYear: string, targetInstanceId: number | null = null) {
     try {
+      const year = parseInt(yearOrSchoolYear.split('-')[0], 10);
       const annualDataYear = year - 1;
       const annualData = await this.prisma.annualImpactData.findUnique({
         where: { year: annualDataYear },
@@ -332,7 +365,7 @@ export class ImpactService {
       if (!annualData || !annualData.dActuel) return [];
 
       // Récupérer toutes les périodes de l'année scolaire, triées par date
-      const periodWhere: any = {};
+      const periodWhere: any = { schoolYear: yearOrSchoolYear };
       if (targetInstanceId !== null) {
         periodWhere.instanceId = targetInstanceId;
       }
@@ -357,14 +390,16 @@ export class ImpactService {
         }
       });
 
-      // Calculer le nombre total d'enfants
+      // Calculer le nombre total d'enfants (dans l'année scolaire demandée)
       let nbChildren = 1;
       if (targetInstanceId !== null) {
         nbChildren = await this.prisma.child.count({
-          where: { group: { team: { instanceId: targetInstanceId } } }
+          where: { group: { team: { instanceId: targetInstanceId, schoolYear: yearOrSchoolYear } } }
         }) || 1;
       } else {
-        nbChildren = await this.prisma.child.count() || 1;
+        nbChildren = await this.prisma.child.count({
+          where: { group: { team: { schoolYear: yearOrSchoolYear } } }
+        }) || 1;
       }
 
       const catalogSize = await this.prisma.actionRef.count() || 62;

@@ -18,6 +18,13 @@ export const LoginForm: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  React.useEffect(() => {
+    const token = getAuthData('access_token');
+    if (token) {
+      router.push('/dashboard');
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);

@@ -20,7 +20,7 @@ export class CategoryService {
     return this.normalizeString(icon);
   }
 
-  async create(data: { name: string; icon?: string; order?: number; instanceId: number }, user: any) {
+  async create(data: { name: string; icon?: string; order?: number; instanceId: number; schoolYear?: string }, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
@@ -30,16 +30,17 @@ export class CategoryService {
         icon: this.normalizeIcon(data.icon),
         order: data.order || 0,
         instanceId: data.instanceId,
+        schoolYear: data.schoolYear,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any) {
+  async findAll(instanceId: number, user: any, schoolYear?: string) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé');
 
     return this.prisma.category.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       include: {
         _count: {
           select: { localActions: true }
@@ -92,7 +93,7 @@ export class CategoryService {
     return { success: true };
   }
 
-  async importCsv(instanceId: number, csvContent: string, user: any) {
+  async importCsv(instanceId: number, csvContent: string, schoolYear: string, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé pour l\'import');
 
@@ -109,7 +110,7 @@ export class CategoryService {
 
     const stats = { created: 0, updated: 0 };
     const existingCategories = await this.prisma.category.findMany({
-      where: { instanceId }
+      where: { instanceId, schoolYear }
     });
 
     try {
@@ -139,6 +140,7 @@ export class CategoryService {
               data: { 
                 name: rawName, // On garde le nom original du CSV
                 instanceId, 
+                schoolYear,
                 icon: this.normalizeIcon(icon), 
                 order: isNaN(order) ? 0 : order 
               }

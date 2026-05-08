@@ -91,24 +91,21 @@ function TrackingContent() {
   const STATIC_COLS_WIDTH = 340; // Total des colonnes de gauche
 
 
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
-  const years = [2024, 2025, 2026, 2027];
+  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
 
   useEffect(() => {
     fetchInstances();
-    const savedYear = sessionStorage.getItem('sos_tracking_year');
-    if (savedYear) {
-      setSelectedYear(parseInt(savedYear, 10));
-    }
+    const handleStorage = () => {
+      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  useEffect(() => {
-    sessionStorage.setItem('sos_tracking_year', selectedYear.toString());
-  }, [selectedYear]);
 
   const fetchInstances = async () => {
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances?schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -138,12 +135,12 @@ function TrackingContent() {
     const handleClickOutside = () => setShowInstanceSelector(false);
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
-  }, [instanceId, selectedYear]); // On refetch si l'année change aussi
+  }, [instanceId, schoolYear]); // On refetch si l'année change aussi
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}&year=${selectedYear}`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -160,7 +157,7 @@ function TrackingContent() {
     if (!instanceId) return;
     setIsRecalculating(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/recalculate`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/recalculate?schoolYear=${schoolYear}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
@@ -177,7 +174,7 @@ function TrackingContent() {
   const handleRecalculateEcoBarRace = async () => {
     setIsRecalculating(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/eco-bar-race/recalculate`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/eco-bar-race/recalculate?schoolYear=${schoolYear}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
@@ -197,7 +194,7 @@ function TrackingContent() {
         <TopBar title="Analyse des performances..." />
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <Loader2 size={48} className="animate-spin text-emerald-500" />
-          <p className="text-slate-500 font-medium">Récupération des données {selectedYear-1}-{selectedYear}...</p>
+          <p className="text-slate-500 font-medium">Récupération des données {schoolYear}...</p>
         </div>
       </div>
     );
@@ -331,35 +328,14 @@ function TrackingContent() {
         title={`Suivi jeux`} 
         actions={
           <div className="flex items-center gap-2">
-            {/* YEAR SELECTOR - ALWAYS VISIBLE */}
-            {/* SÉLECTEUR D'ANNÉE SCOLAIRE - UNIQUEMENT POUR L'IMPACT */}
             {activeTab === 'indicators' && (
-              <div className="flex items-center gap-2">
-                <div className="relative group">
-                  <div className="flex flex-col items-end mr-4">
-                    <div className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 transition-colors px-3 py-1.5 rounded-xl cursor-pointer">
-                      <Calendar size={14} className="text-emerald-500" />
-                      <select 
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(Number(e.target.value))}
-                        className="bg-transparent border-none font-black text-[11px] text-slate-700 outline-none cursor-pointer pr-1"
-                      >
-                        {years.map(y => (
-                          <option key={y} value={y}>{y-1}-{y}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => setHelpOpen(true)}
-                  className="p-2.5 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm flex items-center justify-center group"
-                  title="Comprendre le calcul de l'impact"
-                >
-                  <HelpCircle size={20} className="group-hover:rotate-12 transition-transform" />
-                </button>
-              </div>
+              <button 
+                onClick={() => setHelpOpen(true)}
+                className="p-2.5 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm flex items-center justify-center group"
+                title="Comprendre le calcul de l'impact"
+              >
+                <HelpCircle size={20} className="group-hover:rotate-12 transition-transform" />
+              </button>
             )}
 
             {userRole === 'AS' && instanceId && activeTab === 'actions' && (
@@ -786,6 +762,7 @@ function TrackingContent() {
         <ActionsImportModal 
             isOpen={showImportModal}
             instanceId={instanceId}
+            schoolYear={schoolYear}
             onClose={() => setShowImportModal(false)}
             onImport={() => fetchStats()}
         />
@@ -808,14 +785,14 @@ function TrackingContent() {
         <IndicatorsTab 
           instanceId={instanceId} 
           userRole={userRole} 
-          year={selectedYear} 
+          schoolYear={schoolYear} 
           helpOpen={helpOpen} 
           setHelpOpen={setHelpOpen} 
         />
       ) : activeTab === 'animals' ? (
-        <AnimalsTrackingTab instanceId={instanceId} refreshKey={animalsRefreshKey} />
+        <AnimalsTrackingTab instanceId={instanceId as number} refreshKey={animalsRefreshKey} schoolYear={schoolYear} />
       ) : (
-        <GraphicTrackingTab instanceId={instanceId} />
+        <GraphicTrackingTab instanceId={instanceId as number} schoolYear={schoolYear} />
       )}
     </div>
   );
@@ -823,7 +800,7 @@ function TrackingContent() {
 
 const ANIMAL_NAMES = ['', '🐿️ Écureuil', '🐺 Loup', '🦁 Lion', '🐻 Ours', '🐘 Éléphant', '🐟 Petits poissons', '🐟 Thon', '🦈 Requin', '🐳 Baleine'];
 
-function AnimalsTrackingTab({ instanceId, refreshKey }: { instanceId: number, refreshKey: number }) {
+function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId: number, refreshKey: number, schoolYear: string }) {
   const [history, setHistory] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
   const [gameConfig, setGameConfig] = useState<any>(null);
@@ -836,10 +813,10 @@ function AnimalsTrackingTab({ instanceId, refreshKey }: { instanceId: number, re
       try {
         const headers = { Authorization: `Bearer ${getAuthData('access_token')}` };
         const [currentResp, historyResp, configResp, periodsResp] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/current`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/history`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/current?schoolYear=${schoolYear}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/history?schoolYear=${schoolYear}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers }),
         ]);
 
         const [currentData, historyData] = await Promise.all([
@@ -861,7 +838,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey }: { instanceId: number, re
     };
 
     fetchData();
-  }, [instanceId, refreshKey]);
+  }, [instanceId, refreshKey, schoolYear]);
 
   // Construire les données graphique pour TOUTES les périodes de 1 à totalPeriods
   const chartData = Array.from({ length: totalPeriods || 1 }, (_, i) => {
@@ -1024,7 +1001,7 @@ const formatPeriodDate = (dateStr: string): string => {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '');
 };
 
-function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
+function GraphicTrackingTab({ instanceId, schoolYear }: { instanceId: number, schoolYear: string }) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
@@ -1034,7 +1011,7 @@ function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/eco-bar-race/history`, {
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/eco-bar-race/history?schoolYear=${schoolYear}`, {
           headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
         });
         if (resp.ok) {
@@ -1060,7 +1037,7 @@ function GraphicTrackingTab({ instanceId }: { instanceId: number }) {
       }
     };
     fetchHistory();
-  }, []);
+  }, [schoolYear]);
 
   // Lecteur automatique
   useEffect(() => {

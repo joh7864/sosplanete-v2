@@ -16,7 +16,7 @@ export class LegacyApiService {
   ) {}
 
   async checkAuthChild(pseudo: string, pass: string) {
-    const child = await this.prisma.child.findFirst({
+    const children = await this.prisma.child.findMany({
       where: { pseudo },
       include: {
         group: {
@@ -29,25 +29,46 @@ export class LegacyApiService {
       }
     });
 
-    if (!child) throw new UnauthorizedException('Enfant introuvable ou pseudo invalide');
+    if (children.length === 0) throw new UnauthorizedException('Enfant introuvable ou pseudo invalide');
 
-    let isValid = false;
-    if (child.password && await bcrypt.compare(pass, child.password)) {
-      isValid = true;
-    } else if (!child.password) {
-      if (pass === '' || pass === child.pseudo) isValid = true;
-    } else if (pass === child.password) {
-      isValid = true;
+    const validChildren = [];
+    for (const child of children) {
+      let isValid = false;
+      if (child.password && await bcrypt.compare(pass, child.password)) {
+        isValid = true;
+      } else if (!child.password) {
+        if (pass === '' || pass === child.pseudo) isValid = true;
+      } else if (pass === child.password) {
+        isValid = true;
+      }
+
+      if (isValid) {
+        validChildren.push(child);
+      }
     }
 
-    if (!isValid) throw new UnauthorizedException('Mot de passe incorrect');
+    if (validChildren.length === 0) throw new UnauthorizedException('Mot de passe incorrect');
 
+    if (validChildren.length === 1) {
+      const child = validChildren[0];
+      return {
+        status: 'success',
+        childId: child.id,
+        pseudo: child.pseudo,
+        instanceId: child.group.team.instance.id,
+        schoolName: child.group.team.instance.schoolName
+      };
+    }
+
+    // Si le joueur est présent dans plusieurs écoles avec le même pseudo/mot de passe
     return {
-      status: 'success',
-      childId: child.id,
-      pseudo: child.pseudo,
-      instanceId: child.group.team.instance.id,
-      schoolName: child.group.team.instance.schoolName
+      status: 'multiple_choices',
+      pseudo: pseudo,
+      choices: validChildren.map(child => ({
+        childId: child.id,
+        instanceId: child.group.team.instance.id,
+        schoolName: child.group.team.instance.schoolName
+      }))
     };
   }
 
@@ -105,6 +126,7 @@ export class LegacyApiService {
         id: a.id.toString(),
         name: a.label,
         points: points,
+        metadata: a.actionRef.weightedStars?.toString() || "0",
         icon: a.image ? `actions/${a.image}` : (a.actionRef.image ? `actions/${a.actionRef.image}` : '')
       };
     });
@@ -178,28 +200,33 @@ export class LegacyApiService {
   async getImpact(weekId?: string, origin?: string, instanceIdStr?: string) {
     const instanceId = await this.getInstanceId(origin, instanceIdStr);
     
-    // On appelle le nouveau ImpactService pour l'année en cours
-    const currentYear = new Date().getFullYear();
-    const impactData = await this.impactService.calculateImpact(currentYear, instanceId);
+    // Récupère l'année scolaire configurée pour cette école
+    const instance = await this.prisma.instance.findUnique({
+      where: { id: instanceId },
+      select: { currentSchoolYear: true }
+    });
+
+    const schoolYear = instance?.currentSchoolYear || "2024-2025";
+    const impactData: any = await this.impactService.calculateImpact(schoolYear, instanceId);
 
     // Formate les données pour l'affichage attendu par le jeu V1
     return {
-      ScoreGlobal: impactData.sums.totalCo2,
-      ScoreWater: impactData.sums.totalWater,
-      ScorePollution: impactData.sums.totalWaste,
-      totalCo2: impactData.sums.totalCo2,
-      totalWater: impactData.sums.totalWater,
-      totalWaste: impactData.sums.totalWaste,
+      scoreglobal: impactData.realSums.totalCo2,
+      scorewater: impactData.realSums.totalWater,
+      scorepollution: impactData.realSums.totalWaste,
+      totalCo2: impactData.realSums.totalCo2,
+      totalWater: impactData.realSums.totalWater,
+      totalWaste: impactData.realSums.totalWaste,
       
       // Résultats supplémentaires issus de la nouvelle logique
-      DepassementNombrePlanetes: impactData.results.nbPlanetes,
-      jourDepassementAvec: impactData.results.dateDepassement,
-      jourDepassementSans: impactData.results.dateDepassementSans,
+      depassementnombreplanetes: impactData.results.nbPlanetes,
+      jourdepassementavec: impactData.results.dateDepassement,
+      jourdepassementsans: impactData.results.dateDepassementSans,
       
       bravotitre: "Génial !",
       bravotext: `Vous avez un impact positif direct aujourd'hui : vos actions ont permis d'économiser collectivement des tonnes de CO2, beaucoup d'eau et d'éviter des déchets !`,
       deblocageanimal: "Continuez comme ça pour débloquer le prochain animal !",
-      animalnum: (await this.animalUnlockService.getCurrentUnlock(instanceId)).animalsUnlocked,
+      animalnum: (await this.animalUnlockService.getCurrentUnlock(instanceId, schoolYear)).animalsUnlocked,
     };
   }
 
@@ -212,7 +239,7 @@ export class LegacyApiService {
       id: t.id.toString(),
       name: t.name,
       color: t.color || '#40916C',
-      icon: t.icon ? `teams/${t.icon.split('/').pop()}` : 'teams/Chat.png' // Ajout du dossier et conservation de l'extension
+      icon: t.icon ? `teams/${t.icon.split('/').pop()}` : 'teams/Chat.png'
     }));
   }
 
@@ -220,6 +247,12 @@ export class LegacyApiService {
     const instanceId = await this.getInstanceId(origin, instanceIdStr);
     const period = await this.prisma.period.findFirst({ where: { instanceId, isOpen: true } });
     if (!period) return [];
+
+    const instance = await this.prisma.instance.findUnique({
+      where: { id: instanceId },
+      select: { currentSchoolYear: true }
+    });
+    const schoolYear = instance?.currentSchoolYear || "2024-2025";
 
     const teams = await this.prisma.team.findMany({
       where: { instanceId },
@@ -229,7 +262,9 @@ export class LegacyApiService {
             children: {
               include: {
                 actionsDone: {
-                  where: { periodId: period.id }
+                  where: {
+                    period: { schoolYear }
+                  }
                 }
               }
             }
@@ -240,18 +275,22 @@ export class LegacyApiService {
 
     return teams.map(t => {
       let total = 0;
+      let weekTotal = 0;
       t.groups.forEach(g => {
         g.children.forEach(c => {
+          total += c.actionsDone.length;
           c.actionsDone.forEach(a => {
-            total += Math.round(a.savedCo2 + a.savedWater + a.savedWaste);
+            if (a.periodId === period.id) {
+              weekTotal += 1;
+            }
           });
         });
       });
       return {
-        id: t.id.toString(), // Attendu par ScoresTotal / ScoresSemaine
+        id: t.id.toString(),
         team_id: t.id.toString(),
-        count_total: total, // Attendu par ScoresTotal
-        count_week: total,  // Attendu par ScoresSemaine (simplifié)
+        count_total: total,
+        count_week: weekTotal,
         total_points: total
       };
     });

@@ -51,18 +51,31 @@ export default function DashboardSummaryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<any | null>(null);
 
+  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
+
   useEffect(() => {
+    const handleStorage = () => {
+      setSchoolYear(getAuthData('active_school_year') || '2024-2025');
+    };
+    window.addEventListener('storage', handleStorage);
+    
     const role = getAuthData('user_role');
     setUserRole(role);
-    fetchInstances();
     if (role === 'AS') {
       fetchAMUsers();
     }
 
     const handleClickOutside = () => setActivePopoverId(null);
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('click', handleClickOutside);
+    };
   }, []);
+
+  useEffect(() => {
+    fetchInstances();
+  }, [schoolYear]);
 
   const fetchAMUsers = async () => {
     try {
@@ -81,7 +94,7 @@ export default function DashboardSummaryPage() {
   const fetchInstances = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances?schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {

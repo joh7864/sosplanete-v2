@@ -75,6 +75,7 @@ function OrganizationContent() {
   const [activePopoverId, setActivePopoverId] = useState<number | null>(null);
   const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [schoolYear, setSchoolYear] = useState(() => getAuthData('active_school_year') || '2024-2025');
 
   useEffect(() => {
     // Check managed instances
@@ -97,10 +98,26 @@ function OrganizationContent() {
       fetchAMUsers();
     }
 
+    const handleStorageChange = () => {
+      const year = getAuthData('active_school_year') || '2024-2025';
+      setSchoolYear(year);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
     const handleClickOutside = () => setActivePopoverId(null);
     window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [instanceId]);
+
+  useEffect(() => {
+    if (instanceId) {
+      fetchTeams();
+    }
+  }, [instanceId, schoolYear]);
 
   const fetchAMUsers = async () => {
     try {
@@ -161,17 +178,16 @@ function OrganizationContent() {
   };
 
   useEffect(() => {
-    if (instanceId) {
-      fetchTeams();
-    } else if (searchParams.get('new') === 'true') {
-      setLoading(false);
-    }
+    // Initial fetch handled by storage listener or direct call
+    const savedInstances = getAuthData('managed_instances');
+    if (savedInstances) setManagedInstances(JSON.parse(savedInstances));
   }, [instanceId]);
 
   const fetchTeams = async () => {
+    if (!instanceId) return;
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -547,11 +563,11 @@ function OrganizationContent() {
         ) : (
           <>
         {activeTab === 'general' ? (
-          <GeneralSettings instanceId={instanceId!} currentInstance={currentInstance} onUpdate={updateManagedInstances} />
+          <GeneralSettings instanceId={instanceId!} currentInstance={currentInstance} onUpdate={updateManagedInstances} schoolYear={schoolYear} />
         ) : activeTab === 'categories' ? (
-          <CategorySettings instanceId={instanceId!} />
+          <CategorySettings instanceId={instanceId!} schoolYear={schoolYear} />
         ) : activeTab === 'catalog' ? (
-          <CatalogMapping instanceId={instanceId!} />
+          <CatalogMapping instanceId={instanceId!} schoolYear={schoolYear} />
         ) : activeTab === 'teams' ? (
           <>
             {/* Global Stats Bar Integrated Actions */}

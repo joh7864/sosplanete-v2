@@ -53,9 +53,10 @@ import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils
 
 interface CatalogMappingProps {
   instanceId: number;
+  schoolYear: string;
 }
 
-export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) => {
+export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, schoolYear }) => {
   const [referenceActions, setReferenceActions] = useState<ActionRef[]>([]);
   const [localActions, setLocalActions] = useState<LocalAction[]>([]);
   const [instanceCategories, setInstanceCategories] = useState<any[]>([]);
@@ -84,7 +85,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
 
   useEffect(() => {
     fetchData();
-  }, [instanceId]);
+  }, [instanceId, schoolYear]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -94,10 +95,10 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions?instanceId=${instanceId}`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -121,7 +122,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ instanceId, actionRefIds: refIds })
+        body: JSON.stringify({ instanceId, actionRefIds: refIds, schoolYear })
       });
       if (response.ok) {
         fetchData();
@@ -368,6 +369,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId }) =>
         onClose={() => setShowCsvModal(false)}
         onImport={fetchData}
         instanceId={instanceId}
+        schoolYear={schoolYear}
       />
 
       <LocalActionEditModal 

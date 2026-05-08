@@ -21,18 +21,19 @@ export class TeamService {
         color: data.color,
         icon: data.icon,
         instanceId: data.instanceId,
+        schoolYear: data.schoolYear,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any) {
+  async findAll(instanceId: number, user: any, schoolYear?: string) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
     return this.prisma.team.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       orderBy: { name: 'asc' },
       include: {
         groups: {
@@ -40,7 +41,9 @@ export class TeamService {
           include: {
             children: {
               include: {
-                actionsDone: true
+                actionsDone: {
+                  where: schoolYear ? { period: { schoolYear } } : {}
+                }
               }
             },
             _count: {
@@ -91,7 +94,7 @@ export class TeamService {
    * Import massif depuis un CSV Advanced
    * Format: Equipe;Group;Pseudo;Password;logo equipe;couleur equipe;couleur groupe
    */
-  async importCsv(instanceId: number, csvContent: string, user: any) {
+  async importCsv(instanceId: number, csvContent: string, schoolYear: string, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Accès refusé pour l\'import');
@@ -128,7 +131,7 @@ export class TeamService {
 
           // 1. Gérer l'Équipe
           let team = await tx.team.findFirst({
-            where: { name: teamName, instanceId }
+            where: { name: teamName, instanceId, schoolYear }
           });
 
           if (!team) {
@@ -137,6 +140,7 @@ export class TeamService {
               data: { 
                 name: teamName, 
                 instanceId,
+                schoolYear,
                 color: teamColor,
                 icon: teamIcon
               }

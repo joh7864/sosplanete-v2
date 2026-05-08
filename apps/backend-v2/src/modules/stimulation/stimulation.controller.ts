@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Put, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Put, Request, Query } from '@nestjs/common';
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -14,49 +14,54 @@ export class StimulationController {
   ) {}
 
   @Get('system-config')
-  getSystemConfig() {
-    return this.stimulationService.getSystemConfig();
+  getSystemConfig(@Query('schoolYear') schoolYear: string) {
+    return this.stimulationService.getSystemConfig(schoolYear);
   }
 
   @Put('system-config')
-  updateSystemConfig(@Body() data: any, @Request() req: any) {
-    return this.stimulationService.updateSystemConfig(data, req.user);
+  updateSystemConfig(@Body() data: any, @Query('schoolYear') schoolYear: string, @Request() req: any) {
+    return this.stimulationService.updateSystemConfig(data, schoolYear, req.user);
   }
 
   @Get('game-config/:instanceId')
-  getGameConfig(@Param('instanceId') instanceId: string, @Request() req: any) {
-    return this.stimulationService.getGameConfig(+instanceId, req.user);
+  getGameConfig(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string, @Request() req: any) {
+    return this.stimulationService.getGameConfig(+instanceId, schoolYear, req.user);
   }
 
   @Put('game-config/:instanceId')
-  updateGameConfig(@Param('instanceId') instanceId: string, @Body() data: any, @Request() req: any) {
-    return this.stimulationService.updateGameConfig(+instanceId, data, req.user);
+  updateGameConfig(@Param('instanceId') instanceId: string, @Body() data: any, @Query('schoolYear') schoolYear: string, @Request() req: any) {
+    return this.stimulationService.updateGameConfig(+instanceId, data, schoolYear, req.user);
   }
 
   @Get('animals/:instanceId/history')
-  getAnimalUnlockHistory(@Param('instanceId') instanceId: string) {
-    return this.animalUnlockService.getUnlockHistory(+instanceId);
+  getAnimalUnlockHistory(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.animalUnlockService.getUnlockHistory(+instanceId, sy);
   }
 
   @Get('animals/:instanceId/current')
-  getCurrentAnimalUnlock(@Param('instanceId') instanceId: string) {
-    return this.animalUnlockService.getCurrentUnlock(+instanceId);
+  getCurrentAnimalUnlock(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.animalUnlockService.getCurrentUnlock(+instanceId, sy);
   }
 
   @Post('animals/:instanceId/recalculate')
-  recalculateAnimals(@Param('instanceId') instanceId: string) {
-    return this.animalUnlockService.recalculateAllPeriods(+instanceId);
+  recalculateAnimals(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.animalUnlockService.recalculateAllPeriods(+instanceId, sy);
   }
 
   // --- ECO-BAR-RACE ---
 
   @Get('eco-bar-race/history')
-  getEcoBarRaceHistory() {
-    return this.ecoBarRaceService.getHistory();
+  getEcoBarRaceHistory(@Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.ecoBarRaceService.getHistory(sy);
   }
 
   @Post('eco-bar-race/recalculate')
-  recalculateEcoBarRace() {
-    return this.ecoBarRaceService.recalculateAllHistory();
+  recalculateEcoBarRace(@Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.ecoBarRaceService.recalculateAllHistory(sy);
   }
 }

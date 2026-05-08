@@ -40,4 +40,9 @@ export class CreateInstanceDto {
   @IsInt()
   @IsOptional()
   gamePeriodsCount?: number;
+
+  @ApiProperty({ example: '2024-2025', required: false })
+  @IsString()
+  @IsOptional()
+  currentSchoolYear?: string;
 }

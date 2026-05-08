@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
 import { InstanceService } from './instance.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateInstanceDto } from './dto/create-instance.dto';
@@ -14,10 +14,15 @@ import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 
+import { YearService } from './year.service';
+
 @ApiTags('Instances (Écoles)')
 @Controller('instances')
 export class InstanceController {
-  constructor(private readonly instanceService: InstanceService) {}
+  constructor(
+    private readonly instanceService: InstanceService,
+    private readonly yearService: YearService
+  ) {}
 
   @Post()
   @ApiBearerAuth()
@@ -32,8 +37,8 @@ export class InstanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Liste des écoles (filtrée par rôle)" })
-  async findAll(@Request() req: any) {
-    return this.instanceService.findAll(req.user.userId, req.user.role);
+  async findAll(@Request() req: any, @Query('schoolYear') schoolYear: string) {
+    return this.instanceService.findAll(req.user.userId, req.user.role, schoolYear);
   }
 
   @Get(':id')
@@ -100,5 +105,16 @@ export class InstanceController {
     const iconUrl = `/uploads/icons/${file.filename}`;
     await this.instanceService.update(id, { icon: iconUrl });
     return { url: iconUrl };
+  }
+
+  @Post(':id/initialize-year')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Initialiser une nouvelle année scolaire (clonage configuration)" })
+  async initializeYear(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { targetYear: string },
+  ) {
+    return this.yearService.initializeYear(id, body.targetYear);
   }
 }

@@ -14,7 +14,7 @@ import Games from './Icons/GamePad'
 import Book from './Icons/Book'
 
 const NavBar = () => {
-	const { user, logoutUser, pseudo, currentWeek, activeSchoolName } = useAuth();
+	const { user, logoutUser, pseudo, currentWeek, activeSchoolName, instanceChoices } = useAuth();
 	const [showNavbar, setShowNavbar] = useState(false);
 	const [navbarItemSelected, setNavbarItemSelected] = useState("/fiche");
 
@@ -48,6 +48,18 @@ const NavBar = () => {
 							<NavBarMenu title="Quitter" icon={logout}/>
 							{activeSchoolName && <span style={{fontSize: '0.65rem', color: '#888', marginTop: '-4px', textAlign: 'center', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{activeSchoolName}</span>}
 						</div>
+
+						{instanceChoices && instanceChoices.length > 1 && (
+							<div onClick={() => {
+								localStorage.removeItem("sos_last_instance_id");
+								window.location.href = "/discovery";
+							}}>
+								<div className="header--link" style={{ flexDirection: 'column', display: 'flex', alignItems: 'center' }}>
+									<div className="item-menu-img-container" style={{ fontSize: '1.5rem', lineHeight: 1 }}>🏫</div>
+									<div className="item-menu-container" style={{ fontSize: '0.65rem', lineHeight: 1.1, textAlign: 'center' }}>Changer<br/>d'école</div>
+								</div>
+							</div>
+						)}
 						
 						<div onClick={() => handleMenuSelected("/fiche")}>
 							<Link to="/fiche" className={navbarItemSelected === "/fiche" ? "header--link active" : "header--link"}>

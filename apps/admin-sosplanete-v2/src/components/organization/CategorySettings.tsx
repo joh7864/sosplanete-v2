@@ -96,7 +96,7 @@ function SortableCategoryItem({
   );
 }
 
-export function CategorySettings({ instanceId }: { instanceId: number }) {
+export function CategorySettings({ instanceId, schoolYear }: { instanceId: number, schoolYear: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,12 +121,12 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
 
   useEffect(() => {
     fetchCategories();
-  }, [instanceId]);
+  }, [instanceId, schoolYear]);
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` }
       });
       if (resp.ok) setCategories(await resp.json());
@@ -175,6 +175,7 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
         },
         body: JSON.stringify({
           instanceId,
+          schoolYear,
           categoryIds: newOrder.map(c => c.id)
         })
       });
@@ -195,6 +196,7 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
       icon: icon.toLowerCase() || null,
       order: parseInt(order),
       instanceId,
+      schoolYear
     };
 
     try {
@@ -338,6 +340,7 @@ export function CategorySettings({ instanceId }: { instanceId: number }) {
         onClose={() => setShowImportModal(false)}
         instanceId={instanceId}
         instanceName="cet établissement"
+        schoolYear={schoolYear}
         onImport={fetchCategories}
       />
 

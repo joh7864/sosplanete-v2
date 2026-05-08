@@ -134,10 +134,10 @@ const ImpactMethodologyModal = ({ isOpen, onClose }: { isOpen: boolean, onClose:
 };
 
 // --- COMPOSANT PRINCIPAL ---
-export function IndicatorsTab({ instanceId, year, helpOpen, setHelpOpen }: { 
+export function IndicatorsTab({ instanceId, schoolYear, helpOpen, setHelpOpen }: { 
   instanceId: number | null, 
   userRole: string | null, 
-  year: number,
+  schoolYear: string,
   helpOpen: boolean,
   setHelpOpen: (open: boolean) => void
 }) {
@@ -150,13 +150,13 @@ export function IndicatorsTab({ instanceId, year, helpOpen, setHelpOpen }: {
   useEffect(() => {
     setMounted(true);
     fetchData();
-  }, [year, instanceId]);
+  }, [schoolYear, instanceId]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(false);
     try {
-      const summaryUrl = `${process.env.NEXT_PUBLIC_API_URL}/impact/summary?year=${year}`;
+      const summaryUrl = `${process.env.NEXT_PUBLIC_API_URL}/impact/summary?schoolYear=${schoolYear}`;
         
       const summaryResp = await fetch(summaryUrl, { 
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` } 
@@ -199,7 +199,7 @@ export function IndicatorsTab({ instanceId, year, helpOpen, setHelpOpen }: {
   if (error || !data) return (
     <div className="p-12 text-center bg-white rounded-2xl shadow-sm border border-slate-100 max-w-xl mx-auto">
       <Info className="mx-auto text-slate-300 mb-4" size={32} />
-      <p className="text-slate-500 font-bold text-sm tracking-tight">Analyse indisponible pour l'année {year}</p>
+      <p className="text-slate-500 font-bold text-sm tracking-tight">Analyse indisponible pour l'année {schoolYear}</p>
     </div>
   );
 

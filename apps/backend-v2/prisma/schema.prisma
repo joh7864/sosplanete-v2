@@ -59,6 +59,7 @@ model Category {
   icon         String?
   order        Int           @default(0)
   instanceId   Int
+  schoolYear   String?       // Année scolaire (ex: "2024-2025")
   instance     Instance      @relation(fields: [instanceId], references: [id])
   localActions LocalAction[]
 }
@@ -85,16 +86,13 @@ model Instance {
   icon       String?
   createdAt  DateTime @default(now())
 
-  // Paramètres du jeu
-  gameStartDate    DateTime?
-  gameEndDate      DateTime?
-  gamePeriodsCount Int       @default(24)
-  unlockedChapters Int       @default(0)
+  unlockedChapters  Int       @default(0)
+  currentSchoolYear String    @default("2024-2025") // Année scolaire active (ex: "2024-2025")
 
   // Stimulation v2
   animalUnlocks     InstanceAnimalUnlock[]
   terreThermometers TerreThermometerSnapshot[]
-  gameConfig        GameConfig?
+  gameConfigs       GameConfig[]
 
   // Admin local associé
   adminId Int?
@@ -113,6 +111,7 @@ model Team {
   color      String? // Code Hexa ou nom de couleur pastel
   icon       String? // Identifiant d'icône (Lucide ou SVG)
   instanceId Int
+  schoolYear String?  // Année scolaire
   instance   Instance @relation(fields: [instanceId], references: [id])
 
   groups Group[]
@@ -155,6 +154,7 @@ model LocalAction {
 
   // Appartenance à l'instance
   instanceId Int
+  schoolYear String?  // Année scolaire
   instance   Instance @relation(fields: [instanceId], references: [id])
 
   // Surcharges éventuelles des poids d'impact par instance
@@ -165,7 +165,7 @@ model LocalAction {
 
   actionsDone ActionDone[]
 
-  @@unique([instanceId, actionRefId])
+  @@unique([instanceId, actionRefId, schoolYear])
 }
 
 model Period {
@@ -174,6 +174,7 @@ model Period {
   endDate    DateTime
   isOpen     Boolean  @default(false)
   instanceId Int
+  schoolYear String?  // Rattachement à une année scolaire (ex: "2024-2025")
   instance   Instance @relation(fields: [instanceId], references: [id])
 
   actionsDone ActionDone[]
@@ -216,22 +217,33 @@ model AnimalRelease {
 
 // Paramètres de l'instance
 model GameConfig {
-  id                          Int   @id @default(autoincrement())
-  instanceId                  Int   @unique
-  avgActionsPerChildPerPeriod Int   @default(8)
-  animalAdvanceMargin         Int   @default(2)
-  bienveillanceThreshold      Float @default(0.40)
+  id                          Int      @id @default(autoincrement())
+  instanceId                  Int
+  schoolYear                  String   @default("2024-2025")
+  avgActionsPerChildPerPeriod Int      @default(8)
+  animalAdvanceMargin         Int      @default(2)
+  bienveillanceThreshold      Float    @default(0.40)
+  
+  // Paramètres du jeu (isolés par année)
+  gameStartDate    DateTime?
+  gameEndDate      DateTime?
+  gamePeriodsCount Int       @default(24)
 
   instance Instance @relation(fields: [instanceId], references: [id])
+
+  @@unique([instanceId, schoolYear])
 }
 
 // Paramètres Mondiaux
 model SystemConfig {
-  id                     Int   @id @default(autoincrement())
-  emissionsParHabitantAn Float @default(11.0)
-  temperatureMalade      Float @default(42.0)
-  temperatureSaine       Float @default(37.0)
-  populationReference    Int   @default(68000000)
+  id                     Int      @id @default(autoincrement())
+  schoolYear             String   @default("2024-2025")
+  emissionsParHabitantAn Float    @default(11.0)
+  temperatureMalade      Float    @default(42.0)
+  temperatureSaine       Float    @default(37.0)
+  populationReference    Int      @default(68000000)
+
+  @@unique([schoolYear])
 }
 
 model InstanceAnimalUnlock {
@@ -240,10 +252,11 @@ model InstanceAnimalUnlock {
   period       Int
   periodDate   DateTime
   animalsCount Int
+  schoolYear   String   @default("2024-2025")
   createdAt    DateTime @default(now())
   instance     Instance @relation(fields: [instanceId], references: [id])
 
-  @@unique([instanceId, period])
+  @@unique([instanceId, period, schoolYear])
 }
 
 model EcoBarRaceSnapshot {
@@ -251,7 +264,10 @@ model EcoBarRaceSnapshot {
   period     Int
   periodDate DateTime
   rankings   Json
+  schoolYear String   @default("2024-2025")
   createdAt  DateTime @default(now())
+
+  @@unique([period, schoolYear])
 }
 
 model TerreThermometerSnapshot {
@@ -262,6 +278,9 @@ model TerreThermometerSnapshot {
   temperatureValue  Float
   totalCo2Saved     Float
   nbChildrenPlaying Int
+  schoolYear        String   @default("2024-2025")
   createdAt         DateTime @default(now())
   instance          Instance @relation(fields: [instanceId], references: [id])
+
+  @@unique([instanceId, period, schoolYear])
 }

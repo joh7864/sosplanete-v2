@@ -21,8 +21,9 @@ export class TeamController {
   @Get()
   @ApiOperation({ summary: "Liste des équipes d'une instance" })
   @ApiQuery({ name: 'instanceId', type: Number })
-  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Request() req: any) {
-    return this.teamService.findAll(instanceId, req.user);
+  @ApiQuery({ name: 'schoolYear', type: String, required: false })
+  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Request() req: any) {
+    return this.teamService.findAll(instanceId, req.user, schoolYear);
   }
 
   @Patch(':id')
@@ -44,12 +45,14 @@ export class TeamController {
   @Post('import-csv')
   @ApiOperation({ summary: "Import massif d'équipes, groupes et joueurs via CSV" })
   @ApiQuery({ name: 'instanceId', type: Number })
+  @ApiQuery({ name: 'schoolYear', type: String })
   async importCsv(
     @Query('instanceId', ParseIntPipe) instanceId: number,
+    @Query('schoolYear') schoolYear: string,
     @Body() body: { csvContent: string },
     @Request() req: any,
   ) {
-    return this.teamService.importCsv(instanceId, body.csvContent, req.user);
+    return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user);
   }
 
   // --- BULK DELETE ---

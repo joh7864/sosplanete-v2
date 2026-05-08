@@ -6,7 +6,7 @@ import * as Papa from 'papaparse';
 export class TrackingService {
   constructor(private prisma: PrismaService) {}
 
-  async getTrackingStats(instanceId: number, year: number) {
+  async getTrackingStats(instanceId: number, schoolYear: string) {
     const instance = await this.prisma.instance.findUnique({
       where: { id: instanceId },
     });
@@ -15,12 +15,13 @@ export class TrackingService {
       throw new NotFoundException(`Instance #${instanceId} non trouvée`);
     }
 
-    const startOfYear = new Date(`${year}-08-01`);
-    const endOfYear = new Date(`${year + 1}-08-01`);
+    const config = await this.prisma.gameConfig.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } }
+    });
 
-    // 1. Récupérer les périodes réelles de l'instance
+    // 1. Récupérer les périodes réelles de l'instance pour cette année scolaire
     const dbPeriods = await this.prisma.period.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       orderBy: { startDate: 'asc' },
     });
 
@@ -28,7 +29,8 @@ export class TrackingService {
     const allPeriodIds = dbPeriods.map(p => p.id);
     const actions = await this.prisma.actionDone.findMany({
       where: {
-        child: { group: { team: { instanceId } } },
+        child: { group: { team: { instanceId, schoolYear } } },
+        period: { schoolYear },
         periodId: { in: allPeriodIds },
       },
     });
@@ -36,8 +38,9 @@ export class TrackingService {
     // Filtrer pour ne garder que les périodes dans le "count" officiel,
     // ou celles qui possèdent au moins une action.
     const activePeriodIds = new Set(actions.map(a => a.periodId));
+    const maxPeriodsCount = config?.gamePeriodsCount || 24;
     const periodsToDisplay = dbPeriods.filter((p, index) => 
-      index < (instance.gamePeriodsCount || 24) || activePeriodIds.has(p.id)
+      index < maxPeriodsCount || activePeriodIds.has(p.id)
     );
 
     const periodsCount = periodsToDisplay.length;
@@ -55,7 +58,7 @@ export class TrackingService {
 
     // 3. Récupérer tous les enfants
     const allChildren = await this.prisma.child.findMany({
-      where: { group: { team: { instanceId } } },
+      where: { group: { team: { instanceId, schoolYear } } },
       include: {
         group: {
           include: { team: true },
@@ -100,7 +103,7 @@ export class TrackingService {
 
     return {
       config: {
-        startDate: instance.gameStartDate?.toISOString() || startOfYear.toISOString(),
+        startDate: config?.gameStartDate?.toISOString() || new Date(new Date().getFullYear(), 0, 1).toISOString(),
         periodsCount,
       },
       periods: periodsHeader,
@@ -110,7 +113,7 @@ export class TrackingService {
     };
   }
 
-  async importActionsCsv(instanceId: number, csvContent: string) {
+  async importActionsCsv(instanceId: number, csvContent: string, schoolYear: string) {
     const results = Papa.parse(csvContent, {
       header: true,
       skipEmptyLines: true,
@@ -122,21 +125,22 @@ export class TrackingService {
     const validData: any[] = [];
 
     // 1. Récupération de l'instance pour les paramètres de jeu
-    const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
-    if (!instance) throw new NotFoundException(`Instance #${instanceId} non trouvée`);
-    const maxPeriods = instance.gamePeriodsCount || 24;
+    const config = await this.prisma.gameConfig.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } }
+    });
+    const maxPeriods = config?.gamePeriodsCount || 24;
 
     const [allChildren, allLocalActions, allActionRefs, allPeriods] = await Promise.all([
       this.prisma.child.findMany({
-        where: { group: { team: { instanceId } } },
+        where: { group: { team: { instanceId, schoolYear } } },
         include: { group: { include: { team: true } } },
       }),
       this.prisma.localAction.findMany({
-        where: { instanceId },
+        where: { instanceId, schoolYear },
       }),
       this.prisma.actionRef.findMany(),
       this.prisma.period.findMany({
-        where: { instanceId },
+        where: { instanceId, schoolYear },
       }),
     ]);
 
@@ -191,6 +195,7 @@ export class TrackingService {
             label: actionRef.referenceName,
             actionRefId: actionRef.id,
             instanceId,
+            schoolYear,
             specificCo2: actionRef.defaultCo2 || 0,
             specificWater: actionRef.defaultWater || 0,
             specificWaste: actionRef.defaultWaste || 0,
@@ -233,11 +238,12 @@ export class TrackingService {
       });
     }
 
-    // 5. Suppression des anciennes actions de l'instance
+    // 5. Suppression des anciennes actions de l'instance pour cette année scolaire uniquement
     if (validData.length > 0) {
       await this.prisma.actionDone.deleteMany({
         where: {
-          child: { group: { team: { instanceId } } },
+          period: { schoolYear },
+          child: { group: { team: { instanceId, schoolYear } } },
         },
       });
     }

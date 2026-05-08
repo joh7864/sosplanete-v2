@@ -42,6 +42,11 @@ import { StimulationModule } from './modules/stimulation/stimulation.module';
       {
         rootPath: process.env.UPLOADS_DIR ? join(process.env.UPLOADS_DIR, '..') : join(__dirname, '..', '..', '..'),
         serveRoot: '/',
+      },
+      {
+        // Route /static/ → pointe directement vers le dossier uploads (pour le jeu v1)
+        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
+        serveRoot: '/static',
       }
     ),
     LegacyApiModule,

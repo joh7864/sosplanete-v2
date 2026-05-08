@@ -7,9 +7,17 @@ import { Cron } from '@nestjs/schedule';
 export class PeriodService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { startDate: Date; endDate: Date; instanceId: number; isOpen?: boolean }, user: any) {
+  async create(data: { startDate: Date; endDate: Date; instanceId: number; isOpen?: boolean; schoolYear?: string }, user: any) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
+
+    // Récupération de l'année scolaire de l'instance si non fournie
+    let schoolYear = data.schoolYear;
+    if (!schoolYear) {
+      const inst = await this.prisma.instance.findUnique({ where: { id: data.instanceId }, select: { currentSchoolYear: true } });
+      schoolYear = inst?.currentSchoolYear || "2024-2025";
+    }
+
 
     if (data.isOpen) {
       // Ferme les autres si on ouvre celle-ci
@@ -37,16 +45,22 @@ export class PeriodService {
         endDate: new Date(data.endDate),
         isOpen: data.isOpen || false,
         instanceId: data.instanceId,
+        schoolYear: schoolYear,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any) {
+  async findAll(instanceId: number, user: any, schoolYear?: string) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé à cet espace');
 
+    const where: any = { instanceId };
+    if (schoolYear) {
+      where.schoolYear = schoolYear;
+    }
+
     return this.prisma.period.findMany({
-      where: { instanceId },
+      where,
       orderBy: { startDate: 'desc' },
       include: {
         _count: { select: { actionsDone: true } }
@@ -209,6 +223,7 @@ export class PeriodService {
               endDate: nextEndDate,
               isOpen: true,
               instanceId: period.instanceId,
+              schoolYear: period.schoolYear,
             }
           });
           console.log(`[CRON] Instance ${period.instanceId} : Période ${period.id} fermée. Nouvelle période créée du ${nextStartDate.toISOString()} au ${nextEndDate.toISOString()}.`);

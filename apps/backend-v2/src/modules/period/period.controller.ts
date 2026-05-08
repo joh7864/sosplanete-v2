@@ -19,8 +19,8 @@ export class PeriodController {
 
   @Get()
   @ApiOperation({ summary: 'Lister les périodes d\'une instance' })
-  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Req() req: any) {
-    return this.periodService.findAll(instanceId, req.user);
+  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Req() req: any) {
+    return this.periodService.findAll(instanceId, req.user, schoolYear);
   }
 
   @Get(':id/impact')
