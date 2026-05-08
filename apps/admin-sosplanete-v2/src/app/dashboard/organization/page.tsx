@@ -57,8 +57,7 @@ function OrganizationContent() {
   const urlInstanceId = searchParams.get('instanceId');
   
   const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedTeamId, setExpandedTeamId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false); // false par défaut : rien à charger sans instanceId
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'teams' | 'catalog' | 'categories'>(
     searchParams.get('tab') as any || 'general'
@@ -69,6 +68,15 @@ function OrganizationContent() {
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
 
   const [instanceId, setInstanceId] = useState<number | null>(urlInstanceId ? parseInt(urlInstanceId) : null);
+
+  // Bug #5a — Synchroniser le state avec les changements d'URL (ex: après création et router.push)
+  // Sans ce useEffect, la redirection post-création ne met pas à jour instanceId
+  // et l'écran reste bloqué sur "Sélectionnez un établissement"
+  useEffect(() => {
+    if (urlInstanceId) {
+      setInstanceId(parseInt(urlInstanceId));
+    }
+  }, [urlInstanceId]);
 
   const [managedInstances, setManagedInstances] = useState<any[]>([]);
   const [amUsers, setAmUsers] = useState<any[]>([]);
@@ -116,6 +124,9 @@ function OrganizationContent() {
   useEffect(() => {
     if (instanceId) {
       fetchTeams();
+    } else {
+      // Pas d'instance à charger : on s'assure que le loading ne reste pas bloqué
+      setLoading(false);
     }
   }, [instanceId, schoolYear]);
 

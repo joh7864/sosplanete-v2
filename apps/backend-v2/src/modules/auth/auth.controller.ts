@@ -3,7 +3,11 @@ import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
+import { Throttle } from '@nestjs/throttler';
 
+// SEC-07 — Limite stricte sur les routes d'auth pour éviter le brute-force
+// 10 tentatives max par minute et par IP (vs 100 pour le reste de l'API)
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 @ApiTags('Authentification')
 @Controller('auth')
 export class AuthController {

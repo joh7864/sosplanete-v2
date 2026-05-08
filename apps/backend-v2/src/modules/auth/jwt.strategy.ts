@@ -16,7 +16,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'sosplanete_secret_key_2026',
+      // SEC-01 — Secret lu depuis env uniquement. Le démarrage est bloqué en production si absent (voir main.ts)
+      secretOrKey: process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
     });
   }
 

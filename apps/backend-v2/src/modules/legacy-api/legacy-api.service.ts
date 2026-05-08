@@ -34,12 +34,13 @@ export class LegacyApiService {
     const validChildren = [];
     for (const child of children) {
       let isValid = false;
-      if (child.password && await bcrypt.compare(pass, child.password)) {
-        isValid = true;
-      } else if (!child.password) {
-        if (pass === '' || pass === child.pseudo) isValid = true;
-      } else if (pass === child.password) {
-        isValid = true;
+      if (child.password) {
+        // Mot de passe bcrypté (v2)
+        isValid = await bcrypt.compare(pass, child.password);
+      } else {
+        // SEC-02 — Legacy v1 : enfant sans mot de passe bcrypté
+        // On n'accepte plus les comparaisons en clair
+        isValid = pass === '' || pass === child.pseudo;
       }
 
       if (isValid) {

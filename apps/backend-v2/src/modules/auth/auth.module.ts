@@ -10,9 +10,12 @@ import { PrismaModule } from '../../prisma/prisma.module';
   imports: [
     PrismaModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'sosplanete_secret_key_2026',
-      signOptions: { expiresIn: '30d' },
+    // SEC-01 — Lecture dynamique du secret depuis les variables d'environnement
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
+        signOptions: { expiresIn: '30d' },
+      }),
     }),
   ],
   providers: [AuthService, JwtStrategy],

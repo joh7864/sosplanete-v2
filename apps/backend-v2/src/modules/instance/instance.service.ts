@@ -15,12 +15,18 @@ export class InstanceService {
       data.gameEndDate = new Date(data.gameEndDate);
     }
 
+    // Bug #1 — Éviter la violation de contrainte UNIQUE sur hostUrl
+    // Une chaîne vide "" n'est pas null : deux instances sans URL crasheraient
+    const sanitizedHostUrl = data.hostUrl?.trim() || null;
+
     const instance = await this.prisma.instance.create({
       data: {
         schoolName: data.schoolName,
-        hostUrl: data.hostUrl,
+        hostUrl: sanitizedHostUrl,
         adminId: data.adminId,
         isOpen: false, // Forcé à false par défaut pour les nouveaux espaces
+        // Bug #2 — Persister l'année scolaire active envoyée par le frontend
+        currentSchoolYear: data.currentSchoolYear ?? '2024-2025',
       },
     });
 
@@ -72,44 +78,64 @@ export class InstanceService {
       },
     });
 
-    return Promise.all(instances.map(async (instance) => {
-      // Compte total des joueurs dans l'instance pour l'année choisie
-      const playersCount = await this.prisma.child.count({
-        where: { group: { team: { instanceId: instance.id, schoolYear: sy } } }
-      });
+    const instanceIds = instances.map(i => i.id);
 
-      // Comptage exact du nombre d'actions réalisées pour l'année choisie
-      const totalActionsDone = await this.prisma.actionDone.count({
-        where: { 
-          child: { group: { team: { instanceId: instance.id, schoolYear: sy } } },
-          period: { schoolYear: sy }
-        }
-      });
+    // PERF-01 — Batch queries : 3 lots en parallèle au lieu de 3N requêtes séquentielles
+    const [playersData, actionsData, impactsData] = await Promise.all([
+      // Lot 1 : Nombre de joueurs par instance
+      Promise.all(
+        instanceIds.map(id =>
+          this.prisma.child
+            .count({ where: { group: { team: { instanceId: id, schoolYear: sy } } } })
+            .then(count => ({ id, count }))
+        )
+      ),
+      // Lot 2 : Nombre d'actions réalisées par instance
+      Promise.all(
+        instanceIds.map(id =>
+          this.prisma.actionDone
+            .count({
+              where: {
+                child: { group: { team: { instanceId: id, schoolYear: sy } } },
+                period: { schoolYear: sy },
+              },
+            })
+            .then(count => ({ id, count }))
+        )
+      ),
+      // Lot 3 : Somme des impacts par instance
+      Promise.all(
+        instanceIds.map(id =>
+          this.prisma.actionDone
+            .aggregate({
+              _sum: { savedCo2: true, savedWater: true, savedWaste: true },
+              where: {
+                child: { group: { team: { instanceId: id, schoolYear: sy } } },
+                period: { schoolYear: sy },
+              },
+            })
+            .then(agg => ({ id, agg }))
+        )
+      ),
+    ]);
 
-      // Somme des impacts de ces actions
-      const impactsAgg = await this.prisma.actionDone.aggregate({
-        _sum: {
-          savedCo2: true,
-          savedWater: true,
-          savedWaste: true
-        },
-        where: { 
-          child: { group: { team: { instanceId: instance.id, schoolYear: sy } } },
-          period: { schoolYear: sy }
-        }
-      });
+    const playersMap = new Map(playersData.map(d => [d.id, d.count]));
+    const actionsMap = new Map(actionsData.map(d => [d.id, d.count]));
+    const impactsMap = new Map(impactsData.map(d => [d.id, d.agg]));
 
+    return instances.map((instance) => {
+      const impactsAgg = impactsMap.get(instance.id);
       return {
         ...instance,
-        playersCount,
-        totalActionsDone,
+        playersCount: playersMap.get(instance.id) ?? 0,
+        totalActionsDone: actionsMap.get(instance.id) ?? 0,
         totalImpacts: {
-          co2: impactsAgg._sum.savedCo2 || 0,
-          water: impactsAgg._sum.savedWater || 0,
-          waste: impactsAgg._sum.savedWaste || 0
-        }
+          co2: impactsAgg?._sum.savedCo2 || 0,
+          water: impactsAgg?._sum.savedWater || 0,
+          waste: impactsAgg?._sum.savedWaste || 0,
+        },
       };
-    }));
+    });
   }
 
   async findOne(id: number) {

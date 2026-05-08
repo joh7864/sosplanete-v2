@@ -59,19 +59,18 @@ export class AuthService {
       }
     });
 
-    if (child) {
-      if (child.password && await bcrypt.compare(pass, child.password)) {
-        return child;
-      } else if (!child.password) {
-        // If password is not required or hardcoded check
-        // We'll assume the old system might have 'password' passed as plain text or no password
-        // Let's allow for either bcrypt match or direct match for now (or empty if none set)
-        if (pass === '' || pass === child.pseudo) return child;
-      } else if (pass === child.password) { // Plain text fallback
-        return child;
-      }
+    if (!child) return null;
+
+    if (child.password) {
+      // Mot de passe bcrypté (v2)
+      const isValid = await bcrypt.compare(pass, child.password);
+      return isValid ? child : null;
+    } else {
+      // SEC-02 — Enfant sans mot de passe (migration v1 non encore bcryptée)
+      // On accepte uniquement la chaîne vide ou le pseudo comme mot de passe vide
+      // Note : les passwords en clair stockés tels quels ne sont PLUS acceptés
+      return (pass === '' || pass === child.pseudo) ? child : null;
     }
-    return null;
   }
 
   async loginChild(child: any) {

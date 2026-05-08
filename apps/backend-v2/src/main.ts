@@ -4,13 +4,34 @@ import * as cookieParser from 'cookie-parser';
 import * as basicAuth from 'express-basic-auth';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import { ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
+  // SEC-01 — Bloquer le démarrage si JWT_SECRET n'est pas défini
+  if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[SÉCURITÉ] JWT_SECRET est absent. Arrêt du serveur en production.');
+    } else {
+      console.warn('⚠️  [DEV] JWT_SECRET non défini — un secret temporaire est utilisé. NE JAMAIS faire cela en production.');
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
   
   app.use(cookieParser());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
+
+  // SEC-03 — Validation globale des DTOs (active les décorateurs class-validator)
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,          // Supprime les propriétés non décorées (évite l'injection de champs inattendus)
+    forbidNonWhitelisted: false, // On reste permissif pour ne pas casser l'API legacy
+    transform: true,          // Convertit automatiquement les types (string → number, string → Date…)
+  }));
+
+  // SEC-04 — Filtre d'exception global (traduit erreurs Prisma, masque stacktraces)
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.enableCors({
     origin: [
       'https://sosplanete.nnauru.net',
@@ -31,17 +52,22 @@ async function bootstrap() {
   const swaggerUser = process.env.SWAGGER_USER || 'admin';
   const swaggerPass = process.env.SWAGGER_PASSWORD;
 
-  if (process.env.NODE_ENV === 'production' && !swaggerPass) {
-    console.warn('⚠️ WARNING: SWAGGER_PASSWORD is not set in production!');
+  if (!swaggerPass) {
+    if (process.env.NODE_ENV === 'production') {
+      // SEC-05 — En production sans SWAGGER_PASSWORD, on bloque l'accès complètement
+      console.warn('⚠️ WARNING: SWAGGER_PASSWORD non défini. Swagger désactivé en production.');
+      return; // Ne pas exposer Swagger
+    } else {
+      console.warn('⚠️  [DEV] SWAGGER_PASSWORD non défini — Swagger sans authentification en développement.');
+    }
   }
 
   app.use(
     ['/api', '/api-json'],
     basicAuth({
-      challenge: true,
-      users: {
-        [swaggerUser]: swaggerPass || "nnauruc'estch0ue!!e", // Fallback temporaire pour éviter de bloquer l'accès immédiatement
-      },
+      // SEC-05 — Plus de fallback hardcodé. En dev sans password, on désactive le challenge
+      challenge: !!swaggerPass,
+      users: swaggerPass ? { [swaggerUser]: swaggerPass } : {},
     }),
   );
 

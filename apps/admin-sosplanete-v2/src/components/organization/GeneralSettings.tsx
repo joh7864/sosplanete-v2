@@ -175,7 +175,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) setAmUsers((await resp.json()).filter((u: any) => u.role === 'AM' || u.role === 'AS'));
-    } catch (e) {}
+    } catch (e) {
+      console.error('[GeneralSettings] fetchAMUsers failed:', e);
+    }
   };
 
   const fetchPeriods = async () => {
@@ -185,13 +187,16 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       if (resp.ok) {
         setPeriods(await resp.json());
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('[GeneralSettings] fetchPeriods failed:', e);
+    }
   };
 
   const fetchGameConfig = async () => {
     if (!instanceId) return;
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
+      // Bug #3 — Correction URL : path param /:instanceId au lieu de ?instanceId=
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}?schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) {
         const data = await resp.json();
         if (data.gameStartDate) setGameStartDate(new Date(data.gameStartDate).toISOString().split('T')[0]);
@@ -202,7 +207,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
         
         if (data.gamePeriodsCount) setGamePeriodsCount(data.gamePeriodsCount.toString());
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('[GeneralSettings] fetchGameConfig failed:', e);
+    }
   };
 
   const handleSaveGeneral = async (e?: React.FormEvent) => {
@@ -225,7 +232,13 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           isOpen, 
           unlockedChapters: parseInt(unlockedChapters), 
           adminId,
-          currentSchoolYear: schoolYear
+          currentSchoolYear: schoolYear,
+          // Inclure les dates dans le corps instance pour déclencher syncPeriods() dans InstanceService
+          // StimulationService.updateGameConfig() ne déclenche pas la génération de périodes
+          ...(gameStartDate && { gameStartDate: new Date(gameStartDate).toISOString() }),
+          ...(gameEndDate && { gameEndDate: new Date(gameEndDate).toISOString() }),
+          ...(calculatedWeeks > 0 && { gamePeriodsCount: calculatedWeeks }),
+          schoolYear, // requis par update() pour cibler la bonne année dans syncPeriods()
         }),
       });
 
@@ -233,9 +246,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
         const data = await resp.json();
         const finalInstanceId = isNew ? data.id : instanceId;
 
-        // Save GameConfig (dates)
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config?instanceId=${finalInstanceId}&schoolYear=${schoolYear}`, {
-          method: 'POST',
+        // Bug #4 — Correction URL (path param) + méthode HTTP (PUT au lieu de POST)
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${finalInstanceId}?schoolYear=${schoolYear}`, {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
           body: JSON.stringify({
             gameStartDate: gameStartDate ? new Date(gameStartDate).toISOString() : null,
@@ -251,9 +264,14 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
         setTimeout(() => setStatus(null), 3000);
         
         if (isNew && data.id) {
-          // Si c'est une création, on redirige vers la page de l'instance
+          // Bug #5b — Rafraîchir la liste AVANT la redirection
+          // Sans cela, managedInstances ne contient pas encore la nouvelle instance
+          // et currentInstance serait undefined après le router.push
+          await onUpdate();
           router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
         } else {
+          // Rafraîchir les périodes pour afficher celles qui viennent d'être générées par syncPeriods()
+          fetchPeriods();
           onUpdate();
         }
       } else {

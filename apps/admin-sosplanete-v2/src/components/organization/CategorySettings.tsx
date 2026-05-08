@@ -130,7 +130,9 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` }
       });
       if (resp.ok) setCategories(await resp.json());
-    } catch (e) {} finally {
+    } catch (e) {
+      console.error('[CategorySettings] fetchCategories failed:', e);
+    } finally {
       setLoading(false);
     }
   };
@@ -207,7 +209,9 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
       });
       setShowModal(false);
       fetchCategories();
-    } catch (e) {} finally {
+    } catch (e) {
+      console.error('[CategorySettings] handleSave failed:', e);
+    } finally {
       setSaving(false);
     }
   };
@@ -219,7 +223,9 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` }
       });
       fetchCategories();
-    } catch (e) {} finally {
+    } catch (e) {
+      console.error('[CategorySettings] deleteCategory failed:', e);
+    } finally {
       setDeleteConfirm(null);
     }
   };

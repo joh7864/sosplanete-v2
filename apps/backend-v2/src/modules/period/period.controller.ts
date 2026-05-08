@@ -29,7 +29,7 @@ export class PeriodController {
     return this.periodService.getImpact(id, req.user);
   }
 
-  @Post(':id') // Keeping to REST if they want, but let's use Patch
+  @Post(':id') // Note : maintenu en POST pour compatibilité — idéalement devrait être @Patch
   @ApiOperation({ summary: 'Mettre à jour une période (ex: isOpen)' })
   async update(
     @Param('id', ParseIntPipe) id: number,
