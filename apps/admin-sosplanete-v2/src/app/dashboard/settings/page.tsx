@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/Input';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { getAssetUrl } from '@/utils/assets';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { UsersSection } from '@/components/settings/UsersSection';
+import { CatalogSection } from '@/components/settings/CatalogSection';
 
 export default function SettingsPage() {
   return (
@@ -35,9 +37,19 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'constants' | 'animals' | 'terreMometre'>('profile');
-  const [isAdmin, setIsAdmin] = useState(false);
+  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data';
+  type ActiveDataTab = 'impact' | 'animals' | 'terreMometre';
+
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get('tab') as ActiveTab) || 'profile';
+
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
+  const [activeDataTab, setActiveDataTab] = useState<ActiveDataTab>('impact');
   const { schoolYear } = useSchoolYear();
+
+  // Lecture du rôle via useSession (remplace le fetch manuel)
+  const [userRole, setUserRole] = useState<'AS' | 'AM' | null>(null);
+  const [instanceId, setInstanceId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -47,55 +59,51 @@ function SettingsContent() {
         });
         if (resp.ok) {
           const user = await resp.json();
-          setIsAdmin(user.role === 'AS');
+          setUserRole(user.role);
         }
       } catch (e) { /* ignore */ }
     };
     fetchRole();
+
+    // Récupération de l'instanceId active pour le mode AM
+    const savedId = typeof window !== 'undefined'
+      ? localStorage.getItem('active_instance_id')
+      : null;
+    if (savedId) setInstanceId(parseInt(savedId));
   }, []);
+
+  const isAS = userRole === 'AS';
+
+  const tabDef: { id: ActiveTab; label: string; icon: string; adminOnly?: boolean }[] = [
+    { id: 'profile', label: 'Mon profil', icon: '👤' },
+    { id: 'catalog', label: 'Catalogue', icon: '📚' },
+    { id: 'users', label: 'Utilisateurs', icon: '👥', adminOnly: true },
+    { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
+  ];
+
+  const visibleTabs = tabDef.filter(t => !t.adminOnly || isAS);
 
   return (
     <>
-      <TopBar 
-        title="Paramètres" 
-        subtitle={activeTab === 'profile' ? "Mon profil" : "Constantes d'impact mondiales"}
+      <TopBar
+        title="Paramètres"
+        subtitle={tabDef.find(t => t.id === activeTab)?.label}
         bottomContent={
           <>
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'profile' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
-            >
-              <User size={18} /> Mon profil
-              {activeTab === 'profile' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-0 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
-            </button>
-            {isAdmin && (
-              <>
-                <div className="w-px h-5 bg-slate-200 shrink-0" />
+            {visibleTabs.map((tab, idx) => (
+              <React.Fragment key={tab.id}>
+                {idx > 0 && <div className="w-px h-5 bg-slate-200 shrink-0" />}
                 <button
-                  onClick={() => setActiveTab('constants')}
-                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'constants' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === tab.id ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                 >
-                  <Globe size={18} /> Impact Annuel
-                  {activeTab === 'constants' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  {tab.label}
+                  {activeTab === tab.id && (
+                    <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
+                  )}
                 </button>
-                <div className="w-px h-5 bg-slate-200 shrink-0" />
-                <button
-                  onClick={() => setActiveTab('animals')}
-                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'animals' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
-                >
-                  Animaux
-                  {activeTab === 'animals' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
-                </button>
-                <div className="w-px h-5 bg-slate-200 shrink-0" />
-                <button
-                  onClick={() => setActiveTab('terreMometre')}
-                  className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'terreMometre' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
-                >
-                  Terre-momètre
-                  {activeTab === 'terreMometre' && <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
-                </button>
-              </>
-            )}
+              </React.Fragment>
+            ))}
           </>
         }
       />
@@ -103,9 +111,41 @@ function SettingsContent() {
       <div className="pb-20 pt-10">
         <div className="max-w-5xl mx-auto">
           {activeTab === 'profile' && <ProfileSection />}
-          {activeTab === 'constants' && <GlobalDataSettings schoolYear={schoolYear} />}
-          {activeTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
-          {activeTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
+
+          {activeTab === 'users' && isAS && <UsersSection />}
+
+          {activeTab === 'catalog' && (
+            <CatalogSection
+              role={userRole ?? 'AM'}
+              instanceId={instanceId ?? undefined}
+              schoolYear={schoolYear}
+            />
+          )}
+
+          {activeTab === 'data' && isAS && (
+            <div className="flex flex-col gap-6">
+              {/* Sous-onglets */}
+              <div className="flex items-center gap-1 p-1 bg-white/80 rounded-2xl border border-slate-100 shadow-sm w-fit">
+                {([
+                  { id: 'impact', label: 'Impact Annuel' },
+                  { id: 'animals', label: 'Animaux' },
+                  { id: 'terreMometre', label: 'Terre-momètre' },
+                ] as { id: ActiveDataTab; label: string }[]).map(sub => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveDataTab(sub.id)}
+                    className={`px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${activeDataTab === sub.id ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-700'}`}
+                  >
+                    {sub.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeDataTab === 'impact' && <GlobalDataSettings schoolYear={schoolYear} />}
+              {activeDataTab === 'animals' && <AnimalsSettings schoolYear={schoolYear} />}
+              {activeDataTab === 'terreMometre' && <TerreMometreSettings schoolYear={schoolYear} />}
+            </div>
+          )}
         </div>
       </div>
     </>
