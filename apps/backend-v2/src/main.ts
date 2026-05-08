@@ -25,8 +25,8 @@ async function bootstrap() {
 
   // SEC-03 — Validation globale des DTOs (active les décorateurs class-validator)
   app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,          // Supprime les propriétés non décorées (évite l'injection de champs inattendus)
-    forbidNonWhitelisted: false, // On reste permissif pour ne pas casser l'API legacy
+    whitelist: false,         // Désactivé : l'API utilise des objets littéraux dans de nombreux contrôleurs
+    forbidNonWhitelisted: false,
     transform: true,          // Convertit automatiquement les types (string → number, string → Date…)
   }));
 

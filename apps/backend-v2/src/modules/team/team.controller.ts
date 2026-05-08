@@ -4,6 +4,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { ImportCsvDto } from './dto/import-csv.dto';
 
 @ApiTags('Équipes (Teams)')
 @Controller('teams')
@@ -49,7 +50,7 @@ export class TeamController {
   async importCsv(
     @Query('instanceId', ParseIntPipe) instanceId: number,
     @Query('schoolYear') schoolYear: string,
-    @Body() body: { csvContent: string },
+    @Body() body: ImportCsvDto,
     @Request() req: any,
   ) {
     return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user);
