@@ -74,8 +74,8 @@ function SettingsContent() {
 
   const tabDef: { id: ActiveTab; label: string; icon: string; adminOnly?: boolean }[] = [
     { id: 'profile', label: 'Mon profil', icon: '👤' },
-    { id: 'catalog', label: 'Catalogue', icon: '📚' },
     { id: 'users', label: 'Utilisateurs', icon: '👥', adminOnly: true },
+    { id: 'catalog', label: 'Catalogue', icon: '📚' },
     { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
   ];
 
