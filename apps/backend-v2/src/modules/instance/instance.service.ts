@@ -45,6 +45,9 @@ export class InstanceService {
     // Génération initiale des périodes
     await this.syncPeriods(instance.id, instance.currentSchoolYear);
 
+    // Ouverture automatique de la période de la date courante
+    await this.handleCurrentPeriodActivation(instance.id, instance.currentSchoolYear);
+
     return instance;
   }
 
@@ -242,24 +245,21 @@ export class InstanceService {
   private async handleCurrentPeriodActivation(instanceId: number, schoolYear: string, tx?: any) {
     const client = tx || this.prisma;
     const now = new Date();
-    const instance = await client.instance.findUnique({ where: { id: instanceId } });
-    if (!instance) return;
 
-    const boundaries = this.getPeriodBoundaries(now);
-
-    // Recherche de la période active dans l'année scolaire demandée
+    // Recherche de la période active : on ne filtre PAS par schoolYear
+    // pour être compatible avec les données legacy (schoolYear = null)
     const period = await client.period.findFirst({
       where: {
         instanceId,
-        schoolYear,
         startDate: { lte: now },
         endDate: { gte: now },
       },
     });
 
     if (period) {
+      // Fermer toutes les autres périodes de l'instance
       await client.period.updateMany({
-        where: { instanceId, schoolYear, isOpen: true },
+        where: { instanceId, isOpen: true },
         data: { isOpen: false },
       });
       await client.period.update({
