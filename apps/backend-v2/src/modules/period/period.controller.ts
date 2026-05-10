@@ -29,6 +29,12 @@ export class PeriodController {
     return this.periodService.getImpact(id, req.user);
   }
 
+  @Post('repair-school-years')
+  @ApiOperation({ summary: '[ADMIN] Réparer les périodes sans schoolYear (migration legacy)' })
+  async repairSchoolYears(@Req() req: any) {
+    return this.periodService.repairSchoolYears(req.user);
+  }
+
   @Post(':id') // Note : maintenu en POST pour compatibilité — idéalement devrait être @Patch
   @ApiOperation({ summary: 'Mettre à jour une période (ex: isOpen)' })
   async update(
@@ -43,10 +49,5 @@ export class PeriodController {
   @ApiOperation({ summary: 'Supprimer une période (avec avertissement côté client si non vide)' })
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.periodService.remove(id, req.user);
-  }
-  @Post('repair-school-years')
-  @ApiOperation({ summary: '[ADMIN] Réparer les périodes sans schoolYear (migration legacy)' })
-  async repairSchoolYears(@Req() req: any) {
-    return this.periodService.repairSchoolYears(req.user);
   }
 }
