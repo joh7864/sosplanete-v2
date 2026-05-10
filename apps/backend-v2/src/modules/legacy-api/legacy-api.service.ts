@@ -119,7 +119,17 @@ export class LegacyApiService {
 
   async getOpenPeriod(instanceId: number) {
     const now = new Date();
-    const openPeriod = await this.prisma.period.findFirst({ where: { instanceId, isOpen: true } });
+
+    // Récupérer l'année scolaire active de l'instance
+    const instance = await this.prisma.instance.findUnique({
+      where: { id: instanceId },
+      select: { currentSchoolYear: true },
+    });
+    const schoolYear = instance?.currentSchoolYear;
+
+    const openPeriod = await this.prisma.period.findFirst({
+      where: { instanceId, schoolYear, isOpen: true },
+    });
 
     // Cas nominal : la période ouverte est valide (la date du jour est dans sa plage)
     if (openPeriod && openPeriod.startDate <= now && openPeriod.endDate >= now) {
@@ -130,6 +140,7 @@ export class LegacyApiService {
     const correctPeriod = await this.prisma.period.findFirst({
       where: {
         instanceId,
+        schoolYear,
         startDate: { lte: now },
         endDate: { gte: now },
       },
@@ -137,12 +148,13 @@ export class LegacyApiService {
 
     if (!correctPeriod) throw new NotFoundException('Aucune période de jeu ouverte.');
 
-    // Fermer toutes les périodes ouvertes de l'instance, puis ouvrir la correcte
-    await this.prisma.period.updateMany({ where: { instanceId, isOpen: true }, data: { isOpen: false } });
+    // Fermer uniquement les périodes de la même année scolaire, puis ouvrir la correcte
+    await this.prisma.period.updateMany({ where: { instanceId, schoolYear, isOpen: true }, data: { isOpen: false } });
     await this.prisma.period.update({ where: { id: correctPeriod.id }, data: { isOpen: true } });
 
     return { ...correctPeriod, isOpen: true };
   }
+
 
 
   async getCategories(origin?: string, instanceIdStr?: string) {

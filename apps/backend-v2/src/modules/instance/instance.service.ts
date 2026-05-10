@@ -246,20 +246,20 @@ export class InstanceService {
     const client = tx || this.prisma;
     const now = new Date();
 
-    // Recherche de la période active : on ne filtre PAS par schoolYear
-    // pour être compatible avec les données legacy (schoolYear = null)
+    // Recherche de la période active de l'année scolaire courante
     const period = await client.period.findFirst({
       where: {
         instanceId,
+        schoolYear,
         startDate: { lte: now },
         endDate: { gte: now },
       },
     });
 
     if (period) {
-      // Fermer toutes les autres périodes de l'instance
+      // Fermer uniquement les périodes de la même année scolaire
       await client.period.updateMany({
-        where: { instanceId, isOpen: true },
+        where: { instanceId, schoolYear, isOpen: true },
         data: { isOpen: false },
       });
       await client.period.update({
