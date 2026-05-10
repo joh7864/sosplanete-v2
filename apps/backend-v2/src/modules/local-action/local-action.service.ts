@@ -155,6 +155,24 @@ export class LocalActionService {
     });
   }
 
+  async bulkAssignCategory(actionIds: number[], categoryId: number | null, user: any) {
+    // Vérification que l'utilisateur peut accéder à toutes ces actions
+    const actions = await this.prisma.localAction.findMany({
+      where: { id: { in: actionIds } },
+      select: { instanceId: true },
+    });
+
+    for (const action of actions) {
+      const isAllowed = user.role === Role.AS || user.instanceIds?.includes(action.instanceId);
+      if (!isAllowed) throw new ForbiddenException('Action non autorisée');
+    }
+
+    return this.prisma.localAction.updateMany({
+      where: { id: { in: actionIds } },
+      data: { categoryId },
+    });
+  }
+
   async remove(id: number, user: any) {
     const localAction = await this.prisma.localAction.findUnique({
       where: { id }

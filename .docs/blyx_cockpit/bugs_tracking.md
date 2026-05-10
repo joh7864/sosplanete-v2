@@ -7,3 +7,5 @@
 | `E7F8G9` | 🟢 Résolu | 2026-04-16 | Layout | Erreur TS: `className` non défini sur le composant `TopBar` | Basse | Ajout de `className` et `subtitle` dans l'interface `TopBarProps` et implémentation dans le composant. |
 | `H0I1J2` | 🟢 Résolu | 2026-04-16 | UI | Erreur TS: Taille `"xs"` non supportée par le composant `Button` | Basse | Remplacement de `"xs"` par `"sm"` dans `LocalActionEditModal.tsx`. |
 | `K3L4M5` | 🟢 Résolu | 2026-04-16 | Catalogue | Erreur TS: Comparaison invalide type `Category` vs `string` | Moyenne | Correction de la comparaison dans `LocalList.tsx` pour utiliser `.name` si c'est un objet. |
+| `B001A1` | 🟢 Résolu | 2026-05-10 | Instance | Erreur `Unique constraint failed` (id) lors de la création d'espace (séquence PG décalée). | Majeure | Synchronisation globale des séquences PG via script `fix-sequences.ts`. |
+| `B002A2` | 🟢 Résolu | 2026-05-10 | Instance | `syncPeriods` échoue silencieusement si `gameEndDate` est nul, bloquant les imports CSV. | Majeure | Ajout d'un log d'avertissement explicite et prévention du retour silencieux. |

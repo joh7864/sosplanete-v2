@@ -42,8 +42,16 @@ export class LocalActionController {
     return this.localActionService.importByCodes(body.instanceId, body.actions, body.schoolYear, req.user);
   }
 
+  @Patch(':id')
+  @ApiOperation({ summary: 'Modifier une action locale' })
   async update(@Param('id', ParseIntPipe) id: number, @Body() body: { label?: string, description?: string, image?: string, categoryId?: number }, @Req() req: any) {
     return this.localActionService.update(id, body, req.user);
+  }
+
+  @Patch('bulk-assign-category')
+  @ApiOperation({ summary: 'Affecter en masse des actions locales à une catégorie' })
+  async bulkAssignCategory(@Body() body: { actionIds: number[]; categoryId: number | null }, @Req() req: any) {
+    return this.localActionService.bulkAssignCategory(body.actionIds, body.categoryId, req.user);
   }
 
   @Post(':id/image')

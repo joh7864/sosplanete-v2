@@ -147,7 +147,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
 
   const handleLogout = () => {
     clearAuthData();
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   const [managedInstances, setManagedInstances] = React.useState<any[]>([]);

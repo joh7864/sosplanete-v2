@@ -23,6 +23,7 @@ export const UsersSection: React.FC = () => {
   const [role, setRole] = useState<'AS' | 'AM'>('AM');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -43,6 +44,7 @@ export const UsersSection: React.FC = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setCreateError(null);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
         method: 'POST',
@@ -56,9 +58,13 @@ export const UsersSection: React.FC = () => {
         setShowAddModal(false);
         resetForm();
         fetchUsers();
+      } else {
+        const data = await resp.json().catch(() => ({}));
+        setCreateError(data.message || `Erreur ${resp.status}`);
       }
     } catch (e) {
       console.error('Create error:', e);
+      setCreateError('Erreur réseau');
     } finally {
       setSubmitting(false);
     }
@@ -204,6 +210,11 @@ export const UsersSection: React.FC = () => {
                       </button>
                     </div>
                   </div>
+                  {createError && (
+                    <div className="px-4 py-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-600 font-bold">
+                      {Array.isArray(createError) ? (createError as string[]).join(' · ') : createError}
+                    </div>
+                  )}
                   <Button type="submit" disabled={submitting} className="h-14 mt-4 font-bold text-lg">
                     {submitting ? <Loader2 className="animate-spin" /> : 'Créer le compte'}
                   </Button>

@@ -103,6 +103,7 @@ export interface ActionRef {
   code: string;
   referenceName: string;
   category?: string;
+  categoryRefId?: number | null;
   impactLabel?: string | null;
   weightedStars: number; // obligatoire pour compatibilité composants catalogue (défaut : 0)
   image?: string | null;
@@ -112,6 +113,15 @@ export interface ActionRef {
   defaultWaste?: number | null;
   defaultEnergy?: number | null;
 }
+
+export interface CategoryRef {
+  id: number;
+  name: string;
+  icon?: string | null;
+  order: number;
+  _count?: { actionRefs: number };
+}
+
 
 export interface LocalAction {
   id: number;

@@ -276,7 +276,10 @@ export class InstanceService {
       where: { instanceId_schoolYear: { instanceId, schoolYear } }
     });
 
-    if (!config || !config.gameStartDate || !config.gameEndDate) return;
+    if (!config || !config.gameStartDate || !config.gameEndDate) {
+      console.warn(`[syncPeriods] Skipping for instance ${instanceId} (${schoolYear}): missing gameStartDate or gameEndDate in GameConfig.`);
+      return;
+    }
 
     const gameStart = new Date(config.gameStartDate);
     const gameEnd = new Date(config.gameEndDate);
@@ -345,7 +348,7 @@ export class InstanceService {
 
     // Suppression en cascade via transaction pour garantir l'intégrité
     return this.prisma.$transaction(async (tx) => {
-      // 1. ActionsDone (dépendent de LocalAction qui dépend de Instance)
+      // 1. ActionsDone (dépendent de LocalAction et Period)
       await tx.actionDone.deleteMany({
         where: { localAction: { instanceId: id } }
       });
@@ -375,7 +378,27 @@ export class InstanceService {
         where: { instanceId: id }
       });
 
-      // 7. L'Instance elle-même
+      // 7. Categories locales
+      await tx.category.deleteMany({
+        where: { instanceId: id }
+      });
+
+      // 8. GameConfig (manquait — causait l'erreur FK P2003)
+      await tx.gameConfig.deleteMany({
+        where: { instanceId: id }
+      });
+
+      // 9. Snapshots de déblocage d'animaux
+      await tx.instanceAnimalUnlock.deleteMany({
+        where: { instanceId: id }
+      });
+
+      // 10. Snapshots du thermomètre Terre
+      await tx.terreThermometerSnapshot.deleteMany({
+        where: { instanceId: id }
+      });
+
+      // 11. L'Instance elle-même
       return tx.instance.delete({
         where: { id }
       });

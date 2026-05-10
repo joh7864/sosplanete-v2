@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon, GripVertical, Search, Upload } from 'lucide-react';
+import { Loader2, Plus, Edit3, Trash2, FolderOpen, Save, X, Image as ImageIcon, GripVertical, Search, Upload, Tag } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -25,6 +25,7 @@ import { getAuthData } from '@/utils/storage';
 import { getAssetUrl } from '@/utils/assets';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CategoryImportModal } from './CategoryImportModal';
+import { ActionCategoryMapper } from './ActionCategoryMapper';
 
 interface Category {
   id: number;
@@ -111,6 +112,7 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
   
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [activeView, setActiveView] = useState<'manage' | 'assign'>('manage');
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -251,39 +253,65 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
       <div className="flex flex-col gap-6">
         {/* Toolbar */}
         <div className="w-full flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/50 p-2 rounded-3xl border border-white/40 shadow-sm backdrop-blur-md">
-           <div className="relative w-full sm:flex-1 max-w-2xl">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                <Search size={18} />
-              </div>
-              <input 
-                type="text"
-                placeholder="Rechercher une catégorie..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-12 pl-12 pr-4 bg-white/70 border-none rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
-              />
+           {/* View toggle */}
+           <div className="flex items-center gap-1 p-1 bg-slate-100/50 rounded-2xl border border-slate-100">
+             <button
+               onClick={() => setActiveView('manage')}
+               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeView === 'manage' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+               <FolderOpen size={12} /> Catégories
+             </button>
+             <button
+               onClick={() => setActiveView('assign')}
+               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${activeView === 'assign' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+               <Tag size={12} /> Associer les actions
+             </button>
            </div>
 
-           <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setShowImportModal(true)}
-                title="Importer des catégories (CSV)"
-                className="w-12 h-12 flex items-center justify-center bg-white text-emerald-600 rounded-2xl border border-emerald-50 shadow-sm hover:bg-emerald-50 hover:scale-110 transition-all active:scale-95"
-              >
-                 <Upload size={20} />
-              </button>
-              <button 
-                onClick={openNew}
-                title="Nouvelle catégorie"
-                className="w-12 h-12 flex items-center justify-center bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 hover:scale-110 transition-all active:scale-95"
-              >
-                 <Plus size={24} />
-              </button>
-           </div>
+           {activeView === 'manage' && (
+             <>
+               <div className="relative w-full sm:flex-1 max-w-2xl">
+                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                   <Search size={18} />
+                 </div>
+                 <input
+                   type="text"
+                   placeholder="Rechercher une catégorie..."
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="w-full h-12 pl-12 pr-4 bg-white/70 border-none rounded-2xl text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+                 />
+               </div>
+               <div className="flex items-center gap-2">
+                 <button
+                   onClick={() => setShowImportModal(true)}
+                   title="Importer des catégories (CSV)"
+                   className="w-12 h-12 flex items-center justify-center bg-white text-emerald-600 rounded-2xl border border-emerald-50 shadow-sm hover:bg-emerald-50 hover:scale-110 transition-all active:scale-95"
+                 >
+                   <Upload size={20} />
+                 </button>
+                 <button
+                   onClick={openNew}
+                   title="Nouvelle catégorie"
+                   className="w-12 h-12 flex items-center justify-center bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 hover:scale-110 transition-all active:scale-95"
+                 >
+                   <Plus size={24} />
+                 </button>
+               </div>
+             </>
+           )}
         </div>
       </div>
 
-      {loading ? (
+      {activeView === 'assign' ? (
+        <ActionCategoryMapper
+          instanceId={instanceId}
+          schoolYear={schoolYear}
+          categories={categories}
+          onMappingChanged={fetchCategories}
+        />
+      ) : loading ? (
         <div className="flex justify-center p-20"><Loader2 className="animate-spin text-emerald-500" size={48} /></div>
       ) : (
         <DndContext 

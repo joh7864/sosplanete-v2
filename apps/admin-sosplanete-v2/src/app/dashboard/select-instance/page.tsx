@@ -30,7 +30,7 @@ export default function SelectInstancePage() {
       setInstances(JSON.parse(rawInstances));
     } else {
       // Si pas d'instances stockées, retour au login
-      router.push('/');
+      router.push('/login');
     }
     
     if (name) setUserName(name);
@@ -43,7 +43,7 @@ export default function SelectInstancePage() {
 
   const handleLogout = () => {
     clearAuthData();
-    router.push('/');
+    router.push('/login');
   };
 
   return (
@@ -59,7 +59,7 @@ export default function SelectInstancePage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight"
           >
-            Bienvenue, {userName || 'Isabelle'} !
+            Bienvenue, {userName || 'Utilisateur'} !
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0 }}

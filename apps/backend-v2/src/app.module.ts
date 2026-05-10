@@ -19,12 +19,14 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { CategoryModule } from './modules/category/category.module';
+import { CategoryRefModule } from './modules/category-ref/category-ref.module';
 import { ImpactModule } from './modules/impact/impact.module';
 import { StimulationModule } from './modules/stimulation/stimulation.module';
 
 @Module({
   imports: [
     CategoryModule,
+    CategoryRefModule,
     ImpactModule,
     ScheduleModule.forRoot(),
     // SEC-07 — Rate limiting global : 100 requêtes/minute par IP par défaut

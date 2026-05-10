@@ -55,6 +55,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  category: category || null,
                 },
                 create: {
                   code,
@@ -67,6 +68,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  category: category || null,
                 },
               });
               count++;

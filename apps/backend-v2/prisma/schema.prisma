@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,47 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------
-// 🌍 GLOBAL / COMMON DATA (Géré par l'AS)
-// ---------------------------------------------------------
-
-enum Role {
-  AS
-  AM
-}
-
 model User {
-  id         Int       @id @default(autoincrement())
-  email      String    @unique
-  password   String
-  name       String?
-  avatar     String?
-  lastSeenAt DateTime? @updatedAt
-  role       Role      @default(AM)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  // Un utilisateur (AM) gère une ou plusieurs instances (généralement une seule école)
+  id               Int        @id @default(autoincrement())
+  email            String     @unique
+  password         String
+  name             String?
+  avatar           String?
+  lastSeenAt       DateTime?  @updatedAt
+  role             Role       @default(AM)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
   managedInstances Instance[]
 }
 
 model ActionRef {
-  id            Int     @id @default(autoincrement())
-  code          String  @unique // Identifiant métier (ex: W01, E01)
+  id            Int           @id @default(autoincrement())
+  code          String        @unique
   referenceName String
-  defaultCo2    Float? // Valeur par défaut si non surchargée
+  defaultCo2    Float?
   defaultWater  Float?
   defaultWaste  Float?
-  defaultEnergy Float? // NOUVEAU: kWh économisés
-  co2Year       Float? // CO2e /an du fichier CSV
-  impactLabel   String? // Impact (Low, Medium, High)
-  impactTotal   Float? // Impact total
-  weightedStars Int? // Etoile pondérée (1-5)
-  image         String? // Nom du fichier image (ex: B01.png)
-  year          Int     @default(2025)
-
-  // Liaisons avec les actions personnalisées des instances
-  localActions LocalAction[]
+  co2Year       Float?
+  impactLabel   String?
+  impactTotal   Float?
+  weightedStars Int?
+  image         String?
+  year          Int           @default(2025)
+  defaultEnergy Float?
+  category      String?
+  categoryRefId Int?
+  categoryRef   CategoryRef?  @relation(fields: [categoryRefId], references: [id])
+  localActions  LocalAction[]
 }
 
 model Category {
@@ -59,7 +46,7 @@ model Category {
   icon         String?
   order        Int           @default(0)
   instanceId   Int
-  schoolYear   String?       // Année scolaire (ex: "2024-2025")
+  schoolYear   String?
   instance     Instance      @relation(fields: [instanceId], references: [id])
   localActions LocalAction[]
 }
@@ -67,183 +54,152 @@ model Category {
 model AnnualImpactData {
   id              Int    @id @default(autoincrement())
   year            Int    @unique
-  dActuel         Int? // Jour du dépassement mondial (ex: 214)
-  moyCo2Monde     Float? // Empreinte CO2 par habitant en tCO2e/an
-  moyEauMonde     Float? // Empreinte Eau par habitant en L/an ou m3/an
-  moyDechetsMonde Float? // Empreinte Déchets en kg/an
-  popMonde        Float? // Population mondiale (ex: 8.1 pour 8.1 milliards)
+  dActuel         Int?
+  moyCo2Monde     Float?
+  moyEauMonde     Float?
+  moyDechetsMonde Float?
+  popMonde        Float?
 }
 
-// ---------------------------------------------------------
-// 🏫 INSTANCE DATA (Données spécifiques à chaque école)
-// ---------------------------------------------------------
+model CategoryRef {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  icon       String?
+  order      Int         @default(0)
+  actionRefs ActionRef[]
+}
 
 model Instance {
-  id         Int      @id @default(autoincrement())
-  schoolName String
-  hostUrl    String?  @unique
-  isOpen     Boolean  @default(false)
-  icon       String?
-  createdAt  DateTime @default(now())
-
-  unlockedChapters  Int       @default(0)
-  currentSchoolYear String    @default("2024-2025") // Année scolaire active (ex: "2024-2025")
-
-  // Stimulation v2
-  animalUnlocks     InstanceAnimalUnlock[]
-  terreThermometers TerreThermometerSnapshot[]
+  id                Int                        @id @default(autoincrement())
+  schoolName        String
+  hostUrl           String?                    @unique
+  createdAt         DateTime                   @default(now())
+  adminId           Int?
+  isOpen            Boolean                    @default(false)
+  gamePeriodsCount  Int                        @default(24)
+  gameStartDate     DateTime?
+  unlockedChapters  Int                        @default(0)
+  gameEndDate       DateTime?
+  icon              String?
+  currentSchoolYear String                     @default("2024-2025")
+  categories        Category[]
   gameConfigs       GameConfig[]
-
-  // Admin local associé
-  adminId Int?
-  admin   User? @relation(fields: [adminId], references: [id])
-
-  // Structure de l'école
-  teams        Team[]
-  localActions LocalAction[]
-  periods      Period[]
-  categories   Category[]
+  admin             User?                      @relation(fields: [adminId], references: [id])
+  animalUnlocks     InstanceAnimalUnlock[]
+  localActions      LocalAction[]
+  periods           Period[]
+  teams             Team[]
+  terreThermometers TerreThermometerSnapshot[]
 }
 
 model Team {
   id         Int      @id @default(autoincrement())
   name       String
-  color      String? // Code Hexa ou nom de couleur pastel
-  icon       String? // Identifiant d'icône (Lucide ou SVG)
+  color      String?
+  icon       String?
   instanceId Int
-  schoolYear String?  // Année scolaire
+  schoolYear String?
+  groups     Group[]
   instance   Instance @relation(fields: [instanceId], references: [id])
-
-  groups Group[]
 }
 
 model Group {
-  id     Int     @id @default(autoincrement())
-  name   String
-  color  String?
-  teamId Int
-  team   Team    @relation(fields: [teamId], references: [id])
-
+  id       Int     @id @default(autoincrement())
+  name     String
+  teamId   Int
+  color    String?
   children Child[]
+  team     Team    @relation(fields: [teamId], references: [id])
 }
 
 model Child {
-  id       Int     @id @default(autoincrement())
-  pseudo   String
-  password String? // Optionnel si connexion anonyme/pseudo simple
-  groupId  Int
-  group    Group   @relation(fields: [groupId], references: [id])
-  avatar   String?
-
+  id          Int          @id @default(autoincrement())
+  pseudo      String
+  password    String?
+  groupId     Int
+  avatar      String?
   actionsDone ActionDone[]
+  group       Group        @relation(fields: [groupId], references: [id])
 
-  @@unique([pseudo, groupId]) // Pseudo unique par classe
+  @@unique([pseudo, groupId])
 }
 
 model LocalAction {
-  id          Int       @id @default(autoincrement())
-  label       String
-  description String?
-  image       String?
-  categoryId  Int? // Remplacement du champ texte
-  category    Category? @relation(fields: [categoryId], references: [id])
-
-  // Lien vers le référentiel global
-  actionRefId Int
-  actionRef   ActionRef @relation(fields: [actionRefId], references: [id])
-
-  // Appartenance à l'instance
-  instanceId Int
-  schoolYear String?  // Année scolaire
-  instance   Instance @relation(fields: [instanceId], references: [id])
-
-  // Surcharges éventuelles des poids d'impact par instance
+  id             Int          @id @default(autoincrement())
+  label          String
+  description    String?
+  actionRefId    Int
+  instanceId     Int
   specificCo2    Float?
   specificWater  Float?
   specificWaste  Float?
+  image          String?
+  categoryId     Int?
   specificEnergy Float?
-
-  actionsDone ActionDone[]
+  schoolYear     String?
+  actionsDone    ActionDone[]
+  actionRef      ActionRef    @relation(fields: [actionRefId], references: [id])
+  category       Category?    @relation(fields: [categoryId], references: [id])
+  instance       Instance     @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, actionRefId, schoolYear])
 }
 
 model Period {
-  id         Int      @id @default(autoincrement())
-  startDate  DateTime
-  endDate    DateTime
-  isOpen     Boolean  @default(false)
-  instanceId Int
-  schoolYear String?  // Rattachement à une année scolaire (ex: "2024-2025")
-  instance   Instance @relation(fields: [instanceId], references: [id])
-
+  id          Int          @id @default(autoincrement())
+  startDate   DateTime
+  endDate     DateTime
+  instanceId  Int
+  isOpen      Boolean      @default(false)
+  schoolYear  String?
   actionsDone ActionDone[]
+  instance    Instance     @relation(fields: [instanceId], references: [id])
 }
 
 model ActionDone {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  childId Int
-  child   Child @relation(fields: [childId], references: [id], onDelete: Cascade)
-
+  id            Int         @id @default(autoincrement())
+  createdAt     DateTime    @default(now())
+  childId       Int
   localActionId Int
+  periodId      Int
+  savedCo2      Float
+  savedWater    Float
+  savedWaste    Float
+  savedEnergy   Float?
+  child         Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   localAction   LocalAction @relation(fields: [localActionId], references: [id])
-
-  periodId Int
-  period   Period @relation(fields: [periodId], references: [id])
-
-  // Valeurs calculées au moment de l'enregistrement pour historique stable
-  savedCo2    Float
-  savedWater  Float
-  savedWaste  Float
-  savedEnergy Float?
+  period        Period      @relation(fields: [periodId], references: [id])
 }
-
-// ---------------------------------------------------------
-// 🦊 GAMIFICATION (Moteur d'animaux)
-// ---------------------------------------------------------
 
 model AnimalRelease {
   id          Int     @id @default(autoincrement())
   name        String
-  unlockOrder Int     @unique // 1 à 9
+  unlockOrder Int     @unique
   imageUrl    String?
 }
 
-// ---------------------------------------------------------
-// 🚀 SYSTEME DE STIMULATION (V2)
-// ---------------------------------------------------------
-
-// Paramètres de l'instance
 model GameConfig {
-  id                          Int      @id @default(autoincrement())
+  id                          Int       @id @default(autoincrement())
   instanceId                  Int
-  schoolYear                  String   @default("2024-2025")
-  avgActionsPerChildPerPeriod Int      @default(8)
-  animalAdvanceMargin         Int      @default(2)
-  bienveillanceThreshold      Float    @default(0.40)
-  
-  // Paramètres du jeu (isolés par année)
-  gameStartDate    DateTime?
-  gameEndDate      DateTime?
-  gamePeriodsCount Int       @default(24)
-
-  instance Instance @relation(fields: [instanceId], references: [id])
+  avgActionsPerChildPerPeriod Int       @default(8)
+  animalAdvanceMargin         Int       @default(2)
+  bienveillanceThreshold      Float     @default(0.40)
+  schoolYear                  String    @default("2024-2025")
+  gameStartDate               DateTime?
+  gameEndDate                 DateTime?
+  gamePeriodsCount            Int       @default(24)
+  instance                    Instance  @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, schoolYear])
 }
 
-// Paramètres Mondiaux
 model SystemConfig {
-  id                     Int      @id @default(autoincrement())
-  schoolYear             String   @default("2024-2025")
-  emissionsParHabitantAn Float    @default(11.0)
-  temperatureMalade      Float    @default(42.0)
-  temperatureSaine       Float    @default(37.0)
-  populationReference    Int      @default(68000000)
-
-  @@unique([schoolYear])
+  id                     Int    @id @default(autoincrement())
+  emissionsParHabitantAn Float  @default(11.0)
+  temperatureMalade      Float  @default(42.0)
+  temperatureSaine       Float  @default(37.0)
+  populationReference    Int    @default(68000000)
+  schoolYear             String @unique @default("2024-2025")
 }
 
 model InstanceAnimalUnlock {
@@ -252,8 +208,8 @@ model InstanceAnimalUnlock {
   period       Int
   periodDate   DateTime
   animalsCount Int
-  schoolYear   String   @default("2024-2025")
   createdAt    DateTime @default(now())
+  schoolYear   String   @default("2024-2025")
   instance     Instance @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, period, schoolYear])
@@ -264,8 +220,8 @@ model EcoBarRaceSnapshot {
   period     Int
   periodDate DateTime
   rankings   Json
-  schoolYear String   @default("2024-2025")
   createdAt  DateTime @default(now())
+  schoolYear String   @default("2024-2025")
 
   @@unique([period, schoolYear])
 }
@@ -278,9 +234,14 @@ model TerreThermometerSnapshot {
   temperatureValue  Float
   totalCo2Saved     Float
   nbChildrenPlaying Int
-  schoolYear        String   @default("2024-2025")
   createdAt         DateTime @default(now())
+  schoolYear        String   @default("2024-2025")
   instance          Instance @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, period, schoolYear])
+}
+
+enum Role {
+  AS
+  AM
 }

@@ -1,10 +1,14 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CategoryRefService } from '../category-ref/category-ref.service';
 import { Role } from '@prisma/client';
 
 @Injectable()
 export class StimulationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private categoryRefService: CategoryRefService,
+  ) {}
 
   async getSystemConfig(schoolYear: string) {
     const sy = schoolYear || "2024-2025";
@@ -44,9 +48,11 @@ export class StimulationService {
     const systemConfig = await this.getSystemConfig(schoolYear);
     
     // 2. Créer les GameConfig par défaut pour toutes les instances existantes
+    // 3. Hériter les CategoryRef vers les Category locales de chaque instance
     const instances = await this.prisma.instance.findMany();
     for (const inst of instances) {
       await this.getGameConfig(inst.id, schoolYear, user);
+      await this.categoryRefService.inheritToInstance(inst.id, schoolYear);
     }
     
     return systemConfig;
@@ -79,6 +85,10 @@ export class StimulationService {
     });
 
     if (!config) {
+      // Vérifier que l'instance existe avant de créer la GameConfig
+      const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
+      if (!instance) throw new NotFoundException(`Instance ${instanceId} introuvable`);
+
       config = await this.prisma.gameConfig.create({
         data: { instanceId, schoolYear: sy },
       });

@@ -1,0 +1,186 @@
+{
+  "timestamp": "2026-05-10T10:43:57.335Z",
+  "steps": [
+    {
+      "id": "TST-002",
+      "status": "SUCCESS",
+      "data": {
+        "email": "jo@dev.fr",
+        "role": "AS"
+      }
+    },
+    {
+      "id": "TST-005",
+      "status": "SUCCESS",
+      "data": {
+        "blocked": true
+      }
+    },
+    {
+      "id": "TST-003",
+      "status": "SUCCESS",
+      "data": {
+        "blocked": true
+      }
+    },
+    {
+      "id": "TST-006",
+      "status": "SUCCESS",
+      "data": {
+        "count": 2
+      }
+    },
+    {
+      "id": "TST-007",
+      "status": "SUCCESS",
+      "data": {
+        "id": 7,
+        "email": "test_1778409837408@example.com"
+      }
+    },
+    {
+      "id": "TST-008",
+      "status": "SUCCESS",
+      "data": {
+        "blocked": true
+      }
+    },
+    {
+      "id": "TST-009",
+      "status": "SUCCESS",
+      "data": {
+        "deleted": true
+      }
+    },
+    {
+      "id": "TST-015",
+      "status": "SUCCESS",
+      "data": {
+        "success": true,
+        "count": 61,
+        "errors": 0
+      }
+    },
+    {
+      "id": "TST-016",
+      "status": "SUCCESS",
+      "data": {
+        "success": true,
+        "count": 61,
+        "errors": 0
+      }
+    },
+    {
+      "id": "TST-014",
+      "status": "SUCCESS",
+      "data": {
+        "count": 61
+      }
+    },
+    {
+      "id": "TST-011",
+      "status": "SUCCESS",
+      "data": {
+        "id": 15,
+        "schoolName": "Recette Automatique Instance",
+        "hostUrl": null,
+        "createdAt": "2026-05-10T10:43:57.884Z",
+        "adminId": 1,
+        "isOpen": false,
+        "gamePeriodsCount": 24,
+        "gameStartDate": null,
+        "unlockedChapters": 0,
+        "gameEndDate": null,
+        "icon": null,
+        "currentSchoolYear": "2024-2025"
+      }
+    },
+    {
+      "id": "TST-024",
+      "status": "SUCCESS",
+      "data": {
+        "created": 6,
+        "updated": 0
+      }
+    },
+    {
+      "id": "TST-026",
+      "status": "SUCCESS",
+      "data": {
+        "teams": 4,
+        "groups": 8,
+        "players": 52
+      }
+    },
+    {
+      "id": "TST-027",
+      "status": "SUCCESS",
+      "data": {
+        "imported": 19426,
+        "total": 19426,
+        "errors": [],
+        "hasMoreErrors": false
+      }
+    },
+    {
+      "id": "TST-028",
+      "status": "SUCCESS",
+      "data": {
+        "scope": "instance",
+        "scopeId": 15,
+        "name": "Recette Automatique Instance",
+        "nbChildren": 52,
+        "sums": {
+          "totalCo2": 46478701231.69516,
+          "totalWater": 508239494999996.6,
+          "totalWaste": 47897967033449.96
+        },
+        "realSums": {
+          "totalCo2": 34.42866757903346,
+          "totalWater": 376473.6999999975,
+          "totalWaste": 35479.9755803333
+        },
+        "ratios": {
+          "assiduite": 25.52,
+          "participation": 130.7
+        },
+        "results": {
+          "effortPlanetairePercent": 39.6,
+          "nouveauJourAnnee": 354.3,
+          "nbPlanetes": 1.03,
+          "dateDepassement": "19/12/2024",
+          "dateDepassementSans": "01/08/2024",
+          "dateDepassementFormat": "2024-12-19T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "id": "TST-021",
+      "status": "SUCCESS",
+      "data": {
+        "teamId": 45
+      }
+    },
+    {
+      "id": "TST-022",
+      "status": "SUCCESS",
+      "data": {
+        "groupId": 85
+      }
+    },
+    {
+      "id": "TST-023",
+      "status": "SUCCESS",
+      "data": {
+        "childId": 525
+      }
+    },
+    {
+      "id": "TST-013",
+      "status": "SUCCESS",
+      "data": {
+        "deleted": true
+      }
+    }
+  ]
+}
