@@ -44,4 +44,9 @@ export class PeriodController {
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.periodService.remove(id, req.user);
   }
+  @Post('repair-school-years')
+  @ApiOperation({ summary: '[ADMIN] Réparer les périodes sans schoolYear (migration legacy)' })
+  async repairSchoolYears(@Req() req: any) {
+    return this.periodService.repairSchoolYears(req.user);
+  }
 }

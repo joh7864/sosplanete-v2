@@ -172,6 +172,38 @@ export class PeriodService {
     return { success: true };
   }
 
+  /**
+   * [MIGRATION ONE-SHOT] Répare toutes les périodes dont le champ schoolYear est null.
+   * Pour chaque instance, attribue le currentSchoolYear de l'instance à ses périodes orphelines.
+   */
+  async repairSchoolYears(user: any) {
+    if (user.role !== Role.AS) throw new ForbiddenException('Réservé aux administrateurs système');
+
+    const instances = await this.prisma.instance.findMany({
+      select: { id: true, schoolName: true, currentSchoolYear: true }
+    });
+
+    let totalFixed = 0;
+    const report: { instance: string; periodsFixed: number }[] = [];
+
+    for (const inst of instances) {
+      if (!inst.currentSchoolYear) continue;
+
+      const result = await this.prisma.period.updateMany({
+        where: { instanceId: inst.id, schoolYear: null },
+        data: { schoolYear: inst.currentSchoolYear }
+      });
+
+      if (result.count > 0) {
+        totalFixed += result.count;
+        report.push({ instance: inst.schoolName, periodsFixed: result.count });
+      }
+    }
+
+    console.log(`[REPAIR] schoolYear réparé sur ${totalFixed} période(s).`);
+    return { totalFixed, report };
+  }
+
   // CRON JOB: 23h59 tous les jours
   @Cron('59 23 * * *')
   async handlePeriodRotation() {
@@ -216,6 +248,16 @@ export class PeriodService {
             data: { isOpen: false },
           });
 
+          // Récupérer le schoolYear : celui de la période, ou celui de l'instance si null (cas legacy)
+          let nextSchoolYear = period.schoolYear;
+          if (!nextSchoolYear) {
+            const inst = await this.prisma.instance.findUnique({
+              where: { id: period.instanceId },
+              select: { currentSchoolYear: true }
+            });
+            nextSchoolYear = inst?.currentSchoolYear || null;
+          }
+
           // 2. Créer et ouvrir la nouvelle
           await this.prisma.period.create({
             data: {
@@ -223,10 +265,10 @@ export class PeriodService {
               endDate: nextEndDate,
               isOpen: true,
               instanceId: period.instanceId,
-              schoolYear: period.schoolYear,
+              schoolYear: nextSchoolYear,
             }
           });
-          console.log(`[CRON] Instance ${period.instanceId} : Période ${period.id} fermée. Nouvelle période créée du ${nextStartDate.toISOString()} au ${nextEndDate.toISOString()}.`);
+          console.log(`[CRON] Instance ${period.instanceId} : Période ${period.id} fermée. Nouvelle période créée du ${nextStartDate.toISOString()} au ${nextEndDate.toISOString()} (schoolYear: ${nextSchoolYear}).`);
         }
       }
     }
