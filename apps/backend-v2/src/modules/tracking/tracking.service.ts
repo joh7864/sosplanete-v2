@@ -130,7 +130,7 @@ export class TrackingService {
     });
     const maxPeriods = config?.gamePeriodsCount || 24;
 
-    const [allChildren, allLocalActions, allActionRefs, allPeriods] = await Promise.all([
+    const [allChildren, allLocalActions, allActionRefs, allPeriods, allCategories] = await Promise.all([
       this.prisma.child.findMany({
         where: { group: { team: { instanceId, schoolYear } } },
         include: { group: { include: { team: true } } },
@@ -140,6 +140,9 @@ export class TrackingService {
       }),
       this.prisma.actionRef.findMany(),
       this.prisma.period.findMany({
+        where: { instanceId, schoolYear },
+      }),
+      this.prisma.category.findMany({
         where: { instanceId, schoolYear },
       }),
     ]);
@@ -157,6 +160,7 @@ export class TrackingService {
     });
 
     const actionRefsByCode = new Map(allActionRefs.map(r => [r.code, r]));
+    const categoriesByName = new Map(allCategories.map(c => [c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c.id]));
 
     // ─────────────────────────────────────────────────────────────
     // ÉTAPE 1 : Validation complète de toutes les lignes.
@@ -244,12 +248,20 @@ export class TrackingService {
     // ─────────────────────────────────────────────────────────────
     if (localActionsToCreate.size > 0 && validData.length > 0) {
       for (const [code, actionRef] of localActionsToCreate.entries()) {
+        // Tentative de récupération de la catégorie correspondante
+        let catId: number | null = null;
+        if (actionRef.category) {
+          const normCat = actionRef.category.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          catId = categoriesByName.get(normCat) || null;
+        }
+
         const created = await this.prisma.localAction.create({
           data: {
             label: actionRef.referenceName,
             actionRefId: actionRef.id,
             instanceId,
             schoolYear,
+            categoryId: catId,
             specificCo2: actionRef.defaultCo2 || 0,
             specificWater: actionRef.defaultWater || 0,
             specificWaste: actionRef.defaultWaste || 0,

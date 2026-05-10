@@ -135,8 +135,26 @@ export class CategoryService {
               }
             });
             stats.updated++;
+            
+            // On applique aussi le healing sur les catégories existantes au cas où
+            const actionRefs = await tx.actionRef.findMany({
+              where: { category: { equals: rawName, mode: 'insensitive' } },
+              select: { id: true }
+            });
+            
+            if (actionRefs.length > 0) {
+              await tx.localAction.updateMany({
+                where: {
+                  instanceId,
+                  schoolYear,
+                  categoryId: null,
+                  actionRefId: { in: actionRefs.map(r => r.id) }
+                },
+                data: { categoryId: existing.id }
+              });
+            }
           } else {
-            await tx.category.create({
+            const created = await tx.category.create({
               data: { 
                 name: rawName, // On garde le nom original du CSV
                 instanceId, 
@@ -146,6 +164,26 @@ export class CategoryService {
               }
             });
             stats.created++;
+            
+            // --- HEALING LOGIC ---
+            // Si des LocalActions existent déjà sans catégorie (importés avant les catégories), 
+            // on tente de les rattacher si le nom de catégorie correspond dans le référentiel.
+            const actionRefs = await tx.actionRef.findMany({
+              where: { category: { equals: rawName, mode: 'insensitive' } },
+              select: { id: true }
+            });
+            
+            if (actionRefs.length > 0) {
+              await tx.localAction.updateMany({
+                where: {
+                  instanceId,
+                  schoolYear,
+                  categoryId: null,
+                  actionRefId: { in: actionRefs.map(r => r.id) }
+                },
+                data: { categoryId: created.id }
+              });
+            }
           }
         }
       });
