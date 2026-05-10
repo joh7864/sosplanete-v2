@@ -676,6 +676,16 @@ function OrganizationContent() {
             isSelectionMode={isSelectionMode}
             isSelected={selectedEntities.teams.includes(team.id)}
             onSelect={(id: number) => toggleSelection('teams', id)}
+            onDeleteTeam={() => {
+              const playersCount = team.groups?.reduce((acc: number, g: any) => acc + (g.children?.length || 0), 0) || 0;
+              setConfirmData({
+                title: "Supprimer l'équipe",
+                description: playersCount > 0 
+                  ? `Voulez-vous vraiment supprimer l'équipe "${team.name}" ? Attention : elle contient ${playersCount} joueurs. Leur suppression effacera définitivement tout leur historique d'impact.`
+                  : `Voulez-vous vraiment supprimer l'équipe "${team.name}" ? Cette action est irréversible.`,
+                onConfirm: () => handleBulkDelete('teams', [team.id])
+              });
+            }}
             onEditGroup={(g: any) => {
               setSelectedGroup(g);
               setShowGroupModal(true);
@@ -843,7 +853,7 @@ function OrganizationContent() {
 
 function TeamCard({ 
   team, isExpanded, onToggle, vitalityCalc, setSelectedTeam, setShowTeamModal,
-  isSelectionMode, isSelected, onSelect, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer,
+  isSelectionMode, isSelected, onSelect, onDeleteTeam, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer,
   onDeletePlayer, onSelectPlayer, selectedChildrenIds
 }: any) {
   const cardColor = team.color || '#40916C';
@@ -895,15 +905,21 @@ function TeamCard({
                   <div className="flex items-center gap-1"><Droplets size={12} className="text-blue-500"/><span className="text-[10px] font-black">{formatEcoImpact(teamImpact.water, 'water', 1)}</span></div>
                   <div className="flex items-center gap-1"><Trash size={12} className="text-amber-500"/><span className="text-[10px] font-black">{formatEcoImpact(teamImpact.waste, 'waste', 1)}</span></div>
                 </div>
-                <div className="flex items-center gap-1">
                    <button 
                      onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setShowTeamModal(true); }}
                      className="p-1.5 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                     title="Paramètres de l'équipe"
                    >
                      <Settings2 size={16} />
                    </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); onDeleteTeam(); }}
+                     className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                     title="Supprimer l'équipe"
+                   >
+                     <Trash2 size={16} />
+                   </button>
                    <ChevronDown size={18} className="text-slate-300" />
-                </div>
               </div>
             </div>
           ) : (
