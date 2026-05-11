@@ -64,10 +64,10 @@ export class CategoryRefController {
     return this.categoryRefService.syncActionRefLinks();
   }
 
-  /** Hérite les CategoryRef vers une instance/année scolaire (AS only) */
-  @Post('inherit/:instanceId/:schoolYear')
-  inherit(@Param('instanceId') instanceId: string, @Param('schoolYear') schoolYear: string, @Request() req: any) {
+  /** Hérite les CategoryRef vers une InstanceYear (AS only) */
+  @Post('inherit/:instanceYearId')
+  inherit(@Param('instanceYearId') instanceYearId: string, @Request() req: any) {
     this.ensureAS(req.user);
-    return this.categoryRefService.inheritToInstance(+instanceId, schoolYear);
+    return this.categoryRefService.inheritToInstance(+instanceYearId);
   }
 }

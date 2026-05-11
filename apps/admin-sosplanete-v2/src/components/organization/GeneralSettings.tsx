@@ -1,20 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Calendar, Box, Loader2, Save, CheckCircle, AlertTriangle, Building2, Link as LinkIcon, Lock, Unlock, Trash2, RotateCcw, Plus, ArrowUpDown, ChevronUp, ChevronDown, Edit3, Check, X } from 'lucide-react';
+import { Calendar, Box, Loader2, Save, CheckCircle, AlertTriangle, Building2, Link as LinkIcon, Lock, Unlock, Trash2, RotateCcw, Plus, ArrowUpDown, ChevronUp, ChevronDown, Edit3, Check, X, Camera } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAuthData } from '@/utils/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-
-interface Period {
-  id: number;
-  startDate: string;
-  endDate: string;
-  isOpen: boolean;
-  _count?: { actionsDone: number };
-}
 
 import { useRouter } from 'next/navigation';
 
@@ -25,7 +18,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Settings Ecole
   const [schoolName, setSchoolName] = useState(currentInstance?.schoolName || '');
   const [icon, setIcon] = useState(currentInstance?.icon || '');
   const [hostUrl, setHostUrl] = useState(currentInstance?.hostUrl || '');
@@ -33,150 +25,49 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   const [unlockedChapters, setUnlockedChapters] = useState(currentInstance?.unlockedChapters?.toString() || '0');
   const [adminId, setAdminId] = useState<number | null>(currentInstance?.adminId || null);
 
-  // Settings Config Jeu
-  const [gameStartDate, setGameStartDate] = useState('');
-  const [gameEndDate, setGameEndDate] = useState('');
-  const [gamePeriodsCount, setGamePeriodsCount] = useState('24');
+  // Autocomplétion
+  const [searchQuery, setSearchQuery] = useState(currentInstance?.schoolName || '');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [selectedAnchorId, setSelectedAnchorId] = useState<number | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Références aux valeurs enregistrées en BDD (pour restauration lors d'un Annuler)
-  const savedGameStartDate = useRef('');
-  const savedGameEndDate = useRef('');
-  const savedGamePeriodsCount = useRef('24');
-
-  const calculatedWeeks = useMemo(() => {
-    if (!gameStartDate || !gameEndDate) return 0;
-    const start = new Date(gameStartDate);
-    const end = new Date(gameEndDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.ceil(diffDays / 7);
-  }, [gameStartDate, gameEndDate]);
-
-  // Périodes de saisies
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [sortField, setSortField] = useState<'date' | 'actions'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showConfirm, setShowConfirm] = useState<{ id: number, message: string } | null>(null);
-
-  // Édition de période
-  const [editingPeriodId, setEditingPeriodId] = useState<number | null>(null);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [editStartDate, setEditStartDate] = useState('');
-  const [editEndDate, setEditEndDate] = useState('');
   const [deleteWarning, setDeleteWarning] = useState<{ affectedActions: number, message: string } | null>(null);
-
   
   // Utiliser la récupération des utilisateurs AM pour le select
   const [amUsers, setAmUsers] = useState<any[]>([]);
 
-  const sortedPeriods = useMemo(() => {
-    return [...periods].sort((a, b) => {
-      let valA, valB;
-      if (sortField === 'date') {
-        valA = new Date(a.startDate).getTime();
-        valB = new Date(b.startDate).getTime();
-      } else {
-        valA = a._count?.actionsDone || 0;
-        valB = b._count?.actionsDone || 0;
-      }
-      return sortOrder === 'asc' ? valA - valB : valB - valA;
-    });
-  }, [periods, sortField, sortOrder]);
-
-  const toggleSort = (field: 'date' | 'actions') => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
-
-  const startEditing = (p: Period) => {
-    setEditingPeriodId(p.id);
-    setEditStartDate(new Date(p.startDate).toISOString().split('T')[0]);
-    setEditEndDate(new Date(p.endDate).toISOString().split('T')[0]);
-    setIsAddingNew(false);
-  };
-
-  const cancelEditing = () => {
-    setEditingPeriodId(null);
-    setIsAddingNew(false);
-  };
-
-  const prepareAddPeriod = () => {
-    let nextStart = new Date();
-    // Trouver la période la plus récente (par date de fin)
-    if (periods.length > 0) {
-      const sortedByEnd = [...periods].sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
-      nextStart = new Date(sortedByEnd[0].endDate);
-      nextStart.setDate(nextStart.getDate() + 1);
-    }
-    
-    const nextEnd = new Date(nextStart);
-    nextEnd.setDate(nextEnd.getDate() + 6); // 1 semaine
-    
-    setEditStartDate(nextStart.toISOString().split('T')[0]);
-    setEditEndDate(nextEnd.toISOString().split('T')[0]);
-    setIsAddingNew(true);
-    setEditingPeriodId(-1); // ID spécial pour le nouvel élément
-  };
-
-  const savePeriodEdit = async (id: number) => {
-    setSaving(true);
-    try {
-      const isNew = id === -1;
-      const url = isNew 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/periods`
-        : `${process.env.NEXT_PUBLIC_API_URL}/periods/${id}`;
-      
-      const method = 'POST'; // Le contrôleur utilise POST pour les deux cas (create et update :id)
-      const body = { 
-        startDate: new Date(editStartDate).toISOString(), 
-        endDate: new Date(editEndDate).toISOString(),
-        ...(isNew ? { instanceId } : {})
-      };
-      if (!instanceId) return; // Sécurité
-
-      const resp = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
-        body: JSON.stringify(body),
-      });
-
-      if (resp.ok) {
-        setEditingPeriodId(null);
-        setIsAddingNew(false);
-        fetchPeriods();
-        setStatus({ type: 'success', msg: isNew ? 'Période ajoutée !' : 'Période mise à jour !' });
-        setTimeout(() => setStatus(null), 3000);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   useEffect(() => {
     if (currentInstance) {
       setSchoolName(currentInstance.schoolName || '');
+      setSearchQuery(currentInstance.schoolName || '');
       setIcon(currentInstance.icon || '');
       setHostUrl(currentInstance.hostUrl || '');
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
-      if (currentInstance.gameStartDate) setGameStartDate(new Date(currentInstance.gameStartDate).toISOString().split('T')[0]);
-      if (currentInstance.gameEndDate) setGameEndDate(new Date(currentInstance.gameEndDate).toISOString().split('T')[0]);
-      if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
     fetchAMUsers();
-    
-    if (instanceId) {
-      fetchPeriods();
-      fetchGameConfig();
-    }
   }, [currentInstance, instanceId, schoolYear]);
+
+  useEffect(() => {
+    if (isNew && searchQuery.length > 1 && !selectedAnchorId) {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = setTimeout(async () => {
+        try {
+          const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/search?q=${encodeURIComponent(searchQuery)}`, {
+            headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+          });
+          if (resp.ok) {
+            setSuggestions(await resp.json());
+            setShowSuggestions(true);
+          }
+        } catch (e) {}
+      }, 300);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [searchQuery, isNew, selectedAnchorId]);
 
   const fetchAMUsers = async () => {
     try {
@@ -184,43 +75,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       if (resp.ok) setAmUsers((await resp.json()).filter((u: any) => u.role === 'AM' || u.role === 'AS'));
     } catch (e) {
       console.error('[GeneralSettings] fetchAMUsers failed:', e);
-    }
-  };
-
-  const fetchPeriods = async () => {
-    if (!instanceId) return;
-    try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
-      if (resp.ok) {
-        setPeriods(await resp.json());
-      }
-    } catch (e) {
-      console.error('[GeneralSettings] fetchPeriods failed:', e);
-    }
-  };
-
-  const fetchGameConfig = async () => {
-    if (!instanceId) return;
-    try {
-      // Bug #3 — Correction URL : path param /:instanceId au lieu de ?instanceId=
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}?schoolYear=${schoolYear}`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        const start = data.gameStartDate ? new Date(data.gameStartDate).toISOString().split('T')[0] : '';
-        const end = data.gameEndDate ? new Date(data.gameEndDate).toISOString().split('T')[0] : '';
-        const periods = data.gamePeriodsCount ? data.gamePeriodsCount.toString() : '24';
-
-        setGameStartDate(start);
-        setGameEndDate(end);
-        setGamePeriodsCount(periods);
-
-        // Mémoriser les valeurs sauvegardées pour restauration lors d'un Annuler
-        savedGameStartDate.current = start;
-        savedGameEndDate.current = end;
-        savedGamePeriodsCount.current = periods;
-      }
-    } catch (e) {
-      console.error('[GeneralSettings] fetchGameConfig failed:', e);
     }
   };
 
@@ -238,38 +92,27 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
         method,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
         body: JSON.stringify({ 
-          schoolName, 
+          schoolName: selectedAnchorId ? undefined : searchQuery, 
+          instanceId: selectedAnchorId || undefined,
           icon,
           hostUrl, 
           isOpen, 
           unlockedChapters: parseInt(unlockedChapters), 
           adminId,
           currentSchoolYear: schoolYear,
-          // Inclure les dates dans le corps instance pour déclencher syncPeriods() dans InstanceService
-          // StimulationService.updateGameConfig() ne déclenche pas la génération de périodes
-          ...(gameStartDate && { gameStartDate: new Date(gameStartDate).toISOString() }),
-          ...(gameEndDate && { gameEndDate: new Date(gameEndDate).toISOString() }),
-          ...(calculatedWeeks > 0 && { gamePeriodsCount: calculatedWeeks }),
-          schoolYear, // requis par update() pour cibler la bonne année dans syncPeriods()
+          schoolYear,
           force,
         }),
       });
 
       if (resp.ok) {
         const data = await resp.json();
-
         setStatus({ type: 'success', msg: isNew ? 'Espace créé avec succès !' : 'Paramètres enregistrés !' });
         setTimeout(() => setStatus(null), 3000);
-        
         if (isNew && data.id) {
-          // Bug #5b — Rafraîchir la liste AVANT la redirection
-          // Sans cela, managedInstances ne contient pas encore la nouvelle instance
-          // et currentInstance serait undefined après le router.push
           await onUpdate();
           router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
         } else {
-          fetchPeriods();
-          fetchGameConfig(); // Recharger la config depuis le serveur pour synchroniser les refs
           onUpdate();
         }
       } else if (resp.status === 409) {
@@ -281,7 +124,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           setDeleteWarning({ affectedActions: data.affectedActions || 0, message: data.message });
         }
       } else {
-        setStatus({ type: 'error', msg: "Erreur d'enregistrement." });
+        const errData = await resp.json().catch(() => ({}));
+        console.error('[GeneralSettings] PATCH error:', JSON.stringify(errData));
+        setStatus({ type: 'error', msg: `Erreur ${resp.status}: ${errData?.message || 'inconnu'}` });
       }
     } catch (e) {
       setStatus({ type: 'error', msg: 'Erreur réseau.' });
@@ -297,10 +142,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
 
   const handleCancelDeleteWarning = () => {
     setDeleteWarning(null);
-    // Restaurer immédiatement les valeurs depuis les refs (valeurs réelles en BDD)
-    setGameStartDate(savedGameStartDate.current);
-    setGameEndDate(savedGameEndDate.current);
-    setGamePeriodsCount(savedGamePeriodsCount.current);
   };
 
 
@@ -312,9 +153,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
-      if (currentInstance.gameStartDate) setGameStartDate(new Date(currentInstance.gameStartDate).toISOString().split('T')[0]);
-      if (currentInstance.gameEndDate) setGameEndDate(new Date(currentInstance.gameEndDate).toISOString().split('T')[0]);
-      if (currentInstance.gamePeriodsCount) setGamePeriodsCount(currentInstance.gamePeriodsCount.toString());
     }
   };
 
@@ -351,417 +189,224 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
     }
   };
 
-  const createNextPeriod = async () => {
-    setSaving(true);
-    try {
-      let nextStart = new Date();
-      if (periods.length > 0) {
-        const lastPeriod = periods[periods.length - 1];
-        nextStart = new Date(lastPeriod.endDate);
-        nextStart.setDate(nextStart.getDate() + 1);
-      }
-      
-      const nextEnd = new Date(nextStart);
-      nextEnd.setDate(nextEnd.getDate() + 6); // 1 semaine
-
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
-        body: JSON.stringify({ 
-          startDate: nextStart.toISOString(), 
-          endDate: nextEnd.toISOString(), 
-          instanceId: instanceId,
-          schoolYear: schoolYear
-        }),
-      });
-
-      if (resp.ok) {
-        fetchPeriods();
-        setStatus({ type: 'success', msg: 'Période ajoutée !' });
-        setTimeout(() => setStatus(null), 3000);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const openPeriod = async (id: number) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
-      body: JSON.stringify({ isOpen: true }),
-    });
-    fetchPeriods();
-  };
-
-  const askDeletePeriod = async (id: number) => {
-    try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods/${id}/impact`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
-      if (resp.ok) {
-        const data = await resp.json();
-        setShowConfirm({ id, message: `Voulez-vous vraiment supprimer cette période ? ${data.count} actions seront définitivement supprimées.` });
-      }
-    } catch (e) {
-      setShowConfirm({ id, message: `Voulez-vous vraiment supprimer cette période ?` });
-    }
-  };
-
-  const deletePeriod = async (id: number) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
-    setShowConfirm(null);
-    fetchPeriods();
-  };
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20">
+    <div className="max-w-5xl mx-auto space-y-6 pb-20">
       
-      {/* 2 BLOCS EN GRILLE : Paramètres École & Jeu */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassCard className="p-6 border-none shadow-xl bg-white/95 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-500"><Building2 size={20} /></div>
-              <div>
-                <h2 className="text-lg font-black text-slate-800 tracking-tight">Paramètres de l'école</h2>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuration de base</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4 flex-1">
-            <Input label="Nom de l'établissement" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} required icon={<Building2 size={16} />} />
-            
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Icône / Logo de l'établissement</label>
-              <div className="flex items-center gap-4">
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleIconChange} />
-                <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-200 hover:border-emerald-400 flex items-center justify-center bg-slate-50 hover:bg-emerald-50 transition-all shadow-sm shrink-0 overflow-hidden"
-                >
-                  {icon ? (
-                    icon.startsWith('/') || icon.startsWith('http') ? (
-                      <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${icon}`} className="w-full h-full object-cover" alt="Icon" />
-                    ) : (
-                      <span className="text-2xl">{icon}</span> // Fallback if emoji
-                    )
-                  ) : (
-                    <Plus className="text-slate-400" size={24} />
-                  )}
-                </button>
-                <div className="text-xs text-slate-400">
-                  <p>Formats: JPG, PNG, WEBP.</p>
-                  <p>Ratio 1:1 recommandé (Max: 2Mo)</p>
-                </div>
-              </div>
-            </div>
-
-            <Input label="URL personnalisée" value={hostUrl} onChange={(e) => setHostUrl(e.target.value)} icon={<LinkIcon size={16} />} />
-            
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Statut d'Accès</label>
-                <button type="button" onClick={() => setIsOpen(!isOpen)} className={`px-4 py-3 rounded-2xl border-2 flex items-center justify-between text-left transition-all ${isOpen ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
-                  <div>
-                    <span className={`text-[9px] font-black uppercase tracking-tight ${isOpen ? 'text-emerald-600' : 'text-amber-600'}`}>{isOpen ? 'Ouvert' : 'Fermé'}</span>
-                  </div>
-                  {isOpen ? <Unlock size={16} className="text-emerald-500" /> : <Lock size={16} className="text-amber-500" />}
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Chapitres Histoire</label>
-                <Input type="number" min="0" max="10" value={unlockedChapters} onChange={(e) => setUnlockedChapters(e.target.value)} className="!py-2" />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-               <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Gestionnaire Principal</label>
-               <select value={adminId || ''} onChange={(e) => setAdminId(e.target.value ? Number(e.target.value) : null)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 font-bold text-slate-600 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all">
-                  <option value="">-- Aucun --</option>
-                  {amUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
-               </select>
-            </div>
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between gap-3">
-             <button onClick={handleReset} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                <RotateCcw size={14} /> Annuler
-             </button>
-             <Button onClick={() => handleSaveGeneral()} disabled={saving} className="bg-emerald-600 text-white px-6 h-11 rounded-xl text-xs font-black shrink-0">
-                {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : <Save size={14} className="mr-2" />} Enregistrer
-             </Button>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="p-6 border-none shadow-xl bg-white/95 flex flex-col h-full">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-sky-50 rounded-xl text-sky-500"><Calendar size={20} /></div>
-            <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight">Configuration des périodes</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calendrier de l'espace</p>
-            </div>
-          </div>
+      <GlassCard className="relative p-0 rounded-3xl border-none shadow-2xl overflow-hidden bg-white/95">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
           
-          <div className="space-y-4 flex-1">
-            <Input label="Date de début du jeu" type="date" value={gameStartDate} onChange={(e) => setGameStartDate(e.target.value)} icon={<Calendar size={16} />} />
-            <Input label="Date de fin du jeu" type="date" value={gameEndDate} onChange={(e) => setGameEndDate(e.target.value)} icon={<Calendar size={16} />} />
-            <Input label="Durée totale (semaines)" type="number" value={calculatedWeeks} disabled icon={<Box size={16} />} />
-            
-            <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 mt-4">
-              <p className="text-[10px] font-bold text-sky-600 leading-relaxed uppercase tracking-tight">
-                Cette configuration définit la structure temporelle globale utilisée par les algorithmes de calcul de l'impact planétaire.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between gap-3">
-             <button onClick={handleReset} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                <RotateCcw size={14} /> Annuler
-             </button>
-             <Button onClick={() => handleSaveGeneral()} disabled={saving} className="bg-sky-600 text-white px-6 h-11 rounded-xl text-xs font-black shrink-0">
-                {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : <Save size={14} className="mr-2" />} Enregistrer
-             </Button>
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* BLOC 3 : Périodes de Saisie avec format TABLEAU CONDENSÉ - CACHÉ LORS D'UNE CRÉATION */}
-      {!isNew && (
-        <GlassCard className="p-6 border-none shadow-xl bg-white/95">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 rounded-xl text-indigo-500"><Calendar size={20} /></div>
-            <div>
-              <h2 className="text-lg font-black text-slate-800 tracking-tight">Périodes de Saisie</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calendrier des semaines actives</p>
-            </div>
-          </div>
-          <button 
-            onClick={prepareAddPeriod}
-            disabled={saving || isAddingNew}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} className="group-hover:scale-110 transition-transform" />}
-            Ajouter une semaine
-          </button>
-        </div>
-
-        <div className="rounded-2xl border border-slate-50 overflow-hidden shadow-sm">
-          {/* Table Header */}
-          <div className="grid grid-cols-[1fr_120px_120px_100px] gap-4 px-6 py-3 bg-slate-50 text-[9px] font-black uppercase tracking-[0.1em] text-slate-400">
-            <div 
-              className="flex items-center gap-2 cursor-pointer hover:text-emerald-600 transition-colors"
-              onClick={() => toggleSort('date')}
-            >
-              Dates de la période
-              {sortField === 'date' ? (
-                sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
-              ) : <ArrowUpDown size={10} className="opacity-30" />}
-            </div>
-            <div className="text-center">Statut</div>
-            <div 
-              className="flex items-center justify-center gap-2 cursor-pointer hover:text-emerald-600 transition-colors"
-              onClick={() => toggleSort('actions')}
-            >
-              Saisies
-              {sortField === 'actions' ? (
-                sortOrder === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
-              ) : <ArrowUpDown size={10} className="opacity-30" />}
-            </div>
-            <div className="text-right pr-2">Actions</div>
-          </div>
-
-          {/* Table Rows */}
-          <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto custom-scrollbar">
-            {/* NOVELLE LIGNE EN COURS D'AJOUT */}
-            {isAddingNew && (
-              <div key="new-period" className="grid grid-cols-[1fr_120px_120px_100px] gap-4 px-6 py-3 items-center bg-emerald-50/30 border-l-4 border-l-emerald-500 animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="date" 
-                      value={editStartDate} 
-                      onChange={(e) => setEditStartDate(e.target.value)}
-                      className="bg-white border-2 border-emerald-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm"
-                    />
-                    <div className="h-px w-2 bg-slate-300" />
-                    <input 
-                      type="date" 
-                      value={editEndDate} 
-                      onChange={(e) => setEditEndDate(e.target.value)}
-                      className="bg-white border-2 border-emerald-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm"
-                    />
+          {/* Left Column: Logo & Quick Info */}
+          <div className="flex flex-col items-center justify-start p-10 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-100">
+            <div className="relative group">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-40 h-40 rounded-3xl border-4 border-white shadow-2xl flex items-center justify-center overflow-hidden cursor-pointer bg-white relative transition-all"
+              >
+                {icon ? (
+                  <img src={icon.startsWith('/') || icon.startsWith('http') ? `${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '')}${icon}` : ''} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-emerald-50 flex items-center justify-center">
+                    <Building2 className="text-emerald-200" size={48} />
                   </div>
+                )}
+                
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="text-white" size={32} />
                 </div>
+              </motion.div>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleIconChange}
+              />
+            </div>
 
-                <div className="flex justify-center">
-                  <span className="px-2.5 py-1 bg-amber-50 text-amber-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-amber-100 flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    Nouveau
+            <div className="mt-8 w-full space-y-4">
+               <div className="flex flex-col items-center text-center">
+                  <span className="text-xl font-black text-slate-800 tracking-tight">{schoolName || 'Nouvel Espace'}</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                     Configuration Globale
                   </span>
-                </div>
+               </div>
 
-                <div className="flex justify-center">
-                   <div className="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-black rounded-full border border-slate-200">
-                      0 act.
-                   </div>
-                </div>
-
-                <div className="flex justify-end gap-1.5">
-                  <button 
-                    onClick={() => savePeriodEdit(-1)} 
-                    title="Créer la période"
-                    className="p-2 text-emerald-600 hover:bg-white rounded-lg transition-all shadow-sm bg-emerald-50"
-                  >
-                    <Check size={16} />
-                  </button>
-                  <button 
-                    onClick={cancelEditing} 
-                    title="Annuler"
-                    className="p-2 text-rose-500 hover:bg-white rounded-lg transition-all shadow-sm bg-rose-50"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
+               {instanceId && (
+                 <div className="pt-6 border-t border-slate-100 space-y-3">
+                    <div className="flex items-center gap-3 text-slate-500">
+                       {isOpen ? <Unlock size={16} className="text-emerald-500" /> : <Lock size={16} className="text-amber-500" />}
+                       <span className="text-xs font-bold leading-none">{isOpen ? 'Accès Ouvert' : 'Accès Fermé'}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-500">
+                       <Building2 size={16} className="text-sky-500" />
+                       <span className="text-xs font-bold leading-none">ID #{instanceId.toString().padStart(4, '0')}</span>
+                    </div>
+                 </div>
+               )}
+            </div>
+            
+            {saving && (
+               <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600 tracking-widest animate-pulse">
+                  <Loader2 className="animate-spin" size={12} /> Synchronisation...
+               </div>
             )}
+          </div>
 
-            {sortedPeriods.map(p => {
-              const isEditing = editingPeriodId === p.id;
-              return (
-                <div key={p.id} className="grid grid-cols-[1fr_120px_120px_100px] gap-4 px-6 py-3 items-center hover:bg-slate-50/50 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    {isEditing ? (
-                      <div className="flex items-center gap-2">
-                        <input 
-                          type="date" 
-                          value={editStartDate} 
-                          onChange={(e) => setEditStartDate(e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                        />
-                        <div className="h-px w-2 bg-slate-200" />
-                        <input 
-                          type="date" 
-                          value={editEndDate} 
-                          onChange={(e) => setEditEndDate(e.target.value)}
-                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <span className="text-sm font-bold text-slate-700">
-                          {new Date(p.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                        </span>
-                        <div className="h-px w-4 bg-slate-200" />
-                        <span className="text-sm font-bold text-slate-700">
-                          {new Date(p.endDate).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                      </>
-                    )}
+          {/* Right Column: Forms */}
+          <div className="p-12 flex flex-col gap-10">
+            <div className="flex flex-col gap-10">
+              
+              {/* Identity section */}
+              <div className="space-y-6">
+                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest bg-emerald-50 w-fit px-3 py-1 rounded-full">Informations de base</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-2 relative">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nom de l'établissement</label>
+                     <Input 
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setSelectedAnchorId(null);
+                        }}
+                        disabled={!isNew}
+                        placeholder="Rechercher ou Créer..."
+                        className="bg-slate-50 border-none h-14 rounded-2xl text-lg font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      />
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute top-[100%] left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                          {suggestions.map((s) => {
+                            const lastYear = s.instanceYears?.[0];
+                            return (
+                              <button
+                                key={s.id}
+                                className="w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-slate-50 flex items-center justify-between"
+                                onClick={() => {
+                                  setSelectedAnchorId(s.id);
+                                  setSearchQuery(s.schoolName);
+                                  if (lastYear) {
+                                    setHostUrl(lastYear.hostUrl || '');
+                                    setIcon(lastYear.icon || '');
+                                    setAdminId(s.adminId || null);
+                                  }
+                                  setShowSuggestions(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800">{s.schoolName}</span>
+                                  {lastYear && <span className="text-xs text-slate-400">Dernière config: {lastYear.schoolYear}</span>}
+                                </div>
+                                <Plus size={16} className="text-emerald-500" />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {selectedAnchorId && isNew && (
+                        <div className="mt-2 text-xs font-bold text-emerald-600 flex items-center gap-1 ml-1">
+                          <CheckCircle size={14} /> École liée existante (données pré-remplies)
+                        </div>
+                      )}
                   </div>
-
-                  <div className="flex justify-center">
-                    {p.isOpen ? (
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-emerald-100 flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Ouverte
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
-                        Terminée
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex justify-center">
-                     <div className="px-2 py-0.5 bg-indigo-50 text-indigo-500 text-[10px] font-black rounded-full border border-indigo-100">
-                        {p._count?.actionsDone || 0} act.
+                  <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL personnalisée</label>
+                     <div className="relative">
+                        <Input 
+                          value={hostUrl}
+                          onChange={(e) => setHostUrl(e.target.value)}
+                          placeholder="mon-ecole.nnauru.org"
+                          className="bg-slate-50 border-none h-14 rounded-2xl text-lg font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all pl-12"
+                        />
+                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
                      </div>
                   </div>
+                </div>
+              </div>
 
-                  <div className="flex justify-end gap-1.5">
-                    {isEditing ? (
-                      <>
-                        <button 
-                          onClick={() => savePeriodEdit(p.id)} 
-                          title="Sauvegarder"
-                          className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button 
-                          onClick={cancelEditing} 
-                          title="Annuler"
-                          className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button 
-                          onClick={() => startEditing(p)} 
-                          title="Modifier les dates"
-                          className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        {!p.isOpen && (
-                          <button 
-                            onClick={() => openPeriod(p.id)} 
-                            title="Réouvrir la période"
-                            className="p-2 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                        >
-                          <Unlock size={16} />
-                        </button>
-                        )}
-                        <button 
-                          onClick={() => askDeletePeriod(p.id)} 
-                          title="Supprimer la période"
-                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
-                    )}
+              {/* Security Section */}
+              <div className="space-y-6">
+                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest bg-sky-50 w-fit px-3 py-1 rounded-full flex items-center gap-2">
+                   <Lock size={12} /> Gestion & Accès
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gestionnaire Principal</label>
+                     <select 
+                       value={adminId || ''} 
+                       onChange={(e) => setAdminId(e.target.value ? Number(e.target.value) : null)} 
+                       className="w-full bg-slate-50 border-none h-14 rounded-2xl px-4 font-bold text-slate-700 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm"
+                     >
+                        <option value="">-- Aucun --</option>
+                        {amUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+                     </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Chapitres Histoire</label>
+                     <Input 
+                       type="number" min="0" max="10" 
+                       value={unlockedChapters} 
+                       onChange={(e) => setUnlockedChapters(e.target.value)} 
+                       className="bg-slate-50 border-none h-14 rounded-2xl text-lg font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm" 
+                     />
                   </div>
                 </div>
-              );
-            })}
-            
-            {periods.length === 0 && (
-              <div className="py-12 text-center flex flex-col items-center gap-3">
-                <Calendar size={32} className="text-slate-200" />
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Aucune période configurée</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] uppercase font-black text-slate-400 ml-1">Statut d'Accès de l'Espace</label>
+                    <button type="button" onClick={() => setIsOpen(!isOpen)} className={`px-4 h-14 rounded-2xl border-2 flex items-center justify-between text-left transition-all ${isOpen ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}>
+                      <div>
+                        <span className={`text-xs font-black uppercase tracking-tight ${isOpen ? 'text-emerald-600' : 'text-amber-600'}`}>{isOpen ? 'Ouvert' : 'Fermé'}</span>
+                      </div>
+                      {isOpen ? <Unlock size={20} className="text-emerald-500" /> : <Lock size={20} className="text-amber-500" />}
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
+
+              {/* Actions Footer */}
+              <div className="flex justify-between items-center mt-4 pt-8 border-t border-slate-100">
+                <AnimatePresence>
+                  {status && status.type === 'success' && (
+                    <motion.div 
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-emerald-600 font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <CheckCircle size={16} /> {status.msg}
+                    </motion.div>
+                  )}
+                  {status && status.type === 'error' && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-rose-600 font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <AlertTriangle size={16} /> {status.msg}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex gap-4 ml-auto">
+                  <Button 
+                    onClick={() => handleSaveGeneral()} 
+                    disabled={saving} 
+                    className="h-14 px-10 gap-3 font-black shadow-xl shadow-emerald-500/20 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white uppercase tracking-widest text-sm"
+                  >
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    Enregistrer
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </GlassCard>
-    )}
-
-      {status && (
-          <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-4 duration-300">
-            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${status.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
-               {status.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
-               <span className="font-bold text-sm">{status.msg}</span>
-            </div>
-          </div>
-      )}
-
-      {showConfirm && (
-        <ConfirmDialog 
-          isOpen={true} 
-          onClose={() => setShowConfirm(null)} 
-          onConfirm={() => deletePeriod(showConfirm.id)} 
-          title="Attention: Suppression de période" 
-          description={showConfirm.message} 
-        />
-      )}
 
       {deleteWarning && (
         <ConfirmDialog 

@@ -97,7 +97,7 @@ function SortableCategoryItem({
   );
 }
 
-export function CategorySettings({ instanceId, schoolYear }: { instanceId: number, schoolYear: string }) {
+export function CategorySettings({ instanceId, schoolYear, instanceYearId }: { instanceId: number, schoolYear: string, instanceYearId?: number }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +128,10 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+      const query = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` }
       });
       if (resp.ok) setCategories(await resp.json());
@@ -180,6 +183,7 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
         body: JSON.stringify({
           instanceId,
           schoolYear,
+          ...(instanceYearId ? { instanceYearId } : {}),
           categoryIds: newOrder.map(c => c.id)
         })
       });
@@ -200,7 +204,8 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
       icon: icon.toLowerCase() || null,
       order: parseInt(order),
       instanceId,
-      schoolYear
+      schoolYear,
+      ...(instanceYearId ? { instanceYearId } : {})
     };
 
     try {
@@ -375,6 +380,7 @@ export function CategorySettings({ instanceId, schoolYear }: { instanceId: numbe
         instanceId={instanceId}
         instanceName="cet établissement"
         schoolYear={schoolYear}
+        instanceYearId={instanceYearId}
         onImport={fetchCategories}
       />
 

@@ -33,6 +33,14 @@ export class InstanceController {
     return this.instanceService.create(createInstanceDto);
   }
 
+  @Get('search')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Recherche d'écoles par nom pour l'autocomplétion" })
+  async search(@Query('q') query: string) {
+    return this.instanceService.searchByName(query);
+  }
+
   @Get()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -116,5 +124,17 @@ export class InstanceController {
     @Body() body: { targetYear: string },
   ) {
     return this.yearService.initializeYear(id, body.targetYear);
+  }
+
+  @Get(':id/year')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Résoudre l\'instanceYearId depuis (instanceId, schoolYear)' })
+  async resolveInstanceYear(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    const iy = await this.yearService.resolveInstanceYear(id, schoolYear);
+    return iy;
   }
 }

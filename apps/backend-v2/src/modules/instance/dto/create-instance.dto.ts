@@ -2,15 +2,19 @@ import { IsString, IsNotEmpty, IsOptional, IsUrl, IsInt } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateInstanceDto {
+  @ApiProperty({ example: 1, required: false })
+  @IsInt()
+  @IsOptional()
+  instanceId?: number;
+
   @ApiProperty({ example: 'École du Petit Prince' })
   @IsString()
-  @IsNotEmpty()
-  schoolName: string;
+  @IsOptional()
+  schoolName?: string;
 
   @ApiProperty({ example: 'petit-prince.sos-planete.fr', required: false })
   @IsString()
   @IsOptional()
-  @IsUrl({}, { message: "L'URL de l'instance doit être une URL valide" })
   hostUrl?: string;
 
   @ApiProperty({ example: 1, required: false })

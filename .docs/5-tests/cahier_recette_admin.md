@@ -9,6 +9,7 @@
 | **CAMP-003** | 10/05/2026 | Automatique | 21 / 29 | 0 | 0 | Validation post-correctifs (ANO-001, ANO-002). |
 | **CAMP-004** | 10/05/2026 | Automatique | 26 / 29 | 0 | 0 | Automatisation étendue (Auth, Users, Catalogue, Actions CSV). |
 | **CAMP-005** | 10/05/2026 | Automatique | 27 / 29 | 0 | 0 | **Automatisation Quasi-Totale**. Ajout de la protection des routes (TST-005). |
+| **CAMP-006** | 11/05/2026 | Automatique | 6 / 6 | 0 | 0 | **Validation Migration `instanceYearId`**. Isolation stricte et cascades validées avec succès. |
 
 ---
 
@@ -86,3 +87,22 @@ npx ts-node -T test/recette-runner.ts
 | TST-027 | Import `Neyron_actions_realisees.csv` | Chargement de l'historique massif des actions. | `🟢 Passant` |
 | TST-028 | Validation Indicateurs | Vérification que les compteurs (CO2, Eau, Déchets) sont cohérents après les imports. | `🟢 Passant` |
 | TST-029 | Intégrité des Stats | Vérifier qu'aucune action n'est orpheline ou mal calculée. | `🟢 Passant` |
+
+## 📅 8. Isolation par Année Scolaire (InstanceYear)
+| ID | Test | Résultat Attendu | Statut |
+| :--- | :--- | :--- | :--- |
+| TST-030 | Création multi-années | Création d'une instance "École A" pour 2024-2025, puis activation de 2025-2026. | `🟢 Passant` |
+| TST-031 | Étanchéité des équipes | Les équipes importées sur 2024-2025 n'apparaissent pas sur 2025-2026, et inversement. | `🟢 Passant` |
+| TST-032 | Étanchéité du catalogue | Les catégories et actions mappées sur 2024-2025 n'apparaissent pas sur 2025-2026 sans import spécifique. | `🟢 Passant` |
+| TST-033 | Suppression d'une année | La suppression de l'Instance complète supprime les données de toutes les années associées. | `🟢 Passant` |
+| TST-034 | Activation/Désactivation (isOpen) | Fermer l'espace 2024-2025 n'impacte pas l'état d'ouverture de l'année 2025-2026. | `🟢 Passant` |
+| TST-035 | Affectation des scores/actions | Les actions réalisées via l'app par les enfants s'imputent à la bonne période de la bonne année. | `🟢 Passant` |
+
+## 🪄 9. Création d'Espace & Wizard de Navigation (V2)
+| ID | Test | Résultat Attendu | Statut |
+| :--- | :--- | :--- | :--- |
+| TST-036 | Création école vierge | L'autocomplétion ne trouve rien. Les champs sont vides. Enregistrement ok et affichage de la Floating Bar. | `[ ]` |
+| TST-037 | Création nouvelle année (école existante) | L'autocomplétion trouve l'école. L'URL, le logo et le gestionnaire sont pré-remplis. Les dates restent vides. | `[ ]` |
+| TST-038 | Changement de gestionnaire annuel | Modification du gestionnaire pour l'année N n'écrase pas le gestionnaire de l'année N-1. | `[ ]` |
+| TST-039 | Navigation Wizard | Le passage d'onglet via la Floating Bar fonctionne et indique bien "Étape terminée" après un enregistrement. | `[ ]` |
+| TST-040 | Changement d'onglet libre | Le clic sur un autre onglet est possible à tout moment, indépendamment de la barre. | `[ ]` |

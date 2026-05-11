@@ -7,114 +7,188 @@ import { UpdateInstanceDto } from './dto/update-instance.dto';
 export class InstanceService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateInstanceDto) {
-    if (data.gameStartDate && typeof data.gameStartDate === 'string') {
-      data.gameStartDate = new Date(data.gameStartDate);
-    }
-    if (data.gameEndDate && typeof data.gameEndDate === 'string') {
-      data.gameEndDate = new Date(data.gameEndDate);
-    }
-
-    // Bug #1 — Éviter la violation de contrainte UNIQUE sur hostUrl
-    // Une chaîne vide "" n'est pas null : deux instances sans URL crasheraient
-    const sanitizedHostUrl = data.hostUrl?.trim() || null;
-
-    const instance = await this.prisma.instance.create({
-      data: {
-        schoolName: data.schoolName,
-        hostUrl: sanitizedHostUrl,
-        adminId: data.adminId,
-        isOpen: false, // Forcé à false par défaut pour les nouveaux espaces
-        // Bug #2 — Persister l'année scolaire active envoyée par le frontend
-        currentSchoolYear: data.currentSchoolYear ?? '2024-2025',
+  async searchByName(name: string) {
+    if (!name || name.trim().length < 2) return [];
+    return this.prisma.instance.findMany({
+      where: {
+        schoolName: {
+          contains: name.trim(),
+          mode: 'insensitive'
+        }
       },
+      include: {
+        instanceYears: {
+          orderBy: { schoolYear: 'desc' },
+          take: 1
+        }
+      },
+      take: 10
     });
+  }
 
-    // Création de la configuration de jeu par défaut pour la première année
-    await this.prisma.gameConfig.create({
-      data: {
-        instanceId: instance.id,
-        schoolYear: instance.currentSchoolYear,
-        gameStartDate: data.gameStartDate,
-        gameEndDate: data.gameEndDate,
-        gamePeriodsCount: data.gamePeriodsCount ?? 24,
+  async create(data: CreateInstanceDto) {
+    const sanitizedHostUrl = data.hostUrl?.trim() || null;
+    const schoolYear = data.currentSchoolYear ?? '2024-2025';
+
+    const gameStartDate = data.gameStartDate ? new Date(data.gameStartDate) : undefined;
+    const gameEndDate   = data.gameEndDate   ? new Date(data.gameEndDate)   : undefined;
+
+    return this.prisma.$transaction(async (tx) => {
+      let instance;
+
+      // 1. Récupérer ou Créer l'Instance Ancre
+      if (data.instanceId) {
+        instance = await tx.instance.findUnique({ where: { id: data.instanceId } });
+        if (!instance) throw new NotFoundException('Instance non trouvée');
+      } else {
+        if (!data.schoolName) throw new ConflictException('Le nom de l\'école est obligatoire pour une nouvelle instance');
+        instance = await tx.instance.create({
+          data: {
+            schoolName: data.schoolName,
+            adminId: data.adminId, // Gardé comme propriétaire historique
+          },
+        });
       }
+
+      // 2. Créer l'InstanceYear pour l'année active
+      // Vérifier si elle existe déjà
+      let instanceYear = await tx.instanceYear.findUnique({
+        where: {
+          instanceId_schoolYear: {
+            instanceId: instance.id,
+            schoolYear
+          }
+        }
+      });
+
+      if (instanceYear) {
+        // Si elle existe, on met juste à jour l'URL et l'icône si fournis
+        instanceYear = await tx.instanceYear.update({
+          where: { id: instanceYear.id },
+          data: {
+            hostUrl: sanitizedHostUrl !== null ? sanitizedHostUrl : undefined,
+            icon: data.icon !== undefined ? data.icon : undefined,
+            adminId: data.adminId,
+          }
+        });
+      } else {
+        instanceYear = await tx.instanceYear.create({
+          data: {
+            instanceId: instance.id,
+            schoolYear,
+            hostUrl: sanitizedHostUrl,
+            icon: data.icon ?? null,
+            isOpen: false,
+            gameStartDate,
+            gameEndDate,
+            gamePeriodsCount: data.gamePeriodsCount ?? 24,
+            adminId: data.adminId,
+          },
+        });
+
+        // 3. Création de la configuration de jeu par défaut
+        await tx.gameConfig.create({
+          data: {
+            instanceId: instance.id,
+            schoolYear,
+            gameStartDate,
+            gameEndDate,
+            gamePeriodsCount: data.gamePeriodsCount ?? 24,
+          },
+        });
+
+        // 4. Génération initiale des périodes
+        await this.syncPeriods(instance.id, instanceYear.id, schoolYear, false, tx);
+
+        // 5. Ouverture automatique de la période courante
+        await this.handleCurrentPeriodActivation(instanceYear.id, tx);
+      }
+
+      return { ...instance, instanceYear };
     });
-
-
-    // Génération initiale des périodes
-    await this.syncPeriods(instance.id, instance.currentSchoolYear);
-
-    // Ouverture automatique de la période de la date courante
-    await this.handleCurrentPeriodActivation(instance.id, instance.currentSchoolYear);
-
-    return instance;
   }
 
   async findAll(userId?: number, role?: string, schoolYear?: string) {
     const where: any = {};
+    const sy = schoolYear || '2024-2025';
+
     if (role === 'AM' && userId) {
-      where.adminId = userId;
+      where.instanceYears = {
+        some: { adminId: userId }
+      };
     }
 
-    const sy = schoolYear || "2024-2025";
+    if (sy !== 'all') {
+      where.instanceYears = {
+        ...(where.instanceYears || {}),
+        some: { ...(where.instanceYears?.some || {}), schoolYear: sy }
+      };
+    }
 
     const instances = await this.prisma.instance.findMany({
       where,
       orderBy: { id: 'desc' },
       include: {
         admin: {
+          select: { id: true, email: true, name: true, avatar: true },
+        },
+        instanceYears: {
+          ...(sy !== 'all' ? { where: { schoolYear: sy } } : {}),
           select: {
             id: true,
-            email: true,
-            name: true,
-            avatar: true
+            schoolYear: true,
+            hostUrl: true,
+            icon: true,
+            adminId: true,
+            isOpen: true,
+            gameStartDate: true,
+            gameEndDate: true,
+            gamePeriodsCount: true,
+            unlockedChapters: true,
+            _count: {
+              select: { teams: true, periods: true },
+            },
+            admin: {
+              select: { id: true, name: true, email: true },
+            },
           },
         },
         _count: {
-          select: {
-            teams: { where: { schoolYear: sy } },
-            localActions: { where: { schoolYear: sy } },
-            periods: { where: { schoolYear: sy } }
-          }
-        }
+          select: { localActions: { where: { schoolYear: sy } } },
+        },
       },
     });
 
     const instanceIds = instances.map(i => i.id);
 
-    // PERF-01 — Batch queries : 3 lots en parallèle au lieu de 3N requêtes séquentielles
     const [playersData, actionsData, impactsData] = await Promise.all([
-      // Lot 1 : Nombre de joueurs par instance
       Promise.all(
         instanceIds.map(id =>
           this.prisma.child
-            .count({ where: { group: { team: { instanceId: id, schoolYear: sy } } } })
+            .count({ where: { group: { team: { instanceYear: { instanceId: id, schoolYear: sy } } } } })
             .then(count => ({ id, count }))
         )
       ),
-      // Lot 2 : Nombre d'actions réalisées par instance
       Promise.all(
         instanceIds.map(id =>
           this.prisma.actionDone
             .count({
               where: {
-                child: { group: { team: { instanceId: id, schoolYear: sy } } },
-                period: { schoolYear: sy },
+                child: { group: { team: { instanceYear: { instanceId: id, schoolYear: sy } } } },
+                period: { instanceYear: { instanceId: id, schoolYear: sy } },
               },
             })
             .then(count => ({ id, count }))
         )
       ),
-      // Lot 3 : Somme des impacts par instance
       Promise.all(
         instanceIds.map(id =>
           this.prisma.actionDone
             .aggregate({
               _sum: { savedCo2: true, savedWater: true, savedWaste: true },
               where: {
-                child: { group: { team: { instanceId: id, schoolYear: sy } } },
-                period: { schoolYear: sy },
+                child: { group: { team: { instanceYear: { instanceId: id, schoolYear: sy } } } },
+                period: { instanceYear: { instanceId: id, schoolYear: sy } },
               },
             })
             .then(agg => ({ id, agg }))
@@ -127,13 +201,26 @@ export class InstanceService {
     const impactsMap = new Map(impactsData.map(d => [d.id, d.agg]));
 
     return instances.map((instance) => {
+      const iy = instance.instanceYears?.[0] ?? null;
       const impactsAgg = impactsMap.get(instance.id);
       return {
         ...instance,
+        // Champs de jeu et identité surfacés depuis instanceYear pour rétrocompatibilité frontend
+        hostUrl: iy?.hostUrl ?? null,
+        icon: iy?.icon ?? null,
+        isOpen: iy?.isOpen ?? false,
+        gameStartDate: iy?.gameStartDate ?? null,
+        gameEndDate: iy?.gameEndDate ?? null,
+        gamePeriodsCount: iy?.gamePeriodsCount ?? 24,
+        currentSchoolYear: iy?.schoolYear ?? sy,
+        instanceYearId: iy?.id ?? null,
+        adminId: iy?.adminId ?? instance.adminId ?? null,
+        unlockedChapters: iy?.unlockedChapters ?? 0,
+        teamsCount: iy?._count?.teams ?? 0,
         playersCount: playersMap.get(instance.id) ?? 0,
         totalActionsDone: actionsMap.get(instance.id) ?? 0,
         totalImpacts: {
-          co2: impactsAgg?._sum.savedCo2 || 0,
+          co2:   impactsAgg?._sum.savedCo2  || 0,
           water: impactsAgg?._sum.savedWater || 0,
           waste: impactsAgg?._sum.savedWaste || 0,
         },
@@ -141,160 +228,267 @@ export class InstanceService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, schoolYear?: string) {
+    const sy = schoolYear || '2024-2025';
     const instance = await this.prisma.instance.findUnique({
       where: { id },
       include: {
         admin: true,
-        teams: {
+        instanceYears: {
+          where: { schoolYear: sy },
           include: {
-            groups: {
+            teams: {
               include: {
-                _count: {
-                  select: { children: true }
-                }
-              }
-            }
-          }
+                groups: { include: { _count: { select: { children: true } } } },
+              },
+            },
+          },
         },
         _count: {
-          select: {
-            teams: true,
-            localActions: true
-          }
-        }
+          select: { localActions: true },
+        },
       },
     });
 
-    if (!instance) {
-      throw new NotFoundException(`Instance #${id} non trouvée`);
-    }
-
-    return instance;
+    if (!instance) throw new NotFoundException(`Instance #${id} non trouvée`);
+    
+    const iy = instance.instanceYears?.[0] ?? null;
+    return {
+      ...instance,
+      hostUrl: iy?.hostUrl ?? null,
+      icon: iy?.icon ?? null,
+      adminId: iy?.adminId ?? instance.adminId ?? null,
+    };
   }
 
   async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean }) {
-    const { schoolYear, gameStartDate, gameEndDate, gamePeriodsCount, force, ...updateData } = data;
+    const { schoolYear, currentSchoolYear, gameStartDate, gameEndDate, gamePeriodsCount, isOpen, force, hostUrl, icon, adminId, unlockedChapters, instanceId: _instanceId, ...updateData } = data as any;
 
-    const sy = schoolYear || (await this.prisma.instance.findUnique({ where: { id } }))?.currentSchoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
 
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.instance.update({
-        where: { id },
-        data: updateData,
+      // Mise à jour de l'Instance (champs non-jeu uniquement)
+      const updated = await tx.instance.update({ where: { id }, data: updateData });
+
+      // Résolution de l'InstanceYear
+      let instanceYear = await tx.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
       });
 
-      // Mise à jour de la configuration de jeu si nécessaire
+      if (!instanceYear) {
+        instanceYear = await tx.instanceYear.create({
+          data: { instanceId: id, schoolYear: sy },
+        });
+      }
+
+      // Mise à jour des paramètres de jeu sur instanceYear
+      const iyUpdate: any = {};
+      if (isOpen !== undefined)           iyUpdate.isOpen           = isOpen;
+      if (gameStartDate !== undefined)    iyUpdate.gameStartDate    = new Date(gameStartDate);
+      if (gameEndDate !== undefined)      iyUpdate.gameEndDate      = new Date(gameEndDate);
+      if (gamePeriodsCount !== undefined) iyUpdate.gamePeriodsCount = gamePeriodsCount;
+      if (hostUrl !== undefined)          iyUpdate.hostUrl          = hostUrl;
+      if (icon !== undefined)             iyUpdate.icon             = icon;
+      if (adminId !== undefined)          iyUpdate.adminId          = adminId;
+      if (unlockedChapters !== undefined) iyUpdate.unlockedChapters = unlockedChapters;
+
+      if (Object.keys(iyUpdate).length > 0) {
+        instanceYear = await tx.instanceYear.update({
+          where: { id: instanceYear.id },
+          data: iyUpdate,
+        });
+      }
+
+      // Mise à jour de la GameConfig si nécessaire
       if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
         await tx.gameConfig.upsert({
           where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
           update: {
             ...(gameStartDate && { gameStartDate: new Date(gameStartDate) }),
-            ...(gameEndDate && { gameEndDate: new Date(gameEndDate) }),
+            ...(gameEndDate   && { gameEndDate:   new Date(gameEndDate) }),
             ...(gamePeriodsCount !== undefined && { gamePeriodsCount }),
           },
           create: {
             instanceId: id,
             schoolYear: sy,
             gameStartDate: gameStartDate ? new Date(gameStartDate) : undefined,
-            gameEndDate: gameEndDate ? new Date(gameEndDate) : undefined,
+            gameEndDate:   gameEndDate   ? new Date(gameEndDate)   : undefined,
             gamePeriodsCount: gamePeriodsCount ?? 24,
-          }
+          },
         });
+
+        await this.syncPeriods(id, instanceYear.id, sy, force, tx);
       }
 
-      // Cascade fermeture (uniquement si demandé explicitement à false)
-      if (data.isOpen === false) {
+      // Cascade fermeture des périodes si on ferme l'espace
+      if (isOpen === false) {
         await tx.period.updateMany({
-          where: { instanceId: id, schoolYear: sy },
-          data: { isOpen: false },
+          where: { instanceYearId: instanceYear.id },
+          data:  { isOpen: false },
         });
       }
 
-      if (gameStartDate !== undefined || gameEndDate !== undefined || gamePeriodsCount !== undefined) {
-        await this.syncPeriods(id, sy, force, tx);
+      // Activation dynamique de la période courante à l'ouverture
+      if (isOpen === true) {
+        await this.handleCurrentPeriodActivation(instanceYear.id, tx);
       }
 
-      // Toujours forcer l'activation dynamique de la période courante à l'ouverture
-      if (updated.isOpen === true) {
-        await this.handleCurrentPeriodActivation(id, sy, tx);
-      }
-
-      return updated;
-    }, { timeout: 30000 }); // Évite le timeout sur les grosses instances (syncPeriods)
+      return { ...updated, instanceYear };
+    }, { timeout: 30000 });
   }
 
+  // ----------------------------------------------------------------
+  // Méthode publique : résoudre l'instanceYearId depuis instanceId + schoolYear
+  // ----------------------------------------------------------------
+  async resolveInstanceYearId(instanceId: number, schoolYear: string): Promise<number> {
+    const iy = await this.prisma.instanceYear.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
+    });
+    if (!iy) throw new NotFoundException(`Aucune InstanceYear trouvée pour l'instance ${instanceId} et l'année ${schoolYear}`);
+    return iy.id;
+  }
+
+  // ----------------------------------------------------------------
+  // Suppression de l'InstanceYear d'une année (soft delete)
+  // ----------------------------------------------------------------
+  async removeYear(instanceId: number, schoolYear: string) {
+    const iy = await this.prisma.instanceYear.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
+    });
+    if (!iy) throw new NotFoundException('InstanceYear non trouvée');
+
+    return this.prisma.$transaction(async (tx) => {
+      // ActionsDone liées aux périodes de cette année
+      const periods = await tx.period.findMany({ where: { instanceYearId: iy.id }, select: { id: true } });
+      await tx.actionDone.deleteMany({ where: { periodId: { in: periods.map(p => p.id) } } });
+
+      // Children → Groups → Teams
+      const teamIds = (await tx.team.findMany({ where: { instanceYearId: iy.id }, select: { id: true } })).map(t => t.id);
+      const groupIds = (await tx.group.findMany({ where: { teamId: { in: teamIds } }, select: { id: true } })).map(g => g.id);
+      await tx.child.deleteMany({ where: { groupId: { in: groupIds } } });
+      await tx.group.deleteMany({ where: { id: { in: groupIds } } });
+      await tx.team.deleteMany({ where: { instanceYearId: iy.id } });
+
+      // Périodes et catégories
+      await tx.period.deleteMany({ where: { instanceYearId: iy.id } });
+      await tx.category.deleteMany({ where: { instanceYearId: iy.id } });
+
+      // InstanceYear elle-même
+      await tx.instanceYear.delete({ where: { id: iy.id } });
+      return { success: true };
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Suppression complète de l'Instance (toutes années)
+  // ----------------------------------------------------------------
+  async remove(id: number) {
+    await this.findOne(id);
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. ActionsDone (toutes années via les périodes)
+      const instanceYears = await tx.instanceYear.findMany({ where: { instanceId: id }, select: { id: true } });
+      const iyIds = instanceYears.map(iy => iy.id);
+      const periods = await tx.period.findMany({ where: { instanceYearId: { in: iyIds } }, select: { id: true } });
+      await tx.actionDone.deleteMany({ where: { periodId: { in: periods.map(p => p.id) } } });
+      // ActionsDone liées aux LocalActions (local action peut survivre plusieurs années)
+      await tx.actionDone.deleteMany({ where: { localAction: { instanceId: id } } });
+
+      // 2. Children → Groups → Teams (toutes années)
+      const teamIds = (await tx.team.findMany({ where: { instanceYearId: { in: iyIds } }, select: { id: true } })).map(t => t.id);
+      const groupIds = (await tx.group.findMany({ where: { teamId: { in: teamIds } }, select: { id: true } })).map(g => g.id);
+      await tx.child.deleteMany({ where: { groupId: { in: groupIds } } });
+      await tx.group.deleteMany({ where: { id: { in: groupIds } } });
+      await tx.team.deleteMany({ where: { instanceYearId: { in: iyIds } } });
+
+      // 3. Periods, Categories, InstanceYears
+      await tx.period.deleteMany({ where: { instanceYearId: { in: iyIds } } });
+      await tx.category.deleteMany({ where: { instanceYearId: { in: iyIds } } });
+      await tx.instanceYear.deleteMany({ where: { instanceId: id } });
+
+      // 4. LocalActions, GameConfig, snapshots
+      await tx.localAction.deleteMany({ where: { instanceId: id } });
+      await tx.gameConfig.deleteMany({ where: { instanceId: id } });
+      await tx.instanceAnimalUnlock.deleteMany({ where: { instanceId: id } });
+      await tx.terreThermometerSnapshot.deleteMany({ where: { instanceId: id } });
+
+      // 5. Instance elle-même
+      return tx.instance.delete({ where: { id } });
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Helpers privés
+  // ----------------------------------------------------------------
   private getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     const day = d.getDay();
     let diffToWednesday = day - 3;
-    if (diffToWednesday < 0) {
-      diffToWednesday += 7;
-    }
+    if (diffToWednesday < 0) diffToWednesday += 7;
 
     const startDate = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
     startDate.setHours(0, 0, 0, 0);
-
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
     endDate.setHours(23, 59, 59, 999);
 
     return { startDate, endDate };
   }
 
-  private async handleCurrentPeriodActivation(instanceId: number, schoolYear: string, tx?: any) {
+  async handleCurrentPeriodActivation(instanceYearId: number, tx?: any) {
     const client = tx || this.prisma;
     const now = new Date();
 
-    // Recherche de la période active de l'année scolaire courante
     const period = await client.period.findFirst({
       where: {
-        instanceId,
-        schoolYear,
+        instanceYearId,
         startDate: { lte: now },
-        endDate: { gte: now },
+        endDate:   { gte: now },
       },
     });
 
     if (period) {
-      // Fermer uniquement les périodes de la même année scolaire
       await client.period.updateMany({
-        where: { instanceId, schoolYear, isOpen: true },
-        data: { isOpen: false },
+        where: { instanceYearId, isOpen: true },
+        data:  { isOpen: false },
       });
       await client.period.update({
         where: { id: period.id },
-        data: { isOpen: true },
+        data:  { isOpen: true },
       });
     }
   }
 
-
-  private async syncPeriods(instanceId: number, schoolYear: string, force: boolean = false, tx?: any) {
+  private async syncPeriods(
+    instanceId: number,
+    instanceYearId: number,
+    schoolYear: string,
+    force: boolean = false,
+    tx?: any,
+  ) {
     const client = tx || this.prisma;
     const config = await client.gameConfig.findUnique({
-      where: { instanceId_schoolYear: { instanceId, schoolYear } }
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
     });
 
     if (!config || !config.gameStartDate || !config.gameEndDate) {
-      console.warn(`[syncPeriods] Skipping for instance ${instanceId} (${schoolYear}): missing gameStartDate or gameEndDate in GameConfig.`);
+      console.warn(`[syncPeriods] Skipping for instanceYear ${instanceYearId}: missing config dates.`);
       return;
     }
 
     const gameStart = new Date(config.gameStartDate);
-    const gameEnd = new Date(config.gameEndDate);
+    const gameEnd   = new Date(config.gameEndDate);
 
     const currentPeriods = await client.period.findMany({
-      where: { instanceId, schoolYear },
+      where: { instanceYearId },
       orderBy: { startDate: 'asc' },
     });
 
     const firstBoundaries = this.getPeriodBoundaries(gameStart);
     let pStart = firstBoundaries.startDate;
-    let pEnd = firstBoundaries.endDate;
+    let pEnd   = firstBoundaries.endDate;
 
     const generatedPeriods: { startDate: Date; endDate: Date }[] = [];
-
     while (pStart <= gameEnd) {
       generatedPeriods.push({ startDate: new Date(pStart), endDate: new Date(pEnd) });
       pStart = new Date(pStart.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -303,105 +497,37 @@ export class InstanceService {
       pEnd.setHours(23, 59, 59, 999);
     }
 
-    // --- VALIDATION AVANT TOUTE MUTATION ---
     if (currentPeriods.length > generatedPeriods.length) {
-      const toDelete = currentPeriods.slice(generatedPeriods.length);
-      const periodIdsToDelete = toDelete.map((p: { id: number }) => p.id);
-      const affectedActions = await client.actionDone.count({
-        where: { periodId: { in: periodIdsToDelete } }
-      });
+      const toDelete    = currentPeriods.slice(generatedPeriods.length);
+      const idsToDelete = toDelete.map((p: { id: number }) => p.id);
+      const affectedActions = await client.actionDone.count({ where: { periodId: { in: idsToDelete } } });
 
       if (affectedActions > 0 && !force) {
         throw new ConflictException(JSON.stringify({
           warning: true,
           affectedActions,
-          message: `Ce changement de dates supprimera ${affectedActions} actions enregistrées par les élèves. Voulez-vous continuer ?`
+          message: `Ce changement supprimera ${affectedActions} actions enregistrées. Continuer ?`,
         }));
       }
 
-      // Suppression effective
       for (const p of toDelete) {
         await client.actionDone.deleteMany({ where: { periodId: p.id } });
         await client.period.delete({ where: { id: p.id } });
       }
     }
 
-    // --- MISE À JOUR / CRÉATION ---
     for (let i = 0; i < generatedPeriods.length; i++) {
       const p = generatedPeriods[i];
       if (currentPeriods[i]) {
         await client.period.update({
           where: { id: currentPeriods[i].id },
-          data: { startDate: p.startDate, endDate: p.endDate },
+          data:  { startDate: p.startDate, endDate: p.endDate },
         });
       } else {
         await client.period.create({
-          data: { instanceId, schoolYear, startDate: p.startDate, endDate: p.endDate, isOpen: false },
+          data: { instanceYearId, startDate: p.startDate, endDate: p.endDate, isOpen: false },
         });
       }
     }
-  }
-
-
-  async remove(id: number) {
-    await this.findOne(id);
-
-    // Suppression en cascade via transaction pour garantir l'intégrité
-    return this.prisma.$transaction(async (tx) => {
-      // 1. ActionsDone (dépendent de LocalAction et Period)
-      await tx.actionDone.deleteMany({
-        where: { localAction: { instanceId: id } }
-      });
-
-      // 2. Children (dépendent de Group)
-      await tx.child.deleteMany({
-        where: { group: { team: { instanceId: id } } }
-      });
-
-      // 3. Groups (dépendent de Team)
-      await tx.group.deleteMany({
-        where: { team: { instanceId: id } }
-      });
-
-      // 4. Teams
-      await tx.team.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 5. LocalActions
-      await tx.localAction.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 6. Periods
-      await tx.period.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 7. Categories locales
-      await tx.category.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 8. GameConfig (manquait — causait l'erreur FK P2003)
-      await tx.gameConfig.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 9. Snapshots de déblocage d'animaux
-      await tx.instanceAnimalUnlock.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 10. Snapshots du thermomètre Terre
-      await tx.terreThermometerSnapshot.deleteMany({
-        where: { instanceId: id }
-      });
-
-      // 11. L'Instance elle-même
-      return tx.instance.delete({
-        where: { id }
-      });
-    });
   }
 }

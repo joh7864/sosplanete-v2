@@ -115,12 +115,12 @@ export class CategoryRefService {
   }
 
   /**
-   * Copie les CategoryRef dans les Category locales d'une instance/année scolaire.
+   * Copie les CategoryRef dans les Category locales d'une InstanceYear.
    * N'écrase pas les catégories existantes (skipDuplicates par nom normalisé).
    */
-  async inheritToInstance(instanceId: number, schoolYear: string) {
+  async inheritToInstance(instanceYearId: number) {
     const refs = await this.prisma.categoryRef.findMany({ orderBy: { order: 'asc' } });
-    const existing = await this.prisma.category.findMany({ where: { instanceId, schoolYear } });
+    const existing = await this.prisma.category.findMany({ where: { instanceYearId } });
     const existingNames = existing.map(c => c.name.toLowerCase().trim());
 
     const toCreate = refs.filter(r => !existingNames.includes(r.name.toLowerCase().trim()));
@@ -129,11 +129,10 @@ export class CategoryRefService {
 
     await this.prisma.category.createMany({
       data: toCreate.map(r => ({
-        name: r.name,
-        icon: r.icon,
-        order: r.order,
-        instanceId,
-        schoolYear,
+        name:           r.name,
+        icon:           r.icon,
+        order:          r.order,
+        instanceYearId,
       })),
     });
 

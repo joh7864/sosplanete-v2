@@ -13,14 +13,14 @@ export class PeriodController {
 
   @Post()
   @ApiOperation({ summary: 'Définir une nouvelle période de saisie' })
-  async create(@Body() body: { startDate: Date; endDate: Date; instanceId: number }, @Req() req: any) {
+  async create(@Body() body: { startDate: Date; endDate: Date; instanceYearId: number }, @Req() req: any) {
     return this.periodService.create(body, req.user);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister les périodes d\'une instance' })
-  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Req() req: any) {
-    return this.periodService.findAll(instanceId, req.user, schoolYear);
+  @ApiOperation({ summary: 'Lister les périodes d\'une InstanceYear' })
+  async findAll(@Query('instanceYearId', ParseIntPipe) instanceYearId: number, @Req() req: any) {
+    return this.periodService.findAll(instanceYearId, req.user);
   }
 
   @Get(':id/impact')
@@ -30,9 +30,9 @@ export class PeriodController {
   }
 
   @Post('repair-school-years')
-  @ApiOperation({ summary: '[ADMIN] Réparer les périodes sans schoolYear (migration legacy)' })
+  @ApiOperation({ summary: '[OBSOLETE] Route de migration legacy - maintenant sans effet' })
   async repairSchoolYears(@Req() req: any) {
-    return this.periodService.repairSchoolYears(req.user);
+    return { success: true, message: 'Migration InstanceYear déjà effectuée. Route obsolète.' };
   }
 
   @Post(':id') // Note : maintenu en POST pour compatibilité — idéalement devrait être @Patch

@@ -45,7 +45,7 @@ export class ImpactService {
       let nbChildrenTotal = 1;
       if (instanceId !== null) {
         nbChildrenTotal = await this.prisma.child.count({
-          where: { group: { team: { instanceId } } }
+          where: { group: { team: { instanceYear: { instanceId } } } }
         }) || 1;
       } else {
         // En global, on prend tous les enfants de la base pour cette session (toutes instances)
@@ -55,12 +55,12 @@ export class ImpactService {
       // 3. Récupérer les actions effectuées
       const actionFilter: any = {};
       if (instanceId !== null) {
-        actionFilter.period = { instanceId };
+        actionFilter.period = { instanceYear: { instanceId } };
         if (schoolYearFilter) {
-          actionFilter.period.schoolYear = schoolYearFilter;
+          actionFilter.period.instanceYear = { instanceId, schoolYear: schoolYearFilter };
         }
       } else if (schoolYearFilter) {
-        actionFilter.period = { schoolYear: schoolYearFilter };
+        actionFilter.period = { instanceYear: { schoolYear: schoolYearFilter } };
       }
       
       const actionsDone = await this.prisma.actionDone.findMany({
@@ -154,17 +154,14 @@ export class ImpactService {
       if (instanceId) {
         const inst = await this.prisma.instance.findUnique({
           where: { id: instanceId },
-          select: { 
-            schoolName: true,
-            teams: { select: { groups: { select: { _count: { select: { children: true } } } } } }
-          }
+          select: { schoolName: true },
         });
         if (inst) {
           name = inst.schoolName;
-          // Somme des enfants de tous les groupes de toutes les équipes
-          nbChildren = inst.teams.reduce((acc, team) => {
-            return acc + team.groups.reduce((gAcc, group) => gAcc + group._count.children, 0);
-          }, 0);
+          // Compter les enfants via instanceYear
+          nbChildren = await this.prisma.child.count({
+            where: { group: { team: { instanceYear: { instanceId } } } },
+          });
         }
       }
 
@@ -364,14 +361,14 @@ export class ImpactService {
 
       if (!annualData || !annualData.dActuel) return [];
 
-      // Récupérer toutes les périodes de l'année scolaire, triées par date
-      const periodWhere: any = { schoolYear: yearOrSchoolYear };
-      if (targetInstanceId !== null) {
-        periodWhere.instanceId = targetInstanceId;
-      }
-
+      // Récupérer toutes les périodes de l'année scolaire
       const periods = await this.prisma.period.findMany({
-        where: periodWhere,
+        where: {
+          instanceYear: {
+            schoolYear: yearOrSchoolYear,
+            ...(targetInstanceId !== null ? { instanceId: targetInstanceId } : {}),
+          },
+        },
         orderBy: { startDate: 'asc' },
         select: { id: true, startDate: true },
       });
@@ -394,11 +391,11 @@ export class ImpactService {
       let nbChildren = 1;
       if (targetInstanceId !== null) {
         nbChildren = await this.prisma.child.count({
-          where: { group: { team: { instanceId: targetInstanceId, schoolYear: yearOrSchoolYear } } }
+          where: { group: { team: { instanceYear: { instanceId: targetInstanceId, schoolYear: yearOrSchoolYear } } } }
         }) || 1;
       } else {
         nbChildren = await this.prisma.child.count({
-          where: { group: { team: { schoolYear: yearOrSchoolYear } } }
+          where: { group: { team: { instanceYear: { schoolYear: yearOrSchoolYear } } } }
         }) || 1;
       }
 

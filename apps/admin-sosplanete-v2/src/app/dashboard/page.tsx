@@ -159,7 +159,7 @@ export default function DashboardSummaryPage() {
 
   // KPIs Calculations
   const stats = instances.reduce((acc, curr: any) => ({
-    teams: acc.teams + (curr._count?.teams || 0),
+    teams: acc.teams + (curr.teamsCount || 0),
     groups: acc.groups + 0, 
     actions: acc.actions + (curr.totalActionsDone || 0),
     players: acc.players + (curr.playersCount || 0),
@@ -356,7 +356,7 @@ export default function DashboardSummaryPage() {
                     <div className="flex items-center justify-between mb-6 border-y border-slate-50 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col items-center">
-                          <span className="text-base font-black text-emerald-600 leading-none">{instance._count?.teams || 0}</span>
+                          <span className="text-base font-black text-emerald-600 leading-none">{(instance as any).teamsCount || 0}</span>
                           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Équipes</span>
                         </div>
                         <div className="w-px h-6 bg-slate-100" />
@@ -498,7 +498,7 @@ export default function DashboardSummaryPage() {
 
                       <div className="flex gap-8 text-center px-10 border-x border-slate-100">
                          <div className="flex flex-col">
-                            <span className="text-lg font-black text-emerald-600 leading-none">{instance._count?.teams || 0}</span>
+                            <span className="text-lg font-black text-emerald-600 leading-none">{(instance as any).teamsCount || 0}</span>
                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Équipes</span>
                          </div>
                          <div className="flex flex-col">

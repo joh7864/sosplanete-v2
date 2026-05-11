@@ -16,8 +16,9 @@ model User {
   lastSeenAt       DateTime?  @updatedAt
   role             Role       @default(AM)
   createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  managedInstances Instance[]
+  updatedAt            DateTime       @updatedAt
+  managedInstances     Instance[]
+  managedInstanceYears InstanceYear[]
 }
 
 model ActionRef {
@@ -41,14 +42,13 @@ model ActionRef {
 }
 
 model Category {
-  id           Int           @id @default(autoincrement())
-  name         String
-  icon         String?
-  order        Int           @default(0)
-  instanceId   Int
-  schoolYear   String?
-  instance     Instance      @relation(fields: [instanceId], references: [id])
-  localActions LocalAction[]
+  id             Int          @id @default(autoincrement())
+  name           String
+  icon           String?
+  order          Int          @default(0)
+  instanceYearId Int
+  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
+  localActions   LocalAction[]
 }
 
 model AnnualImpactData {
@@ -70,37 +70,49 @@ model CategoryRef {
 }
 
 model Instance {
-  id                Int                        @id @default(autoincrement())
-  schoolName        String
-  hostUrl           String?                    @unique
-  createdAt         DateTime                   @default(now())
-  adminId           Int?
-  isOpen            Boolean                    @default(false)
-  gamePeriodsCount  Int                        @default(24)
-  gameStartDate     DateTime?
-  unlockedChapters  Int                        @default(0)
-  gameEndDate       DateTime?
-  icon              String?
-  currentSchoolYear String                     @default("2024-2025")
-  categories        Category[]
-  gameConfigs       GameConfig[]
-  admin             User?                      @relation(fields: [adminId], references: [id])
-  animalUnlocks     InstanceAnimalUnlock[]
-  localActions      LocalAction[]
-  periods           Period[]
-  teams             Team[]
+  id               Int                        @id @default(autoincrement())
+  schoolName       String
+  createdAt        DateTime                   @default(now())
+  adminId          Int?
+  admin            User?                      @relation(fields: [adminId], references: [id])
+  instanceYears    InstanceYear[]
+  gameConfigs      GameConfig[]
+  animalUnlocks    InstanceAnimalUnlock[]
+  localActions     LocalAction[]
   terreThermometers TerreThermometerSnapshot[]
 }
 
+model InstanceYear {
+  id               Int       @id @default(autoincrement())
+  instanceId       Int
+  schoolYear       String
+  hostUrl          String?
+  icon             String?
+  isOpen           Boolean   @default(false)
+  gameStartDate    DateTime?
+  gameEndDate      DateTime?
+  gamePeriodsCount Int       @default(24)
+  unlockedChapters Int       @default(0)
+  createdAt        DateTime  @default(now())
+  adminId          Int?
+  admin            User?     @relation(fields: [adminId], references: [id])
+  instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  periods          Period[]
+  teams            Team[]
+  categories       Category[]
+
+  @@unique([instanceId, schoolYear])
+  @@unique([hostUrl, schoolYear])
+}
+
 model Team {
-  id         Int      @id @default(autoincrement())
-  name       String
-  color      String?
-  icon       String?
-  instanceId Int
-  schoolYear String?
-  groups     Group[]
-  instance   Instance @relation(fields: [instanceId], references: [id])
+  id             Int          @id @default(autoincrement())
+  name           String
+  color          String?
+  icon           String?
+  instanceYearId Int
+  groups         Group[]
+  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
 }
 
 model Group {
@@ -146,14 +158,13 @@ model LocalAction {
 }
 
 model Period {
-  id          Int          @id @default(autoincrement())
-  startDate   DateTime
-  endDate     DateTime
-  instanceId  Int
-  isOpen      Boolean      @default(false)
-  schoolYear  String?
-  actionsDone ActionDone[]
-  instance    Instance     @relation(fields: [instanceId], references: [id])
+  id             Int          @id @default(autoincrement())
+  startDate      DateTime
+  endDate        DateTime
+  instanceYearId Int
+  isOpen         Boolean      @default(false)
+  actionsDone    ActionDone[]
+  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
 }
 
 model ActionDone {

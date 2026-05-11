@@ -8,6 +8,8 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { useInstanceYear } from '@/hooks/useInstanceYear';
 
 export default function PlayersPage() {
   return (
@@ -32,6 +34,9 @@ function PlayersContent() {
   const urlInstanceId = searchParams.get('instanceId');
   const [instanceId, setInstanceId] = useState<number | null>(null);
 
+  const { schoolYear } = useSchoolYear();
+  const { instanceYearId } = useInstanceYear(instanceId, schoolYear);
+
   useEffect(() => {
     if (urlInstanceId) {
       setInstanceId(parseInt(urlInstanceId));
@@ -48,7 +53,13 @@ function PlayersContent() {
   const fetchTeams = async () => {
     if (!instanceId) return;
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}`, {
+      // Scoper par année si instanceYearId disponible, sinon fallback schoolYear
+      const query = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : instanceId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}`
+        : `instanceId=${instanceId}`;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {

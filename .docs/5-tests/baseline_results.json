@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-10T10:43:57.335Z",
+  "timestamp": "2026-05-11T15:53:24.978Z",
   "steps": [
     {
       "id": "TST-002",
@@ -34,8 +34,8 @@
       "id": "TST-007",
       "status": "SUCCESS",
       "data": {
-        "id": 7,
-        "email": "test_1778409837408@example.com"
+        "id": 9,
+        "email": "test_1778514805041@example.com"
       }
     },
     {
@@ -81,18 +81,23 @@
       "id": "TST-011",
       "status": "SUCCESS",
       "data": {
-        "id": 15,
+        "id": 26,
         "schoolName": "Recette Automatique Instance",
         "hostUrl": null,
-        "createdAt": "2026-05-10T10:43:57.884Z",
+        "createdAt": "2026-05-11T15:53:25.493Z",
         "adminId": 1,
-        "isOpen": false,
-        "gamePeriodsCount": 24,
-        "gameStartDate": null,
-        "unlockedChapters": 0,
-        "gameEndDate": null,
         "icon": null,
-        "currentSchoolYear": "2024-2025"
+        "instanceYear": {
+          "id": 8,
+          "instanceId": 26,
+          "schoolYear": "2024-2025",
+          "isOpen": false,
+          "gameStartDate": "2024-09-01T00:00:00.000Z",
+          "gameEndDate": "2025-07-01T00:00:00.000Z",
+          "gamePeriodsCount": 24,
+          "unlockedChapters": 0,
+          "createdAt": "2026-05-11T15:53:25.494Z"
+        }
       }
     },
     {
@@ -127,7 +132,7 @@
       "status": "SUCCESS",
       "data": {
         "scope": "instance",
-        "scopeId": 15,
+        "scopeId": 26,
         "name": "Recette Automatique Instance",
         "nbChildren": 52,
         "sums": {
@@ -158,21 +163,21 @@
       "id": "TST-021",
       "status": "SUCCESS",
       "data": {
-        "teamId": 45
+        "teamId": 82
       }
     },
     {
       "id": "TST-022",
       "status": "SUCCESS",
       "data": {
-        "groupId": 85
+        "groupId": 146
       }
     },
     {
       "id": "TST-023",
       "status": "SUCCESS",
       "data": {
-        "childId": 525
+        "childId": 933
       }
     },
     {
@@ -181,6 +186,25 @@
       "data": {
         "deleted": true
       }
+    },
+    {
+      "id": "TST-030",
+      "status": "SUCCESS",
+      "data": {
+        "multiYear": true
+      }
+    },
+    {
+      "id": "TST-031",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "TST-034",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "TST-033",
+      "status": "SUCCESS"
     }
   ]
 }

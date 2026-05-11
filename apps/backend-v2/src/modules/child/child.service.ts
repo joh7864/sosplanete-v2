@@ -10,11 +10,11 @@ export class ChildService {
   async create(data: { pseudo: string; groupId: number }, user: any) {
     const group = await this.prisma.group.findUnique({ 
       where: { id: data.groupId },
-      include: { team: true }
+      include: { team: { include: { instanceYear: true } } }
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
@@ -29,11 +29,11 @@ export class ChildService {
   async importFromCSV(fileContent: string, groupId: number, user: any) {
     const group = await this.prisma.group.findUnique({ 
       where: { id: groupId },
-      include: { team: true }
+      include: { team: { include: { instanceYear: true } } }
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
@@ -77,11 +77,11 @@ export class ChildService {
   async findAll(groupId: number, user: any) {
     const group = await this.prisma.group.findUnique({ 
       where: { id: groupId },
-      include: { team: true }
+      include: { team: { include: { instanceYear: true } } }
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
@@ -93,11 +93,11 @@ export class ChildService {
   async remove(id: number, user: any) {
     const child = await this.prisma.child.findUnique({ 
       where: { id },
-      include: { group: { include: { team: true } } }
+      include: { group: { include: { team: { include: { instanceYear: true } } } } }
     });
     if (!child) return { success: false, message: 'Enfant non trouvé' };
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(child.group.team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(child.group.team.instanceYear.instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 

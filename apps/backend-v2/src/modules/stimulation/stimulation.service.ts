@@ -47,12 +47,17 @@ export class StimulationService {
     // 1. Créer le SystemConfig pour la nouvelle année
     const systemConfig = await this.getSystemConfig(schoolYear);
     
-    // 2. Créer les GameConfig par défaut pour toutes les instances existantes
-    // 3. Hériter les CategoryRef vers les Category locales de chaque instance
+    // 2. Créer les GameConfig par défaut et hériter les categories pour chaque instance
     const instances = await this.prisma.instance.findMany();
     for (const inst of instances) {
       await this.getGameConfig(inst.id, schoolYear, user);
-      await this.categoryRefService.inheritToInstance(inst.id, schoolYear);
+      // Résoudre l'InstanceYear pour cette instance et cette année
+      const instanceYear = await this.prisma.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId: inst.id, schoolYear } },
+      });
+      if (instanceYear) {
+        await this.categoryRefService.inheritToInstance(instanceYear.id);
+      }
     }
     
     return systemConfig;

@@ -16,48 +16,44 @@ export class EcoBarRaceService {
 
     // 1. Récupérer toutes les instances actives
     const instances = await this.prisma.instance.findMany({
-      select: { id: true, schoolName: true, icon: true }
+      select: { id: true, schoolName: true }
     });
 
     const results = [];
 
     for (const instance of instances) {
-      // Récupérer les N premières périodes de cette instance pour cette année scolaire
+      // Récupérer l'InstanceYear pour cette instance et cette année scolaire
+      const instanceYear = await this.prisma.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId: instance.id, schoolYear } },
+      });
+      if (!instanceYear) continue;
+
       const periods = await this.prisma.period.findMany({
-        where: { instanceId: instance.id, schoolYear },
+        where: { instanceYearId: instanceYear.id },
         orderBy: { startDate: 'asc' },
-        take: periodNumber
+        take: periodNumber,
       });
       const periodIds = periods.map(p => p.id);
 
-      // Calculer la date du snapshot LOCALEMENT par instance (pas une variable partagée)
-      const snapshotDate: Date = periods.length > 0
-        ? periods[periods.length - 1].endDate
-        : new Date();
+      const snapshotDate: Date = periods.length > 0 ? periods[periods.length - 1].endDate : new Date();
 
-      // Cumul des impacts enregistrés dans ActionDone
       const impacts = await this.prisma.actionDone.aggregate({
-        where: { 
-          child: { group: { team: { instanceId: instance.id, schoolYear } } },
-          periodId: { in: periodIds }
+        where: {
+          child: { group: { team: { instanceYearId: instanceYear.id } } },
+          periodId: { in: periodIds },
         },
-        _sum: {
-          savedCo2: true,
-          savedWater: true,
-          savedWaste: true,
-          savedEnergy: true
-        }
+        _sum: { savedCo2: true, savedWater: true, savedWaste: true, savedEnergy: true },
       });
 
       results.push({
-        instanceId: instance.id,
+        instanceId:   instance.id,
         instanceName: instance.schoolName,
-        icon: instance.icon,
+        icon:         instanceYear.icon,
         snapshotDate,
-        co2Total: impacts._sum.savedCo2 || 0,
-        waterTotal: impacts._sum.savedWater || 0,
-        wasteTotal: impacts._sum.savedWaste || 0,
-        energyTotal: impacts._sum.savedEnergy || 0
+        co2Total:    impacts._sum?.savedCo2    || 0,
+        waterTotal:  impacts._sum?.savedWater  || 0,
+        wasteTotal:  impacts._sum?.savedWaste  || 0,
+        energyTotal: impacts._sum?.savedEnergy || 0,
       });
     }
 

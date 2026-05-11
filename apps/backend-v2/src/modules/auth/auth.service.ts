@@ -71,7 +71,7 @@ export class AuthService {
           include: {
             team: {
               include: {
-                instance: true
+                instanceYear: { include: { instance: true } }
               }
             }
           }
@@ -106,12 +106,13 @@ export class AuthService {
   }
 
   async loginChild(child: any) {
+    const instanceId = child.group.team.instanceYear?.instanceId ?? null;
     const payload = { 
       pseudo: child.pseudo, 
       sub: child.id,
       groupId: child.groupId,
       teamId: child.group.teamId,
-      instanceId: child.group.team.instanceId 
+      instanceId,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -120,8 +121,8 @@ export class AuthService {
         pseudo: child.pseudo,
         groupId: child.groupId,
         teamId: child.group.teamId,
-        instanceId: child.group.team.instanceId,
-        schoolName: child.group.team.instance.schoolName
+        instanceId,
+        schoolName: child.group.team.instanceYear?.instance?.schoolName ?? ''
       }
     };
   }

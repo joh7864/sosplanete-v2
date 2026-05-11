@@ -14,13 +14,19 @@ export class CategoryController {
   @Post()
   @ApiOperation({ summary: 'Creates a new category for an instance' })
   create(@Body() body: { name: string; icon?: string; order?: number; instanceId: number; schoolYear?: string }, @Req() req: any) {
-    return this.categoryService.create(body, req.user);
+    return this.categoryService.create({ ...body, schoolYear: body.schoolYear ?? '2024-2025' }, req.user);
   }
 
   @Get()
   @ApiOperation({ summary: 'List categories of an instance' })
-  findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Req() req: any) {
-    return this.categoryService.findAll(instanceId, req.user, schoolYear);
+  findAll(
+    @Query('instanceId', ParseIntPipe) instanceId: number,
+    @Query('schoolYear') schoolYear: string,
+    @Query('instanceYearId') instanceYearIdStr: string | undefined,
+    @Req() req: any,
+  ) {
+    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
+    return this.categoryService.findAll(instanceId, req.user, schoolYear, instanceYearId);
   }
 
   @Post('reorder')
@@ -40,10 +46,12 @@ export class CategoryController {
   importCsv(
     @Query('instanceId', ParseIntPipe) instanceId: number, 
     @Query('schoolYear') schoolYear: string,
+    @Query('instanceYearId') instanceYearIdStr: string | undefined,
     @Body() body: { csvContent: string }, 
     @Req() req: any
   ) {
-    return this.categoryService.importCsv(instanceId, body.csvContent, schoolYear, req.user);
+    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
+    return this.categoryService.importCsv(instanceId, body.csvContent, schoolYear, req.user, instanceYearId);
   }
 
   @Delete(':id')

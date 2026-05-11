@@ -54,9 +54,11 @@ import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils
 interface CatalogMappingProps {
   instanceId: number;
   schoolYear: string;
+  /** Optionnel — si fourni, l'API scope directement sur l'instanceYearId */
+  instanceYearId?: number;
 }
 
-export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, schoolYear }) => {
+export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, schoolYear, instanceYearId }) => {
   const [referenceActions, setReferenceActions] = useState<ActionRef[]>([]);
   const [localActions, setLocalActions] = useState<LocalAction[]>([]);
   const [instanceCategories, setInstanceCategories] = useState<any[]>([]);
@@ -91,14 +93,17 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
     setLoading(true);
     try {
       const token = getAuthData('access_token');
+      const scopeQuery = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
       const [refRes, localRes, catRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions?${scopeQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories?${scopeQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -122,7 +127,12 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ instanceId, actionRefIds: refIds, schoolYear })
+        body: JSON.stringify({
+          instanceId,
+          actionRefIds: refIds,
+          schoolYear,
+          ...(instanceYearId ? { instanceYearId } : {})
+        })
       });
       if (response.ok) {
         fetchData();

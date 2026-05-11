@@ -29,9 +29,11 @@ interface ActionsImportModalProps {
   onClose: () => void;
   onImport: () => void;
   schoolYear: string;
+  /** Optionnel — si fourni, l'API utilise directement l'instanceYearId pour le scope */
+  instanceYearId?: number;
 }
 
-export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, instanceId, onClose, onImport, schoolYear }) => {
+export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, instanceId, onClose, onImport, schoolYear, instanceYearId }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<any[]>([]);
   const [totalRows, setTotalRows] = useState(0);
@@ -104,7 +106,10 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
       }, 500);
 
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/import-actions-csv?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+        const query = instanceYearId
+          ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+          : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/import-actions-csv?${query}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

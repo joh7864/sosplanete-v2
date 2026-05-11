@@ -28,6 +28,8 @@ interface CategoryImportModalProps {
   schoolYear: string;
   onClose: () => void;
   onImport: () => void;
+  /** Optionnel — si fourni, l'API scope directement sur l'instanceYearId */
+  instanceYearId?: number;
 }
 
 export const CategoryImportModal: React.FC<CategoryImportModalProps> = ({ 
@@ -35,6 +37,7 @@ export const CategoryImportModal: React.FC<CategoryImportModalProps> = ({
   instanceId, 
   instanceName, 
   schoolYear,
+  instanceYearId,
   onClose, 
   onImport 
 }) => {
@@ -99,7 +102,10 @@ export const CategoryImportModal: React.FC<CategoryImportModalProps> = ({
       }, 400);
 
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/import-csv?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+        const query = instanceYearId
+          ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+          : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories/import-csv?${query}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

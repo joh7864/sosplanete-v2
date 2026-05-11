@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
@@ -7,64 +7,68 @@ import { Cron } from '@nestjs/schedule';
 export class PeriodService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { startDate: Date; endDate: Date; instanceId: number; isOpen?: boolean; schoolYear?: string }, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
+  // ----------------------------------------------------------------
+  // Helper : retrouver l'instanceYearId depuis une Period (pour les
+  //          vérifications d'autorisation qui passaient par instanceId)
+  // ----------------------------------------------------------------
+  private async resolveInstanceIdFromYear(instanceYearId: number): Promise<number> {
+    const iy = await this.prisma.instanceYear.findUnique({
+      where: { id: instanceYearId },
+      select: { instanceId: true },
+    });
+    if (!iy) throw new NotFoundException('InstanceYear introuvable');
+    return iy.instanceId;
+  }
+
+  async create(
+    data: {
+      startDate: Date;
+      endDate: Date;
+      instanceYearId: number;
+      isOpen?: boolean;
+    },
+    user: any,
+  ) {
+    const instanceId = await this.resolveInstanceIdFromYear(data.instanceYearId);
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
 
-    // Récupération de l'année scolaire de l'instance si non fournie
-    let schoolYear = data.schoolYear;
-    if (!schoolYear) {
-      const inst = await this.prisma.instance.findUnique({ where: { id: data.instanceId }, select: { currentSchoolYear: true } });
-      schoolYear = inst?.currentSchoolYear || "2024-2025";
-    }
-
-
     if (data.isOpen) {
-      // Ferme les autres si on ouvre celle-ci
       await this.prisma.period.updateMany({
-        where: { instanceId: data.instanceId, isOpen: true },
-        data: { isOpen: false },
+        where: { instanceYearId: data.instanceYearId, isOpen: true },
+        data:  { isOpen: false },
       });
     }
 
-    // Vérification de recouvrement
     const overlap = await this.prisma.period.findFirst({
       where: {
-        instanceId: data.instanceId,
+        instanceYearId: data.instanceYearId,
         OR: [
-          { startDate: { lte: new Date(data.endDate) }, endDate: { gte: new Date(data.startDate) } }
-        ]
-      }
+          { startDate: { lte: new Date(data.endDate) }, endDate: { gte: new Date(data.startDate) } },
+        ],
+      },
     });
     if (overlap) throw new ForbiddenException('La période chevauche un calendrier existant');
 
-
     return this.prisma.period.create({
       data: {
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        isOpen: data.isOpen || false,
-        instanceId: data.instanceId,
-        schoolYear: schoolYear,
+        startDate:      new Date(data.startDate),
+        endDate:        new Date(data.endDate),
+        isOpen:         data.isOpen || false,
+        instanceYearId: data.instanceYearId,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any, schoolYear?: string) {
+  async findAll(instanceYearId: number, user: any) {
+    const instanceId = await this.resolveInstanceIdFromYear(instanceYearId);
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé à cet espace');
 
-    const where: any = { instanceId };
-    if (schoolYear) {
-      where.schoolYear = schoolYear;
-    }
-
     return this.prisma.period.findMany({
-      where,
+      where: { instanceYearId },
       orderBy: { startDate: 'desc' },
-      include: {
-        _count: { select: { actionsDone: true } }
-      }
+      include: { _count: { select: { actionsDone: true } } },
     });
   }
 
@@ -72,13 +76,14 @@ export class PeriodService {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) throw new ForbiddenException('Période non trouvée');
 
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(period.instanceId);
+    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     if (data.isOpen === true) {
       await this.prisma.period.updateMany({
-        where: { instanceId: period.instanceId, id: { not: id }, isOpen: true },
-        data: { isOpen: false },
+        where: { instanceYearId: period.instanceYearId, id: { not: id }, isOpen: true },
+        data:  { isOpen: false },
       });
     }
 
@@ -86,8 +91,8 @@ export class PeriodService {
       where: { id },
       data: {
         startDate: data.startDate ? new Date(data.startDate) : undefined,
-        endDate: data.endDate ? new Date(data.endDate) : undefined,
-        isOpen: data.isOpen,
+        endDate:   data.endDate   ? new Date(data.endDate)   : undefined,
+        isOpen:    data.isOpen,
       },
     });
 
@@ -95,24 +100,23 @@ export class PeriodService {
     if (data.startDate || data.endDate) {
       const futurePeriods = await this.prisma.period.findMany({
         where: {
-          instanceId: period.instanceId,
+          instanceYearId: period.instanceYearId,
           startDate: { gt: period.startDate },
-          id: { not: id }
+          id: { not: id },
         },
-        orderBy: { startDate: 'asc' }
+        orderBy: { startDate: 'asc' },
       });
 
       let currentEnd = new Date(updatedPeriod.endDate);
-
       for (const fp of futurePeriods) {
         const nextStart = new Date(currentEnd.getTime() + 1000);
         nextStart.setHours(0, 0, 0, 0);
-        
-        const d = new Date(nextStart);
+
+        const d   = new Date(nextStart);
         const day = d.getDay();
         let diffToWednesday = day - 3;
         if (diffToWednesday < 0) diffToWednesday += 7;
-        
+
         const pStart = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
         pStart.setHours(0, 0, 0, 0);
         const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
@@ -120,7 +124,7 @@ export class PeriodService {
 
         await this.prisma.period.update({
           where: { id: fp.id },
-          data: { startDate: pStart, endDate: pEnd }
+          data:  { startDate: pStart, endDate: pEnd },
         });
         currentEnd = pEnd;
       }
@@ -129,12 +133,12 @@ export class PeriodService {
     return updatedPeriod;
   }
 
-
   async getImpact(id: number, user: any) {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) throw new ForbiddenException('Période non trouvée');
 
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(period.instanceId);
+    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     const actions = await this.prisma.actionDone.findMany({
@@ -142,17 +146,17 @@ export class PeriodService {
       include: {
         child: { include: { group: { include: { team: true } } } },
         localAction: true,
-      }
+      },
     });
 
     return {
       count: actions.length,
       list: actions.map(a => ({
-        id: a.id,
+        id:         a.id,
         actionName: a.localAction.label,
-        childName: a.child.pseudo,
-        teamName: a.child.group.team.name,
-      }))
+        childName:  a.child.pseudo,
+        teamName:   a.child.group.team.name,
+      })),
     };
   }
 
@@ -160,10 +164,10 @@ export class PeriodService {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) return { success: false, message: 'Période non trouvée' };
 
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(period.instanceId);
+    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
 
-    // Suppression en cascade : d'abord les actions, puis la période
     await this.prisma.$transaction(async (tx) => {
       await tx.actionDone.deleteMany({ where: { periodId: id } });
       await tx.period.delete({ where: { id } });
@@ -172,103 +176,62 @@ export class PeriodService {
     return { success: true };
   }
 
-  /**
-   * [MIGRATION ONE-SHOT] Répare toutes les périodes dont le champ schoolYear est null.
-   * Pour chaque instance, attribue le currentSchoolYear de l'instance à ses périodes orphelines.
-   */
-  async repairSchoolYears(user: any) {
-    if (user.role !== Role.AS) throw new ForbiddenException('Réservé aux administrateurs système');
-
-    const instances = await this.prisma.instance.findMany({
-      select: { id: true, schoolName: true, currentSchoolYear: true }
-    });
-
-    let totalFixed = 0;
-    const report: { instance: string; periodsFixed: number }[] = [];
-
-    for (const inst of instances) {
-      if (!inst.currentSchoolYear) continue;
-
-      const result = await this.prisma.period.updateMany({
-        where: { instanceId: inst.id, schoolYear: null },
-        data: { schoolYear: inst.currentSchoolYear }
-      });
-
-      if (result.count > 0) {
-        totalFixed += result.count;
-        report.push({ instance: inst.schoolName, periodsFixed: result.count });
-      }
-    }
-
-    console.log(`[REPAIR] schoolYear réparé sur ${totalFixed} période(s).`);
-    return { totalFixed, report };
-  }
-
-  // CRON JOB: 23h59 tous les jours
+  // ----------------------------------------------------------------
+  // CRON JOB: 23h59 tous les jours — rotation automatique des périodes
+  // ----------------------------------------------------------------
   @Cron('59 23 * * *')
   async handlePeriodRotation() {
     console.log('[CRON] Début de la vérification des périodes (rotation)');
-    const now = new Date();
-    // Normalisation de la date d'aujourd'hui (juste la date, sans les heures pour comparer plus finement si besoin)
+    const now   = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // On cherche toutes les périodes actellement ouvertes
-    const openPeriods = await this.prisma.period.findMany({
+    // Toutes les InstanceYear ouvertes
+    const openInstanceYears = await this.prisma.instanceYear.findMany({
       where: { isOpen: true },
+      select: { id: true },
     });
 
-    for (const period of openPeriods) {
-      const pEndDate = new Date(period.endDate);
-      const endDateOnly = new Date(pEndDate.getFullYear(), pEndDate.getMonth(), pEndDate.getDate());
+    for (const iy of openInstanceYears) {
+      const openPeriod = await this.prisma.period.findFirst({
+        where: { instanceYearId: iy.id, isOpen: true },
+      });
 
-      // Si la date de fin = aujourd'hui ou est passée
+      if (!openPeriod) continue;
+
+      const endDateOnly = new Date(
+        openPeriod.endDate.getFullYear(),
+        openPeriod.endDate.getMonth(),
+        openPeriod.endDate.getDate(),
+      );
+
       if (endDateOnly <= today) {
-        // Date de début nouvelle = date de fin précédente + 1 jour
-        const nextStartDate = new Date(period.endDate);
+        const nextStartDate = new Date(openPeriod.endDate);
         nextStartDate.setDate(nextStartDate.getDate() + 1);
-
-        // Date de fin nouvelle = début + 6 jours
         const nextEndDate = new Date(nextStartDate);
         nextEndDate.setDate(nextEndDate.getDate() + 6);
 
-        // Vérification sécurité: existe-t-il déjà une période sur cette date ?
-        // On vérifie s'il existe une période qui commence sur cette date (approx) ou qui englobe la startDate
         const existingNext = await this.prisma.period.findFirst({
           where: {
-            instanceId: period.instanceId,
+            instanceYearId: iy.id,
             startDate: { lte: nextEndDate },
-            endDate: { gte: nextStartDate },
-          }
+            endDate:   { gte: nextStartDate },
+          },
         });
 
         if (!existingNext) {
-          // 1. Fermer l'actuelle
           await this.prisma.period.update({
-            where: { id: period.id },
-            data: { isOpen: false },
+            where: { id: openPeriod.id },
+            data:  { isOpen: false },
           });
-
-          // Récupérer le schoolYear : celui de la période, ou celui de l'instance si null (cas legacy)
-          let nextSchoolYear = period.schoolYear;
-          if (!nextSchoolYear) {
-            const inst = await this.prisma.instance.findUnique({
-              where: { id: period.instanceId },
-              select: { currentSchoolYear: true }
-            });
-            nextSchoolYear = inst?.currentSchoolYear || null;
-          }
-
-          // 2. Créer et ouvrir la nouvelle
           await this.prisma.period.create({
             data: {
-              startDate: nextStartDate,
-              endDate: nextEndDate,
-              isOpen: true,
-              instanceId: period.instanceId,
-              schoolYear: nextSchoolYear,
-            }
+              startDate:      nextStartDate,
+              endDate:        nextEndDate,
+              isOpen:         true,
+              instanceYearId: iy.id,
+            },
           });
-          console.log(`[CRON] Instance ${period.instanceId} : Période ${period.id} fermée. Nouvelle période créée du ${nextStartDate.toISOString()} au ${nextEndDate.toISOString()} (schoolYear: ${nextSchoolYear}).`);
+          console.log(`[CRON] InstanceYear ${iy.id} : Période ${openPeriod.id} fermée. Nouvelle période créée.`);
         }
       }
     }

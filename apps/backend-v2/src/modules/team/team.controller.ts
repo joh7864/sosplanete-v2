@@ -23,8 +23,15 @@ export class TeamController {
   @ApiOperation({ summary: "Liste des équipes d'une instance" })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String, required: false })
-  async findAll(@Query('instanceId', ParseIntPipe) instanceId: number, @Query('schoolYear') schoolYear: string, @Request() req: any) {
-    return this.teamService.findAll(instanceId, req.user, schoolYear);
+  @ApiQuery({ name: 'instanceYearId', type: Number, required: false })
+  async findAll(
+    @Query('instanceId', ParseIntPipe) instanceId: number,
+    @Query('schoolYear') schoolYear: string,
+    @Query('instanceYearId') instanceYearIdStr: string | undefined,
+    @Request() req: any,
+  ) {
+    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
+    return this.teamService.findAll(instanceId, req.user, schoolYear, instanceYearId);
   }
 
   @Patch(':id')
@@ -47,13 +54,16 @@ export class TeamController {
   @ApiOperation({ summary: "Import massif d'équipes, groupes et joueurs via CSV" })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String })
+  @ApiQuery({ name: 'instanceYearId', type: Number, required: false })
   async importCsv(
     @Query('instanceId', ParseIntPipe) instanceId: number,
     @Query('schoolYear') schoolYear: string,
+    @Query('instanceYearId') instanceYearIdStr: string | undefined,
     @Body() body: ImportCsvDto,
     @Request() req: any,
   ) {
-    return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user);
+    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
+    return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user, instanceYearId);
   }
 
   // --- BULK DELETE ---

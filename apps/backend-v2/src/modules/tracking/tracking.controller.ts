@@ -13,21 +13,28 @@ export class TrackingController {
   @ApiOperation({ summary: 'Obtenir les statistiques de suivi hebdomadaire' })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String, required: false })
-  async getStats(@Query('instanceId') instanceId: string, @Query('schoolYear') schoolYear?: string) {
+  @ApiQuery({ name: 'instanceYearId', type: Number, required: false })
+  async getStats(
+    @Query('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear?: string,
+    @Query('instanceYearId') instanceYearIdStr?: string,
+  ) {
     const yearToFetch = schoolYear || '2024-2025';
-    return this.trackingService.getTrackingStats(parseInt(instanceId), yearToFetch);
+    return this.trackingService.getTrackingStats(parseInt(instanceId), yearToFetch, instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined);
   }
 
   @Post('import-actions-csv')
   @ApiOperation({ summary: 'Importer des saisies via CSV' })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String, required: false })
+  @ApiQuery({ name: 'instanceYearId', type: Number, required: false })
   async importActionsCsv(
     @Query('instanceId') instanceId: string,
     @Query('schoolYear') schoolYear: string,
+    @Query('instanceYearId') instanceYearIdStr: string | undefined,
     @Body('csvContent') csvContent: string,
   ) {
     const sy = schoolYear || '2024-2025';
-    return this.trackingService.importActionsCsv(parseInt(instanceId), csvContent, sy);
+    return this.trackingService.importActionsCsv(parseInt(instanceId), csvContent, sy, instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined);
   }
 }

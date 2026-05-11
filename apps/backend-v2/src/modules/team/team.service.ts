@@ -10,31 +10,62 @@ import * as bcrypt from 'bcrypt';
 export class TeamService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: CreateTeamDto, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
-    if (!isAllowed) {
-      throw new ForbiddenException('Vous ne pouvez pas créer de données pour cette instance');
+  // ----------------------------------------------------------------
+  // Helper : retrouver l'instanceId depuis un instanceYearId
+  // ----------------------------------------------------------------
+  private async resolveInstanceId(instanceYearId: number): Promise<number> {
+    const iy = await this.prisma.instanceYear.findUnique({
+      where: { id: instanceYearId },
+      select: { instanceId: true },
+    });
+    if (!iy) throw new NotFoundException('InstanceYear introuvable');
+    return iy.instanceId;
+  }
+
+  // ----------------------------------------------------------------
+  // Helper : résoudre instanceYearId depuis (instanceId, schoolYear)
+  // ----------------------------------------------------------------
+  async resolveInstanceYearId(instanceId: number, schoolYear: string): Promise<number> {
+    const iy = await this.prisma.instanceYear.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
+    });
+    if (!iy) throw new NotFoundException(`Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`);
+    return iy.id;
+  }
+
+  async create(data: CreateTeamDto & { instanceId?: number; schoolYear?: string; instanceYearId?: number }, user: any) {
+    let instanceYearId = data.instanceYearId;
+
+    // Rétrocompatibilité : si on reçoit instanceId + schoolYear, on résout
+    if (!instanceYearId && data.instanceId && data.schoolYear) {
+      instanceYearId = await this.resolveInstanceYearId(data.instanceId, data.schoolYear);
     }
+    if (!instanceYearId) throw new BadRequestException('instanceYearId requis');
+
+    const instanceId = await this.resolveInstanceId(instanceYearId);
+    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    if (!isAllowed) throw new ForbiddenException('Vous ne pouvez pas créer de données pour cette instance');
 
     return this.prisma.team.create({
       data: {
-        name: data.name,
-        color: data.color,
-        icon: data.icon,
-        instanceId: data.instanceId,
-        schoolYear: data.schoolYear,
+        name:           data.name,
+        color:          data.color,
+        icon:           data.icon,
+        instanceYearId,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any, schoolYear?: string) {
+  async findAll(instanceId: number, user: any, schoolYear?: string, instanceYearIdDirect?: number) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) {
-      throw new ForbiddenException('Accès refusé à cet espace');
-    }
+    if (!isAllowed) throw new ForbiddenException('Accès refusé à cet espace');
+
+    // Court-circuit : si instanceYearId fourni directement, pas besoin de résolution
+    const instanceYearId = instanceYearIdDirect
+      ?? await this.resolveInstanceYearId(instanceId, schoolYear || '2024-2025');
 
     return this.prisma.team.findMany({
-      where: { instanceId, schoolYear },
+      where: { instanceYearId },
       orderBy: { name: 'asc' },
       include: {
         groups: {
@@ -43,16 +74,14 @@ export class TeamService {
             children: {
               include: {
                 actionsDone: {
-                  where: schoolYear ? { period: { schoolYear } } : {}
-                }
-              }
+                  where: { period: { instanceYearId } },
+                },
+              },
             },
-            _count: {
-              select: { children: true }
-            }
-          }
-        }
-      }
+            _count: { select: { children: true } },
+          },
+        },
+      },
     });
   }
 
@@ -60,29 +89,23 @@ export class TeamService {
     const team = await this.prisma.team.findUnique({ where: { id } });
     if (!team) throw new NotFoundException('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceId)) {
+    const instanceId = await this.resolveInstanceId(team.instanceYearId);
+    if (user.role !== Role.AS && !user.instanceIds?.includes(instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cette instance');
     }
 
-    return this.prisma.team.update({
-      where: { id },
-      data,
-    });
+    return this.prisma.team.update({ where: { id }, data });
   }
 
   async remove(id: number, user: any) {
-    const team = await this.prisma.team.findUnique({
-      where: { id },
-      include: { groups: true }
-    });
-
+    const team = await this.prisma.team.findUnique({ where: { id }, include: { groups: true } });
     if (!team) throw new NotFoundException('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceId)) {
+    const instanceId = await this.resolveInstanceId(team.instanceYearId);
+    if (user.role !== Role.AS && !user.instanceIds?.includes(instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cette instance');
     }
 
-    // Suppression en cascade (gérée par Prisma si configuré, sinon manuelle)
     return this.prisma.$transaction(async (tx) => {
       await tx.child.deleteMany({ where: { group: { teamId: id } } });
       await tx.group.deleteMany({ where: { teamId: id } });
@@ -95,33 +118,28 @@ export class TeamService {
    * Import massif depuis un CSV Advanced
    * Format: Equipe;Group;Pseudo;Password;logo equipe;couleur equipe;couleur groupe
    */
-  async importCsv(instanceId: number, csvContent: string, schoolYear: string, user: any) {
+  async importCsv(instanceId: number, csvContent: string, schoolYear: string, user: any, instanceYearIdDirect?: number) {
     const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) {
-      throw new ForbiddenException('Accès refusé pour l\'import');
-    }
+    if (!isAllowed) throw new ForbiddenException('Accès refusé pour l\'import');
+
+    // Court-circuit : si instanceYearId fourni directement, pas besoin de résolution
+    const instanceYearId = instanceYearIdDirect
+      ?? await this.resolveInstanceYearId(instanceId, schoolYear);
 
     const { data, errors } = Papa.parse(csvContent, {
-      header: true,
-      skipEmptyLines: true,
-      delimiter: ';', // Utilisation du point-virgule comme vu dans le fichier Neyron.csv
-      transformHeader: (h) => h.trim().toLowerCase(), // Normalisation des headers
+      header:          true,
+      skipEmptyLines:  true,
+      delimiter:       ';',
+      transformHeader: (h) => h.trim().toLowerCase(),
     });
 
-    if (errors.length > 0) {
-      throw new BadRequestException('Format CSV invalide : ' + errors[0].message);
-    }
+    if (errors.length > 0) throw new BadRequestException('Format CSV invalide : ' + errors[0].message);
 
     console.log('[CSV Import] Parsed rows:', data.length, 'First row keys:', data.length > 0 ? Object.keys(data[0] as any) : 'EMPTY');
-    console.log('[CSV Import] First row data:', data.length > 0 ? JSON.stringify(data[0]) : 'NONE');
 
     const stats = { teams: 0, groups: 0, players: 0 };
 
-    // ─────────────────────────────────────────────────────────────
-    // ÉTAPE 1 (HORS TRANSACTION) : Pré-hasher tous les mots de passe
-    // bcrypt est une opération CPU lente — la faire dans la transaction
-    // consomme le timeout avant même d'atteindre les insertions SQL.
-    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 1 : Pré-hasher tous les mots de passe (hors transaction)
     const rows = data as any[];
     const hashedPasswords = new Map<number, string | null>();
     for (let i = 0; i < rows.length; i++) {
@@ -129,20 +147,12 @@ export class TeamService {
       hashedPasswords.set(i, password ? await bcrypt.hash(password, 10) : null);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ÉTAPE 2 (HORS TRANSACTION) : Pré-charger les équipes et groupes
-    // existants en mémoire pour éviter les N+1 à l'intérieur de la tx.
-    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 2 : Pré-charger les équipes et groupes existants
     const existingTeams = await this.prisma.team.findMany({
-      where: { instanceId, schoolYear },
+      where: { instanceYearId },
       include: { groups: true },
     });
-
-    // Cache : teamName → team (avec ses groupes)
-    const teamCache = new Map<string, any>(
-      existingTeams.map(t => [t.name.toLowerCase(), t])
-    );
-    // Cache : `${teamId}:${groupName}` → group
+    const teamCache  = new Map<string, any>(existingTeams.map(t => [t.name.toLowerCase(), t]));
     const groupCache = new Map<string, any>();
     for (const team of existingTeams) {
       for (const group of team.groups) {
@@ -150,45 +160,34 @@ export class TeamService {
       }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ÉTAPE 2b (HORS TRANSACTION) : Pré-charger les Child existants.
-    // Évite les N+1 dans la transaction (1 findFirst par joueur).
-    // ─────────────────────────────────────────────────────────────
     const existingGroupIds = existingTeams.flatMap(t => t.groups.map((g: any) => g.id));
     const existingChildren = existingGroupIds.length > 0
       ? await this.prisma.child.findMany({ where: { groupId: { in: existingGroupIds } } })
       : [];
-    // Cache : `${groupId}:${pseudo}` → child
     const childCache = new Map<string, any>();
     for (const child of existingChildren) {
       childCache.set(`${child.groupId}:${child.pseudo.toLowerCase()}`, child);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ÉTAPE 3 : Transaction SQL pure, sans bcrypt, avec timeout élevé.
-    // Seules les opérations de lecture/écriture en base restent ici.
-    // ─────────────────────────────────────────────────────────────
+    // ÉTAPE 3 : Transaction SQL pure
     try {
       await this.prisma.$transaction(async (tx) => {
         for (let i = 0; i < rows.length; i++) {
-          const row = rows[i];
-          const teamName = row['equipe']?.toString().trim() || null;
-          const groupName = row['group']?.toString().trim() || null;
-          const pseudo = row['pseudo']?.toString().trim() || null;
-          const teamIcon = row['logo equipe']?.toString().trim() || null;
-          const teamColor = row['couleur equipe']?.toString().trim() || null;
+          const row        = rows[i];
+          const teamName   = row['equipe']?.toString().trim() || null;
+          const groupName  = row['group']?.toString().trim()  || null;
+          const pseudo     = row['pseudo']?.toString().trim() || null;
+          const teamIcon   = row['logo equipe']?.toString().trim()   || null;
+          const teamColor  = row['couleur equipe']?.toString().trim() || null;
           const groupColor = row['couleur groupe']?.toString().trim() || null;
           const hashedPassword = hashedPasswords.get(i);
 
           if (!teamName) continue;
 
-          // 1. Gérer l'Équipe (via cache)
           let team = teamCache.get(teamName.toLowerCase());
-
           if (!team) {
-            console.log(`[CSV Import] Creating new team: ${teamName}`);
             team = await tx.team.create({
-              data: { name: teamName, instanceId, schoolYear, color: teamColor, icon: teamIcon }
+              data: { name: teamName, instanceYearId, color: teamColor, icon: teamIcon },
             });
             team.groups = [];
             teamCache.set(teamName.toLowerCase(), team);
@@ -196,10 +195,7 @@ export class TeamService {
           } else if (teamIcon || teamColor) {
             team = await tx.team.update({
               where: { id: team.id },
-              data: {
-                color: teamColor || team.color,
-                icon: teamIcon || team.icon,
-              }
+              data: { color: teamColor || team.color, icon: teamIcon || team.icon },
             });
             team.groups = existingTeams.find(t => t.id === team.id)?.groups || [];
             teamCache.set(teamName.toLowerCase(), team);
@@ -207,44 +203,30 @@ export class TeamService {
 
           if (!groupName) continue;
 
-          // 2. Gérer le Groupe (via cache)
           const groupKey = `${team.id}:${groupName.toLowerCase()}`;
           let group = groupCache.get(groupKey);
-
           if (!group) {
-            group = await tx.group.create({
-              data: { name: groupName, teamId: team.id, color: groupColor }
-            });
+            group = await tx.group.create({ data: { name: groupName, teamId: team.id, color: groupColor } });
             groupCache.set(groupKey, group);
             stats.groups++;
           } else if (groupColor && groupColor !== group.color) {
-            group = await tx.group.update({
-              where: { id: group.id },
-              data: { color: groupColor }
-            });
+            group = await tx.group.update({ where: { id: group.id }, data: { color: groupColor } });
             groupCache.set(groupKey, group);
           }
 
           if (!pseudo) continue;
 
-          // 3. Gérer le Joueur (via cache — plus de findFirst dans la transaction)
           const childKey = `${group.id}:${pseudo.toLowerCase()}`;
           const existing = childCache.get(childKey);
-
           if (!existing) {
-            const created = await tx.child.create({
-              data: { pseudo, groupId: group.id, password: hashedPassword }
-            });
+            const created = await tx.child.create({ data: { pseudo, groupId: group.id, password: hashedPassword } });
             childCache.set(childKey, created);
             stats.players++;
           } else if (hashedPassword) {
-            await tx.child.update({
-              where: { id: existing.id },
-              data: { password: hashedPassword }
-            });
+            await tx.child.update({ where: { id: existing.id }, data: { password: hashedPassword } });
           }
         }
-      }, { timeout: 60000 }); // 60s pour absorber les gros imports
+      }, { timeout: 60000 });
     } catch (error) {
       console.error('[CSV Import] FULL ERROR:', error);
       throw new BadRequestException(`Import échoué: ${error.message || error}`);
@@ -256,54 +238,38 @@ export class TeamService {
 
   // --- GROUPES ---
   async createGroup(teamId: number, name: string, color?: string) {
-    return this.prisma.group.create({
-      data: { name, teamId, color }
-    });
+    return this.prisma.group.create({ data: { name, teamId, color } });
   }
 
-  async updateGroup(id: number, data: { name?: string, color?: string }) {
-    return this.prisma.group.update({
-      where: { id },
-      data
-    });
+  async updateGroup(id: number, data: { name?: string; color?: string }) {
+    return this.prisma.group.update({ where: { id }, data });
   }
 
   async removeGroups(ids: number[]) {
     return this.prisma.$transaction(async (tx) => {
-      // Cascade manuelle si nécessaire selon schéma prisma
       await tx.child.deleteMany({ where: { groupId: { in: ids } } });
       return tx.group.deleteMany({ where: { id: { in: ids } } });
     });
   }
 
-  // SEC-02 — Bcrypt du mot de passe à la création
   async createChild(groupId: number, pseudo: string, password?: string) {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
-    return this.prisma.child.create({
-      data: { pseudo, groupId, password: hashedPassword }
-    });
+    return this.prisma.child.create({ data: { pseudo, groupId, password: hashedPassword } });
   }
 
-  // SEC-02 — Bcrypt du mot de passe à la modification (si fourni)
-  async updateChild(id: number, data: { pseudo?: string, password?: string }) {
-    const updateData: { pseudo?: string, password?: string | null } = {};
+  async updateChild(id: number, data: { pseudo?: string; password?: string }) {
+    const updateData: { pseudo?: string; password?: string | null } = {};
     if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
     if (data.password && data.password.trim() !== '') {
       updateData.password = await bcrypt.hash(data.password, 10);
     }
-    return this.prisma.child.update({
-      where: { id },
-      data: updateData
-    });
+    return this.prisma.child.update({ where: { id }, data: updateData });
   }
 
   async removeChildren(ids: number[]) {
-    return this.prisma.child.deleteMany({
-      where: { id: { in: ids } }
-    });
+    return this.prisma.child.deleteMany({ where: { id: { in: ids } } });
   }
 
-  // --- TEAMS BULK ---
   async removeTeams(ids: number[]) {
     return this.prisma.$transaction(async (tx) => {
       await tx.child.deleteMany({ where: { group: { teamId: { in: ids } } } });

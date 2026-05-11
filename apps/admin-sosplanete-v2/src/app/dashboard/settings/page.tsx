@@ -27,6 +27,7 @@ import { getAssetUrl } from '@/utils/assets';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
 import { UsersSection } from '@/components/settings/UsersSection';
 import { CatalogSection } from '@/components/settings/CatalogSection';
+import { AnchorsManager } from '@/components/organization/AnchorsManager';
 
 export default function SettingsPage() {
   return (
@@ -37,7 +38,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data';
+  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data' | 'anchors';
 
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('tab') as ActiveTab) || 'profile';
@@ -77,6 +78,7 @@ function SettingsContent() {
     { id: 'users', label: 'Utilisateurs', icon: '👥', adminOnly: true },
     { id: 'catalog', label: 'Catalogue', icon: '📚' },
     { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
+    { id: 'anchors', label: 'Ecoles', icon: '🏢', adminOnly: true },
   ];
 
   const visibleTabs = tabDef.filter(t => !t.adminOnly || isAS);
@@ -132,10 +134,11 @@ function SettingsContent() {
         )}
 
         {/* Profil & Utilisateurs — largeur contrainte pour lisibilité */}
-        {(activeTab === 'profile' || activeTab === 'users') && (
+        {(activeTab === 'profile' || activeTab === 'users' || activeTab === 'anchors') && (
           <div className="max-w-5xl mx-auto">
             {activeTab === 'profile' && <ProfileSection />}
             {activeTab === 'users' && isAS && <UsersSection />}
+            {activeTab === 'anchors' && isAS && <AnchorsManager />}
           </div>
         )}
 

@@ -7,43 +7,43 @@ export class GroupService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: { name: string; teamId: number }, user: any) {
-    const team = await this.prisma.team.findUnique({ where: { id: data.teamId } });
+    const team = await this.prisma.team.findUnique({
+      where: { id: data.teamId },
+      include: { instanceYear: true },
+    });
     if (!team) throw new Error('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceYear.instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
     return this.prisma.group.create({
-      data: {
-        name: data.name,
-        teamId: data.teamId,
-      },
+      data: { name: data.name, teamId: data.teamId },
     });
   }
 
   async findAll(teamId: number, user: any) {
-    const team = await this.prisma.team.findUnique({ where: { id: teamId } });
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      include: { instanceYear: true },
+    });
     if (!team) throw new Error('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceYear.instanceId)) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
-    return this.prisma.group.findMany({
-      where: { teamId },
-      include: { children: true }
-    });
+    return this.prisma.group.findMany({ where: { teamId }, include: { children: true } });
   }
 
   async remove(id: number, user: any) {
-    const group = await this.prisma.group.findUnique({ 
+    const group = await this.prisma.group.findUnique({
       where: { id },
-      include: { team: true }
+      include: { team: { include: { instanceYear: true } } },
     });
     if (!group) return { success: false, message: 'Groupe non trouvé' };
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceId)) {
+    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 

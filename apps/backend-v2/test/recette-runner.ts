@@ -266,6 +266,68 @@ async function runRecette() {
         await instanceService.remove(tempInstance.id);
         baseline.steps.push({ id: 'TST-013', status: 'SUCCESS', data: { deleted: true } });
 
+        // Nouveaux tests: Isolation par Année Scolaire (InstanceYear)
+        // TST-030: Création multi-années
+        console.log('--- TST-030: Création multi-années ---');
+        const myInstance = await instanceService.create({
+            schoolName: 'Ecole Multi-Années',
+            adminId: admin.id,
+            currentSchoolYear: '2024-2025',
+            gameStartDate: new Date('2024-09-01'),
+            gameEndDate: new Date('2025-07-01'),
+            gamePeriodsCount: 24,
+        } as any);
+
+        const year2Response = await request(app.getHttpServer())
+            .get(`/instances/${myInstance.id}/year?schoolYear=2025-2026`)
+            .set('Authorization', `Bearer ${access_token}`);
+
+        if (year2Response.status !== 200) {
+            logAnomaly('TST-030', `Erreur création 2025-2026: ${year2Response.status}`, 'Haute');
+        } else {
+            baseline.steps.push({ id: 'TST-030', status: 'SUCCESS', data: { multiYear: true } });
+        }
+
+        const iy1 = await prisma.instanceYear.findUnique({ where: { instanceId_schoolYear: { instanceId: myInstance.id, schoolYear: '2024-2025' } } });
+        const iy2 = await prisma.instanceYear.findUnique({ where: { instanceId_schoolYear: { instanceId: myInstance.id, schoolYear: '2025-2026' } } });
+
+        // TST-031: Étanchéité des équipes
+        console.log('--- TST-031: Étanchéité des équipes ---');
+        await teamService.create({ name: 'Equipe 24-25', color: '#FFF', icon: 'star', instanceYearId: iy1.id }, user);
+        await teamService.create({ name: 'Equipe 25-26', color: '#000', icon: 'star', instanceYearId: iy2.id }, user);
+
+        const teams2425 = await prisma.team.findMany({ where: { instanceYearId: iy1.id } });
+        const teams2526 = await prisma.team.findMany({ where: { instanceYearId: iy2.id } });
+
+        if (teams2425.length !== 1 || teams2526.length !== 1 || teams2425[0].name === teams2526[0].name) {
+            logAnomaly('TST-031', `Étanchéité équipes en échec`, 'Haute');
+        } else {
+            baseline.steps.push({ id: 'TST-031', status: 'SUCCESS' });
+        }
+
+        // TST-034: isOpen
+        console.log('--- TST-034: Activation/Désactivation ---');
+        await prisma.instanceYear.update({ where: { id: iy2.id }, data: { isOpen: true } });
+        await prisma.instanceYear.update({ where: { id: iy1.id }, data: { isOpen: false } });
+        
+        const checkIy2 = await prisma.instanceYear.findUnique({ where: { id: iy2.id } });
+        if (!checkIy2.isOpen) {
+            logAnomaly('TST-034', `L'état isOpen a bavé sur l'autre année`, 'Haute');
+        } else {
+            baseline.steps.push({ id: 'TST-034', status: 'SUCCESS' });
+        }
+
+        // TST-033: Suppression
+        console.log('--- TST-033: Suppression ---');
+        await instanceService.remove(myInstance.id);
+        const deletedIy1 = await prisma.instanceYear.findUnique({ where: { id: iy1.id } });
+        const deletedIy2 = await prisma.instanceYear.findUnique({ where: { id: iy2.id } });
+        if (deletedIy1 || deletedIy2) {
+            logAnomaly('TST-033', `Suppression d'instance n'a pas supprimé les InstanceYear`, 'Haute');
+        } else {
+            baseline.steps.push({ id: 'TST-033', status: 'SUCCESS' });
+        }
+
     } catch (e) {
         logAnomaly('TST-MANUAL-DELETE', `Erreur lors des tests manuels ou de suppression: ${e.message}`, 'Critique');
     }

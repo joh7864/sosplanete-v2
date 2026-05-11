@@ -13,6 +13,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CatalogMapping } from '@/components/catalog/CatalogMapping';
 import { GeneralSettings } from '@/components/organization/GeneralSettings';
+import { PeriodSettings } from '@/components/organization/PeriodSettings';
 import { CategorySettings } from '@/components/organization/CategorySettings';
 import { 
   Plus, 
@@ -44,6 +45,7 @@ import { getAssetUrl } from '@/utils/assets';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { useInstanceYear } from '@/hooks/useInstanceYear';
 
 export default function OrganizationPage() {
   return (
@@ -60,7 +62,7 @@ function OrganizationContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false); // false par défaut : rien à charger sans instanceId
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'teams' | 'catalog' | 'categories'>(
+  const [activeTab, setActiveTab] = useState<'general' | 'periods' | 'teams' | 'catalog' | 'categories'>(
     searchParams.get('tab') as any || 'general'
   );
 
@@ -73,11 +75,18 @@ function OrganizationContent() {
   // Bug #5a — Synchroniser le state avec les changements d'URL (ex: après création et router.push)
   // Sans ce useEffect, la redirection post-création ne met pas à jour instanceId
   // et l'écran reste bloqué sur "Sélectionnez un établissement"
+  // Bug #5a — Synchroniser le state avec les changements d'URL (ex: après création et router.push)
+  // Sans ce useEffect, la redirection post-création ne met pas à jour instanceId
+  // et l'écran reste bloqué sur "Sélectionnez un établissement"
   useEffect(() => {
     if (urlInstanceId) {
       setInstanceId(parseInt(urlInstanceId));
     }
-  }, [urlInstanceId]);
+    const tab = searchParams.get('tab') as any;
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [urlInstanceId, searchParams]);
 
   const [managedInstances, setManagedInstances] = useState<any[]>([]);
   const [amUsers, setAmUsers] = useState<any[]>([]);
@@ -85,6 +94,7 @@ function OrganizationContent() {
   const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const { schoolYear } = useSchoolYear();
+  const { instanceYearId } = useInstanceYear(instanceId, schoolYear);
 
   useEffect(() => {
     // Check managed instances
@@ -191,7 +201,11 @@ function OrganizationContent() {
     if (!instanceId) return;
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+      // Passer instanceYearId si disponible pour forcer le bon scope
+      const query = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -440,6 +454,15 @@ function OrganizationContent() {
                   <div className="w-px h-5 bg-slate-200 shrink-0" />
 
                   <button
+                     onClick={() => setActiveTab('periods')}
+                     className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'periods' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <Calendar size={18} /> Périodes de saisie
+                     {activeTab === 'periods' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  </button>
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+                  <button
                      onClick={() => setActiveTab('teams')}
                      className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'teams' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                   >
@@ -568,10 +591,12 @@ function OrganizationContent() {
           <>
         {activeTab === 'general' ? (
           <GeneralSettings instanceId={instanceId!} currentInstance={currentInstance} onUpdate={updateManagedInstances} schoolYear={schoolYear} />
+        ) : activeTab === 'periods' ? (
+          <PeriodSettings instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
         ) : activeTab === 'categories' ? (
-          <CategorySettings instanceId={instanceId!} schoolYear={schoolYear} />
+          <CategorySettings instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
         ) : activeTab === 'catalog' ? (
-          <CatalogMapping instanceId={instanceId!} schoolYear={schoolYear} />
+          <CatalogMapping instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
         ) : activeTab === 'teams' ? (
           <>
             {/* Global Stats Bar Integrated Actions */}
@@ -777,6 +802,7 @@ function OrganizationContent() {
             instanceId={instanceId || 0}
             instanceName={activeInstanceName}
             schoolYear={schoolYear}
+            instanceYearId={instanceYearId ?? undefined}
           />
         )}
         

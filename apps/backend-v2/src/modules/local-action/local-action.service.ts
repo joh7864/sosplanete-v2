@@ -85,10 +85,13 @@ export class LocalActionService {
       where: { code: { in: codes } }
     });
 
-    // Récupération des catégories existantes pour cet espace et cette année scolaire pour le mapping
-    const existingCategories = await this.prisma.category.findMany({
-      where: { instanceId, schoolYear }
+    // Récupération des catégories existantes via l'InstanceYear
+    const instanceYear = await this.prisma.instanceYear.findFirst({
+      where: { instanceId, schoolYear },
     });
+    const existingCategories = instanceYear
+      ? await this.prisma.category.findMany({ where: { instanceYearId: instanceYear.id } })
+      : [];
 
     const results = [];
     for (const actionInput of actions) {

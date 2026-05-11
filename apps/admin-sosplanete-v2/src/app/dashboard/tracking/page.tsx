@@ -35,6 +35,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { ActionsImportModal } from '@/components/tracking/ActionsImportModal';
 import { IndicatorsTab } from './IndicatorsTab';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { useInstanceYear } from '@/hooks/useInstanceYear';
 
 interface TrackingData {
   config: {
@@ -104,6 +105,7 @@ function TrackingContent() {
 
 
   const { schoolYear } = useSchoolYear();
+  const { instanceYearId } = useInstanceYear(instanceId, schoolYear);
 
   useEffect(() => {
     fetchInstances();
@@ -151,7 +153,11 @@ function TrackingContent() {
   const fetchStats = async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?instanceId=${instanceId}&schoolYear=${schoolYear}`, {
+      // Préférer instanceYearId si disponible, sinon fallback schoolYear
+      const query = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/stats?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
         signal,
       });
@@ -779,6 +785,7 @@ function TrackingContent() {
             isOpen={showImportModal}
             instanceId={instanceId}
             schoolYear={schoolYear}
+            instanceYearId={instanceYearId ?? undefined}
             onClose={() => setShowImportModal(false)}
             onImport={() => fetchStats()}
         />
@@ -806,7 +813,7 @@ function TrackingContent() {
           setHelpOpen={setHelpOpen} 
         />
       ) : activeTab === 'animals' ? (
-        <AnimalsTrackingTab instanceId={instanceId as number} refreshKey={animalsRefreshKey} schoolYear={schoolYear} />
+        <AnimalsTrackingTab instanceId={instanceId as number} refreshKey={animalsRefreshKey} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
       ) : (
         <GraphicTrackingTab instanceId={instanceId as number} schoolYear={schoolYear} refreshKey={ecoBarRaceRefreshKey} />
       )}
@@ -816,7 +823,7 @@ function TrackingContent() {
 
 const ANIMAL_NAMES = ['', '🐿️ Écureuil', '🐺 Loup', '🦁 Lion', '🐻 Ours', '🐘 Éléphant', '🐟 Petits poissons', '🐟 Thon', '🦈 Requin', '🐳 Baleine'];
 
-function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId: number, refreshKey: number, schoolYear: string }) {
+function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear, instanceYearId }: { instanceId: number, refreshKey: number, schoolYear: string, instanceYearId?: number }) {
   const [history, setHistory] = useState<any[]>([]);
   const [current, setCurrent] = useState(0);
   const [gameConfig, setGameConfig] = useState<any>(null);
@@ -824,6 +831,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!instanceYearId) return; // instanceYearId pas encore résolu, on attend
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -832,7 +840,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/current?schoolYear=${schoolYear}`, { headers }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/animals/${instanceId}/history?schoolYear=${schoolYear}`, { headers }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/game-config/${instanceId}?schoolYear=${schoolYear}`, { headers }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceId=${instanceId}&schoolYear=${schoolYear}`, { headers }),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/periods?instanceYearId=${instanceYearId}`, { headers }),
         ]);
 
         const [currentData, historyData] = await Promise.all([
@@ -854,7 +862,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear }: { instanceId
     };
 
     fetchData();
-  }, [instanceId, refreshKey, schoolYear]);
+  }, [instanceId, instanceYearId, refreshKey, schoolYear]);
 
   // Construire les données graphique pour TOUTES les périodes de 1 à totalPeriods
   const chartData = Array.from({ length: totalPeriods || 1 }, (_, i) => {
