@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsHexColor } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTeamDto {
@@ -7,10 +7,9 @@ export class CreateTeamDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: '#FFE4E1', required: false })
+  @ApiProperty({ example: '#D1FAE5', required: false })
   @IsString()
   @IsOptional()
-  @IsHexColor({ message: "La couleur doit être un code hexadécimal valide" })
   color?: string;
 
   @ApiProperty({ example: 'user', required: false })
@@ -18,12 +17,16 @@ export class CreateTeamDto {
   @IsOptional()
   icon?: string;
 
-  @ApiProperty({ example: 1 })
-  @IsNotEmpty()
-  instanceId: number;
+  @ApiProperty({ example: 1, required: false })
+  @IsOptional()
+  instanceId?: number;
 
   @ApiProperty({ example: '2024-2025', required: false })
   @IsString()
   @IsOptional()
   schoolYear?: string;
+
+  @ApiProperty({ example: 42, required: false })
+  @IsOptional()
+  instanceYearId?: number;
 }

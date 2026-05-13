@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request, Query, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { TeamService } from './team.service';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { ImportCsvDto } from './dto/import-csv.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { readdirSync } from 'fs';
 
 @ApiTags('Équipes (Teams)')
 @Controller('teams')
@@ -64,6 +68,54 @@ export class TeamController {
   ) {
     const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
     return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user, instanceYearId);
+  }
+
+  // --- UPLOAD ICONE ---
+  @Get('icons')
+  @ApiOperation({ summary: 'Liste des icônes disponibles pour les équipes' })
+  listIcons() {
+    const uploadsDir = process.env.UPLOADS_DIR
+      ? join(process.env.UPLOADS_DIR, 'teams')
+      : join(__dirname, '..', '..', '..', '..', 'uploads', 'teams');
+    try {
+      const files = readdirSync(uploadsDir).filter(f =>
+        ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(extname(f).toLowerCase())
+      );
+      return files;
+    } catch {
+      return [];
+    }
+  }
+
+  @Post('upload-icon')
+  @ApiOperation({ summary: "Upload d'une icône d'équipe" })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const dest = process.env.UPLOADS_DIR
+          ? join(process.env.UPLOADS_DIR, 'teams')
+          : join(__dirname, '..', '..', '..', '..', 'uploads', 'teams');
+        cb(null, dest);
+      },
+      filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+        cb(null, unique + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+      if (allowed.includes(extname(file.originalname).toLowerCase())) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException('Format de fichier non supporté'), false);
+      }
+    },
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
+  }))
+  uploadIcon(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu');
+    return { filename: file.filename };
   }
 
   // --- BULK DELETE ---

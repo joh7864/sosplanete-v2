@@ -49,13 +49,13 @@ const ChildCard = ({ pseudo, infos, tree, semaineCount, totalCount }) => {
       {/* Affichage du panneau résultat */}
       <div className="stats-container">
         {/* Total des actions de la semaine pour l'enfant */}
-        <div className="w-full flex justify-between items-center">
+        <div className="child-card-content">
           <div className="icon">
             <img src={tree} />
           </div>
-          <div className="text w-full">
-            <div className="text-sm">Cette semaine</div>
-            <div className="md:text-xl font-extrabold">
+          <div className="text">
+            <div className="titre">Cette semaine</div>
+            <div className="bold-counter">
               {semaineCount} actions
             </div>
           </div>
@@ -67,14 +67,14 @@ const ChildCard = ({ pseudo, infos, tree, semaineCount, totalCount }) => {
             <img src={tree} />
           </div>
           <div className="text">
-            <div className="text-sm">
+            <div className="titre">
               {!islittleScreen() ? (
                 <span>Depuis le début du jeu</span>
               ) : (
                 <span>Depuis le début</span>
               )}
             </div>
-            <div className="md:text-xl font-extrabold">
+            <div className="bold-counter">
               {totalCount} actions
             </div>
           </div>

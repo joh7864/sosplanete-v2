@@ -46,18 +46,22 @@ const Impacts = () => {
     setShowInfoComplementaire(true);
   }, []);
 
+  const ajusteUniteCO2 = (value) => {
+    var tonne = (value / 1000).toFixed(1);
+    if (tonne >= 1) return tonne + " tCO2e";
+    else return Number(value).toFixed(1) + " kgCO2e";
+  };
+
   const ajusteUnitePoids = (value) => {
     var poids = (value / 1000).toFixed(1);
-
     if (poids >= 1) return poids + " tonnes";
-    else return value + " kg";
+    else return Number(value).toFixed(1) + " kg";
   };
 
   const ajusteUniteVolumeEau = (value) => {
     var volume = (value / 1000).toFixed(1);
-
     if (volume >= 1) return volume + " m3";
-    else return value + " litres";
+    else return Number(value).toFixed(1) + " litres";
   };
 
   // Affichage des descriptions
@@ -285,9 +289,9 @@ const Impacts = () => {
                   <ImpactCard
                     icon={earth}
                     keycard={1}
-                    title={impacts.scoreglobal + " tCO2e"}
+                    title={ajusteUniteCO2(impacts.scoreglobal || 0)}
                     complementInfo="L'air est plus pur, il y a moins de gaz à effet de serre dissipé dans l'atmosphère et donc une diminution du réchauffement climatique"
-                    content="Tonnes d'équivalent CO², qui ne se sont pas dissipées"
+                    content="Équivalent CO², qui ne s'est pas dissipé"
                     showDescription={showDescription}
                   />
 

@@ -281,8 +281,16 @@ export class LegacyApiService {
 
   async getTeamsTotal(weekId: string, origin?: string, instanceIdStr?: string) {
     const { instanceYearId } = await this.getInstanceContext(origin, instanceIdStr);
-    const period = await this.prisma.period.findFirst({ where: { instanceYearId, isOpen: true } });
-    if (!period) return [];
+    let period = null;
+    if (weekId && weekId !== 'undefined' && weekId !== 'null') {
+      period = await this.prisma.period.findUnique({ where: { id: parseInt(weekId, 10) } });
+    }
+    if (!period) {
+      try { period = await this.getOpenPeriod(instanceYearId); } catch (e) {}
+    }
+
+    const periods = await this.prisma.period.findMany({ where: { instanceYearId }, select: { id: true } });
+    const periodIds = periods.map(p => p.id);
 
     const teams = await this.prisma.team.findMany({
       where: { instanceYearId },
@@ -292,7 +300,7 @@ export class LegacyApiService {
             children: {
               include: {
                 actionsDone: {
-                  where: { period: { instanceYearId } },
+                  where: { periodId: { in: periodIds } },
                 },
               },
             },
@@ -308,7 +316,7 @@ export class LegacyApiService {
         g.children.forEach(c => {
           total += c.actionsDone.length;
           c.actionsDone.forEach(a => {
-            if (a.periodId === period.id) weekTotal += 1;
+            if (period && a.periodId === period.id) weekTotal += 1;
           });
         });
       });

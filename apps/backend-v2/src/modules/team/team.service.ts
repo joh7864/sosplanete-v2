@@ -94,7 +94,9 @@ export class TeamService {
       throw new ForbiddenException('Action non autorisée sur cette instance');
     }
 
-    return this.prisma.team.update({ where: { id }, data });
+    // On extrait uniquement les champs appartenant au modèle Team
+    const { name, color, icon } = data;
+    return this.prisma.team.update({ where: { id }, data: { name, color, icon } });
   }
 
   async remove(id: number, user: any) {

@@ -81,6 +81,8 @@ function OrganizationContent() {
   useEffect(() => {
     if (urlInstanceId) {
       setInstanceId(parseInt(urlInstanceId));
+    } else if (searchParams.get('new') === 'true') {
+      setInstanceId(null);
     }
     const tab = searchParams.get('tab') as any;
     if (tab) {
@@ -127,9 +129,11 @@ function OrganizationContent() {
   useEffect(() => {
     if (instanceId) {
       fetchTeams();
+      updateManagedInstances();
     } else {
       // Pas d'instance à charger : on s'assure que le loading ne reste pas bloqué
       setLoading(false);
+      updateManagedInstances();
     }
   }, [instanceId, schoolYear]);
 
@@ -149,7 +153,7 @@ function OrganizationContent() {
 
   const updateManagedInstances = async () => {
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances?schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -172,7 +176,7 @@ function OrganizationContent() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getAuthData('access_token')}`,
         },
-        body: JSON.stringify({ adminId: newAdminId }),
+        body: JSON.stringify({ adminId: newAdminId, schoolYear }),
       });
       if (resp.ok) {
         await updateManagedInstances();
@@ -201,10 +205,8 @@ function OrganizationContent() {
     if (!instanceId) return;
     setLoading(true);
     try {
-      // Passer instanceYearId si disponible pour forcer le bon scope
-      const query = instanceYearId
-        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
-        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+      // Le backend s'occupe de résoudre correctement instanceYearId à partir de instanceId et schoolYear
+      const query = `instanceId=${instanceId}&schoolYear=${schoolYear}`;
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
@@ -535,8 +537,8 @@ function OrganizationContent() {
                                 <div className={`w-8 h-8 rounded-full bg-slate-50 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden shrink-0 transition-transform ${userRole === 'AS' ? 'group-hover/popover:scale-105 cursor-pointer' : ''} ${updatingAdminId === inst.id ? 'opacity-50' : ''}`}>
                                   {updatingAdminId === inst.id ? (
                                     <Loader2 size={12} className="animate-spin text-emerald-500" />
-                                  ) : inst.admin?.avatar ? (
-                                    <img src={getAvatarUrl(inst.admin.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                  ) : (inst.instanceYears?.[0]?.admin?.avatar || inst.admin?.avatar) ? (
+                                    <img src={getAvatarUrl(inst.instanceYears?.[0]?.admin?.avatar || inst.admin?.avatar) || ''} alt="" className="w-full h-full object-cover" />
                                   ) : (
                                     <Users size={14} className="text-slate-300" />
                                   )}
@@ -544,7 +546,7 @@ function OrganizationContent() {
                                 <div className="flex flex-col min-w-0 pr-2">
                                   <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider leading-none mb-0.5">Gestionnaire</span>
                                   <span className={`text-xs text-slate-800 font-bold truncate max-w-[100px] leading-tight transition-colors ${userRole === 'AS' ? 'group-hover/popover:text-emerald-600 cursor-pointer' : ''}`}>
-                                      {inst.admin?.name || inst.admin?.email?.split('@')[0] || 'Non assigné'}
+                                      {inst.instanceYears?.[0]?.admin?.name || inst.admin?.name || inst.admin?.email?.split('@')[0] || 'Non assigné'}
                                   </span>
                                 </div>
 
@@ -812,6 +814,8 @@ function OrganizationContent() {
             onClose={() => setShowTeamModal(false)}
             team={selectedTeam}
             instanceId={instanceId || 0}
+            schoolYear={schoolYear}
+            instanceYearId={instanceYearId}
             onUpdate={loadData}
           />
         )}

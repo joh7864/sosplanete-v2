@@ -128,17 +128,11 @@ export class YearService {
    * Crée l'InstanceYear si elle n'existe pas encore (first-time access).
    */
   async resolveInstanceYear(instanceId: number, schoolYear: string) {
-    let iy = await this.prisma.instanceYear.findUnique({
+    const iy = await this.prisma.instanceYear.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear } },
       select: { id: true, instanceId: true, schoolYear: true, isOpen: true },
     });
-    if (!iy) {
-      // Création automatique pour rétrocompatibilité
-      iy = await this.prisma.instanceYear.create({
-        data: { instanceId, schoolYear },
-        select: { id: true, instanceId: true, schoolYear: true, isOpen: true },
-      });
-    }
+    // PAS d'auto-création (fix C013IY) — retourne null si inexistant
     return iy;
   }
 }

@@ -50,10 +50,15 @@ export function useInstanceYear(
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((data: { id: number }) => {
+      .then((data: { id: number } | null) => {
         if (!cancelled) {
-          cache.set(key, data.id);
-          setInstanceYearId(data.id);
+          if (data && data.id) {
+            cache.set(key, data.id);
+            setInstanceYearId(data.id);
+          } else {
+            // InstanceYear n'existe pas pour ce couple — pas d'erreur, juste null
+            setInstanceYearId(null);
+          }
         }
       })
       .catch((err) => {

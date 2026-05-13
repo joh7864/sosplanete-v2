@@ -2,7 +2,7 @@
 
 > Référence : `plan_refonte_instance_year.md`
 > Démarré le : 2026-05-11
-> Statut global : ✅ PHASE 4 COMPLÈTE — Migration instanceYearId terminée Frontend + Backend
+> Statut global : 🟡 PHASE 5 — Stabilisation & Corrections en cours (Recette post-migration)
 
 ---
 
@@ -98,6 +98,23 @@
 - [x] `CatalogSection` — propage `instanceYearId` via `CatalogMapping`
 - [x] `players/page.tsx` — ajoute `useSchoolYear` + `useInstanceYear`, enrichit `fetchTeams`
 - [x] `organization/page.tsx` — propage `instanceYearId` à `CategorySettings` et `CatalogMapping`
+
+---
+
+## Phase 5 — Stabilisation & Corrections (Post-Refonte)
+
+### 5.1 Paramétrage Annuel (Complété)
+- [x] Rendre `unlockedChapters` modifiable indépendamment par année
+  - [x] Backend : Surface via `findOne` et `findAll` avec `schoolYear` query param
+  - [x] Admin : Rechargement forcé de l'instance lors du changement d'année (`OrganizationPage`)
+
+### 5.2 Bugs Identifiés (En attente)
+- [x] **`C001EQ`** : Équipes multi-années (cloisennement strict par `instanceYearId` manquant)
+- [x] **`C002LK`** : Cadenas incohérent (toggle `isOpen` sans contexte d'année sur le dashboard)
+- [x] **`C003SC`** : Page Scores vide dans le jeu (filtre imbriqué Prisma défectueux dans legacy-api)
+- [x] **`C004CO`** : Formatage décimales CO2/Déchets/Eau sur la page Impacts
+- [x] **`C005UN`** : Unités CO2 adaptatives (kg vs tonnes)
+- [x] **`C006FT`** : Débordement police sur la page "Moi" (conflit Tailwind/Custom Font)
 
 ---
 

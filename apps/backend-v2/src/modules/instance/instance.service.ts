@@ -258,6 +258,8 @@ export class InstanceService {
       hostUrl: iy?.hostUrl ?? null,
       icon: iy?.icon ?? null,
       adminId: iy?.adminId ?? instance.adminId ?? null,
+      unlockedChapters: iy?.unlockedChapters ?? 0,
+      isOpen: iy?.isOpen ?? false,
     };
   }
 
@@ -266,19 +268,24 @@ export class InstanceService {
 
     const sy = schoolYear || '2024-2025';
 
+    // Rendre adminId à l'instance principale seulement si PAS de schoolYear spécifié (fix isolation annuelle)
+    if (adminId !== undefined && !data.schoolYear) {
+      updateData.adminId = adminId;
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      // Mise à jour de l'Instance (champs non-jeu uniquement)
+      // Mise à jour de l'Instance (champs non-jeu uniquement + adminId)
       const updated = await tx.instance.update({ where: { id }, data: updateData });
 
-      // Résolution de l'InstanceYear
+      // Résolution de l'InstanceYear — PAS d'auto-création (fix C013IY)
       let instanceYear = await tx.instanceYear.findUnique({
         where: { instanceId_schoolYear: { instanceId: id, schoolYear: sy } },
       });
 
+      // Si l'InstanceYear n'existe pas, on ne la crée PAS.
+      // On ne met à jour que les champs de l'Instance (ex: adminId, schoolName).
       if (!instanceYear) {
-        instanceYear = await tx.instanceYear.create({
-          data: { instanceId: id, schoolYear: sy },
-        });
+        return updated;
       }
 
       // Mise à jour des paramètres de jeu sur instanceYear

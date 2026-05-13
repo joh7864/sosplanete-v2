@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { getAuthData } from '@/utils/storage';
+import { getAuthData, setAuthData } from '@/utils/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 import { useRouter } from 'next/navigation';
@@ -46,6 +46,15 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
+    } else {
+      setSchoolName('');
+      setSearchQuery('');
+      setSelectedAnchorId(null);
+      setIcon('');
+      setHostUrl('');
+      setIsOpen(false);
+      setUnlockedChapters('0');
+      setAdminId(null);
     }
     fetchAMUsers();
   }, [currentInstance, instanceId, schoolYear]);
@@ -110,8 +119,10 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
         setStatus({ type: 'success', msg: isNew ? 'Espace créé avec succès !' : 'Paramètres enregistrés !' });
         setTimeout(() => setStatus(null), 3000);
         if (isNew && data.id) {
+          // Mise à jour locale pour éviter le saut d'instance au refresh
+          setAuthData('active_instance_id', data.id.toString());
           await onUpdate();
-          router.push(`/dashboard/organization?tab=general&instanceId=${data.id}`);
+          router.push(`/dashboard/organization?tab=periods&instanceId=${data.id}`);
         } else {
           onUpdate();
         }
@@ -192,7 +203,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       
-      <GlassCard className="relative p-0 rounded-3xl border-none shadow-2xl overflow-hidden bg-white/95">
+      <GlassCard className="relative p-0 rounded-3xl border-none shadow-2xl bg-white/95">
         <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
           
           {/* Left Column: Logo & Quick Info */}
@@ -281,7 +292,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                             return (
                               <button
                                 key={s.id}
-                                className="w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-slate-50 flex items-center justify-between"
+                                className="w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-slate-50 flex items-center justify-between transition-colors"
                                 onClick={() => {
                                   setSelectedAnchorId(s.id);
                                   setSearchQuery(s.schoolName);
@@ -301,6 +312,14 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                               </button>
                             );
                           })}
+                        </div>
+                      )}
+                      {showSuggestions && suggestions.length === 0 && searchQuery.length > 1 && (
+                        <div className="absolute top-[100%] left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden px-4 py-3 text-sm text-slate-500 font-medium">
+                          <span className="flex items-center gap-2">
+                            <CheckCircle size={16} className="text-emerald-500" />
+                            Créer la nouvelle école "{searchQuery}"
+                          </span>
                         </div>
                       )}
                       {selectedAnchorId && isNew && (

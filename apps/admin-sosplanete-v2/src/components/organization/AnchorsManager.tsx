@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Search, Trash2, Edit3, Save, X, AlertTriangle, CheckCircle, Loader2, User, Globe, Settings2 } from 'lucide-react';
+import { Building2, Search, Trash2, Edit3, Save, X, AlertTriangle, CheckCircle, Loader2, User, Globe, Settings2, Lock, Unlock } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -20,6 +20,7 @@ export function AnchorsManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteYearInfo, setDeleteYearInfo] = useState<{instanceId: number, schoolYear: string, schoolName: string} | null>(null);
   const router = useRouter();
   const { setSchoolYear } = useSchoolYear();
 
@@ -83,6 +84,26 @@ export function AnchorsManager() {
       showStatus('error', 'Erreur réseau.');
     } finally {
       setDeleteId(null);
+    }
+  };
+
+  const handleDeleteYearConfig = async () => {
+    if (!deleteYearInfo) return;
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${deleteYearInfo.instanceId}/year?schoolYear=${deleteYearInfo.schoolYear}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        showStatus('success', `Configuration de l'année ${deleteYearInfo.schoolYear} supprimée.`);
+        fetchAnchors();
+      } else {
+        showStatus('error', 'Erreur lors de la suppression de l\'année.');
+      }
+    } catch (e) {
+      showStatus('error', 'Erreur réseau.');
+    } finally {
+      setDeleteYearInfo(null);
     }
   };
 
@@ -193,8 +214,8 @@ export function AnchorsManager() {
                      >
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1 items-center">
                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black text-slate-400 text-xs border border-slate-100 group-hover/year:bg-emerald-50 group-hover/year:text-emerald-600 group-hover/year:border-emerald-100 transition-colors">
-                                 {iy.schoolYear.split('-')[1].slice(-2)}
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-colors ${iy.isOpen ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 'bg-amber-50 text-amber-500 border-amber-100'}`} title={iy.isOpen ? 'Espace Ouvert' : 'Espace Fermé'}>
+                                 {iy.isOpen ? <Unlock size={18} /> : <Lock size={18} />}
                               </div>
                               <div className="flex flex-col">
                                  <span className="text-sm font-black text-slate-700">{iy.schoolYear}</span>
@@ -222,6 +243,13 @@ export function AnchorsManager() {
                         </div>
 
                         <div className="flex items-center gap-2 ml-6">
+                           <button 
+                             onClick={() => setDeleteYearInfo({ instanceId: anchor.id, schoolYear: iy.schoolYear, schoolName: anchor.schoolName })}
+                             className="p-2.5 text-rose-500 bg-rose-50 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                             title="Supprimer la configuration de cette année"
+                           >
+                              <Trash2 size={18} />
+                           </button>
                            <button 
                              onClick={() => handleOpenConfig(anchor.id, iy.schoolYear)}
                              className="p-2.5 text-emerald-500 bg-emerald-50 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
@@ -279,6 +307,19 @@ export function AnchorsManager() {
             variant="danger"
             onConfirm={() => handleDeleteAnchor(deleteId)}
             onClose={() => setDeleteId(null)}
+          />
+        )}
+
+        {deleteYearInfo && (
+          <ConfirmDialog 
+            isOpen={true}
+            title={`Supprimer la configuration ${deleteYearInfo.schoolYear} ?`}
+            description={`Attention ! Cette action supprimera définitivement toutes les données de jeu (équipes, périodes, scores) pour l'année ${deleteYearInfo.schoolYear}. L'établissement "${deleteYearInfo.schoolName}" lui-même sera conservé.`}
+            confirmLabel="Supprimer la configuration annuelle"
+            cancelLabel="Annuler"
+            variant="danger"
+            onConfirm={handleDeleteYearConfig}
+            onClose={() => setDeleteYearInfo(null)}
           />
         )}
 

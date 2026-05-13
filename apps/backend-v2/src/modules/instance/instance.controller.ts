@@ -51,8 +51,11 @@ export class InstanceController {
 
   @Get(':id')
   @ApiOperation({ summary: "Détails d'une école" })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.instanceService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    return this.instanceService.findOne(id, schoolYear);
   }
 
   @Patch(':id')
@@ -74,6 +77,19 @@ export class InstanceController {
   @ApiOperation({ summary: "Supprimer une école (cascade)" })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.instanceService.remove(id);
+  }
+
+  @Delete(':id/year')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.AS)
+  @ApiOperation({ summary: "Supprimer la configuration d'une année spécifique" })
+  async removeYear(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    if (!schoolYear) throw new BadRequestException('Le paramètre schoolYear est requis');
+    return this.instanceService.removeYear(id, schoolYear);
   }
 
   @Post(':id/icon')
@@ -135,6 +151,7 @@ export class InstanceController {
     @Query('schoolYear') schoolYear: string,
   ) {
     const iy = await this.yearService.resolveInstanceYear(id, schoolYear);
-    return iy;
+    // Retourner un objet explicite pour éviter un body vide (crash JSON.parse côté client)
+    return iy ?? { id: null, instanceId: id, schoolYear, isOpen: false };
   }
 }

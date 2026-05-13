@@ -39,14 +39,18 @@
 }
 
 .vignette-action-content-title {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 4rem;
-  padding-right: 4rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  width: 75%;
+  margin: 0 auto;
   margin-bottom: 20px;
+  padding: 0;
 }
 /* MOBILE */
 @media screen and (min-width: 1440px) {
@@ -54,8 +58,7 @@
     width: 50%;
   }
   .vignette-action-content-title {
-    padding-left: 4.5rem;
-    padding-right: 4.5rem;
+    width: 70%;
     margin-bottom: 15px;
   }
 }
@@ -63,7 +66,7 @@
 /* MOBILE */
 @media screen and (max-width: 1370px) {
   .vignette-action-content-title {
-    width: 130%;
+    width: 80%;
   }
 }
 
@@ -78,13 +81,12 @@
     height: 120px;
   }
   .vignette-action-content-title {
-    width: 135%;
+    width: 85%;
   }
 }
 @media screen and (max-width: 1124px) {
   .vignette-action-content-title {
-    padding-left: 2rem;
-    padding-right: 2rem;
+    width: 90%;
     margin-bottom: 15px;
   }
 }

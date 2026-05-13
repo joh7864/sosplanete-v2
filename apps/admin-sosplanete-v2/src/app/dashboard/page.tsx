@@ -116,7 +116,7 @@ export default function DashboardSummaryPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getAuthData('access_token')}`,
         },
-        body: JSON.stringify({ isOpen: !instance.isOpen }),
+        body: JSON.stringify({ isOpen: !instance.isOpen, schoolYear }),
       });
       if (resp.ok) fetchInstances();
     } catch (e) {
