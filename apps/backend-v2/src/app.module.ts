@@ -33,7 +33,7 @@ import { StimulationModule } from './modules/stimulation/stimulation.module';
     // Les routes d'auth ont une limite plus stricte via @Throttle() dans auth.controller.ts
     ThrottlerModule.forRoot([{
       ttl: 60000, // 1 minute
-      limit: 100, // 100 requêtes max par minute et par IP
+      limit: 500, // Augmenté à 500 pour éviter les 429 sur le jeu v1
     }]),
     PrismaModule,
     AuthModule,
