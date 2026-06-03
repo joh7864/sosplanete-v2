@@ -42,7 +42,7 @@ const Discovery = () => {
               <div className="school-icon">🏫</div>
               <div className="school-info">
                 <span className="school-name">{choice.schoolName}</span>
-                <span className="school-id">Espace #{choice.instanceId}</span>
+                <span className="school-id">{choice.schoolYear || `Espace #${choice.instanceId}`}</span>
               </div>
             </button>
           ))}

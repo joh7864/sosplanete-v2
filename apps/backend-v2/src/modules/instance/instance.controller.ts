@@ -12,7 +12,7 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { BadRequestException, UseInterceptors, UploadedFile, ForbiddenException } from '@nestjs/common';
 
 import { YearService } from './year.service';
 
@@ -86,13 +86,19 @@ export class InstanceController {
   @Delete(':id/year')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.AS)
+  @Roles(Role.AS, Role.AM)
   @ApiOperation({ summary: "Supprimer la configuration d'une année spécifique" })
   async removeYear(
     @Param('id', ParseIntPipe) id: number,
     @Query('schoolYear') schoolYear: string,
+    @Request() req: any,
   ) {
     if (!schoolYear) throw new BadRequestException('Le paramètre schoolYear est requis');
+    if (req.user.role === Role.AM) {
+      // Vérification : un AM ne peut supprimer que les années de ses propres espaces
+      const isOwner = req.user.instanceIds?.includes(id);
+      if (!isOwner) throw new ForbiddenException('Vous ne pouvez supprimer que les espaces que vous gérez');
+    }
     return this.instanceService.removeYear(id, schoolYear);
   }
 
@@ -158,5 +164,38 @@ export class InstanceController {
     const iy = await this.yearService.resolveInstanceYear(id, schoolYear);
     // Retourner un objet explicite pour éviter un body vide (crash JSON.parse côté client)
     return iy ?? { id: null, instanceId: id, schoolYear, isOpen: false };
+  }
+
+  @Post(':id/duplicate-year')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.AS, Role.AM)
+  @ApiOperation({ summary: "Dupliquer la configuration d'une année scolaire sur une autre" })
+  async duplicateYear(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { fromSchoolYear: string; toSchoolYear: string },
+    @Request() req: any,
+  ) {
+    if (req.user.role === Role.AM) {
+      // Vérification : un AM ne peut dupliquer que ses propres instances
+      const isOwner = req.user.instanceIds?.includes(id);
+      if (!isOwner) throw new ForbiddenException('Vous ne pouvez dupliquer que vos propres espaces');
+    }
+    return this.yearService.duplicateYear(id, body.fromSchoolYear, body.toSchoolYear, req.user);
+  }
+
+  @Get(':id/years')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: "Liste de toutes les années existantes d'une école" })
+  async getYears(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: any,
+  ) {
+    if (req.user.role === Role.AM) {
+      const isOwner = req.user.instanceIds?.includes(id);
+      if (!isOwner) throw new ForbiddenException('Vous ne pouvez lister que les années de vos propres espaces');
+    }
+    return this.instanceService.findYears(id);
   }
 }

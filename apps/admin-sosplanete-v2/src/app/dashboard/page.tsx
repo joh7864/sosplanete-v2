@@ -26,7 +26,7 @@ export default function DashboardSummaryPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
 
-  const { schoolYear } = useSchoolYear();
+  const { schoolYear, setSchoolYear } = useSchoolYear();
 
   useEffect(() => {
     const role = getAuthData('user_role');
@@ -232,6 +232,11 @@ export default function DashboardSummaryPage() {
                 onToggleStatus={toggleInstanceStatus}
                 onAdminChange={handleAdminChange}
                 onDeleteClick={(inst) => { setSelectedInstance(inst); setShowDeleteConfirm(true); }}
+                schoolYear={schoolYear}
+                onDuplicateSuccess={(targetYear) => {
+                  if (targetYear) setSchoolYear(targetYear);
+                  fetchInstances();
+                }}
               />
             ))}
 

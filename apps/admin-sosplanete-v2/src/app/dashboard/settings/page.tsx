@@ -28,6 +28,7 @@ import { CatalogSection } from '@/components/settings/CatalogSection';
 import { AnchorsManager } from '@/components/organization/AnchorsManager';
 import { GlobalDataSettings } from '@/components/settings/GlobalDataSettings';
 import { SystemConfigForm } from '@/components/settings/SystemConfigForm';
+import { ManagedSpacesSection } from '@/components/settings/ManagedSpacesSection';
 
 export default function SettingsPage() {
   return (
@@ -132,7 +133,7 @@ function SettingsContent() {
 
         {/* Profil & Utilisateurs — largeur contrainte pour lisibilité */}
         {(activeTab === 'profile' || activeTab === 'users' || activeTab === 'anchors') && (
-          <div className="max-w-5xl mx-auto">
+          <div className={`${activeTab === 'profile' ? 'w-full' : 'max-w-5xl mx-auto'}`}>
             {activeTab === 'profile' && <ProfileSection />}
             {activeTab === 'users' && isAS && <UsersSection />}
             {activeTab === 'anchors' && isAS && <AnchorsManager />}
@@ -262,11 +263,12 @@ function ProfileSection() {
 
   return (
     <div className="flex flex-col gap-6">
-      <GlassCard className="relative p-0 rounded-3xl border-none shadow-2xl overflow-hidden bg-white/95">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <GlassCard className="relative p-0 rounded-3xl border-none shadow-2xl overflow-hidden bg-white/95 h-full">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] h-full">
           
           {/* Left Column: Avatar & Quick Info */}
-          <div className="flex flex-col items-center justify-start p-10 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-100">
+          <div className="flex flex-col items-center justify-start p-10 bg-slate-50/50 border-b md:border-b-0 md:border-r border-slate-100 h-full">
             <div className="relative group">
               <motion.div 
                 whileHover={{ scale: 1.05 }}
@@ -323,8 +325,8 @@ function ProfileSection() {
           </div>
 
           {/* Right Column: Forms */}
-          <div className="p-12 flex flex-col gap-10">
-            <form onSubmit={handleUpdateProfile} className="flex flex-col gap-10">
+          <div className="p-12 flex flex-col justify-between h-full">
+            <form onSubmit={handleUpdateProfile} className="flex flex-col justify-between h-full flex-grow gap-8">
               
               {/* Identity section */}
               <div className="space-y-6">
@@ -411,6 +413,9 @@ function ProfileSection() {
           </div>
         </div>
       </GlassCard>
+
+      <ManagedSpacesSection />
+      </div>
 
       <NotificationsHistory />
     </div>
@@ -524,7 +529,10 @@ function NotificationsHistory() {
 
             let statusText = 'Lu';
             let statusClass = 'bg-slate-50 text-slate-500';
-            if (!notif.isRead && notif.status === 'PENDING') {
+            if (notif.status === 'DELETED') {
+              statusText = 'Annulée';
+              statusClass = 'bg-rose-50 text-rose-600';
+            } else if (!notif.isRead && notif.status === 'PENDING') {
               statusText = 'En attente';
               statusClass = 'bg-amber-50 text-amber-600 animate-pulse';
             } else if (notif.status === 'PROCESSED') {
@@ -540,7 +548,7 @@ function NotificationsHistory() {
                 key={notif.id}
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`p-5 rounded-2xl border transition-all ${!notif.isRead && activeSubTab === 'received' ? 'bg-slate-50/50 border-emerald-100 shadow-[0_4px_12px_rgba(16,185,129,0.03)]' : 'bg-white border-slate-100/80 hover:bg-slate-50/20'}`}
+                className={`p-5 rounded-2xl border transition-all ${!notif.isRead && activeSubTab === 'received' && notif.status !== 'DELETED' ? 'bg-slate-50/50 border-emerald-100 shadow-[0_4px_12px_rgba(16,185,129,0.03)]' : 'bg-white border-slate-100/80 hover:bg-slate-50/20'} ${notif.status === 'DELETED' ? 'opacity-70' : ''}`}
               >
                 <div className="flex justify-between items-start gap-4">
                   <div className="space-y-2 flex-1">
@@ -550,12 +558,12 @@ function NotificationsHistory() {
                         {statusText}
                       </span>
                     </div>
-                    <h4 className="text-sm font-black text-slate-800">{notif.title}</h4>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">{notif.content}</p>
+                    <h4 className={`text-sm font-black text-slate-800 ${notif.status === 'DELETED' ? 'line-through text-slate-400' : ''}`}>{notif.title}</h4>
+                    <p className={`text-xs text-slate-500 leading-relaxed font-medium ${notif.status === 'DELETED' ? 'text-slate-400' : ''}`}>{notif.content}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {activeSubTab === 'received' && !notif.isRead && (
+                    {activeSubTab === 'received' && !notif.isRead && notif.status !== 'DELETED' && (
                       <button
                         onClick={() => handleMarkAsRead(notif.id)}
                         className="text-xs font-black uppercase tracking-wider text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-3 py-1.5 rounded-xl transition-all"

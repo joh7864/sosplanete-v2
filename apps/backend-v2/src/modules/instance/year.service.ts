@@ -1,5 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+
+function getStartYear(yearStr: string): number {
+  const match = yearStr.match(/^(\d{4})/);
+  return match ? parseInt(match[1], 10) : new Date().getFullYear();
+}
+
+function shiftDateByYears(date: Date | null | undefined, offset: number): Date | null {
+  if (!date) return null;
+  const newDate = new Date(date);
+  newDate.setFullYear(newDate.getFullYear() + offset);
+  return newDate;
+}
 
 @Injectable()
 export class YearService {
@@ -34,15 +46,23 @@ export class YearService {
 
     console.log(`[YearService] Cloning from ${fromYear} to ${targetYear} for instance ${instanceId}`);
 
+    const fromStartYear = getStartYear(fromYear);
+    const toStartYear = getStartYear(targetYear);
+    const yearOffset = toStartYear - fromStartYear;
+
     const result = await this.prisma.$transaction(async (tx) => {
       // Créer la nouvelle InstanceYear (hérite de la config de jeu)
       const newIy = await tx.instanceYear.create({
         data: {
           instanceId,
           schoolYear:      targetYear,
-          gameStartDate:   lastIy.gameStartDate,
-          gameEndDate:     lastIy.gameEndDate,
+          hostUrl:         lastIy.hostUrl,
+          icon:            lastIy.icon,
+          isOpen:          lastIy.isOpen,
+          gameStartDate:   shiftDateByYears(lastIy.gameStartDate, yearOffset),
+          gameEndDate:     shiftDateByYears(lastIy.gameEndDate, yearOffset),
           gamePeriodsCount: lastIy.gamePeriodsCount,
+          adminId:         lastIy.adminId,
         },
       });
 
@@ -116,6 +136,9 @@ export class YearService {
             avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
             animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
             bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
+            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
+            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount:             gameConfig.gamePeriodsCount,
           },
         });
       }
@@ -220,5 +243,144 @@ export class YearService {
     });
     // PAS d'auto-création (fix C013IY) — retourne null si inexistant
     return iy;
+  }
+
+  /**
+   * Duplique les catégories, équipes (avec groupes et élèves), catalogue d'actions locales et GameConfig
+   * d'une année source vers une année cible existante vide pour une instance donnée.
+   */
+  async duplicateYear(instanceId: number, fromYear: string, toYear: string, currentUser?: any) {
+    if (fromYear === toYear) {
+      throw new BadRequestException("L'année source et l'année cible doivent être différentes");
+    }
+
+    // 1. Vérifier la source
+    const fromIy = await this.prisma.instanceYear.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear: fromYear } },
+    });
+    if (!fromIy) {
+      throw new NotFoundException(`Année source ${fromYear} non trouvée pour cet établissement`);
+    }
+
+    // 2. Vérifier la cible : si elle existe déjà, on refuse la duplication (déjà existante)
+    const toIy = await this.prisma.instanceYear.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
+    });
+    if (toIy) {
+      throw new ConflictException("Un espace du même nom existe déjà");
+    }
+
+    console.log(`[YearService] Creating and duplicating space from ${fromYear} to ${toYear} for instance ${instanceId}`);
+
+    const fromStartYear = getStartYear(fromYear);
+    const toStartYear = getStartYear(toYear);
+    const yearOffset = toStartYear - fromStartYear;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // --- CREATION DE LA NOUVELLE INSTANCEYEAR CIBLE (Copie des paramètres généraux) ---
+      const newIy = await tx.instanceYear.create({
+        data: {
+          instanceId,
+          schoolYear:       toYear,
+          hostUrl:          fromIy.hostUrl,
+          icon:             fromIy.icon,
+          isOpen:           fromIy.isOpen,
+          gameStartDate:    shiftDateByYears(fromIy.gameStartDate, yearOffset),
+          gameEndDate:      shiftDateByYears(fromIy.gameEndDate, yearOffset),
+          gamePeriodsCount: fromIy.gamePeriodsCount,
+          adminId:          fromIy.adminId,
+        },
+      });
+
+      // --- A. CLONAGE DES CATEGORIES ---
+      const categories = await tx.category.findMany({ where: { instanceYearId: fromIy.id } });
+      const categoryMap = new Map<number, number>();
+      for (const cat of categories) {
+        const newCat = await tx.category.create({
+          data: {
+            name:           cat.name,
+            icon:           cat.icon,
+            order:          cat.order,
+            instanceYearId: newIy.id,
+          },
+        });
+        categoryMap.set(cat.id, newCat.id);
+      }
+
+      // --- B. CLONAGE DES TEAMS, GROUPS & CHILDREN ---
+      const teams = await tx.team.findMany({
+        where:   { instanceYearId: fromIy.id },
+        include: { groups: { include: { children: true } } },
+      });
+
+      for (const team of teams) {
+        const newTeam = await tx.team.create({
+          data: { name: team.name, color: team.color, icon: team.icon, instanceYearId: newIy.id },
+        });
+
+        for (const group of team.groups) {
+          const newGroup = await tx.group.create({
+            data: { name: group.name, color: group.color, teamId: newTeam.id },
+          });
+          for (const child of group.children) {
+            await tx.child.create({
+              data: { pseudo: child.pseudo, password: child.password, avatar: child.avatar, groupId: newGroup.id },
+            });
+          }
+        }
+      }
+
+      // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS) ---
+      const localActions = await tx.localAction.findMany({ where: { instanceId, schoolYear: fromYear } });
+      for (const action of localActions) {
+        await tx.localAction.create({
+          data: {
+            label:          action.label,
+            description:    action.description,
+            image:          action.image,
+            instanceId:     action.instanceId,
+            actionRefId:    action.actionRefId,
+            schoolYear:     toYear,
+            categoryId:     action.categoryId ? categoryMap.get(action.categoryId) ?? null : null,
+            specificCo2:    action.specificCo2,
+            specificWater:  action.specificWater,
+            specificWaste:  action.specificWaste,
+            specificEnergy: action.specificEnergy,
+          },
+        });
+      }
+
+      // --- D. CLONAGE/UPSERT DE LA GAMECONFIG ---
+      const gameConfig = await tx.gameConfig.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear: fromYear } },
+      });
+      if (gameConfig) {
+        await tx.gameConfig.upsert({
+          where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
+          update: {
+            avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
+            animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
+            bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
+            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
+            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount:             gameConfig.gamePeriodsCount,
+          },
+          create: {
+            instanceId,
+            schoolYear:                   toYear,
+            avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
+            animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
+            bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
+            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
+            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount:             gameConfig.gamePeriodsCount,
+          },
+        });
+      }
+
+      return { success: true, fromYear, toYear, instanceYearId: newIy.id };
+    });
+
+    return result;
   }
 }

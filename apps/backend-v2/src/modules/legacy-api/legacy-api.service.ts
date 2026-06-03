@@ -60,6 +60,7 @@ export class LegacyApiService {
         pseudo:     child.pseudo,
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
+        schoolYear: child.group.team.instanceYear.schoolYear,
       };
     }
 
@@ -70,6 +71,7 @@ export class LegacyApiService {
         childId:    child.id,
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
+        schoolYear: child.group.team.instanceYear.schoolYear,
       })),
     };
   }
@@ -331,7 +333,7 @@ export class LegacyApiService {
   }
 
   async getSchool(origin?: string, instanceIdStr?: string) {
-    const { instanceId, instanceYearId } = await this.getInstanceContext(origin, instanceIdStr);
+    const { instanceId, instanceYearId, schoolYear } = await this.getInstanceContext(origin, instanceIdStr);
     const inst = await this.prisma.instance.findUnique({ where: { id: instanceId } });
     if (!inst) throw new NotFoundException('Ecole introuvable');
 
@@ -344,6 +346,7 @@ export class LegacyApiService {
       name:       inst.schoolName,
       objective:  1000,
       numchapter: iy?.unlockedChapters ?? 0,
+      schoolYear,
     };
   }
 

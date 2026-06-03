@@ -1,14 +1,13 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { 
-  Globe, Users, Trash2, Edit3, Loader2, Lock, Unlock, Settings2, Leaf, Droplets, Trash
+  Globe, Users, Trash2, Edit3, Loader2, Lock, Unlock, Settings2, Leaf, Droplets, Trash, Copy, AlertTriangle, CheckCircle
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
-import { setAuthData } from '@/utils/storage';
+import { setAuthData, getAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
+import { DuplicateYearModal } from '@/components/organization/DuplicateYearModal';
 
 export interface Instance {
   id: number;
@@ -46,6 +45,8 @@ interface InstanceCardProps {
   onToggleStatus: (instance: Instance) => void;
   onAdminChange: (instanceId: number, newAdminId: number) => void;
   onDeleteClick: (instance: Instance) => void;
+  schoolYear: string;
+  onDuplicateSuccess: (targetYear?: string) => void;
 }
 
 export function InstanceCard({
@@ -58,9 +59,17 @@ export function InstanceCard({
   updatingAdminId,
   onToggleStatus,
   onAdminChange,
-  onDeleteClick
+  onDeleteClick,
+  schoolYear,
+  onDuplicateSuccess
 }: InstanceCardProps) {
   const cardColor = instance.isOpen ? '#10b981' : '#fbbf24';
+
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [localStatus, setLocalStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
 
   const getAvatarUrl = (path: string | null) => {
     if (!path) return null;
@@ -68,8 +77,68 @@ export function InstanceCard({
     return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
   };
 
+  const handleOpenDuplicate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDuplicateError(null);
+    setDuplicateLoading(true);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/years`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        const years = await resp.json();
+        setAvailableYears(years);
+        setShowDuplicateModal(true);
+      } else {
+        showStatus('error', 'Impossible de récupérer les années scolaires disponibles.');
+      }
+    } catch (e) {
+      showStatus('error', 'Erreur réseau.');
+    } finally {
+      setDuplicateLoading(false);
+    }
+  };
+
+  const handleDuplicateConfirm = async (targetYear: string) => {
+    setDuplicateLoading(true);
+    setDuplicateError(null);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instance.id}/duplicate-year`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+        body: JSON.stringify({
+          fromSchoolYear: schoolYear,
+          toSchoolYear: targetYear,
+        }),
+      });
+
+      if (resp.ok) {
+        showStatus('success', `Espace dupliqué avec succès vers ${targetYear}.`);
+        setShowDuplicateModal(false);
+        onDuplicateSuccess(targetYear);
+      } else {
+        const errorData = await resp.json();
+        setDuplicateError(errorData.message || 'Erreur lors de la duplication.');
+      }
+    } catch (e) {
+      setDuplicateError('Erreur réseau.');
+    } finally {
+      setDuplicateLoading(false);
+    }
+  };
+
+  const showStatus = (type: 'success' | 'error', msg: string) => {
+    setLocalStatus({ type, msg });
+    setTimeout(() => setLocalStatus(null), 4000);
+  };
+
+  let cardContent;
+
   if (viewMode === 'grid') {
-    return (
+    cardContent = (
       <GlassCard className="hover:scale-[1.02] transition-all cursor-pointer group overflow-hidden h-full border-none shadow-xl" padding="none">
         <div 
           className="h-1.5 w-full" 
@@ -215,6 +284,17 @@ export function InstanceCard({
             </div>
 
             <div className="flex items-center gap-2">
+               <div className="relative group/duplicate">
+                  <button 
+                     onClick={handleOpenDuplicate}
+                     className="p-2.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all shadow-sm active:scale-95 border border-blue-100 flex items-center justify-center"
+                     title="Dupliquer la configuration de cette année"
+                     disabled={duplicateLoading}
+                  >
+                     <Copy size={18} />
+                  </button>
+               </div>
+
                <div className="relative group/status">
                   <button 
                      onClick={(e) => { e.stopPropagation(); onToggleStatus(instance); }}
@@ -242,9 +322,8 @@ export function InstanceCard({
         </div>
       </GlassCard>
     );
-  }
-
-  return (
+  } else {
+    cardContent = (
     <GlassCard className="p-4 hover:bg-slate-50 transition-all border-none shadow-md">
        <div className="flex items-center gap-6">
           <div className={`p-3 rounded-2xl transition-colors ${instance.isOpen ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
@@ -299,6 +378,14 @@ export function InstanceCard({
                 </button>
               </>
             )}
+            <button 
+                onClick={handleOpenDuplicate}
+                className="p-3 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-100 ml-2 flex items-center justify-center animate-in scale-in duration-300"
+                title="Dupliquer la configuration de cette année"
+                disabled={duplicateLoading}
+            >
+                <Copy size={18} />
+            </button>
             <Link 
                 href={`/dashboard/organization?instanceId=${instance.id}`}
                 className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all border border-emerald-100 ml-2"
@@ -312,5 +399,33 @@ export function InstanceCard({
           </div>
        </div>
     </GlassCard>
+    );
+  }
+
+  return (
+    <>
+      {cardContent}
+
+      <DuplicateYearModal
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        onConfirm={handleDuplicateConfirm}
+        sourceYear={schoolYear}
+        availableYears={availableYears}
+        isLoading={duplicateLoading}
+        error={duplicateError}
+      />
+
+      <AnimatePresence>
+        {localStatus && (
+          <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-4 duration-300">
+            <div className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${localStatus.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
+              {localStatus.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+              <span className="font-bold text-sm">{localStatus.msg}</span>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

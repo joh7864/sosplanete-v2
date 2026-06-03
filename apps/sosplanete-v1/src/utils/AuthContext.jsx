@@ -100,12 +100,12 @@ export const AuthProvider = ({ children }) => {
           if (result.data.status === 'multiple_choices') {
             const lastUsed = localStorage.getItem("sos_last_instance_id");
             const choices = result.data.choices;
+            setInstanceChoices(choices);
             const autoChoice = lastUsed ? choices.find(c => c.instanceId.toString() === lastUsed) : null;
             
             if (autoChoice) {
               finishLogin(autoChoice.instanceId, autoChoice.schoolName, headers, userInfo.pseudo);
             } else {
-              setInstanceChoices(choices);
               localStorage.setItem("inProgress", "on"); // keep auth alive
               navigate("/discovery");
             }
@@ -138,6 +138,7 @@ export const AuthProvider = ({ children }) => {
     setTeams(null);
     setActions(null);
     setActiveSchoolName(null);
+    setInstanceChoices(null);
     localStorage.setItem("inProgress", "off");
     localStorage.removeItem("instanceId");
   };

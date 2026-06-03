@@ -94,9 +94,31 @@ export class StimulationService {
       const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
       if (!instance) throw new NotFoundException(`Instance ${instanceId} introuvable`);
 
+      const match = sy.match(/^(\d{4})/);
+      const startYear = match ? parseInt(match[1], 10) : new Date().getFullYear();
+      const endYear = startYear + 1;
+      const gameStartDate = new Date(Date.UTC(startYear, 10, 1, 0, 0, 0, 0));
+      const gameEndDate = new Date(Date.UTC(endYear, 6, 31, 23, 59, 59, 999));
+
       config = await this.prisma.gameConfig.create({
-        data: { instanceId, schoolYear: sy },
+        data: { 
+          instanceId, 
+          schoolYear: sy,
+          gameStartDate,
+          gameEndDate,
+        },
       });
+
+      // Synchroniser avec InstanceYear si elle existe
+      const iy = await this.prisma.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear: sy } },
+      });
+      if (iy) {
+        await this.prisma.instanceYear.update({
+          where: { id: iy.id },
+          data: { gameStartDate, gameEndDate },
+        });
+      }
     }
 
     return config;

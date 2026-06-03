@@ -47,6 +47,41 @@ export class NotificationService {
   }
 
   async delete(id: number) {
+    const notif = await this.prisma.notification.findUnique({
+      where: { id },
+    });
+    if (!notif) return;
+
+    if (notif.status === 'PENDING') {
+      const yearMatch = notif.title.match(/\d{4}-\d{4}/) || notif.content.match(/\d{4}-\d{4}/);
+      if (yearMatch) {
+        const schoolYear = yearMatch[0];
+        
+        await this.prisma.notification.updateMany({
+          where: {
+            status: 'PENDING',
+            OR: [
+              {
+                title: { contains: schoolYear },
+                OR: [
+                  { senderId: notif.senderId },
+                  { recipientId: notif.recipientId },
+                  { senderId: notif.recipientId },
+                  { recipientId: notif.senderId }
+                ]
+              }
+            ]
+          },
+          data: { status: 'DELETED' },
+        });
+
+        return this.prisma.notification.update({
+          where: { id },
+          data: { status: 'DELETED' },
+        });
+      }
+    }
+
     return this.prisma.notification.delete({
       where: { id },
     });

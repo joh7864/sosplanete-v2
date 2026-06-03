@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Search, Trash2, Edit3, Save, X, AlertTriangle, CheckCircle, Loader2, User, Globe, Settings2, Lock, Unlock } from 'lucide-react';
+import { Building2, Search, Trash2, Edit3, Save, X, AlertTriangle, CheckCircle, Loader2, User, Globe, Settings2, Lock, Unlock, Copy } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -11,6 +11,7 @@ import { getAuthData } from '@/utils/storage';
 import { getAssetUrl } from '@/utils/assets';
 import { useRouter } from 'next/navigation';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
+import { DuplicateYearModal } from '@/components/organization/DuplicateYearModal';
 
 export function AnchorsManager() {
   const [anchors, setAnchors] = useState<any[]>([]);
@@ -21,11 +22,22 @@ export function AnchorsManager() {
   const [editName, setEditName] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteYearInfo, setDeleteYearInfo] = useState<{instanceId: number, schoolYear: string, schoolName: string} | null>(null);
+  
+  // States for Duplication
+  const [duplicateInstanceId, setDuplicateInstanceId] = useState<number | null>(null);
+  const [duplicateSourceYear, setDuplicateSourceYear] = useState<string | null>(null);
+  const [duplicateAvailableYears, setDuplicateAvailableYears] = useState<string[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [systemYears, setSystemYears] = useState<string[]>([]);
+
   const router = useRouter();
   const { setSchoolYear } = useSchoolYear();
 
   useEffect(() => {
     fetchAnchors();
+    fetchSystemYears();
   }, []);
 
   const fetchAnchors = async () => {
@@ -41,6 +53,19 @@ export function AnchorsManager() {
       console.error('Failed to fetch anchors:', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSystemYears = async () => {
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/years`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+      if (resp.ok) {
+        setSystemYears(await resp.json());
+      }
+    } catch (e) {
+      console.error('Failed to fetch system years:', e);
     }
   };
 
@@ -104,6 +129,47 @@ export function AnchorsManager() {
       showStatus('error', 'Erreur réseau.');
     } finally {
       setDeleteYearInfo(null);
+    }
+  };
+
+  const handleDuplicateYear = (anchor: any, fromYear: string) => {
+    setDuplicateInstanceId(anchor.id);
+    setDuplicateSourceYear(fromYear);
+    setDuplicateAvailableYears(systemYears);
+    setDuplicateError(null);
+    setShowDuplicateModal(true);
+  };
+
+  const handleDuplicateYearConfirm = async (targetYear: string) => {
+    if (!duplicateInstanceId || !duplicateSourceYear) return;
+    setDuplicateLoading(true);
+    setDuplicateError(null);
+    try {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${duplicateInstanceId}/duplicate-year`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+        body: JSON.stringify({
+          fromSchoolYear: duplicateSourceYear,
+          toSchoolYear: targetYear,
+        }),
+      });
+
+      if (resp.ok) {
+        showStatus('success', `Configuration de l'année ${duplicateSourceYear} dupliquée vers ${targetYear} avec succès.`);
+        setShowDuplicateModal(false);
+        setSchoolYear(targetYear);
+        fetchAnchors();
+      } else {
+        const errorData = await resp.json();
+        setDuplicateError(errorData.message || 'Erreur lors de la duplication.');
+      }
+    } catch (e) {
+      setDuplicateError('Erreur réseau.');
+    } finally {
+      setDuplicateLoading(false);
     }
   };
 
@@ -251,6 +317,13 @@ export function AnchorsManager() {
                               <Trash2 size={18} />
                            </button>
                            <button 
+                             onClick={() => handleDuplicateYear(anchor, iy.schoolYear)}
+                             className="p-2.5 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-sm"
+                             title="Dupliquer la configuration de cette année"
+                           >
+                              <Copy size={18} />
+                           </button>
+                           <button 
                              onClick={() => handleOpenConfig(anchor.id, iy.schoolYear)}
                              className="p-2.5 text-emerald-500 bg-emerald-50 rounded-xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
                              title="Ouvrir la configuration de cette année"
@@ -332,7 +405,16 @@ export function AnchorsManager() {
           </div>
         )}
       </AnimatePresence>
+
+      <DuplicateYearModal
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        onConfirm={handleDuplicateYearConfirm}
+        sourceYear={duplicateSourceYear || ''}
+        availableYears={duplicateAvailableYears}
+        isLoading={duplicateLoading}
+        error={duplicateError}
+      />
     </div>
   );
 }
-

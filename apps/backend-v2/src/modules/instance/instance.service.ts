@@ -1,7 +1,36 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateInstanceDto } from './dto/update-instance.dto';
+
+function getDefaultDatesForSchoolYear(schoolYear: string): { gameStartDate: Date; gameEndDate: Date } {
+  const match = schoolYear.match(/^(\d{4})/);
+  const startYear = match ? parseInt(match[1], 10) : new Date().getFullYear();
+  const endYear = startYear + 1;
+  const gameStartDate = new Date(Date.UTC(startYear, 10, 1, 0, 0, 0, 0));
+  const gameEndDate = new Date(Date.UTC(endYear, 6, 31, 23, 59, 59, 999));
+  return { gameStartDate, gameEndDate };
+}
+
+function validateDatesForSchoolYear(schoolYear: string, startDate: Date | null, endDate: Date | null): void {
+  if (!startDate || !endDate) return;
+  const match = schoolYear.match(/^(\d{4})/);
+  const startYear = match ? parseInt(match[1], 10) : new Date().getFullYear();
+  const endYear = startYear + 1;
+
+  const minDate = new Date(Date.UTC(startYear, 7, 1, 0, 0, 0, 0)); // 1er août de startYear
+  const maxDate = new Date(Date.UTC(endYear, 7, 31, 23, 59, 59, 999)); // 31 août de endYear
+
+  if (startDate < minDate || startDate > maxDate) {
+    throw new BadRequestException(`La date de début du jeu (${startDate.toLocaleDateString('fr-FR')}) n'est pas cohérente avec l'année scolaire ${schoolYear}`);
+  }
+  if (endDate < minDate || endDate > maxDate) {
+    throw new BadRequestException(`La date de fin du jeu (${endDate.toLocaleDateString('fr-FR')}) n'est pas cohérente avec l'année scolaire ${schoolYear}`);
+  }
+  if (startDate >= endDate) {
+    throw new BadRequestException(`La date de début de jeu doit être antérieure à la date de fin`);
+  }
+}
 import { PeriodService } from '../period/period.service';
 import { InstanceCleanupService } from './instance-cleanup.service';
 import { Role } from '@prisma/client';
@@ -39,8 +68,16 @@ export class InstanceService {
     const sanitizedHostUrl = data.hostUrl?.trim() || null;
     const schoolYear = data.currentSchoolYear ?? '2024-2025';
 
-    const gameStartDate = data.gameStartDate ? new Date(data.gameStartDate) : undefined;
-    const gameEndDate   = data.gameEndDate   ? new Date(data.gameEndDate)   : undefined;
+    let gameStartDate = data.gameStartDate ? new Date(data.gameStartDate) : undefined;
+    let gameEndDate   = data.gameEndDate   ? new Date(data.gameEndDate)   : undefined;
+
+    if (!gameStartDate || !gameEndDate) {
+      const defaults = getDefaultDatesForSchoolYear(schoolYear);
+      if (!gameStartDate) gameStartDate = defaults.gameStartDate;
+      if (!gameEndDate) gameEndDate = defaults.gameEndDate;
+    }
+
+    validateDatesForSchoolYear(schoolYear, gameStartDate, gameEndDate);
 
     return this.prisma.$transaction(async (tx) => {
       let instance;
@@ -316,6 +353,12 @@ export class InstanceService {
       if (adminId !== undefined)          iyUpdate.adminId          = adminId;
       if (unlockedChapters !== undefined) iyUpdate.unlockedChapters = unlockedChapters;
 
+      if (gameStartDate !== undefined || gameEndDate !== undefined) {
+        const newStartDate = gameStartDate !== undefined ? new Date(gameStartDate) : (instanceYear.gameStartDate ? new Date(instanceYear.gameStartDate) : null);
+        const newEndDate = gameEndDate !== undefined ? new Date(gameEndDate) : (instanceYear.gameEndDate ? new Date(instanceYear.gameEndDate) : null);
+        validateDatesForSchoolYear(sy, newStartDate, newEndDate);
+      }
+
       if (Object.keys(iyUpdate).length > 0) {
         instanceYear = await tx.instanceYear.update({
           where: { id: instanceYear.id },
@@ -397,4 +440,17 @@ export class InstanceService {
   async remove(id: number) {
     return this.cleanupService.remove(id);
   }
+
+  // ----------------------------------------------------------------
+  // Récupérer la liste ordonnée de toutes les années scolaires créées pour une école spécifique
+  // ----------------------------------------------------------------
+  async findYears(id: number): Promise<string[]> {
+    const years = await this.prisma.instanceYear.findMany({
+      where: { instanceId: id },
+      select: { schoolYear: true },
+      orderBy: { schoolYear: 'desc' },
+    });
+    return years.map((y) => y.schoolYear);
+  }
 }
+

@@ -114,3 +114,62 @@
 		height: 32px !important;
 	}
 }
+
+.school-badge {
+	margin-top: 4px;
+	padding: 4px 10px;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, 0.75);
+	border: 1px solid rgba(33, 150, 243, 0.25);
+	color: #1976d2;
+	font-size: 0.7rem;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 140px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+	transition: all 0.2s ease-in-out;
+	user-select: none;
+}
+
+.school-badge-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.school-badge-chevron {
+	font-size: 0.6rem;
+	opacity: 0.7;
+	transition: transform 0.2s ease;
+}
+
+.school-badge.clickable {
+	cursor: pointer;
+}
+
+.school-badge.clickable:hover {
+	background: rgba(255, 255, 255, 0.95);
+	border-color: #2196f3;
+	box-shadow: 0 4px 8px rgba(33, 150, 243, 0.15);
+	transform: translateY(-1px);
+}
+
+.school-badge.clickable:hover .school-badge-chevron {
+	transform: translateY(1px);
+}
+
+.school-badge.clickable:active {
+	transform: translateY(0) scale(0.95);
+	box-shadow: 0 2px 4px rgba(33, 150, 243, 0.08);
+}
+
+@media only screen and (max-width: 660px) {
+	.school-badge {
+		max-width: 80px;
+		padding: 2px 6px;
+		font-size: 0.6rem;
+		border-radius: 10px;
+	}
+}

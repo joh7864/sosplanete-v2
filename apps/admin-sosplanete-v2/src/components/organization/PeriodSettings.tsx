@@ -31,6 +31,31 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
     return Math.ceil(diffDays / 7);
   }, [gameStartDate, gameEndDate]);
 
+  const dateError = useMemo(() => {
+    if (!gameStartDate || !gameEndDate) return null;
+    const match = schoolYear.match(/^(\d{4})/);
+    if (!match) return null;
+    const startYear = parseInt(match[1], 10);
+    const endYear = startYear + 1;
+
+    const minDate = new Date(Date.UTC(startYear, 7, 1, 0, 0, 0, 0)); // 1er août de startYear
+    const maxDate = new Date(Date.UTC(endYear, 7, 31, 23, 59, 59, 999)); // 31 août de endYear
+
+    const start = new Date(gameStartDate);
+    const end = new Date(gameEndDate);
+
+    if (start < minDate || start > maxDate) {
+      return `La date de début doit être comprise entre le 01/08/${startYear} et le 31/08/${endYear}.`;
+    }
+    if (end < minDate || end > maxDate) {
+      return `La date de fin doit être comprise entre le 01/08/${startYear} et le 31/08/${endYear}.`;
+    }
+    if (start >= end) {
+      return "La date de début de jeu doit être antérieure à la date de fin.";
+    }
+    return null;
+  }, [gameStartDate, gameEndDate, schoolYear]);
+
   useEffect(() => {
     if (instanceYearId) {
       fetchGameConfig();
@@ -185,6 +210,16 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
                   </div>
                 </div>
 
+                {dateError && (
+                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex gap-3 text-rose-700 mt-4">
+                    <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider">Date Incohérente</span>
+                      <p className="text-xs font-semibold">{dateError}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 mt-4">
                   <p className="text-[10px] font-bold text-sky-600 leading-relaxed uppercase tracking-tight">
                     Cette configuration définit la structure temporelle globale utilisée par les algorithmes de calcul de l'impact planétaire.
@@ -213,7 +248,7 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
                   </button>
                   <Button 
                     onClick={() => handleSaveConfig()} 
-                    disabled={saving} 
+                    disabled={saving || !!dateError} 
                     className="h-14 px-10 gap-3 font-black shadow-xl shadow-sky-500/20 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white uppercase tracking-widest text-sm"
                   >
                     {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
