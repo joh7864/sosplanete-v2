@@ -5,6 +5,7 @@ import { UpdateInstanceDto } from './dto/update-instance.dto';
 import { PeriodService } from '../period/period.service';
 import { InstanceCleanupService } from './instance-cleanup.service';
 import { Role } from '@prisma/client';
+import { YearService } from './year.service';
 
 @Injectable()
 export class InstanceService {
@@ -12,6 +13,7 @@ export class InstanceService {
     private prisma: PrismaService,
     private periodService: PeriodService,
     private cleanupService: InstanceCleanupService,
+    private yearService: YearService,
   ) {}
 
   async searchByName(name: string) {
@@ -33,7 +35,7 @@ export class InstanceService {
     });
   }
 
-  async create(data: CreateInstanceDto) {
+  async create(data: CreateInstanceDto, user?: any) {
     const sanitizedHostUrl = data.hostUrl?.trim() || null;
     const schoolYear = data.currentSchoolYear ?? '2024-2025';
 
@@ -110,6 +112,8 @@ export class InstanceService {
         // 5. Ouverture automatique de la période courante
         await this.periodService.handleCurrentPeriodActivation(instanceYear.id, tx);
       }
+
+
 
       return { ...instance, instanceYear };
     });
@@ -286,7 +290,7 @@ export class InstanceService {
       updateData.adminId = adminId;
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Mise à jour de l'Instance (champs non-jeu uniquement + adminId)
       const updated = await tx.instance.update({ where: { id }, data: updateData });
 
@@ -355,6 +359,18 @@ export class InstanceService {
 
       return { ...updated, instanceYear };
     }, { timeout: 30000 });
+
+    // Si AM et que les dates ont été renseignées, on déclenche la notification
+    if (user?.role === Role.AM && gameEndDate) {
+      const endYear = new Date(gameEndDate).getFullYear();
+      const derivedSchoolYear = `${endYear - 1}-${endYear}`;
+      
+      this.yearService
+        .triggerYearInitializationNotifications(id, derivedSchoolYear, user)
+        .catch(err => console.error('[InstanceService] Notification error in update:', err));
+    }
+
+    return result;
   }
 
   // ----------------------------------------------------------------

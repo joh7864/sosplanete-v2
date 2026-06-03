@@ -33,7 +33,7 @@ export class InstanceController {
     if (req.user.role === Role.AM) {
       createInstanceDto.adminId = req.user.userId;
     }
-    return this.instanceService.create(createInstanceDto);
+    return this.instanceService.create(createInstanceDto, req.user);
   }
 
   @Get('search')
