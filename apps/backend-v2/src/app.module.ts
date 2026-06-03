@@ -22,12 +22,14 @@ import { CategoryModule } from './modules/category/category.module';
 import { CategoryRefModule } from './modules/category-ref/category-ref.module';
 import { ImpactModule } from './modules/impact/impact.module';
 import { StimulationModule } from './modules/stimulation/stimulation.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
     CategoryModule,
     CategoryRefModule,
     ImpactModule,
+    NotificationModule,
     ScheduleModule.forRoot(),
     // SEC-07 — Rate limiting global : 100 requêtes/minute par IP par défaut
     // Les routes d'auth ont une limite plus stricte via @Throttle() dans auth.controller.ts

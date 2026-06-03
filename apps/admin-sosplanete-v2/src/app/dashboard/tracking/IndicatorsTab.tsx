@@ -134,7 +134,7 @@ const ImpactMethodologyModal = ({ isOpen, onClose }: { isOpen: boolean, onClose:
 };
 
 // --- COMPOSANT PRINCIPAL ---
-export function IndicatorsTab({ instanceId, schoolYear, helpOpen, setHelpOpen }: { 
+export function IndicatorsTab({ instanceId, userRole, schoolYear, helpOpen, setHelpOpen }: { 
   instanceId: number | null, 
   userRole: string | null, 
   schoolYear: string,
@@ -206,10 +206,39 @@ export function IndicatorsTab({ instanceId, schoolYear, helpOpen, setHelpOpen }:
   const globalImpact = data.global;
   const globalResults = globalImpact.results || globalImpact;
 
+  const showFallbackWarning = data?.global?.isDefaultConstants || data?.isDefaultConstants;
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-700">
       
       <ImpactMethodologyModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* Warning banner if default constants are used */}
+      {showFallbackWarning && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 rounded-[2rem] bg-amber-50 border border-amber-200/60 shadow-[0_4px_20px_rgba(245,158,11,0.05)] flex items-start gap-4"
+        >
+          <span className="text-2xl mt-0.5">⚠️</span>
+          <div className="flex-1 space-y-3">
+            <p className="text-sm font-bold text-amber-900 leading-relaxed">
+              Les constantes d'impact globales pour l'année {schoolYear} ne sont pas configurées. Les calculs utilisent des valeurs génériques temporaires.
+              {userRole === 'AM' && (
+                <> Une notification a été envoyé à votre Administrateur du Référentiel pour initialiser les constantes mondiales. Vous recevrez une notification quand cela sera fait et vous pourrez alors finaliser la configuration de votre espace.</>
+              )}
+            </p>
+            {userRole === 'AS' && (
+              <button
+                onClick={() => window.location.href = '/dashboard/settings?tab=data'}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-amber-600/10"
+              >
+                Configurer les constantes
+              </button>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* --- CENTRE DE COMMANDE --- */}
       <section className="relative overflow-hidden">
