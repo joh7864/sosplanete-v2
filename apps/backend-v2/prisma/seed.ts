@@ -29,12 +29,23 @@ async function main() {
     create: {
       id: 1,
       schoolName: 'École test SOS Planète',
+      adminId: admin.id,
+    },
+  });
+
+  // 3. Création de l'InstanceYear associée
+  const testInstanceYear = await prisma.instanceYear.upsert({
+    where: { instanceId_schoolYear: { instanceId: 1, schoolYear: '2024-2025' } },
+    update: {},
+    create: {
+      instanceId: 1,
+      schoolYear: '2024-2025',
       isOpen: true,
       adminId: admin.id,
     },
   });
 
-  console.log(`✅ École de test créée : ${testInstance.schoolName}`);
+  console.log(`✅ École de test créée : ${testInstance.schoolName} (${testInstanceYear.schoolYear})`);
 
   console.log('🚀 Remplissage terminé avec succès !');
 }
