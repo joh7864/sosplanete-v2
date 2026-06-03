@@ -5,6 +5,7 @@ import { UpdateInstanceDto } from './dto/update-instance.dto';
 import { PeriodService } from '../period/period.service';
 import { InstanceCleanupService } from './instance-cleanup.service';
 import { Role } from '@prisma/client';
+import { YearService } from './year.service';
 
 @Injectable()
 export class InstanceService {
@@ -12,6 +13,7 @@ export class InstanceService {
     private prisma: PrismaService,
     private periodService: PeriodService,
     private cleanupService: InstanceCleanupService,
+    private yearService: YearService,
   ) {}
 
   async searchByName(name: string) {
@@ -33,7 +35,7 @@ export class InstanceService {
     });
   }
 
-  async create(data: CreateInstanceDto) {
+  async create(data: CreateInstanceDto, user?: any) {
     const sanitizedHostUrl = data.hostUrl?.trim() || null;
     const schoolYear = data.currentSchoolYear ?? '2024-2025';
 
@@ -109,6 +111,14 @@ export class InstanceService {
 
         // 5. Ouverture automatique de la période courante
         await this.periodService.handleCurrentPeriodActivation(instanceYear.id, tx);
+      }
+
+      // Si AM, notifier l'AS que les constantes ne sont pas encore configurées
+      if (user?.role === Role.AM && data.currentSchoolYear) {
+        // Déclencher hors transaction (fire-and-forget)
+        this.yearService
+          .triggerYearInitializationNotifications(instance.id, data.currentSchoolYear ?? '2024-2025', user)
+          .catch(err => console.error('[InstanceService] Notification error:', err));
       }
 
       return { ...instance, instanceYear };
