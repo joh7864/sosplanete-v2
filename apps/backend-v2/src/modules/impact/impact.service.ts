@@ -31,14 +31,23 @@ export class ImpactService {
       });
 
       if (!annualData) {
-        annualData = await this.prisma.annualImpactData.findFirst({
+        // Récupérer la plus récente pour copier ses valeurs, ou utiliser des valeurs par défaut
+        const mostRecent = await this.prisma.annualImpactData.findFirst({
           orderBy: { year: 'desc' }
         });
-      }
 
-      if (!annualData) {
-        this.logger.warn(`Aucune constante annuelle trouvée en base.`);
-        return this.fallbackImpact();
+        annualData = await this.prisma.annualImpactData.create({
+          data: {
+            year,
+            dActuel: mostRecent?.dActuel ?? 214,
+            moyCo2Monde: mostRecent?.moyCo2Monde ?? 4.7,
+            moyEauMonde: mostRecent?.moyEauMonde ?? 1385000,
+            moyDechetsMonde: mostRecent?.moyDechetsMonde ?? 270,
+            popMonde: mostRecent?.popMonde ?? 8.1,
+            isCustomized: false
+          }
+        });
+        this.logger.log(`Création automatique des constantes d'impact globales par défaut pour l'année ${year}`);
       }
 
       // 2. Nombre total d'enfants inscrits
@@ -170,6 +179,7 @@ export class ImpactService {
         scopeId: instanceId,
         name,
         nbChildren,
+        isDefaultConstants: !annualData.isCustomized,
         sums: {
           totalCo2: projectionCo2Monde,   // tCO2e projection mondiale
           totalWater: projectionWaterMonde, // Projection mondiale L
@@ -229,7 +239,8 @@ export class ImpactService {
         ...impactData.results,
         sums: impactData.sums,
         realSums: impactData.realSums,
-        ratios: impactData.ratios
+        ratios: impactData.ratios,
+        isDefaultConstants: impactData.isDefaultConstants
       });
 
       // Agrégation pour le global selon les règles de l'utilisateur
@@ -277,7 +288,8 @@ export class ImpactService {
           effortPlanetairePercent: Number((totalEffortPercent / count).toFixed(2)),
           dateDepassement: eodDate.toLocaleDateString('fr-FR'),
           nouveauJourAnnee: avgJourAnnee
-        }
+        },
+        isDefaultConstants: instancesImpact.some(i => i.isDefaultConstants)
       },
       instances: instancesImpact
     };
@@ -294,9 +306,9 @@ export class ImpactService {
     return data;
   }
 
-  async updateAnnualConstants(payload: any) {
+  async updateAnnualConstants(payload: any, currentUser?: any) {
     const year = parseInt(payload.schoolYear.split('-')[0], 10);
-    return this.prisma.annualImpactData.upsert({
+    const updated = await this.prisma.annualImpactData.upsert({
       where: { year },
       update: {
         dActuel: payload.dActuel,
@@ -304,6 +316,7 @@ export class ImpactService {
         moyEauMonde: payload.moyEauMonde,
         moyDechetsMonde: payload.moyDechetsMonde,
         popMonde: payload.popMonde,
+        isCustomized: true
       },
       create: {
         year,
@@ -312,14 +325,76 @@ export class ImpactService {
         moyEauMonde: payload.moyEauMonde,
         moyDechetsMonde: payload.moyDechetsMonde,
         popMonde: payload.popMonde || 8.1,
+        isCustomized: true
       }
     });
+
+    try {
+      const targetSchoolYear = payload.schoolYear;
+      // 1. Trouver les administrateurs des instances configurées sur cette année (les AMs)
+      const instanceYears = await this.prisma.instanceYear.findMany({
+        where: { schoolYear: targetSchoolYear },
+        include: {
+          instance: {
+            select: { adminId: true }
+          }
+        }
+      });
+
+      const amIds = new Set<number>();
+      for (const iy of instanceYears) {
+        if (iy.instance?.adminId) {
+          amIds.add(iy.instance.adminId);
+        }
+      }
+
+      const senderId = currentUser?.userId || 1; // Fallback système
+      const titleReply = `Constantes configurées - ${targetSchoolYear}`;
+      const contentReply = `L'Administrateur du Référentiel a configuré les constantes mondiales pour l'année ${targetSchoolYear}. Vous pouvez maintenant configurer votre calendrier de jeu et vos équipes.`;
+
+      for (const amId of amIds) {
+        const existsReply = await this.prisma.notification.findFirst({
+          where: {
+            recipientId: amId,
+            title: titleReply
+          }
+        });
+        if (!existsReply) {
+          await this.prisma.notification.create({
+            data: {
+              senderId,
+              recipientId: amId,
+              title: titleReply,
+              content: contentReply,
+              status: 'PENDING',
+              isRead: false
+            }
+          });
+        }
+      }
+
+      // 2. Mettre à jour le statut des demandes PENDING de cette année en PROCESSED
+      await this.prisma.notification.updateMany({
+        where: {
+          status: 'PENDING',
+          title: {
+            contains: targetSchoolYear,
+          },
+        },
+        data: { status: 'PROCESSED' },
+      });
+    } catch (err) {
+      this.logger.error(`[ImpactService] Error triggering constants updated notifications:`, err);
+    }
+
+    return updated;
   }
 
   private fallbackImpact() {
     return {
       scope: 'fallback',
       scopeId: null,
+      isDefaultConstants: true,
       sums: {
         totalCo2: 0,
         totalWater: 0,

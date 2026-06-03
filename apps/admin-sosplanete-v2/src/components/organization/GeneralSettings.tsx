@@ -10,9 +10,11 @@ import { getAuthData, setAuthData } from '@/utils/storage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 import { useRouter } from 'next/navigation';
+import { useSession } from '@/hooks/useSession';
 
 export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolYear }: { instanceId: number | null, currentInstance: any, onUpdate: () => void, schoolYear: string }) {
   const router = useRouter();
+  const { user, isManager } = useSession();
   const isNew = !instanceId;
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
@@ -54,10 +56,16 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setHostUrl('');
       setIsOpen(false);
       setUnlockedChapters('0');
-      setAdminId(null);
+      if (isManager && user) {
+        setAdminId(user.id);
+      } else {
+        setAdminId(null);
+      }
     }
-    fetchAMUsers();
-  }, [currentInstance, instanceId, schoolYear]);
+    if (!isManager && getAuthData('user_role') !== 'AM') {
+      fetchAMUsers();
+    }
+  }, [currentInstance, instanceId, schoolYear, isManager, user]);
 
   useEffect(() => {
     if (isNew && searchQuery.length > 1 && !selectedAnchorId) {
@@ -79,6 +87,7 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
   }, [searchQuery, isNew, selectedAnchorId]);
 
   const fetchAMUsers = async () => {
+    if (getAuthData('user_role') === 'AM') return;
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, { headers: { Authorization: `Bearer ${getAuthData('access_token')}` } });
       if (resp.ok) setAmUsers((await resp.json()).filter((u: any) => u.role === 'AM' || u.role === 'AS'));
@@ -299,7 +308,9 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                                   if (lastYear) {
                                     setHostUrl(lastYear.hostUrl || '');
                                     setIcon(lastYear.icon || '');
-                                    setAdminId(s.adminId || null);
+                                    if (!isManager) {
+                                      setAdminId(s.adminId || null);
+                                    }
                                   }
                                   setShowSuggestions(false);
                                 }}
@@ -351,15 +362,26 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="flex flex-col gap-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gestionnaire Principal</label>
-                     <select 
-                       value={adminId || ''} 
-                       onChange={(e) => setAdminId(e.target.value ? Number(e.target.value) : null)} 
-                       className="w-full bg-slate-50 border-none h-14 rounded-2xl px-4 font-bold text-slate-700 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm"
-                     >
-                        <option value="">-- Aucun --</option>
-                        {amUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
-                     </select>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gestionnaire Principal</label>
+                      {isManager ? (
+                        <div className="relative">
+                          <Input 
+                            value={user ? (user.name ? `${user.name} (${user.email})` : user.email) : 'Chargement...'}
+                            disabled
+                            className="bg-slate-100 border-slate-200 h-14 rounded-2xl text-sm font-bold text-slate-500 pl-12 cursor-not-allowed"
+                          />
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        </div>
+                      ) : (
+                        <select 
+                          value={adminId || ''} 
+                          onChange={(e) => setAdminId(e.target.value ? Number(e.target.value) : null)} 
+                          className="w-full bg-slate-50 border-none h-14 rounded-2xl px-4 font-bold text-slate-700 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm"
+                        >
+                           <option value="">-- Aucun --</option>
+                           {amUsers.map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+                        </select>
+                      )}
                   </div>
 
                   <div className="flex flex-col gap-2">

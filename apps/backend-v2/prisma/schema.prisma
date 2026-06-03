@@ -52,13 +52,14 @@ model Category {
 }
 
 model AnnualImpactData {
-  id              Int    @id @default(autoincrement())
-  year            Int    @unique
+  id              Int      @id @default(autoincrement())
+  year            Int      @unique
   dActuel         Int?
   moyCo2Monde     Float?
   moyEauMonde     Float?
   moyDechetsMonde Float?
   popMonde        Float?
+  isCustomized    Boolean  @default(false)
 }
 
 model CategoryRef {
@@ -255,4 +256,15 @@ model TerreThermometerSnapshot {
 enum Role {
   AS
   AM
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  senderId    Int
+  recipientId Int
+  title       String
+  content     String
+  status      String   @default("PENDING")
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }

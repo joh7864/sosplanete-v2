@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ImpactService } from './impact.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -30,8 +30,8 @@ export class ImpactController {
   @Post('constants')
   @Roles(Role.AS)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async updateAnnualConstants(@Body() body: any) {
-    return this.impactService.updateAnnualConstants(body);
+  async updateAnnualConstants(@Body() body: any, @Request() req: any) {
+    return this.impactService.updateAnnualConstants(body, req.user);
   }
 
   @Get('history')

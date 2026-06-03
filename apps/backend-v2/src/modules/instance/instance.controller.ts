@@ -27,9 +27,12 @@ export class InstanceController {
   @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.AS)
+  @Roles(Role.AS, Role.AM)
   @ApiOperation({ summary: "Création d'une nouvelle école (instance)" })
-  async create(@Body() createInstanceDto: CreateInstanceDto) {
+  async create(@Body() createInstanceDto: CreateInstanceDto, @Request() req: any) {
+    if (req.user.role === Role.AM) {
+      createInstanceDto.adminId = req.user.userId;
+    }
     return this.instanceService.create(createInstanceDto);
   }
 
@@ -61,13 +64,14 @@ export class InstanceController {
   @Patch(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.AS)
+  @Roles(Role.AS, Role.AM)
   @ApiOperation({ summary: "Mettre à jour une école" })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateInstanceDto: UpdateInstanceDto & { force?: boolean; schoolYear?: string },
+    @Request() req: any,
   ) {
-    return this.instanceService.update(id, updateInstanceDto);
+    return this.instanceService.update(id, updateInstanceDto, req.user);
   }
 
   @Delete(':id')
@@ -138,8 +142,9 @@ export class InstanceController {
   async initializeYear(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { targetYear: string },
+    @Request() req: any,
   ) {
-    return this.yearService.initializeYear(id, body.targetYear);
+    return this.yearService.initializeYear(id, body.targetYear, req.user);
   }
 
   @Get(':id/year')

@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateInstanceDto } from './dto/update-instance.dto';
 import { PeriodService } from '../period/period.service';
 import { InstanceCleanupService } from './instance-cleanup.service';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class InstanceService {
@@ -269,10 +270,16 @@ export class InstanceService {
     };
   }
 
-  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean }) {
+  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean }, user?: any) {
     const { schoolYear, currentSchoolYear, gameStartDate, gameEndDate, gamePeriodsCount, isOpen, force, hostUrl, icon, adminId, unlockedChapters, instanceId: _instanceId, ...updateData } = data as any;
 
     const sy = schoolYear || '2024-2025';
+
+    // Sécurité : un AM ne peut modifier que ses propres instances
+    if (user && user.role === Role.AM) {
+      const isOwner = user.instanceIds?.includes(id);
+      if (!isOwner) throw new ForbiddenException('Vous ne pouvez modifier que vos propres espaces');
+    }
 
     // Rendre adminId à l'instance principale seulement si PAS de schoolYear spécifié (fix isolation annuelle)
     if (adminId !== undefined && !data.schoolYear) {

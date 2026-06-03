@@ -160,7 +160,7 @@ export default function DashboardSummaryPage() {
                   <LayoutGrid size={16} />
               </button>
             </div>
-            {userRole === 'AS' && (
+            {(userRole === 'AS' || userRole === 'AM') && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -236,7 +236,7 @@ export default function DashboardSummaryPage() {
             ))}
 
             {/* Empty space card for adding new (only in grid mode for AS) */}
-            {viewMode === 'grid' && userRole === 'AS' && (
+            {viewMode === 'grid' && (userRole === 'AS' || userRole === 'AM') && (
               <button 
                 onClick={() => {
                   window.location.href = '/dashboard/organization?tab=general&new=true';
@@ -265,7 +265,7 @@ export default function DashboardSummaryPage() {
                 {searchQuery ? `Aucun espace ne correspond à "${searchQuery}"` : "Vous n'avez pas encore d'espaces."}
               </p>
             </div>
-            {!searchQuery && userRole === 'AS' && (
+            {!searchQuery && (userRole === 'AS' || userRole === 'AM') && (
               <Button 
                 variant="primary" 
                 onClick={() => {

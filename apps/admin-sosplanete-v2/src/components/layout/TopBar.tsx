@@ -30,6 +30,8 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
   const [showInitConfirm, setShowInitConfirm] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [nextYear, setNextYear] = useState('');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [currentNotifIndex, setCurrentNotifIndex] = useState(0);
 
   const showSettingsIcon = pathname === '/dashboard' || pathname.includes('/organization') || pathname.includes('/reference') || pathname.includes('/catalog');
   const hideYearSelector = pathname.includes('/dashboard/users') || pathname.includes('/dashboard/reference') || pathname.includes('/dashboard/catalog') || pathname.includes('/dashboard/players') || pathname.includes('/dashboard/profile');
@@ -50,6 +52,41 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
     };
     fetchYears();
   }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const token = getAuthData('access_token');
+      if (!token) return;
+      try {
+        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          // Garder uniquement les notifications non lues
+          const activeNotifs = data.filter((n: any) => !n.isRead);
+          setNotifications(activeNotifs);
+        }
+      } catch (e) {
+        console.error('Failed to fetch notifications', e);
+      }
+    };
+    
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (notifications.length <= 1) {
+      setCurrentNotifIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCurrentNotifIndex(prev => (prev + 1) % notifications.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [notifications.length]);
 
   const handleCreateYear = async (year: string) => {
     setIsInitializing(true);
@@ -87,10 +124,33 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
   return (
     <header className={`sticky items-start flex-col gap-0 top-0 z-40 flex px-0 lg:px-0 py-0 bg-white border-b border-slate-100/80 shadow-[0_1px_2px_rgba(0,0,0,0.02)] -mx-4 -mt-4 lg:-mx-6 lg:-mt-6 mb-0 lg:mb-0 w-[calc(100%+2rem)] lg:w-[calc(100%+3rem)] ${className || ''}`}>
       <div className="flex w-full items-center justify-between px-6 lg:px-10 py-3">
-      {/* Dynamic Title */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight leading-none">{title}</h1>
-        {subtitle && <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{subtitle}</p>}
+      {/* Dynamic Title & Notifications Carousel */}
+      <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight leading-none">{title}</h1>
+          {subtitle && <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{subtitle}</p>}
+        </div>
+
+        <div className="hidden md:flex flex-1 items-center px-4 max-w-xl overflow-hidden">
+          <AnimatePresence mode="wait">
+            {notifications.length > 0 && notifications[currentNotifIndex] && (
+              <motion.div
+                key={notifications[currentNotifIndex].id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4 }}
+                className="text-xs font-medium italic text-slate-500 truncate cursor-pointer select-none flex items-center gap-2"
+                onClick={() => router.push('/dashboard/settings?tab=profile')}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                <span className="truncate hover:text-emerald-600 transition-colors" title={notifications[currentNotifIndex].content}>
+                  {notifications[currentNotifIndex].content}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Page Actions, Selector & Profile Menu */}
