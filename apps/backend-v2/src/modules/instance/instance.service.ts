@@ -113,13 +113,7 @@ export class InstanceService {
         await this.periodService.handleCurrentPeriodActivation(instanceYear.id, tx);
       }
 
-      // Si AM, notifier l'AS que les constantes ne sont pas encore configurées
-      if (user?.role === Role.AM && data.currentSchoolYear) {
-        // Déclencher hors transaction (fire-and-forget)
-        this.yearService
-          .triggerYearInitializationNotifications(instance.id, data.currentSchoolYear ?? '2024-2025', user)
-          .catch(err => console.error('[InstanceService] Notification error:', err));
-      }
+
 
       return { ...instance, instanceYear };
     });
@@ -296,7 +290,7 @@ export class InstanceService {
       updateData.adminId = adminId;
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Mise à jour de l'Instance (champs non-jeu uniquement + adminId)
       const updated = await tx.instance.update({ where: { id }, data: updateData });
 
@@ -365,6 +359,18 @@ export class InstanceService {
 
       return { ...updated, instanceYear };
     }, { timeout: 30000 });
+
+    // Si AM et que les dates ont été renseignées, on déclenche la notification
+    if (user?.role === Role.AM && gameEndDate) {
+      const endYear = new Date(gameEndDate).getFullYear();
+      const derivedSchoolYear = `${endYear - 1}-${endYear}`;
+      
+      this.yearService
+        .triggerYearInitializationNotifications(id, derivedSchoolYear, user)
+        .catch(err => console.error('[InstanceService] Notification error in update:', err));
+    }
+
+    return result;
   }
 
   // ----------------------------------------------------------------
