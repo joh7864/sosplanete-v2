@@ -3,17 +3,65 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Plus, Users, Settings2, Droplets, Leaf, Trash, Trash2, ChevronDown, Check, Star 
+  Plus, Users, Settings2, Droplets, Leaf, Trash, Trash2, ChevronDown, Check, Star, Loader2
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { getAssetUrl } from '@/utils/assets';
+import { getAuthData } from '@/utils/storage';
 import { formatEcoImpact } from '@/utils/format';
 
 export function TeamCard({ 
   team, isExpanded, onToggle, vitalityCalc, setSelectedTeam, setShowTeamModal,
   isSelectionMode, isSelected, onSelect, onDeleteTeam, onEditGroup, onAddGroup, onEditPlayer, onAddPlayer,
-  onDeletePlayer, onSelectPlayer, selectedChildrenIds
+  onDeletePlayer, onSelectPlayer, selectedChildrenIds, refreshData
 }: any) {
+  const [isUploadingIcon, setIsUploadingIcon] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDirectLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingIcon(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/upload-icon`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getAuthData('access_token')}` },
+        body: formData
+      });
+      
+      if (!uploadResp.ok) throw new Error("Upload failed");
+      const { filename } = await uploadResp.json();
+
+      const patchResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/${team.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthData('access_token')}`
+        },
+        body: JSON.stringify({ icon: filename })
+      });
+
+      if (!patchResp.ok) throw new Error("Update failed");
+
+      if (refreshData) {
+        refreshData();
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Direct upload failed", err);
+      alert("Erreur lors de l'upload du logo");
+    } finally {
+      setIsUploadingIcon(false);
+      // Reset input value so same file can be selected again
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const cardColor = team.color || '#40916C';
   const logoPath = team.icon ? getAssetUrl(`teams/${team.icon.split('/').pop()}`) : null;
 
@@ -43,12 +91,23 @@ export function TeamCard({
         )}
 
         <div className="p-6">
+          <input 
+            ref={fileInputRef} 
+            type="file" 
+            accept=".png,.jpg,.jpeg,.webp,.gif" 
+            className="hidden" 
+            onChange={handleDirectLogoUpload} 
+          />
           {!isExpanded ? (
             /* COMPACT GRID VIEW */
             <div className="flex flex-col gap-5">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                  {logoPath ? <img src={logoPath} alt="" className="w-full h-full object-cover p-1.5" /> : <Users className="text-slate-300" size={20} />}
+                <div 
+                  className="relative w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center overflow-hidden border border-slate-100 shrink-0 cursor-pointer group hover:opacity-80 transition-all"
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                >
+                  {isUploadingIcon && <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center z-10"><Loader2 size={16} className="animate-spin text-emerald-500" /></div>}
+                  {logoPath ? <img src={logoPath} alt="" className="w-full h-full object-cover p-1.5" /> : <Users className="text-slate-300 group-hover:text-emerald-500 transition-colors" size={20} />}
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-lg font-black text-slate-800 truncate">{team.name}</h3>
@@ -84,8 +143,12 @@ export function TeamCard({
             <div className="flex flex-col gap-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-5">
-                   <div className="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden border border-slate-100 shrink-0">
-                      {logoPath ? <img src={logoPath} alt="" className="w-full h-full object-cover p-2" /> : <Users className="text-slate-300" size={32} />}
+                   <div 
+                     className="relative w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden border border-slate-100 shrink-0 cursor-pointer group hover:opacity-80 transition-all"
+                     onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                   >
+                      {isUploadingIcon && <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] flex items-center justify-center z-10"><Loader2 size={24} className="animate-spin text-emerald-500" /></div>}
+                      {logoPath ? <img src={logoPath} alt="" className="w-full h-full object-cover p-2" /> : <Users className="text-slate-300 group-hover:text-emerald-500 transition-colors" size={32} />}
                    </div>
                    <div>
                       <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">{team.name}</h3>

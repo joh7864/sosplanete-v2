@@ -76,7 +76,7 @@ export class TeamController {
   listIcons() {
     const uploadsDir = process.env.UPLOADS_DIR
       ? join(process.env.UPLOADS_DIR, 'teams')
-      : join(__dirname, '..', '..', '..', '..', 'uploads', 'teams');
+      : join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'teams');
     try {
       const files = readdirSync(uploadsDir).filter(f =>
         ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(extname(f).toLowerCase())
@@ -95,7 +95,7 @@ export class TeamController {
       destination: (req, file, cb) => {
         const dest = process.env.UPLOADS_DIR
           ? join(process.env.UPLOADS_DIR, 'teams')
-          : join(__dirname, '..', '..', '..', '..', 'uploads', 'teams');
+          : join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'teams');
         cb(null, dest);
       },
       filename: (req, file, cb) => {
