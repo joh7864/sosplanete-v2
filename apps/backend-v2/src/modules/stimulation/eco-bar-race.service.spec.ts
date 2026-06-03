@@ -32,14 +32,20 @@ describe('EcoBarRaceService', () => {
           { id: 2, schoolName: 'École B', icon: '🌊' },
         ]),
       },
+      instanceYear: {
+        findUnique: jest.fn().mockImplementation(({ where }) => {
+          const { instanceId } = where.instanceId_schoolYear;
+          return Promise.resolve({ id: instanceId * 10, schoolYear: '2024-2025', icon: instanceId === 1 ? '🌿' : '🌊' });
+        }),
+      },
       period: {
         findMany: jest.fn().mockImplementation(({ where }) => {
-          if (where.instanceId === 1) {
+          if (where.instanceYearId === 10) {
             return Promise.resolve([
               { id: 10, startDate: makeDate(0), endDate: makeDate(6) },
             ]);
           }
-          if (where.instanceId === 2) {
+          if (where.instanceYearId === 20) {
             return Promise.resolve([
               { id: 20, startDate: makeDate(7), endDate: makeDate(13) },
             ]);
@@ -49,7 +55,7 @@ describe('EcoBarRaceService', () => {
       },
       actionDone: {
         aggregate: jest.fn().mockImplementation(({ where }) => {
-          if (where.child.group.team.instanceId === 1) {
+          if (where.child.group.team.instanceYearId === 10) {
             return Promise.resolve({ _sum: { savedCo2: 100, savedWater: 200, savedWaste: 50, savedEnergy: 30 } });
           }
           return Promise.resolve({ _sum: { savedCo2: 150, savedWater: 100, savedWaste: 80, savedEnergy: 20 } });

@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
@@ -236,5 +236,116 @@ export class PeriodService {
       }
     }
     console.log('[CRON] Fin de la vérification.');
+  }
+
+  getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    let diffToWednesday = day - 3;
+    if (diffToWednesday < 0) diffToWednesday += 7;
+
+    const startDate = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
+    endDate.setHours(23, 59, 59, 999);
+
+    return { startDate, endDate };
+  }
+
+  async handleCurrentPeriodActivation(instanceYearId: number, tx?: any) {
+    const client = tx || this.prisma;
+    const now = new Date();
+
+    const period = await client.period.findFirst({
+      where: {
+        instanceYearId,
+        startDate: { lte: now },
+        endDate:   { gte: now },
+      },
+    });
+
+    if (period) {
+      await client.period.updateMany({
+        where: { instanceYearId, isOpen: true },
+        data:  { isOpen: false },
+      });
+      await client.period.update({
+        where: { id: period.id },
+        data:  { isOpen: true },
+      });
+    }
+  }
+
+  async syncPeriods(
+    instanceId: number,
+    instanceYearId: number,
+    schoolYear: string,
+    force: boolean = false,
+    tx?: any,
+  ) {
+    const client = tx || this.prisma;
+    const config = await client.gameConfig.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
+    });
+
+    if (!config || !config.gameStartDate || !config.gameEndDate) {
+      console.warn(`[syncPeriods] Skipping for instanceYear ${instanceYearId}: missing config dates.`);
+      return;
+    }
+
+    const gameStart = new Date(config.gameStartDate);
+    const gameEnd   = new Date(config.gameEndDate);
+
+    const currentPeriods = await client.period.findMany({
+      where: { instanceYearId },
+      orderBy: { startDate: 'asc' },
+    });
+
+    const firstBoundaries = this.getPeriodBoundaries(gameStart);
+    let pStart = firstBoundaries.startDate;
+    let pEnd   = firstBoundaries.endDate;
+
+    const generatedPeriods: { startDate: Date; endDate: Date }[] = [];
+    while (pStart <= gameEnd) {
+      generatedPeriods.push({ startDate: new Date(pStart), endDate: new Date(pEnd) });
+      pStart = new Date(pStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      pStart.setHours(0, 0, 0, 0);
+      pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+      pEnd.setHours(23, 59, 59, 999);
+    }
+
+    if (currentPeriods.length > generatedPeriods.length) {
+      const toDelete    = currentPeriods.slice(generatedPeriods.length);
+      const idsToDelete = toDelete.map((p: { id: number }) => p.id);
+      const affectedActions = await client.actionDone.count({ where: { periodId: { in: idsToDelete } } });
+
+      if (affectedActions > 0 && !force) {
+        throw new ConflictException(JSON.stringify({
+          warning: true,
+          affectedActions,
+          message: `Ce changement supprimera ${affectedActions} actions enregistrées. Continuer ?`,
+        }));
+      }
+
+      for (const p of toDelete) {
+        await client.actionDone.deleteMany({ where: { periodId: p.id } });
+        await client.period.delete({ where: { id: p.id } });
+      }
+    }
+
+    for (let i = 0; i < generatedPeriods.length; i++) {
+      const p = generatedPeriods[i];
+      if (currentPeriods[i]) {
+        await client.period.update({
+          where: { id: currentPeriods[i].id },
+          data:  { startDate: p.startDate, endDate: p.endDate },
+        });
+      } else {
+        await client.period.create({
+          data: { instanceYearId, startDate: p.startDate, endDate: p.endDate, isOpen: false },
+        });
+      }
+    }
   }
 }

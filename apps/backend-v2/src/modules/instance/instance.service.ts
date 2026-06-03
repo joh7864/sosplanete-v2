@@ -2,10 +2,16 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateInstanceDto } from './dto/update-instance.dto';
+import { PeriodService } from '../period/period.service';
+import { InstanceCleanupService } from './instance-cleanup.service';
 
 @Injectable()
 export class InstanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private periodService: PeriodService,
+    private cleanupService: InstanceCleanupService,
+  ) {}
 
   async searchByName(name: string) {
     if (!name || name.trim().length < 2) return [];
@@ -98,10 +104,10 @@ export class InstanceService {
         });
 
         // 4. Génération initiale des périodes
-        await this.syncPeriods(instance.id, instanceYear.id, schoolYear, false, tx);
+        await this.periodService.syncPeriods(instance.id, instanceYear.id, schoolYear, false, tx);
 
         // 5. Ouverture automatique de la période courante
-        await this.handleCurrentPeriodActivation(instanceYear.id, tx);
+        await this.periodService.handleCurrentPeriodActivation(instanceYear.id, tx);
       }
 
       return { ...instance, instanceYear };
@@ -324,7 +330,7 @@ export class InstanceService {
           },
         });
 
-        await this.syncPeriods(id, instanceYear.id, sy, force, tx);
+        await this.periodService.syncPeriods(id, instanceYear.id, sy, force, tx);
       }
 
       // Cascade fermeture des périodes si on ferme l'espace
@@ -337,7 +343,7 @@ export class InstanceService {
 
       // Activation dynamique de la période courante à l'ouverture
       if (isOpen === true) {
-        await this.handleCurrentPeriodActivation(instanceYear.id, tx);
+        await this.periodService.handleCurrentPeriodActivation(instanceYear.id, tx);
       }
 
       return { ...updated, instanceYear };
@@ -356,185 +362,16 @@ export class InstanceService {
   }
 
   // ----------------------------------------------------------------
-  // Suppression de l'InstanceYear d'une année (soft delete)
+  // Suppression de l'InstanceYear d'une année (soft delete) - Déléguée
   // ----------------------------------------------------------------
   async removeYear(instanceId: number, schoolYear: string) {
-    const iy = await this.prisma.instanceYear.findUnique({
-      where: { instanceId_schoolYear: { instanceId, schoolYear } },
-    });
-    if (!iy) throw new NotFoundException('InstanceYear non trouvée');
-
-    return this.prisma.$transaction(async (tx) => {
-      // ActionsDone liées aux périodes de cette année
-      const periods = await tx.period.findMany({ where: { instanceYearId: iy.id }, select: { id: true } });
-      await tx.actionDone.deleteMany({ where: { periodId: { in: periods.map(p => p.id) } } });
-
-      // Children → Groups → Teams
-      const teamIds = (await tx.team.findMany({ where: { instanceYearId: iy.id }, select: { id: true } })).map(t => t.id);
-      const groupIds = (await tx.group.findMany({ where: { teamId: { in: teamIds } }, select: { id: true } })).map(g => g.id);
-      await tx.child.deleteMany({ where: { groupId: { in: groupIds } } });
-      await tx.group.deleteMany({ where: { id: { in: groupIds } } });
-      await tx.team.deleteMany({ where: { instanceYearId: iy.id } });
-
-      // Périodes et catégories
-      await tx.period.deleteMany({ where: { instanceYearId: iy.id } });
-      await tx.category.deleteMany({ where: { instanceYearId: iy.id } });
-
-      // InstanceYear elle-même
-      await tx.instanceYear.delete({ where: { id: iy.id } });
-      return { success: true };
-    });
+    return this.cleanupService.removeYear(instanceId, schoolYear);
   }
 
   // ----------------------------------------------------------------
-  // Suppression complète de l'Instance (toutes années)
+  // Suppression complète de l'Instance (toutes années) - Déléguée
   // ----------------------------------------------------------------
   async remove(id: number) {
-    await this.findOne(id);
-
-    return this.prisma.$transaction(async (tx) => {
-      // 1. ActionsDone (toutes années via les périodes)
-      const instanceYears = await tx.instanceYear.findMany({ where: { instanceId: id }, select: { id: true } });
-      const iyIds = instanceYears.map(iy => iy.id);
-      const periods = await tx.period.findMany({ where: { instanceYearId: { in: iyIds } }, select: { id: true } });
-      await tx.actionDone.deleteMany({ where: { periodId: { in: periods.map(p => p.id) } } });
-      // ActionsDone liées aux LocalActions (local action peut survivre plusieurs années)
-      await tx.actionDone.deleteMany({ where: { localAction: { instanceId: id } } });
-
-      // 2. Children → Groups → Teams (toutes années)
-      const teamIds = (await tx.team.findMany({ where: { instanceYearId: { in: iyIds } }, select: { id: true } })).map(t => t.id);
-      const groupIds = (await tx.group.findMany({ where: { teamId: { in: teamIds } }, select: { id: true } })).map(g => g.id);
-      await tx.child.deleteMany({ where: { groupId: { in: groupIds } } });
-      await tx.group.deleteMany({ where: { id: { in: groupIds } } });
-      await tx.team.deleteMany({ where: { instanceYearId: { in: iyIds } } });
-
-      // 3. Periods, Categories, InstanceYears
-      await tx.period.deleteMany({ where: { instanceYearId: { in: iyIds } } });
-      await tx.category.deleteMany({ where: { instanceYearId: { in: iyIds } } });
-      await tx.instanceYear.deleteMany({ where: { instanceId: id } });
-
-      // 4. LocalActions, GameConfig, snapshots
-      await tx.localAction.deleteMany({ where: { instanceId: id } });
-      await tx.gameConfig.deleteMany({ where: { instanceId: id } });
-      await tx.instanceAnimalUnlock.deleteMany({ where: { instanceId: id } });
-      await tx.terreThermometerSnapshot.deleteMany({ where: { instanceId: id } });
-
-      // 5. Instance elle-même
-      return tx.instance.delete({ where: { id } });
-    });
-  }
-
-  // ----------------------------------------------------------------
-  // Helpers privés
-  // ----------------------------------------------------------------
-  private getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    const day = d.getDay();
-    let diffToWednesday = day - 3;
-    if (diffToWednesday < 0) diffToWednesday += 7;
-
-    const startDate = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
-    endDate.setHours(23, 59, 59, 999);
-
-    return { startDate, endDate };
-  }
-
-  async handleCurrentPeriodActivation(instanceYearId: number, tx?: any) {
-    const client = tx || this.prisma;
-    const now = new Date();
-
-    const period = await client.period.findFirst({
-      where: {
-        instanceYearId,
-        startDate: { lte: now },
-        endDate:   { gte: now },
-      },
-    });
-
-    if (period) {
-      await client.period.updateMany({
-        where: { instanceYearId, isOpen: true },
-        data:  { isOpen: false },
-      });
-      await client.period.update({
-        where: { id: period.id },
-        data:  { isOpen: true },
-      });
-    }
-  }
-
-  private async syncPeriods(
-    instanceId: number,
-    instanceYearId: number,
-    schoolYear: string,
-    force: boolean = false,
-    tx?: any,
-  ) {
-    const client = tx || this.prisma;
-    const config = await client.gameConfig.findUnique({
-      where: { instanceId_schoolYear: { instanceId, schoolYear } },
-    });
-
-    if (!config || !config.gameStartDate || !config.gameEndDate) {
-      console.warn(`[syncPeriods] Skipping for instanceYear ${instanceYearId}: missing config dates.`);
-      return;
-    }
-
-    const gameStart = new Date(config.gameStartDate);
-    const gameEnd   = new Date(config.gameEndDate);
-
-    const currentPeriods = await client.period.findMany({
-      where: { instanceYearId },
-      orderBy: { startDate: 'asc' },
-    });
-
-    const firstBoundaries = this.getPeriodBoundaries(gameStart);
-    let pStart = firstBoundaries.startDate;
-    let pEnd   = firstBoundaries.endDate;
-
-    const generatedPeriods: { startDate: Date; endDate: Date }[] = [];
-    while (pStart <= gameEnd) {
-      generatedPeriods.push({ startDate: new Date(pStart), endDate: new Date(pEnd) });
-      pStart = new Date(pStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-      pStart.setHours(0, 0, 0, 0);
-      pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
-      pEnd.setHours(23, 59, 59, 999);
-    }
-
-    if (currentPeriods.length > generatedPeriods.length) {
-      const toDelete    = currentPeriods.slice(generatedPeriods.length);
-      const idsToDelete = toDelete.map((p: { id: number }) => p.id);
-      const affectedActions = await client.actionDone.count({ where: { periodId: { in: idsToDelete } } });
-
-      if (affectedActions > 0 && !force) {
-        throw new ConflictException(JSON.stringify({
-          warning: true,
-          affectedActions,
-          message: `Ce changement supprimera ${affectedActions} actions enregistrées. Continuer ?`,
-        }));
-      }
-
-      for (const p of toDelete) {
-        await client.actionDone.deleteMany({ where: { periodId: p.id } });
-        await client.period.delete({ where: { id: p.id } });
-      }
-    }
-
-    for (let i = 0; i < generatedPeriods.length; i++) {
-      const p = generatedPeriods[i];
-      if (currentPeriods[i]) {
-        await client.period.update({
-          where: { id: currentPeriods[i].id },
-          data:  { startDate: p.startDate, endDate: p.endDate },
-        });
-      } else {
-        await client.period.create({
-          data: { instanceYearId, startDate: p.startDate, endDate: p.endDate, isOpen: false },
-        });
-      }
-    }
+    return this.cleanupService.remove(id);
   }
 }

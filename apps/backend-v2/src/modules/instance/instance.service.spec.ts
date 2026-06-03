@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
 import { InstanceService } from './instance.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PeriodService } from '../period/period.service';
+import { InstanceCleanupService } from './instance-cleanup.service';
 
 /**
  * Tests unitaires pour InstanceService.syncPeriods (via update)
@@ -23,6 +25,10 @@ describe('InstanceService — syncPeriods', () => {
     instance: {
       update: jest.fn().mockResolvedValue({ id: 1, isOpen: true }),
       findUnique: jest.fn().mockResolvedValue({ id: 1, currentSchoolYear: '2024-2025' }),
+    },
+    instanceYear: {
+      findUnique: jest.fn().mockResolvedValue({ id: 1, instanceId: 1, schoolYear: '2024-2025', isOpen: true }),
+      update: jest.fn().mockResolvedValue({ id: 1, instanceId: 1, schoolYear: '2024-2025', isOpen: true }),
     },
     gameConfig: {
       upsert: jest.fn().mockResolvedValue({}),
@@ -64,6 +70,8 @@ describe('InstanceService — syncPeriods', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InstanceService,
+        PeriodService,
+        InstanceCleanupService,
         { provide: PrismaService, useValue: prismaMock },
       ],
     }).compile();
