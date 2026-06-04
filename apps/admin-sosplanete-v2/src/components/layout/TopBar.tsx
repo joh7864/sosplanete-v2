@@ -340,28 +340,6 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
               <Settings size={18} />
             </button>
           )}
-          <div className="hidden lg:block w-px h-6 bg-slate-200 mt-1"></div>
-        </div>
-
-        {/* User Profile */}
-        <div className="hidden lg:flex items-center gap-3 mt-1 cursor-pointer group" onClick={() => router.push('/dashboard/settings?tab=profile')}>
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 group-hover:border-emerald-300 transition-all">
-              {user?.avatar ? (
-                <img src={getAvatarUrl(user.avatar) || ''} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <Users size={14} className="text-slate-400" />
-              )}
-            </div>
-            <div className="flex flex-col justify-center">
-              <span className="text-[13px] font-bold text-slate-700 leading-tight group-hover:text-emerald-700 transition-colors">{user?.name || user?.email || 'Utilisateur'}</span>
-            </div>
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleLogout(); }} 
-              className="text-slate-300 hover:text-rose-500 transition-colors ml-1 p-1" 
-              title="Déconnexion"
-            >
-              <LogOut size={16} />
-            </button>
         </div>
       </div>
       

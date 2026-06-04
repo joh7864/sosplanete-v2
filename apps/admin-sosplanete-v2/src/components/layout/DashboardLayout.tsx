@@ -234,25 +234,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
         />
         
         <SidebarItem 
-          icon={<Globe size={20} />} 
-          label="Configuration" 
+          icon={<Building2 size={20} />} 
+          label="Mon Établissement" 
           href={getAmLink('/dashboard/organization')}
           active={isLinkActive('/dashboard/organization')}
           onClick={closeMenu}
           collapsed={collapsed}
         />
         <SidebarItem 
-          icon={<LayoutDashboard size={20} />} 
-          label="Suivi jeux" 
-          href={getAmLink('/dashboard/tracking')}
-          active={isLinkActive('/dashboard/tracking')}
-          onClick={closeMenu}
-          collapsed={collapsed}
-        />
-
-        <SidebarItem 
           icon={<Settings size={20} />} 
-          label="Paramètres" 
+          label="Paramètres Globaux" 
           href="/dashboard/settings"
           active={isLinkActive('/dashboard/settings')}
           onClick={closeMenu}
@@ -299,11 +290,36 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
             </button>
           </div>
 
-          <div className="flex-1 overflow-x-hidden">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             {renderNavContent()}
           </div>
 
-
+          {/* Profile & Logout section in desktop sidebar */}
+          <div className={`mt-auto pt-4 border-t border-slate-800 flex transition-all duration-300 ${isCollapsed ? 'flex-col items-center gap-4' : 'items-center justify-between px-2'}`}>
+            <div className={`flex items-center gap-3 min-w-0 ${isCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-700 shrink-0">
+                {userAvatar ? (
+                  <img src={getAvatarUrl(userAvatar)} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Users size={18} className="text-slate-500" />
+                )}
+              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col truncate pr-2">
+                  <span className="text-sm font-bold text-white truncate">{userName}</span>
+                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{userRole === 'AS' ? 'Administrateur' : 'Manager'}</span>
+                </div>
+              )}
+            </div>
+            
+            <button 
+              onClick={handleLogout}
+              title="Déconnexion"
+              className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all duration-300 shrink-0"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </aside>
 

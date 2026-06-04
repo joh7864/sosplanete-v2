@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { 
-  Globe, Users, Trash2, Edit3, Loader2, Lock, Unlock, Settings2, Leaf, Droplets, Trash, Copy, AlertTriangle, CheckCircle
+  Globe, Users, Trash2, Edit3, Loader2, Lock, Unlock, Settings2, Leaf, Droplets, Trash, Copy, AlertTriangle, CheckCircle, Calendar
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { setAuthData, getAuthData } from '@/utils/storage';
@@ -46,6 +46,7 @@ interface InstanceCardProps {
   onAdminChange: (instanceId: number, newAdminId: number) => void;
   onDeleteClick: (instance: Instance) => void;
   schoolYear: string;
+  impactData?: any;
   onDuplicateSuccess: (targetYear?: string) => void;
 }
 
@@ -61,6 +62,7 @@ export function InstanceCard({
   onAdminChange,
   onDeleteClick,
   schoolYear,
+  impactData,
   onDuplicateSuccess
 }: InstanceCardProps) {
   const cardColor = instance.isOpen ? '#10b981' : '#fbbf24';
@@ -134,6 +136,9 @@ export function InstanceCard({
     setLocalStatus({ type, msg });
     setTimeout(() => setLocalStatus(null), 4000);
   };
+
+  const currentPlanets = impactData?.nbPlanetes || 1.75;
+  const performancePercent = impactData ? Math.min(100, Math.max(0, Math.round(((1.75 - currentPlanets) / 0.75) * 100))) : 0;
 
   let cardContent;
 
@@ -222,6 +227,34 @@ export function InstanceCard({
               </div>
             </div>
           </div>
+
+          {/* Planetes & Depassement */}
+          {impactData && (
+            <div className="flex items-center justify-between mb-4 bg-emerald-50/50 rounded-xl p-3 border border-emerald-100/50">
+               <div className="flex flex-col cursor-help" title="Nombre de planètes nécessaires si toute l'humanité vivait selon ce mode de vie.">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Planètes</span>
+                  <div className="flex items-center gap-1.5 text-emerald-600">
+                     <Globe size={14} />
+                     <span className="text-sm font-black leading-none">{impactData.nbPlanetes || '--'}</span>
+                  </div>
+               </div>
+
+               <div className="flex flex-col items-center justify-center cursor-help" title="Progression vers l'objectif de durabilité absolue (1 planète).">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Progression</span>
+                  <div className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-black text-xs leading-none">
+                     {performancePercent}%
+                  </div>
+               </div>
+
+               <div className="flex flex-col items-end cursor-help" title="Le jour de l'année à partir duquel l'humanité aurait consommé toutes les ressources renouvelables si tout le monde vivait ainsi.">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dépassement</span>
+                  <div className="flex items-center gap-1.5 text-rose-500">
+                     <span className="text-sm font-black leading-none">{impactData.dateDepassement || '--'}</span>
+                     <Calendar size={14} />
+                  </div>
+               </div>
+            </div>
+          )}
 
           {/* Footer: Manager & Buttons */}
           <div className="flex items-center justify-between mt-auto">
@@ -354,6 +387,28 @@ export function InstanceCard({
                 <span className="text-lg font-black text-emerald-600 leading-none">{instance.playersCount || 0}</span>
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Joueurs</span>
              </div>
+             
+             {impactData && (
+                <>
+                  <div className="w-px h-10 bg-slate-100 self-center" />
+                  <div className="flex flex-col items-center cursor-help" title="Nombre de planètes nécessaires si toute l'humanité vivait selon ce mode de vie.">
+                     <span className="text-lg font-black text-emerald-600 leading-none">{impactData.nbPlanetes || '--'}</span>
+                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Planètes</span>
+                  </div>
+
+                  <div className="flex flex-col items-center justify-center cursor-help" title="Progression vers l'objectif de durabilité absolue (1 planète).">
+                     <div className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-black text-xs leading-none">
+                        {performancePercent}%
+                     </div>
+                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Progression</span>
+                  </div>
+
+                  <div className="flex flex-col items-center cursor-help" title="Le jour de l'année à partir duquel l'humanité aurait consommé toutes les ressources renouvelables si tout le monde vivait ainsi.">
+                     <span className="text-lg font-black text-rose-500 leading-none">{impactData.dateDepassement || '--'}</span>
+                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Dépassement</span>
+                  </div>
+                </>
+             )}
           </div>
 
           <div className="flex items-center gap-2 pr-2">

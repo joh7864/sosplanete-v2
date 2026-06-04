@@ -156,8 +156,10 @@ export function IndicatorsTab({ instanceId, userRole, schoolYear, helpOpen, setH
     setLoading(true);
     setError(false);
     try {
-      const summaryUrl = `${process.env.NEXT_PUBLIC_API_URL}/impact/summary?schoolYear=${schoolYear}`;
-        
+      const summaryUrl = instanceId 
+        ? `${process.env.NEXT_PUBLIC_API_URL}/impact/instance/${instanceId}?schoolYear=${schoolYear}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/impact/summary?schoolYear=${schoolYear}`;
+
       const summaryResp = await fetch(summaryUrl, { 
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` } 
       });
@@ -203,7 +205,7 @@ export function IndicatorsTab({ instanceId, userRole, schoolYear, helpOpen, setH
     </div>
   );
 
-  const globalImpact = data.global;
+  const globalImpact = data.global || data;
   const globalResults = globalImpact.results || globalImpact;
 
   const showFallbackWarning = data?.global?.isDefaultConstants || data?.isDefaultConstants;
@@ -303,135 +305,7 @@ export function IndicatorsTab({ instanceId, userRole, schoolYear, helpOpen, setH
         </div>
       </section>
 
-      {/* --- SECTION DES ÉCOLES (TABLEAU) --- */}
-      <section className="space-y-8 mt-20">
-        <div className="flex items-center gap-4 px-4">
-           <div className="w-1.5 h-8 bg-[#10b981] rounded-full" />
-           <h2 className="text-2xl font-black text-slate-800 tracking-tight">Impact par école</h2>
-        </div>
 
-        <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">École</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Planètes</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dépassement</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">CO2 Évité</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Eau (m³)</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Déchets (kg)</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help" title="Part activée de votre gisement d'action individuelle (estimé à 40% de l'empreinte totale)">
-                    Performance (?)
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Statut</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {data.instances?.map((school: any) => {
-                  const results = school.results || school;
-                  const fCo2 = formatSmartUnit(school.realSums?.totalCo2 || 0, 'co2');
-                  const fWater = formatSmartUnit(school.realSums?.totalWater || 0, 'water');
-                  const fWaste = formatSmartUnit(school.realSums?.totalWaste || 0, 'waste');
-                  
-                  // Calcul de la performance : progression de 1.75 vers 1.0 planète
-                  const currentPlanets = results.nbPlanetes || 1.75;
-                  const performancePercent = Math.min(100, Math.max(0, Math.round(((1.75 - currentPlanets) / 0.75) * 100)));
-                  const status = performancePercent > 80 ? 'Terminé' : 'En cours';
-
-                  const renderPictograms = (Icon: any, value: number, max: number, colorClass: string) => {
-                    const count = 3;
-                    const normalized = (value / max) * count;
-                    return (
-                      <div className="flex gap-1.5 items-center">
-                        {[...Array(count)].map((_, i) => {
-                          const fill = Math.min(1, Math.max(0, normalized - i));
-                          return (
-                            <div key={i} className="relative w-4 h-4 text-slate-100 shrink-0">
-                              <Icon size={16} strokeWidth={3} />
-                              <div 
-                                className={`absolute inset-0 overflow-hidden ${colorClass} transition-all duration-1000`} 
-                                style={{ width: `${fill * 100}%` }}
-                              >
-                                <Icon size={16} strokeWidth={3} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <tr key={school.instanceId || school.id} className="hover:bg-slate-50/30 transition-colors group">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-[#10b981] group-hover:text-white transition-all font-black">
-                            {school.logo ? <img src={school.logo} className="w-full h-full object-cover rounded-xl" /> : <MapPin size={20} />}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-800 tracking-tight leading-none mb-1">{school.name || school.instanceName || 'Mon École'}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{school.nbChildren || 0} Élèves</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="w-32">
-                           <p className="text-xs font-black text-slate-800 mb-2">{results.nbPlanetes || '--'}</p>
-                           {renderPictograms(Globe, results.nbPlanetes || 0, 3, 'text-emerald-500')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="w-32">
-                           <p className="text-xs font-black text-rose-600 mb-2">{results.dateDepassement || '--'}</p>
-                           {renderPictograms(Calendar, 7, 10, 'text-rose-500')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="w-24">
-                          <p className="text-xs font-black text-slate-700 mb-2">{fCo2.val} {fCo2.unit}</p>
-                          {renderPictograms(Factory, 45, 100, 'text-slate-400')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6 text-xs font-bold text-slate-600">
-                        <div className="w-24">
-                          <p className="text-xs font-black text-slate-700 mb-2">{fWater.val} {fWater.unit}</p>
-                          {renderPictograms(Droplets, 65, 100, 'text-blue-500')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="w-24">
-                          <p className="text-xs font-black text-slate-700 mb-2">{fWaste.val} {fWaste.unit}</p>
-                          {renderPictograms(Trash2, 55, 100, 'text-amber-500')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-6">
-                        <div className="flex flex-col items-start gap-1">
-                          <div className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-black inline-block border border-emerald-100 shadow-sm whitespace-nowrap">
-                            <span className="text-xs">{performancePercent}%</span>
-                            <span className="text-[8px] opacity-60 ml-1">/ 40%</span>
-                          </div>
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">Du levier citoyen</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                            status === 'Terminé' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {status}
-                          </span>
-                          {status === 'Terminé' ? <ShieldCheck size={14} className="text-emerald-500" /> : <Loader2 size={14} className="text-amber-500 animate-spin" />}
-                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

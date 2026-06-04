@@ -12,6 +12,7 @@ import { InstanceDeleteConfirm } from '@/components/instances/InstanceDeleteConf
 import { getAuthData, setAuthData } from '@/utils/storage';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
 import { DashboardKpiBar } from '@/components/dashboard/DashboardKpiBar';
+import { EcoBarRace } from '@/components/dashboard/EcoBarRace';
 import { InstanceCard, Instance } from '@/components/dashboard/InstanceCard';
 
 export default function DashboardSummaryPage() {
@@ -25,6 +26,8 @@ export default function DashboardSummaryPage() {
   const [updatingAdminId, setUpdatingAdminId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+  const [impactSummaries, setImpactSummaries] = useState<any>({});
+  const [activeTab, setActiveTab] = useState<'espaces' | 'impact'>('espaces');
 
   const { schoolYear, setSchoolYear } = useSchoolYear();
 
@@ -66,6 +69,11 @@ export default function DashboardSummaryPage() {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances?schoolYear=${schoolYear}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
+      
+      const impactResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/impact/summary?schoolYear=${schoolYear}`, {
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+      });
+
       if (resp.ok) {
         const data = await resp.json();
         setInstances(data);
@@ -73,6 +81,17 @@ export default function DashboardSummaryPage() {
         // Update local storage so the sidebar works with up-to-date instances
         setAuthData('managed_instances', JSON.stringify(data));
         window.dispatchEvent(new Event('storage'));
+      }
+
+      if (impactResp.ok) {
+        const impactData = await impactResp.json();
+        const impactMap: any = {};
+        if (impactData.instances) {
+          impactData.instances.forEach((inst: any) => {
+            impactMap[inst.id] = inst;
+          });
+        }
+        setImpactSummaries(impactMap);
       }
     } catch (e) {
       console.error('Fetch instances error:', e);
@@ -182,9 +201,31 @@ export default function DashboardSummaryPage() {
       {/* KPI Stats Bar */}
       <DashboardKpiBar stats={stats} />
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          <div className="relative w-full max-w-xl">
+      {/* TABS NAVIGATION */}
+      <div className="flex items-center gap-6 border-b border-slate-200 mt-2">
+        <button
+          onClick={() => setActiveTab('espaces')}
+          className={`pb-4 px-2 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${
+            activeTab === 'espaces' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Espaces
+        </button>
+        <button
+          onClick={() => setActiveTab('impact')}
+          className={`pb-4 px-2 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${
+            activeTab === 'impact' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Impact Global
+        </button>
+      </div>
+
+      {activeTab === 'espaces' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-8">
+          {/* Filters & Search */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full max-w-xl">
              <Input 
                 placeholder="Rechercher une école, un URL..." 
                 value={searchQuery}
@@ -233,6 +274,7 @@ export default function DashboardSummaryPage() {
                 onAdminChange={handleAdminChange}
                 onDeleteClick={(inst) => { setSelectedInstance(inst); setShowDeleteConfirm(true); }}
                 schoolYear={schoolYear}
+                impactData={impactSummaries[instance.id]}
                 onDuplicateSuccess={(targetYear) => {
                   if (targetYear) setSchoolYear(targetYear);
                   fetchInstances();
@@ -284,6 +326,24 @@ export default function DashboardSummaryPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
+      )}
+
+      {activeTab === 'impact' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-8">
+           {/* Course Eco Bar Race Globale */}
+           <EcoBarRace schoolYear={schoolYear} />
+           
+           {/* Terre-mometre placeholder pour plus tard */}
+           <div className="p-12 border-4 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-center bg-slate-50/50 mt-4">
+             <span className="text-4xl mb-4">🌍</span>
+             <h3 className="text-xl font-black text-slate-800 mb-2 tracking-tight">Terre-momètre global</h3>
+             <p className="text-sm font-medium text-slate-400 max-w-md leading-relaxed">
+               Cet encart accueillera très prochainement le Terre-momètre global pour consolider l'impact de tous les établissements.
+             </p>
+           </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {showDeleteConfirm && userRole === 'AS' && (

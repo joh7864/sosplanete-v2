@@ -16,6 +16,7 @@ import { GeneralSettings } from '@/components/organization/GeneralSettings';
 import { PeriodSettings } from '@/components/organization/PeriodSettings';
 import { CategorySettings } from '@/components/organization/CategorySettings';
 import { TeamCard } from '@/components/organization/TeamHierarchy';
+import { TrackingView } from '@/components/tracking/TrackingView';
 import { 
   Plus, 
   Users, 
@@ -63,8 +64,8 @@ function OrganizationContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false); // false par défaut : rien à charger sans instanceId
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'periods' | 'teams' | 'catalog' | 'categories'>(
-    searchParams.get('tab') as any || 'general'
+  const [activeTab, setActiveTab] = useState<'tracking' | 'general' | 'periods' | 'teams' | 'catalog' | 'categories'>(
+    searchParams.get('tab') as any || 'tracking'
   );
 
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -448,6 +449,15 @@ function OrganizationContent() {
             instanceId ? (
               <>
                   <button
+                     onClick={() => setActiveTab('tracking')}
+                     className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'tracking' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <BarChart2 size={18} /> Suivi & Impact
+                     {activeTab === 'tracking' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-0 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  </button>
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+                  <button
                      onClick={() => setActiveTab('general')}
                      className={`flex items-center gap-3 py-4 pr-6 pl-4 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'general' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
                   >
@@ -495,7 +505,7 @@ function OrganizationContent() {
           }
         />
 
-        <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-20 pt-6">
+        <div className={`flex flex-col gap-6 mx-auto pb-20 pt-6 ${activeTab === 'tracking' ? 'w-full px-4 xl:px-8' : 'max-w-7xl px-4'}`}>
         {/* PAGE CONTENT */}
         {!instanceId && !isNewInstance ? (
             <div className="py-20 flex flex-col items-center gap-8 text-center max-w-2xl mx-auto">
@@ -592,7 +602,15 @@ function OrganizationContent() {
             </div>
         ) : (
           <>
-        {activeTab === 'general' ? (
+        {activeTab === 'tracking' ? (
+          <TrackingView 
+            instanceId={instanceId!} 
+            schoolYear={schoolYear} 
+            instanceYearId={instanceYearId ?? undefined} 
+            activeInstanceName={activeInstanceName}
+            managedInstances={managedInstances}
+          />
+        ) : activeTab === 'general' ? (
           <GeneralSettings instanceId={instanceId!} currentInstance={currentInstance} onUpdate={updateManagedInstances} schoolYear={schoolYear} />
         ) : activeTab === 'periods' ? (
           <PeriodSettings instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />

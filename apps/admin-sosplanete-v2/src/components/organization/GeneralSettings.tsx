@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Calendar, Box, Loader2, Save, CheckCircle, AlertTriangle, Building2, Link as LinkIcon, Lock, Unlock, Trash2, RotateCcw, Plus, ArrowUpDown, ChevronUp, ChevronDown, Edit3, Check, X, Camera } from 'lucide-react';
+import { Calendar, Box, Loader2, Save, CheckCircle, AlertTriangle, Building2, Lock, Unlock, Trash2, RotateCcw, Plus, ArrowUpDown, ChevronUp, ChevronDown, Edit3, Check, X, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
@@ -22,7 +22,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
 
   const [schoolName, setSchoolName] = useState(currentInstance?.schoolName || '');
   const [icon, setIcon] = useState(currentInstance?.icon || '');
-  const [hostUrl, setHostUrl] = useState(currentInstance?.hostUrl || '');
   const [isOpen, setIsOpen] = useState(currentInstance?.isOpen || false);
   const [unlockedChapters, setUnlockedChapters] = useState(currentInstance?.unlockedChapters?.toString() || '0');
   const [adminId, setAdminId] = useState<number | null>(currentInstance?.adminId || null);
@@ -44,7 +43,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setSchoolName(currentInstance.schoolName || '');
       setSearchQuery(currentInstance.schoolName || '');
       setIcon(currentInstance.icon || '');
-      setHostUrl(currentInstance.hostUrl || '');
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
@@ -53,7 +51,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
       setSearchQuery('');
       setSelectedAnchorId(null);
       setIcon('');
-      setHostUrl('');
       setIsOpen(false);
       setUnlockedChapters('0');
       if (isManager && user) {
@@ -113,7 +110,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
           schoolName: selectedAnchorId ? undefined : searchQuery, 
           instanceId: selectedAnchorId || undefined,
           icon,
-          hostUrl, 
           isOpen, 
           unlockedChapters: parseInt(unlockedChapters), 
           adminId,
@@ -169,7 +165,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
     if (currentInstance) {
       setSchoolName(currentInstance.schoolName || '');
       setIcon(currentInstance.icon || '');
-      setHostUrl(currentInstance.hostUrl || '');
       setIsOpen(currentInstance.isOpen || false);
       setUnlockedChapters(currentInstance.unlockedChapters?.toString() || '0');
       setAdminId(currentInstance.adminId || null);
@@ -306,7 +301,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                                   setSelectedAnchorId(s.id);
                                   setSearchQuery(s.schoolName);
                                   if (lastYear) {
-                                    setHostUrl(lastYear.hostUrl || '');
                                     setIcon(lastYear.icon || '');
                                     if (!isManager) {
                                       setAdminId(s.adminId || null);
@@ -338,18 +332,6 @@ export function GeneralSettings({ instanceId, currentInstance, onUpdate, schoolY
                           <CheckCircle size={14} /> École liée existante (données pré-remplies)
                         </div>
                       )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL personnalisée</label>
-                     <div className="relative">
-                        <Input 
-                          value={hostUrl}
-                          onChange={(e) => setHostUrl(e.target.value)}
-                          placeholder="mon-ecole.nnauru.org"
-                          className="bg-slate-50 border-none h-14 rounded-2xl text-lg font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition-all pl-12"
-                        />
-                        <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                     </div>
                   </div>
                 </div>
               </div>
