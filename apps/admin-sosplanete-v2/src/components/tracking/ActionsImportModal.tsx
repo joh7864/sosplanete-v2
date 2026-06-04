@@ -42,7 +42,11 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Analyse du fichier...');
   const [error, setError] = useState<string | null>(null);
-  const [importResult, setImportResult] = useState<{imported: number, total: number, errors: string[]} | null>(null);
+  const [importResult, setImportResult] = useState<{
+    imported: number;
+    total: number;
+    errors: { line: number; columns?: string; value?: string; message: string }[];
+  } | null>(null);
   const [showLogs, setShowLogs] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,12 +162,13 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
 
   const handleExportErrors = () => {
     if (!importResult?.errors) return;
-    // Format simple : Numero de ligne;Message
-    const csvContent = "Ligne;Erreur\n" + importResult.errors.map(err => {
-        const parts = err.split(':');
-        const line = parts[0]?.replace('Ligne ', '') || '';
-        const msg = parts.slice(1).join(':').trim().replace(/"/g, '""');
-        return `${line};"${msg}"`;
+    // Format : Ligne;Colonne(s);Valeur;Message
+    const csvContent = "Ligne;Colonne(s);Valeur;Message\n" + importResult.errors.map(err => {
+        const line = err.line;
+        const cols = (err.columns || '').replace(/"/g, '""');
+        const val = (err.value || '').replace(/"/g, '""');
+        const msg = err.message.replace(/"/g, '""');
+        return `${line};"${cols}";"${val}";"${msg}"`;
     }).join("\n");
     
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8' });
@@ -236,15 +241,27 @@ export const ActionsImportModal: React.FC<ActionsImportModalProps> = ({ isOpen, 
                             <AnimatePresence>
                                 {showLogs && (
                                     <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                                        <div className="px-4 pb-4 max-h-[200px] overflow-y-auto custom-scrollbar">
-                                            <div className="space-y-1 pt-1">
-                                                {importResult.errors.map((err, idx) => (
-                                                    <div key={idx} className="flex gap-2 text-[10px] leading-relaxed py-1 border-b border-slate-100 last:border-none">
-                                                        <span className="text-rose-500 font-bold shrink-0">FAIL</span>
-                                                        <span className="text-slate-500 font-medium">{err}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                        <div className="px-4 pb-4 max-h-[300px] overflow-y-auto custom-scrollbar overflow-x-auto">
+                                            <table className="w-full text-left border-collapse text-[10px]">
+                                                <thead>
+                                                    <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                                                        <th className="py-2 pr-2">Ligne</th>
+                                                        <th className="py-2 pr-2">Colonne(s)</th>
+                                                        <th className="py-2 pr-2">Valeur saisie</th>
+                                                        <th className="py-2">Message d'erreur</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {importResult.errors.map((err, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-100/50 transition-colors">
+                                                            <td className="py-2 pr-2 font-bold text-rose-500 shrink-0 whitespace-nowrap">Ligne {err.line}</td>
+                                                            <td className="py-2 pr-2 font-medium text-slate-600 whitespace-nowrap">{err.columns || '-'}</td>
+                                                            <td className="py-2 pr-2 text-slate-500 font-mono max-w-[120px] truncate" title={err.value}>{err.value || '-'}</td>
+                                                            <td className="py-2 text-slate-700 leading-relaxed font-medium">{err.message}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </motion.div>
                                 )}

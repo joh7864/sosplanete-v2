@@ -92,7 +92,7 @@ export class TrackingService {
   async importActionsCsv(instanceId: number, csvContent: string, schoolYear: string, instanceYearIdDirect?: number) {
     const results = Papa.parse(csvContent, { header: true, skipEmptyLines: true, delimiter: ';' });
     const rows   = results.data as any[];
-    const errors: string[] = [];
+    const errors: { line: number; columns?: string; value?: string; message: string }[] = [];
     const validData: any[] = [];
 
     // Court-circuit : si instanceYearId fourni, pas besoin de résolution
@@ -139,17 +139,46 @@ export class TrackingService {
       const childPseudo  = row['Children']?.toString().trim();
       const dateStr      = row['Date']?.toString().trim();
 
-      if (!actionRefCode || !teamName || !groupName || !childPseudo || !dateStr) {
-        errors.push(`Ligne ${lineNum}: Données obligatoires manquantes.`); continue;
+      const missingFields: string[] = [];
+      if (!actionRefCode) missingFields.push('Action ref');
+      if (!teamName) missingFields.push('Team');
+      if (!groupName) missingFields.push('Group');
+      if (!childPseudo) missingFields.push('Children');
+      if (!dateStr) missingFields.push('Date');
+
+      if (missingFields.length > 0) {
+        errors.push({
+          line: lineNum,
+          columns: missingFields.join(', '),
+          value: '',
+          message: `Colonnes obligatoires manquantes : ${missingFields.join(', ')}`,
+        });
+        continue;
       }
 
       const childId = childrenMap.get(`${childPseudo}|${groupName}|${teamName}`);
-      if (!childId) { errors.push(`Ligne ${lineNum}: Enfant/Groupe/Équipe inconnu.`); continue; }
+      if (!childId) {
+        errors.push({
+          line: lineNum,
+          columns: 'Children, Group, Team',
+          value: `${childPseudo} | ${groupName} | ${teamName}`,
+          message: `L'élève "${childPseudo}" n'a pas pu être trouvé dans le groupe "${groupName}" de l'équipe "${teamName}".`,
+        });
+        continue;
+      }
 
       let localActionId = localActionsMap.get(actionRefCode);
       if (!localActionId) {
         const actionRef = actionRefsByCode.get(actionRefCode);
-        if (!actionRef) { errors.push(`Ligne ${lineNum}: Code action "${actionRefCode}" inconnu.`); continue; }
+        if (!actionRef) {
+          errors.push({
+            line: lineNum,
+            columns: 'Action ref',
+            value: actionRefCode,
+            message: `Le code d'action "${actionRefCode}" n'est pas reconnu dans le système.`,
+          });
+          continue;
+        }
         if (!localActionsToCreate.has(actionRefCode)) localActionsToCreate.set(actionRefCode, actionRef);
         localActionId = -1;
       }
@@ -159,10 +188,26 @@ export class TrackingService {
         ? new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))
         : new Date(dateStr);
 
-      if (isNaN(dateObj.getTime())) { errors.push(`Ligne ${lineNum}: Date invalide "${dateStr}".`); continue; }
+      if (isNaN(dateObj.getTime())) {
+        errors.push({
+          line: lineNum,
+          columns: 'Date',
+          value: dateStr,
+          message: `La date "${dateStr}" a un format invalide (format attendu : JJ/MM/AAAA).`,
+        });
+        continue;
+      }
 
       const period = allPeriods.find(p => dateObj >= p.startDate && dateObj <= p.endDate);
-      if (!period) { errors.push(`Ligne ${lineNum}: Date "${dateStr}" hors période (S1-S${maxPeriods}).`); continue; }
+      if (!period) {
+        errors.push({
+          line: lineNum,
+          columns: 'Date',
+          value: dateStr,
+          message: `La date "${dateStr}" est en dehors de la période active du jeu (S1 à S${maxPeriods}).`,
+        });
+        continue;
+      }
 
       validData.push({
         actionRefCode, childId, localActionId,
