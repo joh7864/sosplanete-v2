@@ -245,11 +245,14 @@ export function IndicatorsTab({ instanceId, userRole, schoolYear, helpOpen, setH
       {/* --- CENTRE DE COMMANDE --- */}
       <section className="relative overflow-hidden">
         
-        {/* --- TITRE ET SOUS-TITRE --- */}
-        <div className="mb-10 px-4">
-           <h1 className="text-2xl font-black text-emerald-500 tracking-tight mb-2">Impact de nos gestes sur la nature...</h1>
-           <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em]">...Si tout le monde faisait comme nous</p>
-        </div>
+        {/* --- TITRE ET SOUS-TITRE (Seulement pour le Dashboard Global) --- */}
+        {!instanceId && (
+          <div className="mb-10 px-4">
+             <h1 className="text-2xl font-black text-emerald-500 tracking-tight">
+               Impact de nos gestes sur la nature, si tout le monde faisait comme nous
+             </h1>
+          </div>
+        )}
 
         <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
         
