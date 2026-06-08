@@ -32,7 +32,7 @@ export class ActionRefService {
             
             if (!code || !name) continue;
 
-            const co2 = parseFloat(row[2]?.replace(',', '.') || '0');
+                        const co2 = parseFloat(row[2]?.replace(',', '.') || '0');
             const water = parseFloat(row[3]?.replace(',', '.') || '0');
             const waste = parseFloat(row[4]?.replace(',', '.') || '0');
             const category = row[5]?.trim();
@@ -41,6 +41,7 @@ export class ActionRefService {
             const impactTotal = parseFloat(row[8]?.replace(',', '.') || '0');
             const weightedStars = parseInt(row[9]?.trim() || '0', 10);
             const image = row[10]?.trim();
+            const description = row[11]?.trim() || null;
 
             try {
               await this.prisma.actionRef.upsert({
@@ -55,6 +56,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  description,
                   category: category || null,
                 },
                 create: {
@@ -68,6 +70,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  description,
                   category: category || null,
                 },
               });

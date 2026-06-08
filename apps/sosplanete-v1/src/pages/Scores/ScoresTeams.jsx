@@ -1,30 +1,20 @@
 import React from "react";
-//import fond from "../../assets/scoreequipedesk.svg";
 import appcfg from "../../config.js";
 
 function ScoresTeams({ teams, ecole }) {
   if (!teams || !Array.isArray(teams)) return null;
   return (
     <>
-      <div className="panel-container" style={{ width: "33%" }}>
+      <div className="panel-container panel-equipes">
         <div className="panel-content-container">
-          <h1 className="titre-cadre ">Equipe</h1>
+          <h1 className="titre-cadre">Equipe</h1>
           <div className="text-cadre">{ecole.name}</div>
-          <ul
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "flex-start",
-              height: "100%",
-              gap: "30px",
-            }}
-          >
+          <ul className="teams-list">
             {teams.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="team-item">
                 <div className="equipe-container text-team">
-                  <img src={appcfg.imgRootUrl + item.icon} />
-                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                  <img src={appcfg.imgRootUrl + item.icon} alt="" />
+                  <div className="team-name-text">
                     {item.name}
                   </div>
                 </div>

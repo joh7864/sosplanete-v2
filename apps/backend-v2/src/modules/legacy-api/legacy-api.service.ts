@@ -5,6 +5,11 @@ import * as bcrypt from 'bcrypt';
 import { ImpactService } from '../impact/impact.service';
 import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
 
+const isValidImageFilename = (s: string | null | undefined): boolean => {
+  if (!s) return false;
+  return /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(s);
+};
+
 @Injectable()
 export class LegacyApiService {
   private readonly logger = new Logger(LegacyApiService.name);
@@ -175,17 +180,21 @@ export class LegacyApiService {
       include: { actionRef: true },
     });
 
+
+
     return actions.map(a => {
       const co2    = a.specificCo2   ?? a.actionRef.defaultCo2   ?? 0;
       const water  = a.specificWater ?? a.actionRef.defaultWater ?? 0;
       const waste  = a.specificWaste ?? a.actionRef.defaultWaste ?? 0;
       const points = Math.round(co2 + water + waste);
+      // localAction.image peut contenir des valeurs numériques corrompues : on valide l'extension
+      const imageFile = isValidImageFilename(a.image) ? a.image : (isValidImageFilename(a.actionRef.image) ? a.actionRef.image : null);
       return {
         id:       a.id.toString(),
         name:     a.label,
         points,
         metadata: a.actionRef.weightedStars?.toString() || '0',
-        icon:     a.image ? `actions/${a.image}` : (a.actionRef.image ? `actions/${a.actionRef.image}` : ''),
+        icon:     imageFile ? `actions/${imageFile}` : '',
       };
     });
   }
@@ -409,15 +418,23 @@ export class LegacyApiService {
       where: { instanceId, schoolYear },
       include: { actionRef: true },
     });
-    return actions.map(a => ({
-      id:          a.id.toString(),
-      name:        a.label,
-      description: a.description,
-      co2:         a.specificCo2   ?? a.actionRef.defaultCo2   ?? 0,
-      water:       a.specificWater ?? a.actionRef.defaultWater ?? 0,
-      waste:       a.specificWaste ?? a.actionRef.defaultWaste ?? 0,
-      category_id: a.categoryId?.toString() || '0',
-      icon:        a.image ? `actions/${a.image}` : (a.actionRef.image ? `actions/${a.actionRef.image}` : ''),
-    }));
+    return actions.map(a => {
+      const imageFile = isValidImageFilename(a.image) ? a.image : (isValidImageFilename(a.actionRef.image) ? a.actionRef.image : null);
+      
+      const isNumeric = (str: string) => /^\d+(\.\d+)?$/.test(str.trim());
+      const localDesc = a.description && !isNumeric(a.description) ? a.description : null;
+      const refDesc = a.actionRef.description && !isNumeric(a.actionRef.description) ? a.actionRef.description : null;
+      
+      return {
+        id:          a.id.toString(),
+        name:        a.label,
+        description: localDesc || refDesc || null,
+        co2:         a.specificCo2   ?? a.actionRef.defaultCo2   ?? 0,
+        water:       a.specificWater ?? a.actionRef.defaultWater ?? 0,
+        waste:       a.specificWaste ?? a.actionRef.defaultWaste ?? 0,
+        category_id: a.categoryId?.toString() || '0',
+        icon:        imageFile ? `actions/${imageFile}` : '',
+      };
+    });
   }
 }

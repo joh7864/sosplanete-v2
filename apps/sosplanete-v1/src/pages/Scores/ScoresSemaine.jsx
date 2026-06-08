@@ -39,7 +39,7 @@ const Scores = () => {
 
   return (
     <>
-      <div className="panel-container">
+      <div className="panel-container panel-semaine">
         <div className="panel-content-container">
           <h1 className="titre-cadre">Score semaine</h1>
           <div className="text-cadre">

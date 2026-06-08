@@ -73,42 +73,54 @@ const ScoresTotal = () => {
 
   return (
     <>
-      <div className="panel-container">
+      <div className="panel-container panel-total">
         <div className="panel-content-container">
-          <h1 className="titre-cadre" style={{ textAlign: "start" }}>
-            Score total
-          </h1>
+          <h1 className="titre-cadre">Score total</h1>
           <div className="text-cadre">
             Depuis le début du jeu, vous avez tous ensemble réalisé{" "}
             <strong>{totalActions}</strong> actions.
           </div>
-          <div className="total-container">
+          <div className="total-container" style={{ width: "100%", maxWidth: "180px", height: "180px", margin: "0 auto", display: "flex", justifyContent: "center", alignItems: "center" }}>
             <PieChart
               data={chartData}
-              label={({ dataEntry }) => dataEntry.value}
+              label={({ dataEntry }) => dataEntry.value > 0 ? dataEntry.value : ""}
               labelStyle={{
-                fontSize: "0.4rem",
-                fontWeight: 700,
+                fontSize: "7px",
+                fontFamily: "Poppins, sans-serif",
+                fontWeight: "700",
+                fill: "#ffffff",
               }}
+              labelPosition={55}
+              paddingAngle={1}
             />
+          </div>
+
+          {/* Légende des équipes pour tous les écrans */}
+          <div className="chart-legend" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px", marginTop: "16px", width: "100%" }}>
+            {teams.map((item) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.8rem", fontWeight: 600, color: "#334155" }}>
+                <span style={{ width: "10px", height: "10px", borderRadius: "50%", backgroundColor: item.color || "#94a3b8", display: "inline-block" }}></span>
+                <span>{item.name}</span>
+              </div>
+            ))}
           </div>
 
           {/* Affichage des icones des équipes en mode mobile*/}
           {(breakPoint.isMobile || breakPoint.isTablet) && (
-            <div className="total-mobile-teams">
+            <div className="total-mobile-teams" style={{ marginTop: "16px" }}>
               {teams.map((item) => (
                 <li key={item.id}>
-                  <div className="cv" style={{ gap: 0 }}>
+                  <div className="cv" style={{ gap: 4 }}>
                     <div
                       style={{
                         textAlign: "center",
-                        fontSize: "0.6rem",
+                        fontSize: "0.65rem",
                         fontWeight: 700,
                       }}
                     >
                       {item.name}
                     </div>
-                    <img src={appcfg.imgRootUrl + item.icon} />
+                    <img src={appcfg.imgRootUrl + item.icon} alt="" style={{ width: 30, height: 30 }} />
                   </div>
                 </li>
               ))}

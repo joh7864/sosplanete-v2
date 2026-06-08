@@ -33,6 +33,7 @@ model ActionRef {
   impactTotal   Float?
   weightedStars Int?
   image         String?
+  description   String?
   year          Int           @default(2025)
   defaultEnergy Float?
   category      String?

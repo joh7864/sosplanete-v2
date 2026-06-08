@@ -80,6 +80,13 @@ function Mascotte({ ...props }) {
 
 	}, []);
 
+    const processHtml = (text) => {
+        if (!text) return text;
+        if (text.includes('<a ') || text.includes('<A ')) return text;
+        const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #2196f3; text-decoration: underline; word-break: break-all;">$1</a>');
+    };
+
   return (
     <>
     <div className="mascotte-container" 
@@ -100,9 +107,9 @@ function Mascotte({ ...props }) {
                 >
                 {props?.titre !== "" && <h1>{props?.titre}</h1>}
 
-                <p dangerouslySetInnerHTML={{ __html: props?.ligne1 }}></p>
+                {props?.ligne1 && <p dangerouslySetInnerHTML={{ __html: processHtml(props?.ligne1) }}></p>}
                 
-                <p dangerouslySetInnerHTML={{ __html: props?.ligne2 }}></p>
+                {props?.ligne2 && <p dangerouslySetInnerHTML={{ __html: processHtml(props?.ligne2) }}></p>}
 
                 <div>{props?.children}</div>
 
@@ -120,5 +127,7 @@ function Mascotte({ ...props }) {
 
 </>  )
 }
+
+
 
 export default Mascotte

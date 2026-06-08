@@ -30,6 +30,7 @@ export class LocalActionService {
         instanceId: data.instanceId,
         actionRefId: data.actionRefId,
         label: data.customLabel || actionRef.referenceName,
+        description: actionRef.description,
         categoryId: data.categoryId,
         schoolYear: data.schoolYear,
       },
@@ -66,6 +67,7 @@ export class LocalActionService {
       instanceId,
       actionRefId: ref.id,
       label: ref.referenceName,
+      description: ref.description,
       schoolYear,
     }));
 
@@ -120,7 +122,7 @@ export class LocalActionService {
         update: {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
-          description: actionInput.description || null,
+          description: actionInput.description || ref.description || null,
           categoryId: categoryId, // Mise à jour de la catégorie si trouvée
         },
         create: {
@@ -128,7 +130,7 @@ export class LocalActionService {
           actionRefId: ref.id,
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
-          description: actionInput.description || null,
+          description: actionInput.description || ref.description || null,
           categoryId: categoryId,
           schoolYear,
         }

@@ -76,7 +76,7 @@ async function main() {
   console.log(`✔ ${corrections.length} actions corrigées en base.`);
 
   // Génération du CSV V3
-  const csvPath = 'c:/Users/User/Documents/Sync Pcloud/Professionnel/Dev/sosplanete-v2/.docs/3-fct/SOSPlanete_referentiel_actions_.csv';
+  const csvPath = 'c:/Users/User/Documents/Sync Pcloud/Professionnel/Dev/sosplanete-v2/.docs/3-fct/OldFiles/SOSPlanete_referentiel_actions_.csv';
   const v3CsvPath = 'c:/Users/User/Documents/Sync Pcloud/Professionnel/Dev/sosplanete-v2/.docs/3-fct/SOSPlanete_referentiel_actions_V3.csv';
   
   const content = fs.readFileSync(csvPath, 'utf8');

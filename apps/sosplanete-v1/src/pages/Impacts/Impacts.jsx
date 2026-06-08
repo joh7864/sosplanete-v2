@@ -59,9 +59,12 @@ const Impacts = () => {
   };
 
   const ajusteUniteVolumeEau = (value) => {
-    var volume = (value / 1000).toFixed(1);
-    if (volume >= 1) return volume + " m3";
-    else return Number(value).toFixed(1) + " litres";
+    const numericValue = Number(value);
+    if (numericValue < 1000) {
+      return numericValue.toFixed(1) + " litres";
+    } else {
+      return (numericValue / 1000).toFixed(1) + " m3";
+    }
   };
 
   // Affichage des descriptions

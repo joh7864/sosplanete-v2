@@ -465,3 +465,65 @@
     gap: 1px;
   }
 }
+
+/* Custom Overrides */
+@media screen and (min-width: 1025px) {
+  .container-cadre,
+  .animation-container {
+    width: 95% !important;
+    max-width: 1200px !important;
+  }
+}
+
+.panel-container.panel-equipes {
+  flex: 0 0 250px !important;
+}
+
+.panel-container.panel-semaine {
+  flex: 1.5 !important;
+}
+
+.panel-container.panel-total {
+  flex: 1.2 !important;
+}
+
+/* Align teams list in the center, but keep items left-aligned internally */
+.panel-equipes .teams-list {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: fit-content !important;
+  margin: 0 auto !important;
+  gap: 16px !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.panel-equipes .team-item {
+  width: 100% !important;
+  list-style: none !important;
+}
+
+.panel-equipes .text-team {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px 0 !important;
+  width: auto !important;
+  gap: 16px !important;
+  transition: none !important;
+}
+
+.panel-equipes .text-team img {
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.panel-equipes .text-team:hover {
+  background: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+}

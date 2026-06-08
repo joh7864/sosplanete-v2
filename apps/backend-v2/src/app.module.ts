@@ -50,13 +50,13 @@ import { NotificationModule } from './modules/notification/notification.module';
     TrackingModule,
     ServeStaticModule.forRoot(
       {
-        rootPath: process.env.UPLOADS_DIR ? join(process.env.UPLOADS_DIR, '..') : join(__dirname, '..', '..', '..'),
-        serveRoot: '/',
-      },
-      {
         // Route /static/ → pointe directement vers le dossier uploads (pour le jeu v1)
         rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
         serveRoot: '/static',
+      },
+      {
+        rootPath: process.env.UPLOADS_DIR ? join(process.env.UPLOADS_DIR, '..') : join(__dirname, '..', '..', '..'),
+        serveRoot: '/',
       }
     ),
     LegacyApiModule,

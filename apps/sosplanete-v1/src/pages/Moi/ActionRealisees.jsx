@@ -17,7 +17,7 @@ function ActionRealisees({ actionsRealisees, refActions, updateMascotte }) {
       (action) => action.id === itemSelected?.action_id
     );
     if (a !== undefined && a.length > 0) {
-      desc = a[0].description;
+      desc = a[0].description || "";
     }
 
     updateMascotte(itemSelected?.action_name, desc, "");
@@ -40,7 +40,7 @@ function ActionRealisees({ actionsRealisees, refActions, updateMascotte }) {
       (action) => action.id === actionSelected?.action_id
     );
     if (a !== undefined && a.length > 0) {
-      desc = a[0].description;
+      desc = a[0].description || "";
     }
 
     updateMascotte(actionSelected?.action_name, desc, "");
