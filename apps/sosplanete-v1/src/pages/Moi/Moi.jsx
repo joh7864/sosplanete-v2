@@ -31,10 +31,16 @@ const Moi = () => {
   const [mascotteLigne1, setMascotteLigne1] = useState("");
   const [mascotteLigne2, setMascotteLigne2] = useState("");
 
-  // Update des infos
+  // Update des infos de l'équipe de l'enfant
   useEffect(() => {
-    return () => {};
-  }, [infos]);
+    if (childInfos) {
+      setInfos({
+        name: childInfos.team_name,
+        icon: childInfos.team_icon,
+        color: childInfos.color,
+      });
+    }
+  }, [childInfos]);
 
   // Evènement de MOUNT du composant
   useEffect(() => {
@@ -53,10 +59,6 @@ const Moi = () => {
       (result) => {
         // Actions réalisées depuis le début du jeu
         setActionsRealiseesDepuitDebut(result);
-
-        // Récupération des infos de l'équipe de l'enfant connnecté
-        var i = teams.filter((team) => team.id == childInfos.team_id)[0];
-        setInfos(i);
       }
     );
 

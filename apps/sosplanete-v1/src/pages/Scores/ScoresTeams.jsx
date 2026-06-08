@@ -13,7 +13,21 @@ function ScoresTeams({ teams, ecole }) {
             {teams.map((item) => (
               <li key={item.id} className="team-item">
                 <div className="equipe-container text-team">
-                  <img src={appcfg.imgRootUrl + item.icon} alt="" />
+                  {item.icon ? (
+                    <img src={appcfg.imgRootUrl + item.icon} alt="" />
+                  ) : (
+                    <div 
+                      className="flex items-center justify-center text-white font-black rounded-xl shrink-0" 
+                      style={{ 
+                        width: 32, 
+                        height: 32, 
+                        backgroundColor: item.color || '#40916C',
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      {item.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="team-name-text">
                     {item.name}
                   </div>

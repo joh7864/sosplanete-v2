@@ -120,7 +120,21 @@ const ScoresTotal = () => {
                     >
                       {item.name}
                     </div>
-                    <img src={appcfg.imgRootUrl + item.icon} alt="" style={{ width: 30, height: 30 }} />
+                    {item.icon ? (
+                      <img src={appcfg.imgRootUrl + item.icon} alt="" style={{ width: 30, height: 30 }} />
+                    ) : (
+                      <div 
+                        className="flex items-center justify-center text-white font-black rounded-lg shrink-0" 
+                        style={{ 
+                          width: 30, 
+                          height: 30, 
+                          backgroundColor: item.color || '#40916C',
+                          fontSize: '1rem'
+                        }}
+                      >
+                        {item.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
                 </li>
               ))}

@@ -209,13 +209,22 @@ export class TrackingService {
         continue;
       }
 
+      const ref = actionRefsByCode.get(actionRefCode);
+      let pCo2 = parseFloat(row['Eco tCO2e']?.toString().replace(',', '.') || '0');
+      let pWater = parseFloat(row['Eco eau']?.toString().replace(',', '.') || '0');
+      let pWaste = parseFloat(row['Eco dechets']?.toString().replace(',', '.') || '0');
+
+      if (isNaN(pCo2) || pCo2 === 0) pCo2 = ref?.defaultCo2 ?? 0;
+      if (isNaN(pWater) || pWater === 0) pWater = ref?.defaultWater ?? 0;
+      if (isNaN(pWaste) || pWaste === 0) pWaste = ref?.defaultWaste ?? 0;
+
       validData.push({
         actionRefCode, childId, localActionId,
         createdAt:  dateObj,
         periodId:   period.id,
-        savedCo2:   parseFloat(row['Eco tCO2e']?.toString().replace(',', '.') || '0'),
-        savedWater: parseFloat(row['Eco eau']?.toString().replace(',', '.') || '0'),
-        savedWaste: parseFloat(row['Eco dechets']?.toString().replace(',', '.') || '0'),
+        savedCo2:   pCo2,
+        savedWater: pWater,
+        savedWaste: pWaste,
       });
     }
 

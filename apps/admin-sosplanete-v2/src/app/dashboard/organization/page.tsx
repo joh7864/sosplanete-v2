@@ -445,6 +445,8 @@ function OrganizationContent() {
             ) : undefined
           }
           className={isNewInstance ? "border-b-0" : ""}
+          isOpen={currentInstance?.isOpen}
+          showStatusIndicator={!!instanceId && !isNewInstance}
           bottomContent={
             instanceId ? (
               <>

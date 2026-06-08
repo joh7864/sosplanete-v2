@@ -15,7 +15,7 @@ const Histogramme = ({ id, count, refTeams, totalActions }) => {
     if (x.length > 0) {
       setName(x[0].name);
       setColor(x[0].color || "gray");
-      setImage(appcfg.imgRootUrl + x[0].icon);
+      setImage(x[0].icon ? appcfg.imgRootUrl + x[0].icon : null);
     }
   }, [id, refTeams]);
 
@@ -51,7 +51,22 @@ const Histogramme = ({ id, count, refTeams, totalActions }) => {
         {name}
       </div>
       {(breakPoint.isMobile || breakPoint.isTablet) && (
-        <img src={image} style={{ width: 32, height: 32, marginTop: '4px' }} alt="" />
+        image ? (
+          <img src={image} style={{ width: 32, height: 32, marginTop: '4px' }} alt="" />
+        ) : (
+          <div 
+            className="flex items-center justify-center text-white font-black rounded-lg" 
+            style={{ 
+              width: 32, 
+              height: 32, 
+              backgroundColor: color,
+              fontSize: '1.1rem',
+              marginTop: '4px'
+            }}
+          >
+            {name?.charAt(0).toUpperCase()}
+          </div>
+        )
       )}
     </div>
   );

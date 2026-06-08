@@ -60,7 +60,7 @@ const NavBar = () => {
 								>
 									<span className="school-badge-icon">🏫</span>
 									<span className="school-badge-text">
-										{activeSchoolName}{school?.schoolYear ? ` (${school.schoolYear})` : ''}
+										{activeSchoolName}
 									</span>
 									{instanceChoices && instanceChoices.length > 1 && <span className="school-badge-chevron">▼</span>}
 								</div>

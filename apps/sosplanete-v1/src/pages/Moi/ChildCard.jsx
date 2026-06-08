@@ -30,10 +30,24 @@ const ChildCard = ({ pseudo, infos, tree, semaineCount, totalCount }) => {
         <SlideIn speed="3s">
           <ZoomIn>
             <div className="icon-card-content">
-              <img
-                src={appcfg.imgRootUrl + infos?.icon}
-                className="w-full h-full"
-              />
+              {infos?.icon ? (
+                <img
+                  src={appcfg.imgRootUrl + infos.icon}
+                  className="w-full h-full"
+                  alt="Team icon"
+                />
+              ) : (
+                <div 
+                  className="w-full h-full flex items-center justify-center text-white font-black rounded-2xl shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]"
+                  style={{ 
+                    backgroundColor: infos?.color || 'var(--accent-primary)',
+                    fontSize: '1.8rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  {infos?.name ? infos.name.charAt(0).toUpperCase() : pseudo?.charAt(0).toUpperCase()}
+                </div>
+              )}
             </div>
           </ZoomIn>
         </SlideIn>

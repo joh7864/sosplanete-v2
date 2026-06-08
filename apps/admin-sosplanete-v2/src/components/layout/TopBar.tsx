@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LogOut, Users, Settings, Plus, Bell, Check } from 'lucide-react';
+import { LogOut, Users, Settings, Plus, Bell, Check, Lock, Unlock } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { getAssetUrl } from '@/utils/assets';
 import { getAuthData } from '@/utils/storage';
@@ -18,9 +18,11 @@ interface TopBarProps {
   actions?: React.ReactNode;
   bottomContent?: React.ReactNode;
   className?: string;
+  isOpen?: boolean;
+  showStatusIndicator?: boolean;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actions, bottomContent, className }) => {
+export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actions, bottomContent, className, isOpen, showStatusIndicator }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { schoolYear, setSchoolYear } = useSchoolYear();
@@ -146,6 +148,18 @@ export const TopBar: React.FC<TopBarProps> = ({ title, subtitle, selector, actio
       <div className="flex w-full items-center justify-between px-6 lg:px-10 py-3">
       {/* Dynamic Title */}
       <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+        {showStatusIndicator && (
+          <div 
+            className={`flex items-center justify-center p-2.5 rounded-2xl border transition-all cursor-help shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
+              isOpen 
+                ? 'bg-emerald-50/80 text-emerald-600 border-emerald-100 hover:bg-emerald-100/60' 
+                : 'bg-rose-50/80 text-rose-600 border-rose-100 hover:bg-rose-100/60'
+            }`}
+            title={isOpen ? "Espace ouvert — Les élèves peuvent se connecter et saisir des actions" : "Espace fermé — Les connexions et saisies d'actions sont bloquées"}
+          >
+            {isOpen ? <Unlock size={18} className="animate-pulse text-emerald-600" /> : <Lock size={18} className="text-rose-600" />}
+          </div>
+        )}
         <div className="flex flex-col gap-1 flex-shrink-0">
           <h1 className="text-lg lg:text-xl font-black text-slate-800 tracking-tight leading-none">{title}</h1>
           {subtitle && <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{subtitle}</p>}

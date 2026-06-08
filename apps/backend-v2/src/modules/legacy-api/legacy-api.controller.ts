@@ -77,8 +77,12 @@ export class LegacyApiController {
   }
 
   @Get('children/:pseudo/pseudo')
-  getChildByPseudo(@Param('pseudo') pseudo: string) {
-    return this.legacyApiService.getChildByPseudo(pseudo);
+  getChildByPseudo(
+    @Param('pseudo') pseudo: string,
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.legacyApiService.getChildByPseudo(pseudo, origin, instanceIdStr);
   }
 
   @Get('child/:id')

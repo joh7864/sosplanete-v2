@@ -10,6 +10,16 @@ const isValidImageFilename = (s: string | null | undefined): boolean => {
   return /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(s);
 };
 
+const getCurrentSchoolYear = (date: Date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-11 (Jan-Dec)
+  if (month >= 8) { // September to December
+    return `${year}-${year + 1}`;
+  } else { // January to August
+    return `${year - 1}-${year}`;
+  }
+};
+
 @Injectable()
 export class LegacyApiService {
   private readonly logger = new Logger(LegacyApiService.name);
@@ -57,8 +67,19 @@ export class LegacyApiService {
 
     if (validChildren.length === 0) throw new UnauthorizedException('Mot de passe incorrect');
 
-    if (validChildren.length === 1) {
-      const child = validChildren[0];
+    const currentSchoolYear = getCurrentSchoolYear();
+    const currentYearChildren = validChildren.filter(
+      c => c.group.team.instanceYear.schoolYear === currentSchoolYear
+    );
+
+    if (currentYearChildren.length === 0) {
+      throw new UnauthorizedException(
+        "Aucun compte trouvé pour l'année scolaire en cours. Veuillez contacter l'administrateur de votre établissement."
+      );
+    }
+
+    if (currentYearChildren.length === 1) {
+      const child = currentYearChildren[0];
       return {
         status:     'success',
         childId:    child.id,
@@ -72,7 +93,7 @@ export class LegacyApiService {
     return {
       status:  'multiple_choices',
       pseudo,
-      choices: validChildren.map(child => ({
+      choices: currentYearChildren.map(child => ({
         childId:    child.id,
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
@@ -216,6 +237,14 @@ export class LegacyApiService {
     });
     if (!action) throw new NotFoundException('Action introuvable');
 
+    const child = await this.prisma.child.findUnique({
+      where: { id: parseInt(childId) },
+      include: { group: { include: { team: true } } }
+    });
+    if (!child || child.group.team.instanceYearId !== period.instanceYearId) {
+      throw new UnauthorizedException('Erreur : Cet utilisateur n\'appartient pas à l\'année scolaire en cours. Veuillez contacter votre administrateur.');
+    }
+
     const co2   = action.specificCo2   ?? action.actionRef.defaultCo2   ?? 0;
     const water = action.specificWater ?? action.actionRef.defaultWater ?? 0;
     const waste = action.specificWaste ?? action.actionRef.defaultWaste ?? 0;
@@ -240,8 +269,17 @@ export class LegacyApiService {
   }
 
   async getActionsDone(childId: string, weekId: string) {
+    const whereClause: any = { childId: parseInt(childId) };
+
+    if (weekId && weekId !== '1' && weekId !== 'undefined' && weekId !== 'null') {
+      const parsedPeriodId = parseInt(weekId, 10);
+      if (!isNaN(parsedPeriodId)) {
+        whereClause.periodId = parsedPeriodId;
+      }
+    }
+
     const actions = await this.prisma.actionDone.findMany({
-      where: { childId: parseInt(childId) },
+      where: whereClause,
       include: { localAction: true },
     });
     return actions.map(a => ({
@@ -286,7 +324,7 @@ export class LegacyApiService {
       id:    t.id.toString(),
       name:  t.name,
       color: t.color || '#40916C',
-      icon:  t.icon ? `teams/${t.icon.split('/').pop()}` : 'teams/Chat.png',
+      icon:  t.icon ? `teams/${t.icon.split('/').pop()}` : null,
     }));
   }
 
@@ -388,8 +426,18 @@ export class LegacyApiService {
     }));
   }
 
-  async getChildByPseudo(pseudo: string) {
-    const child = await this.prisma.child.findFirst({ where: { pseudo } });
+  async getChildByPseudo(pseudo: string, origin?: string, instanceIdStr?: string) {
+    const { instanceYearId } = await this.getInstanceContext(origin, instanceIdStr);
+    const child = await this.prisma.child.findFirst({
+      where: {
+        pseudo,
+        group: {
+          team: {
+            instanceYearId
+          }
+        }
+      }
+    });
     if (!child) throw new NotFoundException('Enfant introuvable');
     return { id: child.id.toString(), pseudo: child.pseudo };
   }
@@ -409,6 +457,7 @@ export class LegacyApiService {
       group_name: child.group.name,
       team_id:    child.group.teamId.toString(),
       team_name:  child.group.team.name,
+      team_icon:  child.group.team.icon ? `teams/${child.group.team.icon.split('/').pop()}` : null,
     };
   }
 

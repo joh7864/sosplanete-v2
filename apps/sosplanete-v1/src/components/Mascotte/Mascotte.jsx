@@ -82,9 +82,23 @@ function Mascotte({ ...props }) {
 
     const processHtml = (text) => {
         if (!text) return text;
-        if (text.includes('<a ') || text.includes('<A ')) return text;
-        const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #2196f3; text-decoration: underline; word-break: break-all;">$1</a>');
+        let htmlText = text;
+        // Convert raw URLs to a tags if the string doesn't already have them
+        if (!htmlText.includes('<a ') && !htmlText.includes('<A ')) {
+            const urlRegex = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]])/g;
+            htmlText = htmlText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        }
+        // Preserve newlines
+        htmlText = htmlText.replace(/\n/g, '<br />');
+        return htmlText;
+    };
+
+    const handleMessageContainerClick = (e) => {
+        // Prevent closing the bubble if the user clicked on a link
+        if (e.target.tagName && e.target.tagName.toLowerCase() === 'a') {
+            return;
+        }
+        handleViewState(!viewMessage);
     };
 
   return (
@@ -103,7 +117,7 @@ function Mascotte({ ...props }) {
             <>
                 <div
                 className="message-container"
-                onClick={() => handleViewState(!viewMessage)}
+                onClick={handleMessageContainerClick}
                 >
                 {props?.titre !== "" && <h1>{props?.titre}</h1>}
 

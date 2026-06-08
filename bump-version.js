@@ -7,6 +7,7 @@ const forceVersion = process.argv[3];
 
 const packagePaths = [
   path.join(__dirname, 'package.json'),
+  path.join(__dirname, 'apps/sosplanete-v1/package.json'),
   path.join(__dirname, 'apps/backend-v2/package.json'),
   path.join(__dirname, 'apps/admin-sosplanete-v2/package.json')
 ];

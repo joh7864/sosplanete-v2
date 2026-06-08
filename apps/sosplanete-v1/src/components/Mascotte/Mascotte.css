@@ -148,3 +148,6 @@
 		font-size: var(--mobmascotte-title);
 	}
 }
+
+.message-container p a { color: #2196f3; text-decoration: underline; word-break: break-all; pointer-events: auto; }
+.message-container p a:hover { color: #0d47a1; }
