@@ -25,11 +25,15 @@ export const AuthProvider = ({ children }) => {
   const [rootUrl, setrootUrl] = useState(appcfg.apiRootUrl);
   const [activeSchoolName, setActiveSchoolName] = useState(null);
   const [instanceChoices, setInstanceChoices] = useState(null);
+  const [isDelegate, setIsDelegate] = useState(false);
+  const [allowAllDelegate, setAllowAllDelegate] = useState(false);
 
-  const finishLogin = (instanceId, schoolName, headers, loginPseudo) => {
+  const finishLogin = (instanceId, schoolName, headers, loginPseudo, authIsDelegate, authAllowAllDelegate) => {
     const currentPseudo = loginPseudo || pseudo;
     headers["x-instance-id"] = instanceId;
     setActiveSchoolName(schoolName);
+    setIsDelegate(authIsDelegate || false);
+    setAllowAllDelegate(authAllowAllDelegate || false);
     localStorage.setItem("instanceId", instanceId.toString());
     localStorage.setItem("sos_last_instance_id", instanceId.toString());
     
@@ -104,13 +108,13 @@ export const AuthProvider = ({ children }) => {
             const autoChoice = lastUsed ? choices.find(c => c.instanceId.toString() === lastUsed) : null;
             
             if (autoChoice) {
-              finishLogin(autoChoice.instanceId, autoChoice.schoolName, headers, userInfo.pseudo);
+              finishLogin(autoChoice.instanceId, autoChoice.schoolName, headers, userInfo.pseudo, autoChoice.isDelegate, autoChoice.allowAllDelegate);
             } else {
               localStorage.setItem("inProgress", "on"); // keep auth alive
               navigate("/discovery");
             }
           } else if (result.data.instanceId) {
-            finishLogin(result.data.instanceId, result.data.schoolName, headers, userInfo.pseudo);
+            finishLogin(result.data.instanceId, result.data.schoolName, headers, userInfo.pseudo, result.data.isDelegate, result.data.allowAllDelegate);
           }
         })
         .catch((error) => {
@@ -139,6 +143,8 @@ export const AuthProvider = ({ children }) => {
     setActions(null);
     setActiveSchoolName(null);
     setInstanceChoices(null);
+    setIsDelegate(false);
+    setAllowAllDelegate(false);
     localStorage.setItem("inProgress", "off");
     localStorage.removeItem("instanceId");
   };
@@ -174,6 +180,8 @@ export const AuthProvider = ({ children }) => {
     rootUrl,
     activeSchoolName,
     instanceChoices,
+    isDelegate,
+    allowAllDelegate,
     loginUser,
     finishLogin,
     logoutUser,

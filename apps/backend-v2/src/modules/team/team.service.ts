@@ -254,17 +254,18 @@ export class TeamService {
     });
   }
 
-  async createChild(groupId: number, pseudo: string, password?: string) {
+  async createChild(groupId: number, pseudo: string, password?: string, isDelegate?: boolean) {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
-    return this.prisma.child.create({ data: { pseudo, groupId, password: hashedPassword } });
+    return this.prisma.child.create({ data: { pseudo, groupId, password: hashedPassword, isDelegate: isDelegate || false } });
   }
 
-  async updateChild(id: number, data: { pseudo?: string; password?: string }) {
-    const updateData: { pseudo?: string; password?: string | null } = {};
+  async updateChild(id: number, data: { pseudo?: string; password?: string; isDelegate?: boolean }) {
+    const updateData: { pseudo?: string; password?: string | null; isDelegate?: boolean } = {};
     if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
     if (data.password && data.password.trim() !== '') {
       updateData.password = await bcrypt.hash(data.password, 10);
     }
+    if (data.isDelegate !== undefined) updateData.isDelegate = data.isDelegate;
     return this.prisma.child.update({ where: { id }, data: updateData });
   }
 

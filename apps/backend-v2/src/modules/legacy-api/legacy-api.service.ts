@@ -4,6 +4,8 @@ import { Request } from 'express';
 import * as bcrypt from 'bcrypt';
 import { ImpactService } from '../impact/impact.service';
 import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
+import { TrackingService } from '../tracking/tracking.service';
+import { EcoBarRaceService } from '../stimulation/eco-bar-race.service';
 
 const isValidImageFilename = (s: string | null | undefined): boolean => {
   if (!s) return false;
@@ -28,6 +30,8 @@ export class LegacyApiService {
     private prisma: PrismaService,
     private impactService: ImpactService,
     private animalUnlockService: AnimalUnlockService,
+    private trackingService: TrackingService,
+    private ecoBarRaceService: EcoBarRaceService,
   ) {}
 
   async checkAuthChild(pseudo: string, pass: string) {
@@ -87,6 +91,8 @@ export class LegacyApiService {
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
         schoolYear: child.group.team.instanceYear.schoolYear,
+        isDelegate: child.isDelegate,
+        allowAllDelegate: child.group.team.instanceYear.allowAllDelegate,
       };
     }
 
@@ -98,6 +104,8 @@ export class LegacyApiService {
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
         schoolYear: child.group.team.instanceYear.schoolYear,
+        isDelegate: child.isDelegate,
+        allowAllDelegate: child.group.team.instanceYear.allowAllDelegate,
       })),
     };
   }
@@ -445,7 +453,7 @@ export class LegacyApiService {
   async getChildById(id: number) {
     const child = await this.prisma.child.findUnique({
       where: { id },
-      include: { group: { include: { team: true } } },
+      include: { group: { include: { team: { include: { instanceYear: true } } } } },
     });
     if (!child) throw new NotFoundException('Enfant introuvable');
     return {
@@ -458,6 +466,8 @@ export class LegacyApiService {
       team_id:    child.group.teamId.toString(),
       team_name:  child.group.team.name,
       team_icon:  child.group.team.icon ? `teams/${child.group.team.icon.split('/').pop()}` : null,
+      isDelegate: child.isDelegate,
+      allowAllDelegate: child.group.team.instanceYear.allowAllDelegate,
     };
   }
 
@@ -485,5 +495,126 @@ export class LegacyApiService {
         icon:        imageFile ? `actions/${imageFile}` : '',
       };
     });
+  }
+
+  async getChildFromAuth(authHeader: string, instanceIdStr?: string) {
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      throw new UnauthorizedException('Basic auth required');
+    }
+    const decoded = Buffer.from(authHeader.replace('Basic ', ''), 'base64').toString('utf8');
+    const [pseudo, password] = decoded.split(':');
+    
+    const result: any = await this.checkAuthChild(pseudo, password);
+    this.logger.log(`getChildFromAuth: status=${result.status}, instanceIdStr=${instanceIdStr}`);
+
+    let childId: number;
+
+    if (result.status === 'multiple_choices') {
+      // Utiliser x-instance-id pour choisir la bonne instance
+      if (!instanceIdStr) {
+        this.logger.warn(`getChildFromAuth: multiple_choices mais pas de x-instance-id`);
+        throw new UnauthorizedException('Plusieurs comptes trouvés, instanceId requis');
+      }
+      const parsedInstanceId = parseInt(instanceIdStr, 10);
+      const choices: any[] = result.choices ?? [];
+      this.logger.log(`getChildFromAuth: choices=${JSON.stringify(choices.map(c => ({ childId: c.childId, instanceId: c.instanceId })))}, looking for instanceId=${parsedInstanceId}`);
+      const choice = choices.find((c: any) => c.instanceId === parsedInstanceId);
+      if (!choice) {
+        throw new UnauthorizedException('Instance non trouvée dans les choix disponibles');
+      }
+      childId = choice.childId as number;
+    } else {
+      childId = (result.childId as number);
+    }
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: { group: { include: { team: { include: { instanceYear: true } } } } }
+    });
+    
+    if (!child) {
+      throw new UnauthorizedException('Enfant introuvable');
+    }
+    
+    return child;
+  }
+
+  async getDelegateImpact(authHeader: string, instanceIdStr?: string) {
+    const child = await this.getChildFromAuth(authHeader, instanceIdStr);
+    const instanceYear = child.group.team.instanceYear;
+    
+    if (!child.isDelegate && !instanceYear.allowAllDelegate) {
+      throw new UnauthorizedException('Accès non autorisé au tableau de bord');
+    }
+
+    const impactData = await this.impactService.calculateImpact(instanceYear.schoolYear, instanceYear.instanceId);
+
+    const teams = await this.prisma.team.findMany({
+      where: { instanceYearId: instanceYear.id },
+      include: {
+        groups: {
+          include: {
+            children: {
+              include: {
+                actionsDone: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const teamsScore = teams.map(t => {
+      let co2 = 0, water = 0, waste = 0;
+      let playersCount = 0;
+      let actionsCount = 0;
+      t.groups.forEach(g => {
+        playersCount += g.children.length;
+        g.children.forEach(c => {
+          actionsCount += c.actionsDone.length;
+          c.actionsDone.forEach(a => {
+            co2 += a.savedCo2 || 0;
+            water += a.savedWater || 0;
+            waste += a.savedWaste || 0;
+          });
+        });
+      });
+      return {
+        id: t.id,
+        name: t.name,
+        color: t.color || '#10b981',
+        totalCo2: co2,
+        totalWater: water,
+        totalWaste: waste,
+        totalScore: co2 + water + waste,
+        playersCount,
+        actionsCount
+      };
+    });
+
+    return { impactData, teams: teamsScore };
+  }
+
+  async getDelegateTracking(authHeader: string, instanceIdStr?: string) {
+    const child = await this.getChildFromAuth(authHeader, instanceIdStr);
+    const instanceYear = child.group.team.instanceYear;
+    
+    if (!child.isDelegate && !instanceYear.allowAllDelegate) {
+      throw new UnauthorizedException('Accès non autorisé au tableau de bord');
+    }
+
+    const trackingStats = await this.trackingService.getTrackingStats(instanceYear.instanceId, instanceYear.schoolYear);
+    return trackingStats;
+  }
+
+  async getDelegateEcoBarRaceHistory(authHeader: string, instanceIdStr?: string) {
+    const child = await this.getChildFromAuth(authHeader, instanceIdStr);
+    const instanceYear = child.group.team.instanceYear;
+    
+    if (!child.isDelegate && !instanceYear.allowAllDelegate) {
+      throw new UnauthorizedException('Accès non autorisé au tableau de bord');
+    }
+
+    return this.ecoBarRaceService.getHistory(instanceYear.schoolYear);
   }
 }

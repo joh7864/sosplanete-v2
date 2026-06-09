@@ -6,9 +6,9 @@ import { Button } from '../ui/Button';
 interface EditPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { pseudo: string; password?: string }) => Promise<void>;
+  onSave: (data: { pseudo: string; password?: string; isDelegate?: boolean }) => Promise<void>;
   onDelete?: () => Promise<void>;
-  initialData?: { pseudo: string; password?: string };
+  initialData?: { pseudo: string; password?: string; isDelegate?: boolean };
   isNew?: boolean;
 }
 
@@ -25,6 +25,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isHashed, setIsHashed] = useState(false);
+  const [isDelegate, setIsDelegate] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,6 +39,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       // Si c'est un hash, on ne l'affiche pas dans l'input pour ne pas polluer l'UI
       setPassword(hashed ? '' : rawPass);
       setShowPassword(false);
+      setIsDelegate(initialData?.isDelegate || false);
     }
   }, [isOpen, initialData]);
 
@@ -45,7 +47,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: { pseudo: string; password?: string } = { pseudo };
+      const payload: { pseudo: string; password?: string; isDelegate?: boolean } = { pseudo, isDelegate };
       if (password && password.trim() !== '') {
         payload.password = password;
       }
@@ -142,6 +144,20 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                     ? "Ce mot de passe est déjà sécurisé. Laissez le champ vide pour le conserver, ou tapez-en un nouveau pour le changer."
                     : "Note : Les élèves utilisent ce mot de passe pour se connecter sur leur interface locale."}
                 </p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Accès Mission Planète</span>
+                  <span className="text-[10px] text-slate-500 font-medium mt-0.5">Autoriser cet élève à voir le tableau de bord global</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDelegate(!isDelegate)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDelegate ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDelegate ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
               </div>
 
               <div className="pt-4 flex gap-3">

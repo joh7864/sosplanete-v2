@@ -317,7 +317,7 @@ function OrganizationContent() {
     }
   };
 
-  const handleSavePlayer = async (data: { pseudo: string; password?: string }) => {
+  const handleSavePlayer = async (data: { pseudo: string; password?: string; isDelegate?: boolean }) => {
     try {
       const url = isNewPlayer ? `${process.env.NEXT_PUBLIC_API_URL}/teams/children` : `${process.env.NEXT_PUBLIC_API_URL}/teams/children/${selectedPlayer?.id}`;
       const method = isNewPlayer ? 'POST' : 'PATCH';
@@ -688,6 +688,27 @@ function OrganizationContent() {
                         </div>
                     </div>
 
+                    <div className="flex items-center gap-3 border-r border-slate-100 pr-6 mr-2">
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-black text-slate-800 leading-none">Mission Planète</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Accès global</span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const newValue = !currentInstance?.allowAllDelegate;
+                          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/instances/${instanceId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthData('access_token')}` },
+                            body: JSON.stringify({ allowAllDelegate: newValue, schoolYear })
+                          });
+                          updateManagedInstances();
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${currentInstance?.allowAllDelegate ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${currentInstance?.allowAllDelegate ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+
                    <div className="flex items-center gap-2">
                       <button 
                         onClick={() => setSelectionMode(!isSelectionMode)}
@@ -863,7 +884,7 @@ function OrganizationContent() {
             isOpen={showPlayerModal}
             onClose={() => setShowPlayerModal(false)}
             isNew={isNewPlayer}
-            initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '' } : undefined}
+            initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '', isDelegate: selectedPlayer.isDelegate ?? false } : undefined}
             onSave={handleSavePlayer}
             onDelete={!isNewPlayer ? async () => {
               const hasActions = selectedPlayer?.actionsDone?.length > 0;

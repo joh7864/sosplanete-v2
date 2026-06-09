@@ -94,4 +94,19 @@ export class LegacyApiController {
   getActions(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
     return this.legacyApiService.getActions(origin, instanceIdStr);
   }
+
+  @Get('delegate/impact')
+  getDelegateImpact(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+    return this.legacyApiService.getDelegateImpact(auth, instanceIdStr);
+  }
+
+  @Get('delegate/tracking')
+  getDelegateTracking(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+    return this.legacyApiService.getDelegateTracking(auth, instanceIdStr);
+  }
+
+  @Get('delegate/eco-bar-race/history')
+  getDelegateEcoBarRaceHistory(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+    return this.legacyApiService.getDelegateEcoBarRaceHistory(auth, instanceIdStr);
+  }
 }

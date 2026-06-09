@@ -4,9 +4,10 @@ import { LegacyApiController } from './legacy-api.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { ImpactModule } from '../impact/impact.module';
 import { StimulationModule } from '../stimulation/stimulation.module';
+import { TrackingModule } from '../tracking/tracking.module';
 
 @Module({
-  imports: [PrismaModule, ImpactModule, StimulationModule],
+  imports: [PrismaModule, ImpactModule, StimulationModule, TrackingModule],
   providers: [LegacyApiService],
   controllers: [LegacyApiController],
   exports: [LegacyApiService],

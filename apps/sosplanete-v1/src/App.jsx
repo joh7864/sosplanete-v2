@@ -17,6 +17,7 @@ import Moi from "./pages/Moi/Moi";
 import Profile from "./pages/Profile/Profile";
 import Scores from "./pages/Scores/Scores";
 import Discovery from "./pages/Discovery/Discovery";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import { AuthProvider } from "./utils/AuthContext";
 import PrivateRoutes from "./utils/PrivateRoutes";
 
@@ -79,6 +80,8 @@ function App() {
                 <Route path="/impacts" element={<Impacts />} />
 
                 <Route path="/profile" element={<Profile />} />
+
+                <Route path="/dashboard" element={<Dashboard />} />
 
                 <Route path="*" element={<Login />} />
               </Route>

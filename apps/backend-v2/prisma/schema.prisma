@@ -91,6 +91,7 @@ model InstanceYear {
   hostUrl          String?
   icon             String?
   isOpen           Boolean   @default(false)
+  allowAllDelegate Boolean   @default(false)
   gameStartDate    DateTime?
   gameEndDate      DateTime?
   gamePeriodsCount Int       @default(24)
@@ -132,6 +133,7 @@ model Child {
   password    String?
   groupId     Int
   avatar      String?
+  isDelegate  Boolean      @default(false)
   actionsDone ActionDone[]
   group       Group        @relation(fields: [groupId], references: [id])
 

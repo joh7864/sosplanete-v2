@@ -14,7 +14,7 @@ import Games from './Icons/GamePad'
 import Book from './Icons/Book'
 
 const NavBar = () => {
-	const { user, logoutUser, pseudo, currentWeek, activeSchoolName, instanceChoices, school } = useAuth();
+	const { user, logoutUser, pseudo, currentWeek, activeSchoolName, instanceChoices, school, isDelegate, allowAllDelegate } = useAuth();
 	const [showNavbar, setShowNavbar] = useState(false);
 	const [navbarItemSelected, setNavbarItemSelected] = useState("/fiche");
 
@@ -126,6 +126,24 @@ const NavBar = () => {
 								<div className="item-menu-container">Jeux</div>
 							</Link>
 						</div> 
+
+						{(isDelegate || allowAllDelegate) && (
+						<>
+							<div className="separator" style={{ width: '2px', height: '30px', backgroundColor: '#e2e8f0', margin: '0 10px', borderRadius: '2px' }} />
+							<div onClick={() => handleMenuSelected("/dashboard")}>
+								<Link to="/dashboard" className={navbarItemSelected === "/dashboard" ? "header--link active" : "header--link"}>
+									<div className="item-menu-img-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}> 
+										<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={navbarItemSelected === "/dashboard" ? "var(--bg-color)" : "#000000"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+											<circle cx="12" cy="12" r="10"></circle>
+											<line x1="2" y1="12" x2="22" y2="12"></line>
+											<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+										</svg>
+									</div>
+									<div className="item-menu-container">Mission Planète</div>
+								</Link>
+							</div>
+						</>
+						)}
 
 						
 						{

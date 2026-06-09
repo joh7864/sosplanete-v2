@@ -193,6 +193,7 @@ export class InstanceService {
             gameEndDate: true,
             gamePeriodsCount: true,
             unlockedChapters: true,
+            allowAllDelegate: true,
             _count: {
               select: { teams: true, periods: true },
             },
@@ -264,6 +265,7 @@ export class InstanceService {
         instanceYearId: iy?.id ?? null,
         adminId: iy?.adminId ?? instance.adminId ?? null,
         unlockedChapters: iy?.unlockedChapters ?? 0,
+        allowAllDelegate: iy?.allowAllDelegate ?? false,
         teamsCount: iy?._count?.teams ?? 0,
         playersCount: playersMap.get(instance.id) ?? 0,
         totalActionsDone: actionsMap.get(instance.id) ?? 0,
@@ -311,8 +313,8 @@ export class InstanceService {
     };
   }
 
-  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean }, user?: any) {
-    const { schoolYear, currentSchoolYear, gameStartDate, gameEndDate, gamePeriodsCount, isOpen, force, hostUrl, icon, adminId, unlockedChapters, instanceId: _instanceId, ...updateData } = data as any;
+  async update(id: number, data: UpdateInstanceDto & { schoolYear?: string; force?: boolean; allowAllDelegate?: boolean }, user?: any) {
+    const { schoolYear, currentSchoolYear, gameStartDate, gameEndDate, gamePeriodsCount, isOpen, allowAllDelegate, force, hostUrl, icon, adminId, unlockedChapters, instanceId: _instanceId, ...updateData } = data as any;
 
     const sy = schoolYear || '2024-2025';
 
@@ -352,6 +354,7 @@ export class InstanceService {
       if (icon !== undefined)             iyUpdate.icon             = icon;
       if (adminId !== undefined)          iyUpdate.adminId          = adminId;
       if (unlockedChapters !== undefined) iyUpdate.unlockedChapters = unlockedChapters;
+      if (allowAllDelegate !== undefined) iyUpdate.allowAllDelegate = allowAllDelegate;
 
       if (gameStartDate !== undefined || gameEndDate !== undefined) {
         const newStartDate = gameStartDate !== undefined ? new Date(gameStartDate) : (instanceYear.gameStartDate ? new Date(instanceYear.gameStartDate) : null);
