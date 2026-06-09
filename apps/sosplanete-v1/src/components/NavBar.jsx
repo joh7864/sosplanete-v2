@@ -48,23 +48,6 @@ const NavBar = () => {
 							<div className='btn-quitter' onClick={() => logoutUser()} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer'}}>
 								<NavBarMenu title="Quitter" icon={logout}/>
 							</div>
-							{activeSchoolName && (
-								<div 
-									className={`school-badge ${instanceChoices && instanceChoices.length > 1 ? 'clickable' : ''}`}
-									onClick={() => {
-										if (instanceChoices && instanceChoices.length > 1) {
-											localStorage.removeItem("sos_last_instance_id");
-											window.location.href = "/discovery";
-										}
-									}}
-								>
-									<span className="school-badge-icon">🏫</span>
-									<span className="school-badge-text">
-										{activeSchoolName}
-									</span>
-									{instanceChoices && instanceChoices.length > 1 && <span className="school-badge-chevron">▼</span>}
-								</div>
-							)}
 						</div>
 						
 						<div onClick={() => handleMenuSelected("/fiche")}>

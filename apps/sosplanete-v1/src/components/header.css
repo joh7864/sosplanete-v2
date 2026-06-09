@@ -6,8 +6,9 @@
 
 	display: flex;
 	flex-direction: row;
-	justify-content: center;
+	justify-content: space-between; /* Permet d'écarter le bloc gauche du bloc droit */
 	align-items: center;
+	padding: 0 16px; /* Ajoute un peu de marge sur les bords */
 	background-color: white;
 	width: 100vw;
 	min-height: 50px;
@@ -19,11 +20,19 @@
 	cursor: pointer;
 	z-index: 99;
 }
+.top-menu-left {
+	display: flex;
+	align-items: center;
+}
+
 .top-menu-icon {
-	width: 50px;
-	position: absolute;
-	left: 16px;
-	margin: 0;
+	width: 32px;
+	margin-right: 12px;
+}
+
+.top-menu-right {
+	display: flex;
+	align-items: center;
 }
 .top-menu-title {
 	align-self: center;

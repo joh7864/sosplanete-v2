@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       .catch((error) => setChildId(null));
   };
 
-  const loginUser = async (userInfo) => {
+  const loginUser = async (userInfo, selectedInstanceId = null) => {
     setLoading(true);
 
     let uname = userInfo.pseudo + ":" + userInfo.password;
@@ -102,19 +102,30 @@ export const AuthProvider = ({ children }) => {
         .get(rootUrl + "/check_auth", { headers })
         .then((result) => {
           if (result.data.status === 'multiple_choices') {
-            const lastUsed = localStorage.getItem("sos_last_instance_id");
             const choices = result.data.choices;
             setInstanceChoices(choices);
-            const autoChoice = lastUsed ? choices.find(c => c.instanceId.toString() === lastUsed) : null;
             
-            if (autoChoice) {
-              finishLogin(autoChoice.instanceId, autoChoice.schoolName, headers, userInfo.pseudo, autoChoice.isDelegate, autoChoice.allowAllDelegate);
+            // Sauvegarde de l'historique des espaces pour ce pseudo (pour le 1 clic futur)
+            const savedChoices = JSON.parse(localStorage.getItem("sos_instance_choices") || "{}");
+            savedChoices[userInfo.pseudo] = choices;
+            localStorage.setItem("sos_instance_choices", JSON.stringify(savedChoices));
+
+            if (selectedInstanceId) {
+              // L'utilisateur a explicitement validé un choix dans la combobox
+              const choice = choices.find(c => c.instanceId.toString() === selectedInstanceId.toString());
+              if (choice) {
+                finishLogin(choice.instanceId, choice.schoolName, headers, userInfo.pseudo, choice.isDelegate, choice.allowAllDelegate);
+                navigate("/");
+              } else {
+                setUser(null); // Choix invalide
+              }
             } else {
-              localStorage.setItem("inProgress", "on"); // keep auth alive
-              navigate("/discovery");
+              // 1ère étape de la connexion (récupération des choix pour affichage)
+              setUser(null); // On annule temporairement le 'user' pour rester sur la page de login
             }
           } else if (result.data.instanceId) {
             finishLogin(result.data.instanceId, result.data.schoolName, headers, userInfo.pseudo, result.data.isDelegate, result.data.allowAllDelegate);
+            navigate("/");
           }
         })
         .catch((error) => {

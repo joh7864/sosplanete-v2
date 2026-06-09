@@ -31,7 +31,6 @@ const Header = props => {
             <div className="top-menu-title">
                 {title}
             </div>
-
           </div>
 
         </>

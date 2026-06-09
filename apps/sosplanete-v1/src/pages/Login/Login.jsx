@@ -13,7 +13,7 @@ import { useAuth } from "../../utils/AuthContext";
 import "./Login.css";
 
 const Login = () => {
-  const { user, loginUser, errorAuthentification } = useAuth();
+  const { user, loginUser, errorAuthentification, instanceChoices } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [errors, setErrors] = useState([]);
@@ -29,6 +29,12 @@ const Login = () => {
   const [openModal, setOpenModal] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [isLoginButtonDisable, setIsLoginButtonDisable] = useState(null);
+
+  const savedChoicesMap = JSON.parse(localStorage.getItem("sos_instance_choices") || "{}");
+  const localChoices = savedChoicesMap[pseudo] || null;
+  const displayChoices = instanceChoices || localChoices;
+  
+  const [selectedInstanceId, setSelectedInstanceId] = useState(localStorage.getItem("sos_last_instance_id") || "");
 
   const [mascotteTitre, setMascotteTitre] = useState("");
   const [mascotteLigne1, setMascotteLigne1] = useState("");
@@ -133,7 +139,15 @@ const Login = () => {
     setError("");
     const userInfo = { pseudo, password };
 
-    loginUser(userInfo);
+    if (displayChoices && displayChoices.length > 1 && !selectedInstanceId) {
+      setError("Veuillez choisir un établissement dans la liste déroulante.");
+      return;
+    }
+
+    // On ne passe l'instance au backend QUE si la combo box était affichée et que l'utilisateur a pu la voir
+    const finalInstanceId = (displayChoices && displayChoices.length > 1) ? selectedInstanceId : null;
+
+    loginUser(userInfo, finalInstanceId);
   };
 
   // Champ password et pseudo
@@ -210,14 +224,34 @@ const Login = () => {
 
             <div className="error-message">{error}</div>
 
-            <div className="form-field-wrapper">
-              <input
-                id="chkStayConnected"
-                type="checkbox"
-                checked={isStayConnected}
-                onChange={checkStayConnectedHandler}
-              />
-              <label htmlFor="chkStayConnected">Restez connecté</label>
+            <div className="form-field-wrapper login-options-wrapper">
+              <div className="stay-connected-group">
+                <input
+                  id="chkStayConnected"
+                  type="checkbox"
+                  checked={isStayConnected}
+                  onChange={checkStayConnectedHandler}
+                />
+                <label htmlFor="chkStayConnected">Restez connecté</label>
+              </div>
+
+              {displayChoices && displayChoices.length > 1 && (
+                <div className="school-combo-wrapper" title="Choisissez votre établissement">
+                  <span className="school-combo-icon">🏫</span>
+                  <select 
+                    value={selectedInstanceId} 
+                    onChange={(e) => setSelectedInstanceId(e.target.value)}
+                    className="school-combo-box"
+                  >
+                    {!selectedInstanceId && <option value="" disabled>Choisissez...</option>}
+                    {displayChoices.map(choice => (
+                      <option key={choice.instanceId} value={choice.instanceId}>
+                        {choice.schoolName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="form-field-wrapper">
