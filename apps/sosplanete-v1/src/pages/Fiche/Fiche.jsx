@@ -22,14 +22,19 @@ const Fiche = () => {
   const { user, currentWeek } = useAuth();
   const titre = "Bonjour";
 
-  // Mount du composant
   useEffect(() => {
-    if (currentWeek === null) return;
+    if (currentWeek === null) {
+      setAvailableWeek(false);
+      return;
+    }
 
     // Vérification de la présence de la période
-    if (Object.keys(currentWeek).length === 0) setAvailableWeek(false);
-    else setAvailableWeek(true);
-  }, [categories]);
+    if (!currentWeek || Object.keys(currentWeek).length === 0 || currentWeek.id === undefined) {
+      setAvailableWeek(false);
+    } else {
+      setAvailableWeek(true);
+    }
+  }, [categories, currentWeek]);
 
   // Mount du composant
   useEffect(() => {

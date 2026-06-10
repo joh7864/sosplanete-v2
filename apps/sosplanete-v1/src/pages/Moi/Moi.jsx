@@ -42,8 +42,9 @@ const Moi = () => {
     }
   }, [childInfos]);
 
-  // Evènement de MOUNT du composant
   useEffect(() => {
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null || childId == null) return;
+
     // Appel de l'API pour récupérer les actions de l'enfant connecté
     NnauruAPI.get(
       user,
@@ -66,7 +67,7 @@ const Moi = () => {
     var d2 = new Date(currentWeek.end);
     setStart(d1.toLocaleDateString("fr-FR"));
     setEnd(d2.toLocaleDateString("fr-FR"));
-  }, []);
+  }, [currentWeek?.id, childId]);
 
   // Evènement qui nous donne le signe que les données sont chargées
   useEffect(() => {

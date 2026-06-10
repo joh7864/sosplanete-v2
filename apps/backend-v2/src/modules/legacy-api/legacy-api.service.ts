@@ -284,6 +284,21 @@ export class LegacyApiService {
       if (!isNaN(parsedPeriodId)) {
         whereClause.periodId = parsedPeriodId;
       }
+    } else if (weekId !== '1') {
+      // Si weekId n'est pas fourni ou est invalide, et qu'on ne demande pas
+      // explicitement tout l'historique ('1'), on se rabat sur la période active de l'école de l'enfant.
+      const child = await this.prisma.child.findUnique({
+        where: { id: parseInt(childId) },
+        include: { group: { include: { team: true } } },
+      });
+      if (child && child.group?.team?.instanceYearId) {
+        try {
+          const openPeriod = await this.getOpenPeriod(child.group.team.instanceYearId);
+          whereClause.periodId = openPeriod.id;
+        } catch (e) {
+          // Fallback silencieux si aucune période n'est configurée/ouverte
+        }
+      }
     }
 
     const actions = await this.prisma.actionDone.findMany({
@@ -407,7 +422,12 @@ export class LegacyApiService {
 
   async getWeek(origin?: string, instanceIdStr?: string) {
     const { instanceYearId } = await this.getInstanceContext(origin, instanceIdStr);
-    const period = await this.prisma.period.findFirst({ where: { instanceYearId, isOpen: true } });
+    let period = null;
+    try {
+      period = await this.getOpenPeriod(instanceYearId);
+    } catch (e) {
+      period = await this.prisma.period.findFirst({ where: { instanceYearId, isOpen: true } });
+    }
     if (!period) return {};
     return {
       id:         period.id.toString(),

@@ -22,6 +22,8 @@ const Scores = () => {
   }, [scores, start, end]);
 
   useEffect(() => {
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null) return;
+
     setIsLoading(true);
     // Appel de l'API pour récupérer les scores de la semaine
     NnauruAPI.get(user, "/teams/total?week_id=" + currentWeek.id, true).then(
@@ -35,7 +37,7 @@ const Scores = () => {
     var d2 = new Date(currentWeek.end);
     setStart(d1.toLocaleDateString("fr-FR"));
     setEnd(d2.toLocaleDateString("fr-FR"));
-  }, []);
+  }, [currentWeek?.id]);
 
   return (
     <>

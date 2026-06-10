@@ -131,6 +131,8 @@ const Scores = () => {
   // Evènement de MOUNT du composant
   // --------------------------------------------
   useEffect(() => {
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null) return;
+
     // Appel de l'API pour récupérer les équipes
     NnauruAPI.get(user, "/impact?week_id=" + currentWeek.id, true).then(
       (result) => {
@@ -138,7 +140,7 @@ const Scores = () => {
       }
     );
     setTitreDeblocage("");
-  }, []);
+  }, [currentWeek?.id]);
 
   // --------------------------------------------
   // Rendere : Rendu HTML du composant

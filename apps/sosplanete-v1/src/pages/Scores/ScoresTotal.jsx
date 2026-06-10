@@ -50,15 +50,15 @@ const ScoresTotal = () => {
     setChartData(arr);
   }, [scores]);
 
-  // Mount du composant
   useEffect(() => {
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null) return;
+
     // Appel de l'API pour récupérer les équipes
     NnauruAPI.get(user, "/teams", true).then((result) => {
       setTeams(result);
     });
 
     // Appel de l'API pour récupérer les scores depuis le début du jeu
-    //NnauruAPI.get(user, "/teams/total?week_id=" + currentWeek.id, true).then((result) => {
     NnauruAPI.get(user, "/teams/total?week_id=" + currentWeek.id, true).then(
       (result) => {
         setScores(result);
@@ -69,7 +69,7 @@ const ScoresTotal = () => {
     var d2 = new Date(currentWeek.end);
     setStart(d1.toLocaleDateString("fr-FR"));
     setEnd(d2.toLocaleDateString("fr-FR"));
-  }, []);
+  }, [currentWeek?.id]);
 
   return (
     <>

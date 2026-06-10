@@ -79,7 +79,7 @@ function VignetteAction({
   // Evènement lors de la modification du statut de l'action
   // ---------------------------------------------
   useEffect(() => {
-    if (currentWeek?.id === null || childId == null) return;
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null || childId == null) return;
 
     NnauruAPI.get(
       user,
@@ -93,7 +93,7 @@ function VignetteAction({
     });
 
     return () => {};
-  }, [statutAction, realisedActionId]);
+  }, [statutAction, realisedActionId, currentWeek?.id, childId]);
 
   // ---------------------------------------------
   // Evènement lors de la modification du statut de l'action

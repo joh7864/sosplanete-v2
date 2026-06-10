@@ -18,22 +18,20 @@ function Categorie({ categorie, actionsChildDones }) {
   const { user, childId, currentWeek } = useAuth();
 
   useEffect(() => {
-    if (currentWeek !== undefined) {
-      if (currentWeek?.id === null || childId == null) return;
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null || childId == null || !categorie?.id) return;
 
-      // Chargement des actions "done" de l'enfant pour la cattégorie (Appel de l'API)
-      NnauruAPI.get(
-        user,
-        "/children/" + childId + "/actionsdone?week_id=" + currentWeek?.id,
-        true
-      ).then((dones) => {
-        setDonesCount(
-          dones?.filter((actionDone) => actionDone.category_id == categorie?.id)
-            .length
-        );
-      });
-    }
-  }, [categorieCount]);
+    // Chargement des actions "done" de l'enfant pour la cattégorie (Appel de l'API)
+    NnauruAPI.get(
+      user,
+      "/children/" + childId + "/actionsdone?week_id=" + currentWeek?.id,
+      true
+    ).then((dones) => {
+      setDonesCount(
+        dones?.filter((actionDone) => actionDone.category_id == categorie?.id)
+          .length
+      );
+    });
+  }, [categorieCount, currentWeek?.id, childId, categorie?.id]);
 
   // -----------------------------------
   // Evènement de Mount du composant

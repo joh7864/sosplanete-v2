@@ -119,7 +119,7 @@ const Actions = () => {
 
   // Calcul des actions réalisées dans la semaine par l'enfant (Appelé lorsaue la liste des actions change)
   useEffect(() => {
-    if (currentWeek?.id === null || childId == null) return;
+    if (!currentWeek || currentWeek.id === undefined || currentWeek.id === null || childId == null) return;
 
     NnauruAPI.get(
       user,
@@ -134,7 +134,7 @@ const Actions = () => {
     });
 
     UpdateCategorie();
-  }, [actions, totalActions, actionRealiseChanged]);
+  }, [actions, totalActions, actionRealiseChanged, currentWeek?.id, childId, currentCategorieId]);
 
   // Chargement de la liste des actions de la catégorie courante (Appelé quand la catégorie courante change)
   useEffect(() => {
