@@ -39,6 +39,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3010',
       'http://localhost:5173',
+      'http://localhost:5174',
       /^http:\/\/192\.168\.\d+\.\d+:\d+$/, // Autorise les connexions réseau local (Mobile)
       /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,  // Alternative réseau local
       /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:\d+$/ // Alternative réseau local

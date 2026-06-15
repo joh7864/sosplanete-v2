@@ -1,11 +1,9 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Headers } from '@nestjs/common';
 import { EvoeService } from './evoe.service';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Evoe')
 @Controller('evoe')
-@UseGuards(JwtAuthGuard)
 export class EvoeController {
   constructor(private readonly evoeService: EvoeService) {}
 
@@ -21,5 +19,11 @@ export class EvoeController {
   getDashboardStatus(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
     const sy = schoolYear || "2024-2025";
     return this.evoeService.getDashboardStatus(+instanceId, sy);
+  }
+
+  @Get('context')
+  @ApiOperation({ summary: "Récupère le contexte complet pour le frontend Evoe (3D et missions)" })
+  getContext(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+    return this.evoeService.getContext(auth, instanceIdStr);
   }
 }

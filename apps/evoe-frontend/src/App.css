@@ -125,61 +125,270 @@ body {
 
 .codex-panel {
   margin: 20px 40px;
-  width: 350px;
+  width: 320px;
   max-width: calc(100vw - 40px);
-  background: rgba(10, 15, 30, 0.8);
-  border: 1px solid rgba(0, 255, 204, 0.3);
-  border-radius: 8px;
-  padding: 20px;
-  backdrop-filter: blur(12px);
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  border-radius: 12px;
+  padding: 15px;
+  backdrop-filter: blur(20px);
   pointer-events: auto;
   box-sizing: border-box; /* Pour inclure le padding dans le max-width */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,255,204,0.05);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1), padding 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.codex-panel.collapsed {
+  width: 90px;
+  overflow-x: hidden;
+  padding: 15px 10px;
+  scrollbar-width: none; /* Cache la scrollbar (Firefox) */
+}
+
+/* Scrollbar premium pour le codex */
+.codex-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.codex-panel.collapsed::-webkit-scrollbar {
+  display: none; /* Cache la scrollbar (Chrome/Safari) */
+}
+.codex-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+.codex-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 204, 0.3);
+  border-radius: 4px;
 }
 
 @media (max-width: 768px) {
   .codex-panel {
     margin: 15px auto;
     width: calc(100vw - 30px);
+    max-height: calc(100vh - 160px);
   }
 }
 
 .codex-panel h2 {
   margin-top: 0;
-  font-size: 1.2rem;
+  margin-bottom: 0;
+  font-size: 1.1rem;
   color: #00ffcc;
+}
+
+.codex-header {
   border-bottom: 1px solid rgba(0, 255, 204, 0.3);
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.category-section {
+  margin-bottom: 25px;
+}
+
+.category-title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #00b3ff;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.category-title::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #00b3ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00b3ff;
 }
 
 .mission-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  border-radius: 10px;
   padding: 15px;
-  margin-bottom: 15px;
-  border-left: 3px solid #00b3ff;
+  margin-bottom: 12px;
+  border-left: 3px solid #00ffcc;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mission-card:hover {
+  transform: translateX(5px);
+  background: linear-gradient(145deg, rgba(0,255,204,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  border-left-color: #00b3ff;
+  box-shadow: -5px 5px 15px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 255, 204, 0.1);
+}
+
+/* --- Clean Dock Mode (Collapsed) --- */
+.codex-panel.collapsed .mission-card {
+  padding: 8px 0;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 5px;
+}
+
+.codex-panel.collapsed .mission-card:hover {
+  transform: scale(1.15);
+  background: transparent;
+  box-shadow: none;
+}
+
+.codex-panel.collapsed .mission-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%; /* Cercle parfait pour le mode Dock */
+  padding: 6px;
+  border: 1px solid rgba(0,255,204,0.2);
+  transition: all 0.2s ease;
+}
+
+.codex-panel.collapsed .mission-card:hover .mission-icon {
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.6);
+  background: rgba(0, 255, 204, 0.15);
+  border-color: #00ffcc;
+}
+
+.codex-panel.collapsed .mission-header {
+  margin: 0;
+}
+/* ---------------------------------- */
+
+.mission-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mission-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+  border-radius: 6px;
+  background: rgba(0,0,0,0.3);
+  padding: 4px;
 }
 
 .mission-card h3 {
-  margin: 0 0 10px 0;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #fff;
+  line-height: 1.2;
 }
 
 .mission-card p {
-  font-size: 0.85rem;
-  color: #ccc;
-  margin: 0 0 15px 0;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+/* On utilise ReactMarkdown pour afficher le bold, donc on s'assure qu'il est bien visible */
+.mission-card p strong {
+  color: #e2e8f0;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(255,255,255,0.2);
+}
+
+/* Premium Collapse Fix : on cache instantanément le texte pour éviter le reflow moche pendant l'animation */
+.codex-panel.collapsed .mission-card h3,
+.codex-panel.collapsed .mission-card p,
+.codex-panel.collapsed .category-title,
+.codex-panel.collapsed .hack-btn {
+  display: none !important;
 }
 
 .hack-btn {
-  background: transparent;
-  border: 1px solid #00ffcc;
+  background: rgba(0, 255, 204, 0.1);
+  border: 1px solid rgba(0, 255, 204, 0.5);
   color: #00ffcc;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  width: 100%;
+  text-transform: uppercase;
 }
 
-.hack-btn:hover {
-  background: rgba(0, 255, 204, 0.2);
+.hack-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 204, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+  text-shadow: 0 0 5px rgba(0, 255, 204, 0.5);
 }
+
+.hack-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --- Holographic Pop-over (Expanded Mission from Dock) --- */
+.mission-popover {
+  position: fixed;
+  left: 140px; /* Aligné à droite du dock (margin 40 + width 90 + gap 10) */
+  width: 300px;
+  background: rgba(10, 15, 30, 0.85);
+  border: 1px solid rgba(0, 255, 204, 0.4);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(25px);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,255,204,0.1);
+  z-index: 100;
+  pointer-events: auto;
+  transform: translateY(-50%); /* Centrage vertical parfait avec le clic */
+}
+
+/* Flèche pointant vers l'icône du Dock */
+.mission-popover::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: rgba(10, 15, 30, 0.85);
+  border-left: 1px solid rgba(0, 255, 204, 0.4);
+  border-bottom: 1px solid rgba(0, 255, 204, 0.4);
+}
+
+.mission-popover h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.mission-popover p {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  margin: 0 0 15px 0;
+  line-height: 1.4;
+}
+
+.mission-popover p strong {
+  color: #e2e8f0;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(255,255,255,0.2);
+}
+/* -------------------------------------------------------- */

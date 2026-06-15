@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, MeshWobbleMaterial } from '@react-three/drei';
+import { Sphere, MeshWobbleMaterial, Text, OrbitControls, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
+import { useAuth } from '../context/AuthContext';
 
 // Shader Material basique pour le Glitch
 const glitchShader = {
@@ -42,9 +43,13 @@ const glitchShader = {
   transparent: true
 };
 
-export const Portal2070: React.FC = () => {
+export default function Portal2070() {
   const radarRef = useRef<THREE.Group>(null);
   const timeUniformRef = useRef({ value: 0 });
+  const { players } = useAuth();
+
+  const teamList = players || [];
+  const count = teamList.length || 30;
 
   useFrame((state) => {
     if (radarRef.current) {
@@ -55,6 +60,13 @@ export const Portal2070: React.FC = () => {
 
   return (
     <group>
+      <OrbitControls 
+        enableZoom={false} 
+        enablePan={false} 
+        minPolarAngle={Math.PI/2 - 0.1} 
+        maxPolarAngle={Math.PI/2 + 0.1} 
+      />
+
       <ambientLight intensity={0.2} />
       
       {/* Ciel Etoilé sombre */}
@@ -67,29 +79,65 @@ export const Portal2070: React.FC = () => {
         <MeshWobbleMaterial factor={1} speed={2} color="#00ffcc" wireframe />
       </Sphere>
 
-      {/* 30 Descendants en orbite */}
+      {/* Descendants en orbite */}
       <group ref={radarRef}>
-        {Array.from({ length: 30 }).map((_, i) => {
-          const angle = (i / 30) * Math.PI * 2;
-          const radius = 8;
+        {teamList.length > 0 ? teamList.map((player, i) => {
+          // Calculer l'angle pour que isCurrent soit toujours à Math.PI / 2
+          const currentIndex = teamList.findIndex(p => p.isCurrent);
+          const shift = currentIndex !== -1 ? currentIndex : 0;
+          const normalizedIndex = (i - shift + count) % count;
+          const angle = (normalizedIndex / count) * Math.PI * 2 + (Math.PI / 2);
+
+          const radius = 8 + (i % 2 === 0 ? 0 : 1.5);
           const x = Math.cos(angle) * radius;
           const z = Math.sin(angle) * radius;
           
           // Simulation: 3 équipes actives, le reste inactif
-          const isActive = i % 10 === 0;
+          const isActive = player.isCurrent || i % 5 === 0;
 
           return (
-            <mesh key={i} position={[x, 0, z]}>
-              <boxGeometry args={[0.5, 0.5, 0.5]} />
-              <shaderMaterial 
-                attach="material" 
-                args={[glitchShader]} 
-                uniforms-time={timeUniformRef.current}
-                uniforms-active-value={isActive ? 1.0 : 0.0}
-              />
-            </mesh>
+            <group key={player.id} position={[x, 0, z]}>
+              <Billboard follow={true}>
+                <mesh position={[0, 0, 0]} frustumCulled={false}>
+                  <boxGeometry args={[0.5, 0.5, 0.05]} />
+                  <shaderMaterial 
+                    attach="material" 
+                    args={[glitchShader]} 
+                    uniforms-time={timeUniformRef.current}
+                    uniforms-active-value={isActive ? 1.0 : 0.0}
+                    transparent={true}
+                    depthWrite={false}
+                  />
+                </mesh>
+                {isActive && (
+                  <Text
+                    position={[0, -0.6, 0]}
+                    fontSize={0.2}
+                    color={player.color || "#00ffcc"}
+                    anchorX="center"
+                    anchorY="middle"
+                    depthWrite={false}
+                    frustumCulled={false}
+                  >
+                    {player.pseudo}
+                  </Text>
+                )}
+              </Billboard>
+            </group>
           );
-        })}
+        }) : (
+          Array.from({ length: 12 }).map((_, i) => {
+            const angle = (i / 12) * Math.PI * 2;
+            const x = Math.cos(angle) * 8;
+            const z = Math.sin(angle) * 8;
+            return (
+              <mesh key={i} position={[x, 0, z]}>
+                <boxGeometry args={[0.5, 0.5, 0.5]} />
+                <meshStandardMaterial color="#333" opacity={0.5} transparent />
+              </mesh>
+            );
+          })
+        )}
       </group>
     </group>
   );
