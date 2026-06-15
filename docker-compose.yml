@@ -91,7 +91,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=wagmoo_wagmoo_net"
-      - "traefik.http.routers.sos-evoe.rule=Host(`evoe.sosplanete.nnauru.net`)"
+      - "traefik.http.routers.sos-evoe.rule=Host(`evoe.nnauru.net`)"
       - "traefik.http.routers.sos-evoe.entrypoints=websecure"
       - "traefik.http.routers.sos-evoe.tls.certresolver=myresolver"
       - "traefik.http.services.sos-evoe.loadbalancer.server.port=5174"
