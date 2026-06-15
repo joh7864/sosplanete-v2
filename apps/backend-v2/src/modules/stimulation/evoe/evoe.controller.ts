@@ -1,0 +1,25 @@
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { EvoeService } from './evoe.service';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+
+@ApiTags('Evoe')
+@Controller('evoe')
+@UseGuards(JwtAuthGuard)
+export class EvoeController {
+  constructor(private readonly evoeService: EvoeService) {}
+
+  @Get('missions/:instanceId')
+  @ApiOperation({ summary: "Liste les missions physiques mappées en mode SF (Codex)" })
+  getMissions(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.evoeService.getMissions(+instanceId, sy);
+  }
+
+  @Get('dashboard/status/:instanceId')
+  @ApiOperation({ summary: "Statut du nexus temporel et des équipes (glitch, progression)" })
+  getDashboardStatus(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+    const sy = schoolYear || "2024-2025";
+    return this.evoeService.getDashboardStatus(+instanceId, sy);
+  }
+}

@@ -23,6 +23,7 @@ import { CategoryRefModule } from './modules/category-ref/category-ref.module';
 import { ImpactModule } from './modules/impact/impact.module';
 import { StimulationModule } from './modules/stimulation/stimulation.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     ),
     LegacyApiModule,
     StimulationModule,
+    EvoeModule,
   ],
   controllers: [AppController],
   providers: [

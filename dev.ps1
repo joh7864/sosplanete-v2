@@ -46,8 +46,8 @@ Write-Host "[CLEAN] Arret des anciens processus..." -ForegroundColor Magenta
 Write-Host "  - Verification des ports Docker (sos_backend_v2, sos_admin_v2)..." -ForegroundColor Gray
 docker stop sos_backend_v2 sos_admin_v2 2>$null
 
-# 2. Nettoyage par ports Windows (3010 = Admin, 3011 = Back, 3012 = Jeu v1)
-$ports = @(3010, 3011, 3012)
+# 2. Nettoyage par ports Windows (3010 = Admin, 3011 = Back, 3012 = Jeu v1, 5174 = Evoe)
+$ports = @(3010, 3011, 3012, 5174)
 foreach ($port in $ports) {
     $pidsToKill = @()
 
@@ -145,7 +145,11 @@ if ($LastExitCode -ne 0) {
 Write-Host "[ADMIN] Lancement de l'Admin (Port 3010)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/admin-sosplanete-v2; `$env:PORT=3010; npm run dev" -WindowStyle Normal
 
-# 7. Démarrage Jeu-v1
+# 7. Démarrage Evoe-Frontend
+Write-Host "[EVOE] Lancement de l'app Evoe (Port 5174)..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd apps/evoe-frontend; npm run dev" -WindowStyle Normal
+
+# 8. Démarrage Jeu-v1
 Write-Host "[JEU] Lancement du Jeu v1 (Port 3012)..." -ForegroundColor Cyan
 & {
     Set-Location apps/sosplanete-v1

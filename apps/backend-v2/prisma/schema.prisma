@@ -154,6 +154,7 @@ model LocalAction {
   specificEnergy Float?
   schoolYear     String?
   actionsDone    ActionDone[]
+  evoeMission    EvoeMissionTranslation?
   actionRef      ActionRef    @relation(fields: [actionRefId], references: [id])
   category       Category?    @relation(fields: [categoryId], references: [id])
   instance       Instance     @relation(fields: [instanceId], references: [id])
@@ -270,4 +271,16 @@ model Notification {
   status      String   @default("PENDING")
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+}
+
+model EvoeMissionTranslation {
+  id             Int          @id @default(autoincrement())
+  localActionId  Int          @unique
+  titreSF        String
+  descriptionSF  String
+  pointsGagnes   Int
+  isHacked       Boolean      @default(false)
+  localAction    LocalAction  @relation(fields: [localActionId], references: [id], onDelete: Cascade)
+  
+  @@map("evoe_mission_translation")
 }

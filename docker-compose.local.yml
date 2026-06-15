@@ -23,6 +23,18 @@ services:
     networks:
       - sos_local_net
 
+  evoe-frontend:
+    build:
+      context: ./apps/evoe-frontend
+    container_name: sos_evoe_local
+    ports:
+      - "5174:5174"
+    volumes:
+      - ./apps/evoe-frontend:/app
+      - /app/node_modules
+    networks:
+      - sos_local_net
+
 networks:
   sos_local_net:
 
