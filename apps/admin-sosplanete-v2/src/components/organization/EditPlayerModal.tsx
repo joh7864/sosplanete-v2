@@ -6,9 +6,23 @@ import { Button } from '../ui/Button';
 interface EditPlayerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { pseudo: string; password?: string; isDelegate?: boolean }) => Promise<void>;
+  onSave: (data: { 
+    pseudo: string; 
+    password?: string; 
+    isDelegate?: boolean;
+    gender?: string | null;
+    birthDate?: string | null;
+    avatar?: string | null;
+  }) => Promise<void>;
   onDelete?: () => Promise<void>;
-  initialData?: { pseudo: string; password?: string; isDelegate?: boolean };
+  initialData?: { 
+    pseudo: string; 
+    password?: string; 
+    isDelegate?: boolean;
+    gender?: string | null;
+    birthDate?: string | null;
+    avatar?: string | null;
+  };
   isNew?: boolean;
 }
 
@@ -26,6 +40,12 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isHashed, setIsHashed] = useState(false);
   const [isDelegate, setIsDelegate] = useState(false);
+  
+  // Nouveaux états
+  const [gender, setGender] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,6 +60,12 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       setPassword(hashed ? '' : rawPass);
       setShowPassword(false);
       setIsDelegate(initialData?.isDelegate || false);
+      setGender(initialData?.gender || null);
+      
+      const rawBirth = initialData?.birthDate || '';
+      setBirthDate(rawBirth ? rawBirth.substring(0, 10) : '');
+      setAvatar(initialData?.avatar || null);
+      setShowAvatarPicker(false);
     }
   }, [isOpen, initialData]);
 
@@ -47,7 +73,20 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: { pseudo: string; password?: string; isDelegate?: boolean } = { pseudo, isDelegate };
+      const payload: { 
+        pseudo: string; 
+        password?: string; 
+        isDelegate?: boolean;
+        gender: string | null;
+        birthDate: string | null;
+        avatar: string | null;
+      } = { 
+        pseudo, 
+        isDelegate,
+        gender: gender || null,
+        birthDate: birthDate || null,
+        avatar: avatar || null
+      };
       if (password && password.trim() !== '') {
         payload.password = password;
       }
@@ -59,6 +98,11 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       setLoading(false);
     }
   };
+
+  const cleanApiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011/api/v1')
+    .replace('/api/v1', '')
+    .replace('/api', '')
+    .replace(/\/+$/, '');
 
   return (
     <AnimatePresence>
@@ -88,6 +132,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 </p>
               </div>
               <button 
+                type="button"
                 onClick={onClose}
                 className="p-2.5 rounded-xl bg-white text-slate-400 hover:text-slate-600 shadow-sm border border-slate-100 transition-all"
               >
@@ -95,7 +140,83 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              
+              {/* Avatar Selector Group */}
+              <div className="flex flex-col items-center gap-2 pb-2 border-b border-slate-100/80">
+                <div 
+                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                  className="group/avatar relative w-20 h-20 rounded-full bg-slate-50 border border-slate-200 shadow-inner flex items-center justify-center overflow-hidden cursor-pointer hover:border-emerald-400 transition-all"
+                >
+                  {avatar ? (
+                    <img 
+                      src={`${cleanApiUrl}/static/${avatar}`} 
+                      alt="Player avatar" 
+                      className="w-full h-full object-cover group-hover/avatar:scale-105 transition-transform" 
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-400 group-hover/avatar:text-emerald-500 transition-colors text-center p-2">
+                      <span className="text-2xl font-black">{pseudo ? pseudo[0].toUpperCase() : '?'}</span>
+                      <span className="text-[7px] font-black uppercase tracking-wider mt-1 opacity-70">Auto</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-white text-[9px] font-bold uppercase transition-all backdrop-blur-[1px]">
+                    Modifier
+                  </div>
+                </div>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Cliquez pour choisir un avatar</span>
+              </div>
+
+              {/* Avatar Picker Section */}
+              <AnimatePresence>
+                {showAvatarPicker && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-slate-50 rounded-2xl border border-slate-100 p-4"
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Choisir un avatar 3D</span>
+                      {avatar && (
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            setAvatar(null);
+                            setShowAvatarPicker(false);
+                          }}
+                          className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest"
+                        >
+                          Rétablir auto
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-6 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+                      {Array.from({ length: 39 }, (_, i) => {
+                        const idxStr = (i + 1).toString().padStart(2, '0');
+                        const file = `avatars_3D/avatar_${idxStr}.png`;
+                        const url = `${cleanApiUrl}/static/${file}`;
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setAvatar(file);
+                              setShowAvatarPicker(false);
+                            }}
+                            className={`w-10 h-10 rounded-xl bg-white border flex items-center justify-center overflow-hidden hover:scale-105 hover:border-emerald-400 transition-all ${avatar === file ? 'ring-2 ring-emerald-500 border-transparent shadow-md' : 'border-slate-100'}`}
+                            title={`Avatar ${idxStr}`}
+                          >
+                            <img src={url} alt={`Avatar ${idxStr}`} className="w-full h-full object-cover" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Pseudonyme */}
               <div className="space-y-2.5">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
                   <User size={12} /> Pseudonyme
@@ -115,6 +236,38 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 </div>
               </div>
 
+              {/* Sexe et Date de naissance */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2.5">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                    Sexe / Genre
+                  </label>
+                  <select
+                    value={gender || ''}
+                    onChange={(e) => setGender(e.target.value || null)}
+                    className="w-full px-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-700 font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                  >
+                    <option value="">Non spécifié</option>
+                    <option value="M">Homme</option>
+                    <option value="F">Femme</option>
+                    <option value="E">Enfant</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2.5">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                    Date de naissance
+                  </label>
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(e.target.value)}
+                    className="w-full px-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-700 font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Mot de passe */}
               <div className="space-y-2.5">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
                   <Key size={12} /> Mot de passe
@@ -146,6 +299,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 </p>
               </div>
 
+              {/* Accès Mission Planète */}
               <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Accès Mission Planète</span>
@@ -160,6 +314,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 </button>
               </div>
 
+              {/* Actions de sauvegarde et suppression */}
               <div className="pt-4 flex gap-3">
                 {!isNew && onDelete && (
                   <Button 

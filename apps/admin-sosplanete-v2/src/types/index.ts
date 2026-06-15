@@ -65,6 +65,8 @@ export interface Child {
   avatar?: string | null;
   groupId?: number;
   actionsDone?: ActionDone[];
+  gender?: string | null;
+  birthDate?: string | null;
 }
 
 export interface Group {

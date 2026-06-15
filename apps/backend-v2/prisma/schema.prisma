@@ -134,6 +134,8 @@ model Child {
   groupId     Int
   avatar      String?
   isDelegate  Boolean      @default(false)
+  gender      String?
+  birthDate   DateTime?
   actionsDone ActionDone[]
   group       Group        @relation(fields: [groupId], references: [id])
 

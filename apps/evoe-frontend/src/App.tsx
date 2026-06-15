@@ -73,6 +73,17 @@ function MainApp() {
 
   return (
     <div className="app-container">
+      {/* Overlay Mode Portrait (Paysage Requis) */}
+      <div className="orientation-warning">
+        <div className="orientation-warning-content">
+          <div className="phone-rotate-icon">🔄</div>
+          <h2>ALERTE MATRICE NEXUS</h2>
+          <p>
+            Veuillez tourner votre appareil en <strong>mode paysage</strong> (horizontal) pour synchroniser le Codex Temporel.
+          </p>
+        </div>
+      </div>
+
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
         <Canvas camera={{ position: [0, 5, 10], fov: 60 }}>

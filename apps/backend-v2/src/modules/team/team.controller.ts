@@ -150,12 +150,40 @@ export class TeamController {
 
   // --- CHILDREN CRUD ---
   @Post('children')
-  async createChild(@Body() body: { groupId: number; pseudo: string; password?: string; isDelegate?: boolean }) {
-    return this.teamService.createChild(body.groupId, body.pseudo, body.password, body.isDelegate);
+  async createChild(
+    @Body() body: { 
+      groupId: number; 
+      pseudo: string; 
+      password?: string; 
+      isDelegate?: boolean; 
+      gender?: string; 
+      birthDate?: string; 
+      avatar?: string;
+    }
+  ) {
+    return this.teamService.createChild(
+      body.groupId, 
+      body.pseudo, 
+      body.password, 
+      body.isDelegate, 
+      body.gender, 
+      body.birthDate, 
+      body.avatar
+    );
   }
 
   @Patch('children/:id')
-  async updateChild(@Param('id', ParseIntPipe) id: number, @Body() body: { pseudo?: string; password?: string; isDelegate?: boolean }) {
+  async updateChild(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body() body: { 
+      pseudo?: string; 
+      password?: string; 
+      isDelegate?: boolean; 
+      gender?: string; 
+      birthDate?: string | null; 
+      avatar?: string | null;
+    }
+  ) {
     return this.teamService.updateChild(id, body);
   }
 }

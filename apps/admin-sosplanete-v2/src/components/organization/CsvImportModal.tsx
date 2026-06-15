@@ -235,8 +235,9 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                              <div className="flex flex-col gap-1">
                                 <h4 className="font-black text-slate-800 text-sm">Spécifications du fichier</h4>
                                 <p className="text-slate-500 text-xs leading-relaxed">
-                                  Le fichier doit comporter 5 colonnes séparées par des points-virgules (;) : <br/>
-                                  <span className="font-black text-slate-700">Équipe, Groupe, Pseudo, Mot de passe, Logo équipe</span>.
+                                  Le fichier doit comporter jusqu'à 7 colonnes séparées par des points-virgules (;) : <br/>
+                                  <span className="font-black text-slate-700">Équipe, Groupe, Pseudo, Mot de passe, Logo équipe, Sexe, Date de naissance</span>.<br/>
+                                  <span className="text-[10px] text-slate-400 font-semibold italic">Les deux dernières colonnes (Sexe et Date de naissance) sont facultatives. Sexe accepte "Homme", "Femme" ou "Enfant".</span>
                                 </p>
                              </div>
                           </div>
@@ -250,7 +251,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                               </div>
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Eye size={14} /> Aperçu compact (50 premières)</span>
                             </div>
-                            <button onClick={() => setStep('upload')} className="text-[10px] font-black text-emerald-600 hover:underline uppercase">Changer</button>
+                            <button onClick={() => setStep('upload')} className="text-[10px] font-black text-emerald-600 hover:uppercase">Changer</button>
                           </div>
                           
                           <div className="rounded-2xl border border-slate-100 overflow-hidden bg-slate-50/50 max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -262,6 +263,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                                   <th className="px-3 py-2">Joueur</th>
                                   <th className="px-3 py-2">Pass</th>
                                   <th className="px-3 py-2">Logo</th>
+                                  <th className="px-3 py-2">Sexe</th>
+                                  <th className="px-3 py-2">Naiss.</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -272,6 +275,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, instance
                                     <td className="px-3 py-1.5 text-slate-600">{(normalizeKey(row, ['Pseudo', 'pseudo']) as string) || '-'}</td>
                                     <td className="px-3 py-1.5 text-slate-400 font-mono italic">******</td>
                                     <td className="px-3 py-1.5">{normalizeKey(row, ['logo equipe']) ? '🖼️' : '❌'}</td>
+                                    <td className="px-3 py-1.5 text-slate-600">{(normalizeKey(row, ['sexe', 'gender', 'genre']) as string) || '-'}</td>
+                                    <td className="px-3 py-1.5 text-slate-600">{(normalizeKey(row, ['date de naissance', 'date_naissance', 'naissance', 'birthdate', 'ddn']) as string) || '-'}</td>
                                   </tr>
                                 ))}
                               </tbody>

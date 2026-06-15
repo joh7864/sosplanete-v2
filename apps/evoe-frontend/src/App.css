@@ -392,3 +392,79 @@ body {
   text-shadow: 0 0 8px rgba(255,255,255,0.2);
 }
 /* -------------------------------------------------------- */
+
+/* --- Overlay Orientation Portrait (Paysage Requis) --- */
+.orientation-warning {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(5, 10, 20, 0.95);
+  backdrop-filter: blur(20px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 30px;
+  box-sizing: border-box;
+}
+
+@media (orientation: portrait) {
+  .orientation-warning {
+    display: flex;
+  }
+}
+
+.orientation-warning-content {
+  max-w: 300px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.phone-rotate-icon {
+  font-size: 3rem;
+  color: #00ffcc;
+  animation: phoneRotate 2s infinite ease-in-out;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.4));
+}
+
+.orientation-warning-content h2 {
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: 2px;
+  color: #00ffcc;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+}
+
+.orientation-warning-content p {
+  font-size: 0.85rem;
+  margin: 0;
+  color: #a0aec0;
+  line-height: 1.5;
+}
+
+.orientation-warning-content strong {
+  color: #fff;
+  font-weight: bold;
+}
+
+@keyframes phoneRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-90deg);
+  }
+  75% {
+    transform: rotate(-90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

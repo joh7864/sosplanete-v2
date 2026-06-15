@@ -317,7 +317,14 @@ function OrganizationContent() {
     }
   };
 
-  const handleSavePlayer = async (data: { pseudo: string; password?: string; isDelegate?: boolean }) => {
+  const handleSavePlayer = async (data: { 
+    pseudo: string; 
+    password?: string; 
+    isDelegate?: boolean;
+    gender?: string | null;
+    birthDate?: string | null;
+    avatar?: string | null;
+  }) => {
     try {
       const url = isNewPlayer ? `${process.env.NEXT_PUBLIC_API_URL}/teams/children` : `${process.env.NEXT_PUBLIC_API_URL}/teams/children/${selectedPlayer?.id}`;
       const method = isNewPlayer ? 'POST' : 'PATCH';
@@ -884,7 +891,14 @@ function OrganizationContent() {
             isOpen={showPlayerModal}
             onClose={() => setShowPlayerModal(false)}
             isNew={isNewPlayer}
-            initialData={selectedPlayer ? { pseudo: selectedPlayer.pseudo, password: selectedPlayer.password || '', isDelegate: selectedPlayer.isDelegate ?? false } : undefined}
+            initialData={selectedPlayer ? { 
+              pseudo: selectedPlayer.pseudo, 
+              password: selectedPlayer.password || '', 
+              isDelegate: selectedPlayer.isDelegate ?? false,
+              gender: selectedPlayer.gender ?? null,
+              birthDate: selectedPlayer.birthDate ?? null,
+              avatar: selectedPlayer.avatar ?? null
+            } : undefined}
             onSave={handleSavePlayer}
             onDelete={!isNewPlayer ? async () => {
               const hasActions = selectedPlayer?.actionsDone?.length > 0;

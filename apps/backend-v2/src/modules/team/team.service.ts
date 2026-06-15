@@ -184,6 +184,11 @@ export class TeamService {
           const groupColor = row['couleur groupe']?.toString().trim() || null;
           const hashedPassword = hashedPasswords.get(i);
 
+          const rawGender  = row['sexe']?.toString().trim() || row['gender']?.toString().trim() || row['genre']?.toString().trim() || null;
+          const rawBirthDate = row['date de naissance']?.toString().trim() || row['date_naissance']?.toString().trim() || row['naissance']?.toString().trim() || row['birthdate']?.toString().trim() || row['ddn']?.toString().trim() || null;
+          const genderCode = normalizeGender(rawGender);
+          const parsedBirthDate = parseBirthDate(rawBirthDate);
+
           if (!teamName) continue;
 
           let team = teamCache.get(teamName.toLowerCase());
@@ -221,11 +226,25 @@ export class TeamService {
           const childKey = `${group.id}:${pseudo.toLowerCase()}`;
           const existing = childCache.get(childKey);
           if (!existing) {
-            const created = await tx.child.create({ data: { pseudo, groupId: group.id, password: hashedPassword } });
+            const created = await tx.child.create({ 
+              data: { 
+                pseudo, 
+                groupId: group.id, 
+                password: hashedPassword,
+                gender: genderCode,
+                birthDate: parsedBirthDate
+              } 
+            });
             childCache.set(childKey, created);
             stats.players++;
-          } else if (hashedPassword) {
-            await tx.child.update({ where: { id: existing.id }, data: { password: hashedPassword } });
+          } else {
+            const updateData: any = {};
+            if (hashedPassword) updateData.password = hashedPassword;
+            if (genderCode !== null) updateData.gender = genderCode;
+            if (parsedBirthDate !== null) updateData.birthDate = parsedBirthDate;
+            if (Object.keys(updateData).length > 0) {
+              await tx.child.update({ where: { id: existing.id }, data: updateData });
+            }
           }
         }
       }, { timeout: 60000 });
@@ -254,18 +273,51 @@ export class TeamService {
     });
   }
 
-  async createChild(groupId: number, pseudo: string, password?: string, isDelegate?: boolean) {
+  async createChild(
+    groupId: number, 
+    pseudo: string, 
+    password?: string, 
+    isDelegate?: boolean,
+    gender?: string,
+    birthDate?: string | Date | null,
+    avatar?: string | null
+  ) {
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
-    return this.prisma.child.create({ data: { pseudo, groupId, password: hashedPassword, isDelegate: isDelegate || false } });
+    const parsedGender = normalizeGender(gender);
+    const parsedBirthDate = parseBirthDate(birthDate);
+    return this.prisma.child.create({ 
+      data: { 
+        pseudo, 
+        groupId, 
+        password: hashedPassword, 
+        isDelegate: isDelegate || false,
+        gender: parsedGender,
+        birthDate: parsedBirthDate,
+        avatar: avatar || null
+      } 
+    });
   }
 
-  async updateChild(id: number, data: { pseudo?: string; password?: string; isDelegate?: boolean }) {
-    const updateData: { pseudo?: string; password?: string | null; isDelegate?: boolean } = {};
+  async updateChild(
+    id: number, 
+    data: { 
+      pseudo?: string; 
+      password?: string; 
+      isDelegate?: boolean;
+      gender?: string | null;
+      birthDate?: string | Date | null;
+      avatar?: string | null;
+    }
+  ) {
+    const updateData: any = {};
     if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
     if (data.password && data.password.trim() !== '') {
       updateData.password = await bcrypt.hash(data.password, 10);
     }
     if (data.isDelegate !== undefined) updateData.isDelegate = data.isDelegate;
+    if (data.gender !== undefined) updateData.gender = normalizeGender(data.gender);
+    if (data.birthDate !== undefined) updateData.birthDate = parseBirthDate(data.birthDate);
+    if (data.avatar !== undefined) updateData.avatar = data.avatar;
     return this.prisma.child.update({ where: { id }, data: updateData });
   }
 
@@ -280,4 +332,53 @@ export class TeamService {
       return tx.team.deleteMany({ where: { id: { in: ids } } });
     });
   }
+}
+
+// ----------------------------------------------------------------
+// Helpers pour la normalisation du genre et le parsing de date
+// ----------------------------------------------------------------
+function normalizeGender(val: string | null | undefined): string | null {
+  if (!val) return null;
+  const str = String(val).trim().toLowerCase();
+  if (str === '') return null;
+  if (str === 'm' || str.startsWith('hom') || str.startsWith('gar') || str.startsWith('mal') || str === 'h') {
+    return 'M';
+  }
+  if (str === 'f' || str.startsWith('fem') || str.startsWith('fil') || str.startsWith('femal')) {
+    return 'F';
+  }
+  if (str === 'e' || str.startsWith('enf') || str.startsWith('chi') || str.startsWith('ped')) {
+    return 'E';
+  }
+  return null;
+}
+
+function parseBirthDate(val: string | Date | null | undefined): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const str = String(val).trim();
+  if (str === '') return null;
+  
+  // Format DD/MM/YYYY
+  const ddmmyyyy = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (ddmmyyyy) {
+    const day = parseInt(ddmmyyyy[1], 10);
+    const month = parseInt(ddmmyyyy[2], 10) - 1;
+    const year = parseInt(ddmmyyyy[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  // Format YYYY-MM-DD
+  const yyyymmdd = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/);
+  if (yyyymmdd) {
+    const year = parseInt(yyyymmdd[1], 10);
+    const month = parseInt(yyyymmdd[2], 10) - 1;
+    const day = parseInt(yyyymmdd[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  const parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? null : parsed;
 }

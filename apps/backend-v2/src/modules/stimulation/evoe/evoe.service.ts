@@ -161,7 +161,9 @@ export class EvoeService {
             color: t.color || '#40916C', // Team color
             isCurrent: c.id === child.id,
             groupId: g.id,
-            teamId: t.id
+            teamId: t.id,
+            gender: c.gender,
+            birthDate: c.birthDate
           });
         });
       });

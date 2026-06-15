@@ -30,28 +30,53 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
   const groupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    const loadDicebear = () => {
+    const loadStatic3DAvatar = () => {
       const pseudo = player.pseudo || 'default';
-      // Dicebear sans fond gris (transparent)
-      const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(pseudo)}&backgroundColor=transparent`;
       
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        const size = 128;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, size, size);
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.needsUpdate = true;
-        setTexture(tex);
-      };
-      img.onerror = () => {
-        setTexture(null); // Fallback à l'initiale si Dicebear échoue
-      };
-      img.src = dicebearUrl;
+      // On utilise le pseudo pour générer un ID déterministe
+      let hash = 0;
+      for (let i = 0; i < pseudo.length; i++) {
+        hash += pseudo.charCodeAt(i);
+      }
+      
+      // Calcul de l'âge
+      let age: number | null = null;
+      if (player.birthDate) {
+        const birthYear = new Date(player.birthDate).getFullYear();
+        const currentYear = new Date().getFullYear();
+        age = currentYear - birthYear;
+      }
+
+      let avatarIndex = 1;
+
+      // Choix de l'avatar selon le sexe et l'âge
+      if (player.gender === 'E' || (age !== null && age < 15)) {
+        // Enfant : de avatar_34 à avatar_39 (6 avatars)
+        avatarIndex = 34 + (hash % 6);
+      } else if (player.gender === 'F') {
+        // Femme : de avatar_22 à avatar_33 (12 avatars)
+        avatarIndex = 22 + (hash % 12);
+      } else if (player.gender === 'M') {
+        // Homme : de avatar_01 à avatar_21 (21 avatars)
+        avatarIndex = 1 + (hash % 21);
+      } else {
+        // Fallback global de avatar_01 à avatar_39
+        avatarIndex = (hash % 39) + 1;
+      }
+
+      const formattedIndex = avatarIndex.toString().padStart(2, '0');
+      
+      // URL pointant vers le dossier uploads/avatars_3D/ (servi par /static/ sur le backend)
+      const avatarUrl = `${EVOE_IMG_URL}avatars_3D/avatar_${formattedIndex}.png`;
+      
+      const loader = new THREE.TextureLoader();
+      loader.setCrossOrigin('anonymous');
+      loader.load(
+        avatarUrl,
+        (tex) => setTexture(tex),
+        undefined,
+        () => setTexture(null) // Fallback à l'initiale si l'image n'est pas trouvée
+      );
     };
 
     if (player.avatar && player.avatar !== 'avatars/default.png') {
@@ -61,10 +86,10 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
         `${EVOE_IMG_URL}${player.avatar}`,
         (tex) => setTexture(tex),
         undefined,
-        () => loadDicebear() // En cas d'erreur de chargement
+        () => loadStatic3DAvatar() // En cas d'erreur de chargement
       );
     } else {
-      loadDicebear();
+      loadStatic3DAvatar();
     }
   }, [player.avatar, player.pseudo]);
 
