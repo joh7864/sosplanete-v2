@@ -88,6 +88,10 @@ services:
     networks:
       - sos_internal
       - wagmoo_wagmoo_net
+    environment:
+      - VITE_API_URL=https://api.sosplanete.nnauru.net/legacy
+      - VITE_EVOE_API_URL=https://api.sosplanete.nnauru.net/evoe
+      - VITE_IMG_ROOT_URL=https://api.sosplanete.nnauru.net/static/
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=wagmoo_wagmoo_net"

@@ -36,6 +36,8 @@ async function bootstrap() {
     origin: [
       'https://sosplanete.nnauru.net',
       'https://admin.sosplanete.nnauru.net',
+      'https://evoe.nnauru.net',
+      'https://evoe.sosplanete.nnauru.net',
       'http://localhost:3000',
       'http://localhost:3010',
       'http://localhost:5173',
