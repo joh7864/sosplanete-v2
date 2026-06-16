@@ -6,7 +6,7 @@
 | :--- | :--- | :--- | :---: | :---: | :---: |
 | **US 1.1** | Auditeur | Audit des services et modèles (Python) | 5 | Must | [x] done |
 | **US 1.2** | Auditeur | Documentation des US v1 (@/spec) | 8 | Must | [x] done |
-| **US 1** | Joueur | Roles & Instances (AS/AM) | 8 | Must | [/] inprogress |
+| **US 1** | Joueur | Roles & Instances (AS/AM) | 8 | Must | [x] done |
 | **US 2** | Joueur | Organisation Espace | 13 | Must | [ ] todo |
 | **US 3** | Joueur | Management Catalogue & Mapping | 8 | Must | [/] inprogress |
 | **US 4** | Joueur | Stockage Actions (ActionDone) | 5 | Must | [ ] todo |
