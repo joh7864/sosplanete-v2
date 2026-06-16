@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hexagon } from 'lucide-react';
+import { Hexagon, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
@@ -12,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [keepLogged, setKeepLogged] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirection automatique si déjà loggé (et qu'on n'est pas dans l'étape des choix)
   useEffect(() => {
@@ -72,14 +73,24 @@ export default function Login() {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group password-group">
               <label>Clé de Décryptage</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mot de passe"
-              />
+              <div className="password-input-wrapper">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mot de passe"
+                />
+                <button 
+                  type="button" 
+                  className="eye-btn" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <label className="checkbox-group">

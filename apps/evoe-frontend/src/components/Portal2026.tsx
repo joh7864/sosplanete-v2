@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Sphere, MeshDistortMaterial, Text, OrbitControls, Billboard } from '@react-three/drei';
+import { useRef, useState, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Sphere, Text, OrbitControls, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAuth } from '../context/AuthContext';
 
@@ -151,12 +151,30 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          depthWrite={false}
+          material-depthWrite={false}
           frustumCulled={false}
         >
           {initial}
         </Text>
       )}
+
+      {/* Barre de santé des descendants */}
+      <Billboard follow={true}>
+        <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
+          {/* Fond de la jauge */}
+          <mesh>
+            <planeGeometry args={[0.5 * avatarScale, 0.03]} />
+            <meshBasicMaterial color="#333333" transparent opacity={0.8} depthWrite={false} />
+          </mesh>
+          {/* Remplissage coloré de la jauge (dégradé Rouge -> Vert) */}
+          {player.health !== undefined && player.health > 0 && (
+            <mesh position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}>
+              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.02]} />
+              <meshBasicMaterial color={`hsl(${player.health * 1.2}, 85%, 45%)`} depthWrite={false} />
+            </mesh>
+          )}
+        </group>
+      </Billboard>
 
       {/* Pseudo flottant */}
       <Billboard follow={true}>
@@ -168,7 +186,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
           anchorY="middle"
           outlineWidth={0.02}
           outlineColor="#000000"
-          depthWrite={false}
+          material-depthWrite={false}
           frustumCulled={false}
         >
           {player.pseudo}
@@ -184,7 +202,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
             color="#00ffcc"
             anchorX="center"
             anchorY="middle"
-            depthWrite={false}
+            material-depthWrite={false}
             frustumCulled={false}
           >
             ▼ MOI
@@ -291,17 +309,24 @@ export default function Portal2026({
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
   const { players } = useAuth();
+  const { camera } = useThree();
+
+  // Réinitialisation de la caméra pour l'univers 2026
+  useEffect(() => {
+    camera.position.set(0, 5, 10);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera]);
   
   // Utilise un tableau vide si les joueurs ne sont pas encore chargés
   const teamList = players || [];
 
-  // Chargement de la texture de la Terre
+  // Chargement de la texture de la Terre (locale)
   const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
   useEffect(() => {
     const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin('anonymous');
     loader.load(
-      'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
+      '/earth.jpg',
       (tex) => setEarthTexture(tex)
     );
   }, []);
@@ -319,22 +344,30 @@ export default function Portal2026({
         enablePan={false} 
         minPolarAngle={Math.PI/2 - 0.2} 
         maxPolarAngle={Math.PI/2 + 0.2} 
+        target={[0, 0, 0]}
       />
 
       {/* Lumière ambiante */}
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       
-      {/* Portail Central 2026 */}
-      <Sphere ref={portalRef} args={[2, 64, 64]} position={[0, 0, 0]}>
-        <MeshDistortMaterial 
-          color="#e0f7fa" 
-          map={earthTexture} 
-          distort={0.15} 
-          speed={1.5} 
-          roughness={0.6}
+      {/* Portail Central 2026 - Terre texturée */}
+      <mesh ref={portalRef}>
+        <sphereGeometry args={[2, 64, 64]} />
+        {/* La clé UUID force R3F à recréer le matériau quand la texture arrive */}
+        <meshStandardMaterial
+          key={earthTexture?.uuid || 'no-tex'}
+          map={earthTexture || undefined}
+          color={earthTexture ? '#ffffff' : '#1a3a5c'}
+          roughness={0.7}
+          metalness={0.05}
         />
-      </Sphere>
+      </mesh>
+      {/* Atmosphère bleuée par-dessus */}
+      <mesh>
+        <sphereGeometry args={[2.06, 32, 32]} />
+        <meshBasicMaterial color="#4fc3f7" transparent opacity={0.12} depthWrite={false} side={THREE.BackSide} />
+      </mesh>
 
       {/* Secteurs Thématiques (Sphères lumineuses interactives) */}
       {categories.map((cat, i) => (

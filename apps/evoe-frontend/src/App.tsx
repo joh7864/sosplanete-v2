@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap } from 'lucide-react';
+import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
@@ -23,6 +24,19 @@ const parseBold = (text: string) => {
   });
 };
 
+// Formateur d'unité intelligent : kg/t, L/m³
+const fmtMass = (kg: number): string => {
+  if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)} kt`;
+  if (kg >= 1000)      return `${(kg / 1000).toFixed(2)} t`;
+  return `${kg.toFixed(1)} kg`;
+};
+const fmtVolume = (litres: number): string => {
+  if (litres >= 1_000_000) return `${(litres / 1_000_000).toFixed(1)} ML`;
+  if (litres >= 1000)      return `${(litres / 1000).toFixed(1)} m³`;
+  return `${litres.toFixed(0)} L`;
+};
+
+
 function MainApp() {
   const [era, setEra] = useState<'2026' | '2070'>('2026');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -31,7 +45,11 @@ function MainApp() {
   const [expandedMission, setExpandedMission] = useState<any | null>(null);
   const [popoverPos, setPopoverPos] = useState(0);
 
-  const { user, childInfos, missions, logoutUser, instanceChoices } = useAuth();
+  // States pour les métriques de Sprint 2
+  const [extrapolation, setExtrapolation] = useState<any>(null);
+  const [dashboardStatus, setDashboardStatus] = useState<any>(null);
+
+  const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
 
   // Redirection si non connecté
   if (!user || instanceChoices) {
@@ -42,7 +60,6 @@ function MainApp() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // On ferme seulement si le clic n'est ni sur le popover, ni sur une icône du dock
       if (!target.closest('.mission-popover') && !target.closest('.mission-card')) {
         setExpandedMission(null);
       }
@@ -54,6 +71,32 @@ function MainApp() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [expandedMission]);
+
+  // Récupérer les données de projection / course quand on est en 2070
+  useEffect(() => {
+    let interval: any = null;
+
+    const fetchEvoeData = () => {
+      if (!instanceId) return;
+      axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/extrapolation/metrics`)
+        .then(res => setExtrapolation(res.data))
+        .catch(err => console.error("Erreur extrapolation:", err));
+
+      axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/dashboard/status/${instanceId}`)
+        .then(res => setDashboardStatus(res.data))
+        .catch(err => console.error("Erreur dashboard status:", err));
+    };
+
+    if (era === '2070') {
+      fetchEvoeData();
+      // Poll toutes les 10 secondes pour avoir la course en temps réel
+      interval = setInterval(fetchEvoeData, 10000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [era, instanceId]);
 
   const handleSwitchEra = () => {
     setIsTransitioning(true);
@@ -71,6 +114,57 @@ function MainApp() {
     return acc;
   }, {});
 
+  // Trouver les informations de profil du Gardien connecté
+  const currentPlayer = players?.find(p => p.id === childInfos?.id);
+  const getAvatarUrl = () => {
+    if (currentPlayer?.avatar && currentPlayer.avatar !== 'avatars/default.png') {
+      return `${EVOE_IMG_URL}${currentPlayer.avatar}`;
+    }
+    let hash = 0;
+    const name = childInfos?.pseudo || '';
+    for (let i = 0; i < name.length; i++) {
+      hash += name.charCodeAt(i);
+    }
+    let avatarIndex = 1;
+    // Approximation de l'âge à partir de birthDate si disponible
+    let age = 18;
+    if (currentPlayer?.birthDate) {
+      age = new Date().getFullYear() - new Date(currentPlayer.birthDate).getFullYear();
+    }
+    if (currentPlayer?.gender === 'E' || age < 15) {
+      avatarIndex = 34 + (hash % 6);
+    } else if (currentPlayer?.gender === 'F') {
+      avatarIndex = 22 + (hash % 12);
+    } else if (currentPlayer?.gender === 'M') {
+      avatarIndex = 1 + (hash % 21);
+    } else {
+      avatarIndex = (hash % 39) + 1;
+    }
+    const formattedIndex = avatarIndex.toString().padStart(2, '0');
+    return `${EVOE_IMG_URL}avatars_3D/avatar_${formattedIndex}.png`;
+  };
+
+  // Calcul du pourcentage de l'année pour la jauge EOD
+  const getEodPercent = (dateStr: string) => {
+    if (!dateStr) return 50;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const date = new Date(Date.UTC(year, month, day));
+      const start = new Date(Date.UTC(year, 0, 1));
+      const diff = date.getTime() - start.getTime();
+      const oneDay = 1000 * 60 * 60 * 24;
+      const dayOfYear = Math.floor(diff / oneDay);
+      return Math.min(100, Math.max(0, (dayOfYear / 365) * 100));
+    }
+    return 50;
+  };
+
+  const eodN1Percent = extrapolation ? getEodPercent(extrapolation.dateDepassementSans) : 58.6;
+  const eodNPercent = extrapolation ? getEodPercent(extrapolation.dateDepassement) : 70.7;
+
   return (
     <div className="app-container">
       {/* Overlay Mode Portrait (Paysage Requis) */}
@@ -86,14 +180,14 @@ function MainApp() {
 
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
-        <Canvas camera={{ position: [0, 5, 10], fov: 60 }}>
+        <Canvas camera={{ position: [0, 5, 10], fov: 60 }} dpr={[1, 2]}>
           {era === '2026' ? (
             <Portal2026 
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={setSelectedSector} 
             />
           ) : (
-            <Portal2070 />
+            <Portal2070 dashboardStatus={dashboardStatus} />
           )}
         </Canvas>
       </div>
@@ -116,9 +210,22 @@ function MainApp() {
         <header className="header">
           <div className="logo">
             <Hexagon className="icon" />
-            <h1>EVOE {era}</h1>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <h1>EVOE {era}</h1>
+              {childInfos && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto' }}>
+                  <img 
+                    src={getAvatarUrl()} 
+                    alt="" 
+                    className="avatar-pulse-ring"
+                    style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${currentPlayer?.color || '#00ffcc'}`, objectFit: 'cover' }} 
+                  />
+                  <span>Gardien {childInfos.pseudo}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             {era === '2026' && selectedSector && (
               <button className="switch-btn" onClick={() => setSelectedSector(null)}>
                 Fermer le Codex
@@ -134,7 +241,7 @@ function MainApp() {
           </div>
         </header>
 
-        {/* Le Codex Temporel (Panel UI) */}
+        {/* CONTENU 2026 : Le Codex Temporel (Panel UI) */}
         {era === '2026' && selectedSector && (
           <aside 
             className={`codex-panel ${isCodexCollapsed ? 'collapsed' : ''}`}
@@ -198,6 +305,183 @@ function MainApp() {
               )}
             </div>
           </aside>
+        )}
+
+        {/* CONTENU 2070 : Double Tableau de Bord Flottant (Extrapolation & Course) */}
+        {era === '2070' && (
+          <div className="evoe-dashboards-container">
+            {/* Panel de Gauche : Extrapolation Temporelle */}
+            <aside className="evoe-glass-panel">
+              <h2>Extrapolation 2070</h2>
+              {extrapolation ? (
+                <>
+                  {/* Jauge EOD N-1 vs N */}
+                  <div className="jauge-eod-container">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                      <h3>Jour de Dépassement Mondial</h3>
+                      <div style={{ display: 'flex', gap: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                        <span style={{ color: '#ef4444' }}>{extrapolation.dateDepassementSans?.slice(0,5)}</span>
+                        <span style={{ color: '#a0aec0' }}>➔</span>
+                        <span style={{ color: '#00ffcc', textShadow: '0 0 5px rgba(0,255,204,0.4)' }}>{extrapolation.dateDepassement?.slice(0,5)}</span>
+                      </div>
+                    </div>
+                    <div className="jauge-eod-track">
+                      {/* Zone de gain écologique */}
+                      <div 
+                        className="jauge-eod-gain" 
+                        style={{ 
+                          left: `${eodN1Percent}%`, 
+                          width: `${Math.max(2, eodNPercent - eodN1Percent)}%` 
+                        }}
+                      />
+                      {/* Marqueur EOD N-1 */}
+                      <div 
+                        className="jauge-eod-marker n1" 
+                        style={{ left: `${eodN1Percent}%` }}
+                        title={`Précédent : ${extrapolation.dateDepassementSans}`}
+                      />
+                      {/* Marqueur EOD N */}
+                      <div 
+                        className="jauge-eod-marker n" 
+                        style={{ left: `${eodNPercent}%` }}
+                        title={`Actuel : ${extrapolation.dateDepassement}`}
+                      />
+                    </div>
+                    <div className="jauge-eod-labels">
+                      <span>1er Janvier</span>
+                      <span style={{ color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.2)' }}>Timeline Reculée !</span>
+                      <span>31 Décembre</span>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,255,204,0.1)' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase' }}>Terres Nécessaires</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#00ffcc' }}>{extrapolation.nbPlanetes} 🌍</div>
+                  </div>
+
+                  {/* Grille d'impacts avec équivalences */}
+                  <div className="metric-grid">
+                    <div className="metric-card">
+                      <div className="metric-icon-wrapper"><Shield size={18} /></div>
+                      <div className="metric-info">
+                        <span className="metric-label">Bouclier Cryo-Arctique</span>
+                        <span className="metric-value">{fmtMass(extrapolation.iceSavedKg || 0)} ❄️</span>
+                        <span className="metric-sub" style={{ color: '#10b981' }}>({fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} de CO₂ évités en 2026)</span>
+                      </div>
+                    </div>
+
+                    <div className="metric-card">
+                      <div className="metric-icon-wrapper"><Zap size={18} /></div>
+                      <div className="metric-info">
+                        <span className="metric-label">Biomasse Génétique</span>
+                        {(extrapolation.forestFootballFields || 0) >= 1 ? (
+                          <>
+                            <span className="metric-value">{(extrapolation.forestFootballFields || 0).toFixed(1)} zones 🍀</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.forestFootballFields || 0).toFixed(1)} terrains de foot préservés en 2026)</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="metric-value">{fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} CO₂</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(absorbés par la biomasse végétale en 2026)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="metric-card">
+                      <div className="metric-icon-wrapper"><Droplet size={18} /></div>
+                      <div className="metric-info">
+                        <span className="metric-label">Réserves Hydriques</span>
+                        {(extrapolation.waterOlympicPools || 0) >= 1 ? (
+                          <>
+                            <span className="metric-value">{(extrapolation.waterOlympicPools || 0).toFixed(1)} cuves 🧪</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.waterOlympicPools || 0).toFixed(1)} piscines olympiques préservées en 2026)</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="metric-value">{fmtVolume(extrapolation.waterRealLitres || 0)}</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(d'eau potable épargnée en 2026)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="metric-card">
+                      <div className="metric-icon-wrapper"><Trash2 size={18} /></div>
+                      <div className="metric-info">
+                        <span className="metric-label">Déchets Moléculaires</span>
+                        {(extrapolation.wasteGarbageTrucks || 0) >= 1 ? (
+                          <>
+                            <span className="metric-value">{(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} conteneurs 🔋</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} camions-poubelles évités en 2026)</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="metric-value">{fmtMass(extrapolation.wasteRealKg || 0)}</span>
+                            <span className="metric-sub" style={{ color: '#10b981' }}>(de résidus non produits en 2026)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem' }}>Calcul de la projection temporelle...</p>
+              )}
+            </aside>
+
+            {/* Panel de Droite : Course des Vaisseaux & Stase */}
+            <aside className="evoe-glass-panel">
+              <h2>Radar Temporel</h2>
+              {dashboardStatus ? (
+                <div className="vessels-list">
+                  {dashboardStatus.teams.map((t: any) => (
+                    <div key={t.id} className="vessel-row" style={{ borderLeftColor: t.color || '#00ffcc' }}>
+                      <div className="vessel-row-header">
+                        <span className="vessel-team-name" style={{ color: t.color || '#fff' }}>
+                          🛸 {t.name}
+                        </span>
+                        <span className="vessel-tech" title={t.propulsionDesc}>
+                          {t.propulsionType}
+                        </span>
+                      </div>
+                      
+                      <div className="vessel-stats-grid">
+                        <span>Vitesse : <strong>{t.speed} nd/s</strong></span>
+                        <span>Timeline : <strong>{t.position}%</strong></span>
+                      </div>
+
+                      {/* Barre de stase / santé de l'équipage */}
+                      <div className="vessel-health-container">
+                        <div className="vessel-health-label">
+                          <span>Stabilité Équipage (Gardiens)</span>
+                          <span style={{ fontWeight: 'bold', color: t.crewBioStability < 50 ? '#ff3b3b' : (t.crewBioStability < 100 ? '#ff9f43' : '#10b981') }}>
+                            {t.crewBioStability}%
+                          </span>
+                        </div>
+                        <div className="vessel-health-track">
+                          <div 
+                            className="vessel-health-bar" 
+                            style={{ 
+                              width: `${t.crewBioStability}%`,
+                              background: t.crewBioStability < 50 ? '#ff3b3b' : (t.crewBioStability < 100 ? '#ff9f43' : '#10b981')
+                            }}
+                          />
+                        </div>
+                        {t.crewBioStability < 100 && (
+                          <div className="vessel-paradox-warning">
+                            ⚠️ Paradoxe Ancestral : Gardiens en stase !
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem' }}>Verrouillage des signatures thermiques des vaisseaux...</p>
+              )}
+            </aside>
+          </div>
         )}
 
         {/* Pop-over Holographique pour le mode Collapsed */}

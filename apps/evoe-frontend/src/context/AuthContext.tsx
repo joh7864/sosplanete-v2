@@ -42,12 +42,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [missions, setMissions] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
 
-  const finishLogin = (instId: string, schoolName: string, headers: any, loginPseudo: string) => {
-    const currentPseudo = loginPseudo || pseudo;
+  const finishLogin = (instId: string, _schoolName: string, headers: any, _loginPseudo: string) => {
     headers["x-instance-id"] = instId;
     
     setInstanceId(instId);
+    // On sauvegarde l'instanceId pour le checkUserStatus
     localStorage.setItem("instanceId", instId);
+    sessionStorage.setItem("instanceId", instId);
     
     // Configurer axios pour toutes les futures requêtes
     axios.defaults.headers.common['Authorization'] = headers['Authorization'];
@@ -107,6 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPendingAuth(null); // On efface le cache des credentials
             if (userInfo.keepLogged) {
               localStorage.setItem("evoe_auth", encodedAuth);
+            } else {
+              sessionStorage.setItem("evoe_auth", encodedAuth);
             }
             finishLogin(choice.instanceId, choice.schoolName, headers, resolvedPseudo);
             navigate("/");
@@ -118,6 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPendingAuth(null);
         if (userInfo.keepLogged) {
           localStorage.setItem("evoe_auth", encodedAuth);
+        } else {
+          sessionStorage.setItem("evoe_auth", encodedAuth);
         }
         finishLogin(result.data.instanceId, result.data.schoolName, headers, resolvedPseudo);
         navigate("/");
@@ -139,14 +144,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeamId(null);
     localStorage.removeItem("evoe_auth");
     localStorage.removeItem("instanceId");
+    sessionStorage.removeItem("evoe_auth");
+    sessionStorage.removeItem("instanceId");
     delete axios.defaults.headers.common['Authorization'];
     delete axios.defaults.headers.common['x-instance-id'];
     navigate("/login");
   };
 
   const checkUserStatus = async () => {
-    const savedAuth = localStorage.getItem("evoe_auth");
-    const savedInstanceId = localStorage.getItem("instanceId");
+    const savedAuth = localStorage.getItem("evoe_auth") || sessionStorage.getItem("evoe_auth");
+    const savedInstanceId = localStorage.getItem("instanceId") || sessionStorage.getItem("instanceId");
 
     if (savedAuth && savedInstanceId) {
       try {

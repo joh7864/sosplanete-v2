@@ -108,44 +108,46 @@ export class ImpactService {
       const totalPossibleEntries = nbChildrenTotal * catalogSize * gameDuration;
       const assiduiteRatio = totalPossibleEntries > 0 ? (actionsDone.length / totalPossibleEntries) : 0;
 
-      // 5. Extrapolation Annuelle avec Facteur Ambassadeur (x4)
+      // 5. Extrapolation Annuelle de l'effort individuel
       const annualRatio = 52.0 / gameDuration; 
       const avgCo2PerChild = nbChildrenTotal > 0 ? (realCo2 / nbChildrenTotal) : 0;
       const avgWaterPerChild = nbChildrenTotal > 0 ? (realWater / nbChildrenTotal) : 0;
       const avgWastePerChild = nbChildrenTotal > 0 ? (realWaste / nbChildrenTotal) : 0;
 
-      // Facteur x4 : On considère que l'effort de l'enfant impacte son foyer de 4 personnes
-      const ambassadorMultiplier = 4;
-      const effortCo2Foyer = (avgCo2PerChild / 1000) * annualRatio * ambassadorMultiplier; // Tonnes/an
-      const effortWaterFoyer = avgWaterPerChild * annualRatio * ambassadorMultiplier;      // Litres/an
-      const effortWasteFoyer = avgWastePerChild * annualRatio * ambassadorMultiplier;      // kg/an
+      const effortCo2Indiv = (avgCo2PerChild / 1000) * annualRatio; // Tonnes/an par joueur
+      const effortWaterIndiv = avgWaterPerChild * annualRatio;      // Litres/an par joueur
+      const effortWasteIndiv = avgWastePerChild * annualRatio;      // kg/an par joueur
 
       // 6. Projection Mondiale
+      // Le facteur ambassadeur de 4 (foyer) et le diviseur de population de 4 (nombre de foyers) s'annulant mutuellement,
+      // l'extrapolation mondiale est directement le produit de l'effort individuel moyen par la population mondiale.
       const refPop = (annualData.popMonde || 8.1) * 1_000_000_000;
-      const projectionCo2Monde = effortCo2Foyer * refPop;
-      const projectionWaterMonde = effortWaterFoyer * refPop;
-      const projectionWasteMonde = effortWasteFoyer * refPop;
+      const projectionCo2Monde = effortCo2Indiv * refPop;
+      const projectionWaterMonde = effortWaterIndiv * refPop;
+      const projectionWasteMonde = effortWasteIndiv * refPop;
 
-      // 7. Ratio de réduction par rapport à la moyenne mondiale (Modèle Carbone 4)
-      const pCo2 = effortCo2Foyer / (annualData.moyCo2Monde || 4.7);
-      const pWater = effortWaterFoyer / (annualData.moyEauMonde || 49000);
-      const pWaste = effortWasteFoyer / (annualData.moyDechetsMonde || 500);
+      // 7. Ratios de réduction individuels par rapport à l'empreinte mondiale de référence (Modèle Carbone 4)
+      const pCo2 = effortCo2Indiv / (annualData.moyCo2Monde || 4.7);
+      const pWater = effortWaterIndiv / (annualData.moyEauMonde || 1385000);
+      const pWaste = effortWasteIndiv / (annualData.moyDechetsMonde || 270);
 
       // Pondération : 60% CO2, 20% Eau, 20% Déchets
       const rawEffortRatio = (pCo2 * 0.60) + (pWater * 0.20) + (pWaste * 0.20);
       
-      // Facteur de réalité : On pondère par l'assiduité réelle des enfants
-      const weightedEffortRatio = rawEffortRatio * assiduiteRatio;
+      // L'effort individuel moyen intègre déjà les saisies réelles loggées, 
+      // donc on n'applique plus de double pénalisation par l'assiduité.
+      const weightedEffortRatio = rawEffortRatio;
       const safeEffortRatio = Math.min(weightedEffortRatio, 0.99);
 
-      // 8. Calcul des Planètes et Jour J (Modèle 60/40)
+      // 8. Calcul des Planètes et Jour J (Modèle Asymptotique 25%)
       const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
       const jAnnee = isLeapYear ? 366 : 365;
       
-      const basePlanetes = jAnnee / (annualData.dActuel || 214); // Ex: 1.75
+      const basePlanetes = jAnnee / (annualData.dActuel || 214); // Ex: 1.71
       
-      // Le safeEffortRatio ne s'applique que sur les 40% actionnables de l'empreinte mondiale
-      const reductionImpactTotal = safeEffortRatio * 0.40; 
+      // Plafond d'action individuelle limité à 25%, avec progression asymptotique (facteur 2.0 pour lisser la courbe)
+      const FACTEUR_DE_DIFFICULTE = 2.0;
+      const reductionImpactTotal = 0.25 * (1 - Math.exp(-weightedEffortRatio * FACTEUR_DE_DIFFICULTE)); 
       const nbPlanetes = basePlanetes * (1 - reductionImpactTotal);
       
       const nouveauJourAnnee = jAnnee / nbPlanetes;

@@ -109,13 +109,14 @@ model InstanceYear {
 }
 
 model Team {
-  id             Int          @id @default(autoincrement())
+  id             Int                 @id @default(autoincrement())
   name           String
   color          String?
   icon           String?
   instanceYearId Int
   groups         Group[]
-  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
+  instanceYear   InstanceYear        @relation(fields: [instanceYearId], references: [id])
+  evoeTechnology EvoeTeamTechnology?
 }
 
 model Group {
@@ -285,4 +286,14 @@ model EvoeMissionTranslation {
   localAction    LocalAction  @relation(fields: [localActionId], references: [id], onDelete: Cascade)
   
   @@map("evoe_mission_translation")
+}
+
+model EvoeTeamTechnology {
+  id        Int      @id @default(autoincrement())
+  teamId    Int      @unique
+  maxLevel  Int      @default(1)
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  @@map("evoe_team_technology")
 }

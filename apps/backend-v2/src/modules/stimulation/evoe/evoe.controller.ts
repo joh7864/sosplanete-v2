@@ -16,9 +16,23 @@ export class EvoeController {
 
   @Get('dashboard/status/:instanceId')
   @ApiOperation({ summary: "Statut du nexus temporel et des équipes (glitch, progression)" })
-  getDashboardStatus(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
+  getDashboardStatus(
+    @Param('instanceId') instanceId: string, 
+    @Query('schoolYear') schoolYear: string,
+    @Headers('authorization') auth?: string,
+    @Headers('x-instance-id') instanceIdStr?: string
+  ) {
+    if (!schoolYear && auth) {
+      return this.evoeService.getDashboardStatusAuth(auth, instanceIdStr || instanceId);
+    }
     const sy = schoolYear || "2024-2025";
     return this.evoeService.getDashboardStatus(+instanceId, sy);
+  }
+
+  @Get('extrapolation/metrics')
+  @ApiOperation({ summary: "Récupère les métriques d'extrapolation mondiale d'Evoe" })
+  getExtrapolationMetrics(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+    return this.evoeService.getExtrapolationMetrics(auth, instanceIdStr);
   }
 
   @Get('context')

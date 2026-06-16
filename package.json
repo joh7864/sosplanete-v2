@@ -1,6 +1,6 @@
 {
   "name": "sos-planete-monorepo",
-  "version": "5.2.0",
+  "version": "6.0.0",
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -File .\\dev.ps1"
