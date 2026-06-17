@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -49,8 +49,33 @@ function MainApp() {
   const [extrapolation, setExtrapolation] = useState<any>(null);
   const [dashboardStatus, setDashboardStatus] = useState<any>(null);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'extrapolation' | 'radar' | null>(null);
+  const [isResettingPropulsion, setIsResettingPropulsion] = useState(false);
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
+
+  const fetchEvoeData = () => {
+    if (!instanceId) return;
+    axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/extrapolation/metrics`)
+      .then(res => setExtrapolation(res.data))
+      .catch(err => console.error("Erreur extrapolation:", err));
+
+    axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/dashboard/status/${instanceId}`)
+      .then(res => setDashboardStatus(res.data))
+      .catch(err => console.error("Erreur dashboard status:", err));
+  };
+
+  const handleResetPropulsion = async () => {
+    if (!instanceId || isResettingPropulsion) return;
+    setIsResettingPropulsion(true);
+    try {
+      await axios.post(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/propulsion/reset/${instanceId}`);
+      fetchEvoeData();
+    } catch (err) {
+      console.error("Erreur réinitialisation propulsion:", err);
+    } finally {
+      setIsResettingPropulsion(false);
+    }
+  };
 
   // Redirection si non connecté
   if (!user || instanceChoices) {
@@ -76,17 +101,6 @@ function MainApp() {
   // Récupérer les données de projection / course quand on est en 2070
   useEffect(() => {
     let interval: any = null;
-
-    const fetchEvoeData = () => {
-      if (!instanceId) return;
-      axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/extrapolation/metrics`)
-        .then(res => setExtrapolation(res.data))
-        .catch(err => console.error("Erreur extrapolation:", err));
-
-      axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/dashboard/status/${instanceId}`)
-        .then(res => setDashboardStatus(res.data))
-        .catch(err => console.error("Erreur dashboard status:", err));
-    };
 
     if (era === '2070') {
       fetchEvoeData();
@@ -440,6 +454,14 @@ function MainApp() {
               <aside className={`evoe-glass-panel panel-right ${activeMobilePanel === 'radar' ? 'mobile-active' : ''}`}>
                 <div className="evoe-panel-title-row">
                   <h2>Radar Temporel</h2>
+                  <button 
+                    className="evoe-reset-btn" 
+                    onClick={handleResetPropulsion} 
+                    disabled={isResettingPropulsion}
+                    title="Recalculer les niveaux technologiques"
+                  >
+                    <RefreshCw className={`icon-sm ${isResettingPropulsion ? 'spin-loading' : ''}`} />
+                  </button>
                   <button className="panel-close-btn" onClick={() => setActiveMobilePanel(null)}>×</button>
                 </div>
                 {dashboardStatus ? (

@@ -31,10 +31,10 @@ const CATEGORY_SF_MAP: Record<string, string> = {
 
 const PROPULSION_THRESHOLDS = [
   { level: 1, percentRequired: 0, name: "Friction Thermique", description: "Charbon / Fioul spatial" },
-  { level: 2, percentRequired: 20, name: "Voiles Photovoltaïques", description: "Solaire / Vents Stellaires" },
-  { level: 3, percentRequired: 40, name: "Fusion Magnétique", description: "Tokamak / Nucléaire Propre" },
-  { level: 4, percentRequired: 60, name: "Résonance Quantique", description: "Énergie du Vide" },
-  { level: 5, percentRequired: 80, name: "Singularité Protonique", description: "Trou Noir Artificiel" }
+  { level: 2, percentRequired: 25, name: "Voiles Photovoltaïques", description: "Solaire / Vents Stellaires" },
+  { level: 3, percentRequired: 45, name: "Fusion Magnétique", description: "Tokamak / Nucléaire Propre" },
+  { level: 4, percentRequired: 65, name: "Résonance Quantique", description: "Énergie du Vide" },
+  { level: 5, percentRequired: 85, name: "Singularité Protonique", description: "Trou Noir Artificiel" }
 ];
 
 const isValidImageFilename = (s: string | null | undefined): boolean => {
@@ -209,12 +209,12 @@ export class EvoeService {
       include: { actionRef: true }
     });
 
-    const catalogMaxCo2Period   = localActions.reduce((s, a) => s + ((a.specificCo2 ?? a.actionRef?.co2Year) ?? 0), 0) / 52; // g CO2/période
+    const catalogMaxCo2Period   = localActions.reduce((s, a) => s + ((a.specificCo2 ?? a.actionRef?.defaultCo2) ?? 0), 0); // kg CO2/période
     const catalogMaxWaterPeriod = localActions.reduce((s, a) => s + ((a.specificWater ?? a.actionRef?.defaultWater) ?? 0), 0);       // L/période
     const catalogMaxWastePeriod = localActions.reduce((s, a) => s + ((a.specificWaste ?? a.actionRef?.defaultWaste) ?? 0), 0);       // kg/période
 
     // Ratio par rapport à l'empreinte de référence annuelle (pour avoir un % cohérent)
-    const refCo2Period  = (moyCo2Monde * 1000) / 52;  // g CO2/période (4700g/an → g/période)
+    const refCo2Period  = (moyCo2Monde * 1000) / 52;  // kg CO2/période (4700 kg/an → kg/période)
     const refWaterPeriod = moyEauMonde / 52;            // L/période
     const refWastePeriod = moyDechetsMonde / 52;        // kg/période
 
@@ -226,6 +226,11 @@ export class EvoeService {
       (maxHealthRatioCo2 * 0.60 + maxHealthRatioWater * 0.20 + maxHealthRatioWaste * 0.20) * 100
     )) || 100; // Fallback à 100 si le catalogue est vide
 
+    // Charger le GameConfig de l'instance pour obtenir avgActionsPerChildPerPeriod (8 par défaut)
+    const gameConfig = await this.prisma.gameConfig.findFirst({
+      where: { instanceId, schoolYear }
+    });
+    const targetActions = gameConfig?.avgActionsPerChildPerPeriod ?? 8;
 
     const formattedTeams = [];
     const allPlayersHealth = [];
@@ -254,16 +259,30 @@ export class EvoeService {
       const waste = teamImpact._sum?.savedWaste || 0;
       const totalPoints = Math.round(co2 + water + waste);
 
-      // 2. Calculer l'avancement (position sur la Timeline de 0 à 100)
+      // 2. Calculer l'avancement (position sur la Timeline de 0 à 100) avec Option C - Target actions
       const teamChildrenCount = team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
-      const pointsPerChildPerPeriod = catalogMaxCo2Period + catalogMaxWaterPeriod + catalogMaxWastePeriod;
-      
-      // Choix A : Fixer un objectif "réaliste" de 5 actions par semaine par enfant
-      const avgActionPoints = pointsPerChildPerPeriod / Math.max(1, localActions.length);
-      const targetPointsPerChildPerPeriod = avgActionPoints * 5;
-      const teamTargetPoints = (targetPointsPerChildPerPeriod * gamePeriodsCount * teamChildrenCount) || 5000;
-      
-      const position = Math.min(100, Number(((totalPoints / teamTargetPoints) * 100).toFixed(1)));
+
+      // Moyenne réalisée par enfant et par période (semaine)
+      const avgCo2ChildPeriod = co2 / teamChildrenCount / gamePeriodsCount;
+      const avgWaterChildPeriod = water / teamChildrenCount / gamePeriodsCount;
+      const avgWasteChildPeriod = waste / teamChildrenCount / gamePeriodsCount;
+
+      // Objectif de référence par axe pour 1 action moyenne * targetActions
+      const avgCatalogCo2 = catalogMaxCo2Period / Math.max(1, localActions.length);
+      const avgCatalogWater = catalogMaxWaterPeriod / Math.max(1, localActions.length);
+      const avgCatalogWaste = catalogMaxWastePeriod / Math.max(1, localActions.length);
+
+      const refCo2Target = avgCatalogCo2 * targetActions;
+      const refWaterTarget = avgCatalogWater * targetActions;
+      const refWasteTarget = avgCatalogWaste * targetActions;
+
+      // Ratios par axe plafonnés à 100% (1.0)
+      const rCo2 = refCo2Target > 0 ? Math.min(1, avgCo2ChildPeriod / refCo2Target) : 0;
+      const rWater = refWaterTarget > 0 ? Math.min(1, avgWaterChildPeriod / refWaterTarget) : 0;
+      const rWaste = refWasteTarget > 0 ? Math.min(1, avgWasteChildPeriod / refWasteTarget) : 0;
+
+      // Position finale pondérée (60% CO2, 20% Eau, 20% Déchets)
+      const position = Number(((rCo2 * 0.60 + rWater * 0.20 + rWaste * 0.20) * 100).toFixed(1));
 
       // 3. Déterminer le niveau technologique de propulsion (relatif au pourcentage)
       let calculatedLevel = 1;
@@ -400,15 +419,16 @@ export class EvoeService {
     const moyEauCtx = annualDataCtx?.moyEauMonde ?? 1385000;    // L/an/personne
     const moyDechetsCtx = annualDataCtx?.moyDechetsMonde ?? 270; // kg/an/personne
 
-    // Potentiel max du catalogue sur une période
-    const catalogActionsCtx = await this.prisma.actionRef.findMany({
-      select: { co2Year: true, defaultWater: true, defaultWaste: true }
+    // Potentiel max du catalogue LOCAL sur une période
+    const localActionsCtx = await this.prisma.localAction.findMany({
+      where: { instanceId, schoolYear },
+      include: { actionRef: true }
     });
-    const catMaxCo2   = catalogActionsCtx.reduce((s, a) => s + (a.co2Year     ?? 0), 0) / 52;
-    const catMaxWater = catalogActionsCtx.reduce((s, a) => s + (a.defaultWater ?? 0), 0);
-    const catMaxWaste = catalogActionsCtx.reduce((s, a) => s + (a.defaultWaste ?? 0), 0);
+    const catMaxCo2   = localActionsCtx.reduce((s, a) => s + ((a.specificCo2 ?? a.actionRef?.defaultCo2) ?? 0), 0); // kg
+    const catMaxWater = localActionsCtx.reduce((s, a) => s + ((a.specificWater ?? a.actionRef?.defaultWater) ?? 0), 0);   // L
+    const catMaxWaste = localActionsCtx.reduce((s, a) => s + ((a.specificWaste ?? a.actionRef?.defaultWaste) ?? 0), 0);   // kg
 
-    const refCo2Ctx  = (moyCo2Ctx  * 1000) / 52; // g CO2 de référence par période
+    const refCo2Ctx  = (moyCo2Ctx  * 1000) / 52; // kg CO2 de référence par période
     const refWaterCtx = moyEauCtx   / 52;
     const refWasteCtx = moyDechetsCtx / 52;
 
@@ -483,5 +503,26 @@ export class EvoeService {
       players,
       missions,
     };
+  }
+
+  async resetPropulsionLevels(instanceId: number, schoolYear: string) {
+    await this.prisma.evoeTeamTechnology.deleteMany({
+      where: {
+        team: {
+          instanceYear: {
+            instanceId,
+            schoolYear
+          }
+        }
+      }
+    });
+    return { success: true };
+  }
+
+  async resetPropulsionLevelsAuth(authHeader: string, instanceIdStr?: string) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const instanceId = child.group.team.instanceYear.instanceId;
+    const schoolYear = child.group.team.instanceYear.schoolYear;
+    return this.resetPropulsionLevels(instanceId, schoolYear);
   }
 }
