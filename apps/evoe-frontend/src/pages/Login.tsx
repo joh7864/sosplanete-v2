@@ -43,74 +43,76 @@ export default function Login() {
           <h1>EVOE 2026</h1>
         </div>
 
-        {errorAuthentification && (
-          <div className="error-message">{errorAuthentification}</div>
-        )}
+        <div className="login-body">
+          {errorAuthentification && (
+            <div className="error-message">{errorAuthentification}</div>
+          )}
 
-        {instanceChoices ? (
-          <div className="choice-list">
-            <p style={{ color: '#fff', textAlign: 'center', margin: '0 0 10px 0' }}>Multiples espaces détectés. Choisissez votre Nexus :</p>
-            {instanceChoices.map((choice) => (
-              <button 
-                key={choice.instanceId} 
-                className="choice-btn"
-                onClick={() => handleChoice(choice.instanceId)}
-                disabled={isSubmitting}
-              >
-                {choice.schoolName || `Instance #${choice.instanceId}`}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="form-group">
-              <label>Identifiant de Synchronisation</label>
-              <input 
-                type="text" 
-                value={pseudo}
-                onChange={(e) => setPseudo(e.target.value)}
-                placeholder="Ex: dinosaure"
-              />
-            </div>
-
-            <div className="form-group password-group">
-              <label>Clé de Décryptage</label>
-              <div className="password-input-wrapper">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mot de passe"
-                />
+          {instanceChoices ? (
+            <div className="choice-list">
+              <p style={{ color: '#fff', textAlign: 'center', margin: '0 0 10px 0' }}>Multiples espaces détectés. Choisissez votre Nexus :</p>
+              {instanceChoices.map((choice) => (
                 <button 
-                  type="button" 
-                  className="eye-btn" 
-                  onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  key={choice.instanceId} 
+                  className="choice-btn"
+                  onClick={() => handleChoice(choice.instanceId)}
+                  disabled={isSubmitting}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {choice.schoolName || `Instance #${choice.instanceId}`}
                 </button>
-              </div>
+              ))}
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label>Identifiant de Synchronisation</label>
+                <input 
+                  type="text" 
+                  value={pseudo}
+                  onChange={(e) => setPseudo(e.target.value)}
+                  placeholder="Ex: dinosaure"
+                />
+              </div>
 
-            <label className="checkbox-group">
-              <input 
-                type="checkbox" 
-                checked={keepLogged}
-                onChange={(e) => setKeepLogged(e.target.checked)}
-              />
-              Maintenir la connexion quantique
-            </label>
+              <div className="form-group password-group">
+                <label>Clé de Décryptage</label>
+                <div className="password-input-wrapper">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mot de passe"
+                  />
+                  <button 
+                    type="button" 
+                    className="eye-btn" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
-            <button 
-              type="submit" 
-              className="btn-login"
-              disabled={isSubmitting || !pseudo || !password}
-            >
-              {isSubmitting ? 'Connexion...' : 'Établir la Connexion Temporelle'}
-            </button>
-          </form>
-        )}
+              <label className="checkbox-group">
+                <input 
+                  type="checkbox" 
+                  checked={keepLogged}
+                  onChange={(e) => setKeepLogged(e.target.checked)}
+                />
+                Maintenir la connexion quantique
+              </label>
+
+              <button 
+                type="submit" 
+                className="btn-login"
+                disabled={isSubmitting || !pseudo || !password}
+              >
+                {isSubmitting ? 'Connexion...' : 'Établir la Connexion Temporelle'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
