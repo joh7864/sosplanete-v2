@@ -109,14 +109,16 @@ model InstanceYear {
 }
 
 model Team {
-  id             Int                 @id @default(autoincrement())
-  name           String
-  color          String?
-  icon           String?
-  instanceYearId Int
-  groups         Group[]
-  instanceYear   InstanceYear        @relation(fields: [instanceYearId], references: [id])
-  evoeTechnology EvoeTeamTechnology?
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  color              String?
+  icon               String?
+  instanceYearId     Int
+  groups             Group[]
+  instanceYear       InstanceYear        @relation(fields: [instanceYearId], references: [id])
+  evoeTechnology     EvoeTeamTechnology?
+  challengesSent     EvoeChallenge[]     @relation("ChallengerTeam")
+  challengesReceived EvoeChallenge[]     @relation("TargetTeam")
 }
 
 model Group {
@@ -161,6 +163,7 @@ model LocalAction {
   actionRef      ActionRef    @relation(fields: [actionRefId], references: [id])
   category       Category?    @relation(fields: [categoryId], references: [id])
   instance       Instance     @relation(fields: [instanceId], references: [id])
+  evoeChallenges EvoeChallenge[]
 
   @@unique([instanceId, actionRefId, schoolYear])
 }
@@ -173,6 +176,7 @@ model Period {
   isOpen         Boolean      @default(false)
   actionsDone    ActionDone[]
   instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
+  evoeChallenges EvoeChallenge[]
 }
 
 model ActionDone {
@@ -296,4 +300,30 @@ model EvoeTeamTechnology {
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   
   @@map("evoe_team_technology")
+}
+
+model EvoeChallenge {
+  id               Int             @id @default(autoincrement())
+  challengerTeamId Int
+  targetTeamId     Int
+  localActionId    Int
+  periodId         Int
+  status           ChallengeStatus @default(PENDING)
+  pledge           String?
+  createdAt        DateTime        @default(now())
+
+  challengerTeam   Team            @relation("ChallengerTeam", fields: [challengerTeamId], references: [id], onDelete: Cascade)
+  targetTeam       Team            @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade)
+  localAction      LocalAction     @relation(fields: [localActionId], references: [id], onDelete: Cascade)
+  period           Period          @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@map("evoe_challenge")
+}
+
+enum ChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  SUCCESS
+  FAILED
 }

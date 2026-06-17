@@ -19,6 +19,7 @@ interface AuthContextType {
   teamId: string | null;
   missions: any[];
   players: any[];
+  refreshContext: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,6 +42,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [teamId, setTeamId] = useState<string | null>(null);
   const [missions, setMissions] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
+
+  const refreshContext = async () => {
+    const savedAuth = localStorage.getItem("evoe_auth") || sessionStorage.getItem("evoe_auth");
+    const savedInstanceId = localStorage.getItem("instanceId") || sessionStorage.getItem("instanceId");
+    if (savedAuth && savedInstanceId) {
+      const headers = {
+        "content-type": "application/json",
+        Authorization: "Basic " + savedAuth,
+        "x-instance-id": savedInstanceId
+      };
+      try {
+        const res = await axios.get(`${EVOE_API_URL}/context`, { headers });
+        setChildInfos(res.data.childInfos);
+        setMissions(res.data.missions);
+        setPlayers(res.data.players || []);
+      } catch (e) {
+        console.error("Erreur rafraîchissement contexte:", e);
+      }
+    }
+  };
 
   const finishLogin = (instId: string, _schoolName: string, headers: any, _loginPseudo: string) => {
     headers["x-instance-id"] = instId;
@@ -190,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{
-      user, pseudo, loading, errorAuthentification, instanceChoices, loginUser, finishLogin, logoutUser, childInfos, instanceId, teamId, missions, players
+      user, pseudo, loading, errorAuthentification, instanceChoices, loginUser, finishLogin, logoutUser, childInfos, instanceId, teamId, missions, players, refreshContext
     }}>
       {initialLoading ? null : children}
     </AuthContext.Provider>

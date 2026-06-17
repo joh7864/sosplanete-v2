@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
@@ -144,6 +144,12 @@ export class EvoeService {
         titreSF = `Mission : ${action.label}`;
       }
 
+      const co2 = action.specificCo2 ?? action.actionRef?.defaultCo2 ?? 0;
+      const water = action.specificWater ?? action.actionRef?.defaultWater ?? 0;
+      const waste = action.specificWaste ?? action.actionRef?.defaultWaste ?? 0;
+      const calculated = Math.round(co2 + water + waste);
+      const amplitude = calculated > 0 ? calculated : (action.evoeMission?.pointsGagnes || 10);
+
       // Fusion of physical action and SF mapping
       return {
         id: action.id,
@@ -155,14 +161,12 @@ export class EvoeService {
         actionRefId: action.actionRefId,
         co2Year: action.actionRef?.co2Year,
         icon: imageFile ? `actions/${imageFile}` : '',
-        evoeMission: action.evoeMission
-          ? {
-              titreSF: titreSF,
-              descriptionSF: descSF,
-              pointsGagnes: action.evoeMission.pointsGagnes,
-              isHacked: action.evoeMission.isHacked,
-            }
-          : null,
+        evoeMission: {
+          titreSF: titreSF,
+          descriptionSF: descSF,
+          amplitude: amplitude,
+          isImpulsed: false,
+        },
       };
     });
   }
@@ -511,6 +515,116 @@ export class EvoeService {
     };
   }
 
+  private async getPlayersHealthMap(
+    instanceId: number,
+    schoolYear: string,
+    periodId: number | null,
+    children: any[],
+  ): Promise<Map<number, number>> {
+    const healthMap = new Map<number, number>();
+    if (!periodId) {
+      children.forEach((c) => healthMap.set(c.id, 0));
+      return healthMap;
+    }
+
+    const config = await this.prisma.gameConfig.findUnique({
+      where: { instanceId_schoolYear: { instanceId, schoolYear } },
+    });
+    const avgActions = config?.avgActionsPerChildPerPeriod || 12;
+    const gamePeriodsCount = config?.gamePeriodsCount || 24;
+
+    const localActionsCtx = await this.prisma.localAction.findMany({
+      where: { instanceId, schoolYear },
+      include: { actionRef: true },
+    });
+
+    let catMaxCo2 = 0;
+    let catMaxWater = 0;
+    let catMaxWaste = 0;
+
+    localActionsCtx.forEach((a) => {
+      const isYearly = (a.actionRef?.co2Year ?? 0) > 0;
+      const factor = isYearly ? 52 / gamePeriodsCount : 1;
+      catMaxCo2 += (a.specificCo2 ?? a.actionRef?.defaultCo2 ?? 0) * factor;
+      catMaxWater += (a.specificWater ?? a.actionRef?.defaultWater ?? 0) * factor;
+      catMaxWaste += (a.specificWaste ?? a.actionRef?.defaultWaste ?? 0) * factor;
+    });
+
+    const actionCount = localActionsCtx.length || 1;
+    const avgCo2Catalog = catMaxCo2 / actionCount;
+    const avgWaterCatalog = catMaxWater / actionCount;
+    const avgWasteCatalog = catMaxWaste / actionCount;
+
+    const targetCo2 = avgCo2Catalog * avgActions > 0 ? avgCo2Catalog * avgActions : 1;
+    const targetWater = avgWaterCatalog * avgActions > 0 ? avgWaterCatalog * avgActions : 1;
+    const targetWaste = avgWasteCatalog * avgActions > 0 ? avgWasteCatalog * avgActions : 1;
+
+    const childIds = children.map((c) => c.id);
+    const actionsDone = await this.prisma.actionDone.findMany({
+      where: {
+        periodId,
+        childId: { in: childIds },
+      },
+      include: {
+        localAction: {
+          include: { actionRef: true },
+        },
+      },
+    });
+
+    const childActionsMap = new Map<number, typeof actionsDone>();
+    actionsDone.forEach((ad) => {
+      const list = childActionsMap.get(ad.childId) || [];
+      list.push(ad);
+      childActionsMap.set(ad.childId, list);
+    });
+
+    const activeChallenges = await this.prisma.evoeChallenge.findMany({
+      where: {
+        periodId,
+        status: 'SUCCESS',
+      },
+    });
+
+    for (const child of children) {
+      const childActions = childActionsMap.get(child.id) || [];
+      
+      let childCo2 = 0;
+      let childWater = 0;
+      let childWaste = 0;
+
+      childActions.forEach((ad) => {
+        const isYearly = (ad.localAction.actionRef?.co2Year ?? 0) > 0;
+        const factor = isYearly ? 52 / gamePeriodsCount : 1;
+        childCo2 += ad.savedCo2 * factor;
+        childWater += ad.savedWater * factor;
+        childWaste += ad.savedWaste * factor;
+      });
+
+      const hpCo2 = Math.min(60, (childCo2 / targetCo2) * 60);
+      const hpWater = Math.min(20, (childWater / targetWater) * 20);
+      const hpWaste = Math.min(20, (childWaste / targetWaste) * 20);
+      const baseHp = hpCo2 + hpWater + hpWaste;
+
+      let challengeBonus = 0;
+      activeChallenges.forEach((ch) => {
+        if (ch.targetTeamId === child.teamId) {
+          const didIt = childActions.some((ad) => ad.localActionId === ch.localActionId);
+          if (didIt) {
+            challengeBonus += 15;
+          } else {
+            challengeBonus += 5;
+          }
+        }
+      });
+
+      const totalHp = Math.min(120, Math.round(baseHp + challengeBonus));
+      healthMap.set(child.id, totalHp);
+    }
+
+    return healthMap;
+  }
+
   async getContext(authHeader: string, instanceIdStr?: string) {
     // 1. Authentifier l'enfant
     const child = await this.legacyApiService.getChildFromAuth(
@@ -531,68 +645,24 @@ export class EvoeService {
       where: { instanceYearId, isOpen: true },
     });
 
-    // Charger les constantes annuelles pour le calcul de santé
-    const yearCtx = parseInt(schoolYear.split('-')[0], 10);
-    const annualDataCtx = await this.prisma.annualImpactData.findUnique({
-      where: { year: yearCtx },
+    const childrenList: any[] = [];
+    teams.forEach((t) => {
+      t.groups.forEach((g) => {
+        g.children.forEach((c) => {
+          childrenList.push({
+            ...c,
+            teamId: t.id,
+          });
+        });
+      });
     });
-    const moyCo2Ctx = annualDataCtx?.moyCo2Monde ?? 4.7; // t CO2/an/personne
-    const moyEauCtx = annualDataCtx?.moyEauMonde ?? 1385000; // L/an/personne
-    const moyDechetsCtx = annualDataCtx?.moyDechetsMonde ?? 270; // kg/an/personne
 
-    // Potentiel max du catalogue LOCAL sur une période
-    const localActionsCtx = await this.prisma.localAction.findMany({
-      where: { instanceId, schoolYear },
-      include: { actionRef: true },
-    });
-    const catMaxCo2 = localActionsCtx.reduce(
-      (s, a) => s + (a.specificCo2 ?? a.actionRef?.defaultCo2 ?? 0),
-      0,
-    ); // kg
-    const catMaxWater = localActionsCtx.reduce(
-      (s, a) => s + (a.specificWater ?? a.actionRef?.defaultWater ?? 0),
-      0,
-    ); // L
-    const catMaxWaste = localActionsCtx.reduce(
-      (s, a) => s + (a.specificWaste ?? a.actionRef?.defaultWaste ?? 0),
-      0,
-    ); // kg
-
-    const refCo2Ctx = (moyCo2Ctx * 1000) / 52; // kg CO2 de référence par période
-    const refWaterCtx = moyEauCtx / 52;
-    const refWasteCtx = moyDechetsCtx / 52;
-
-    const maxRatioCo2 = refCo2Ctx > 0 ? Math.min(1, catMaxCo2 / refCo2Ctx) : 1;
-    const maxRatioWater =
-      refWaterCtx > 0 ? Math.min(1, catMaxWater / refWaterCtx) : 1;
-    const maxRatioWaste =
-      refWasteCtx > 0 ? Math.min(1, catMaxWaste / refWasteCtx) : 1;
-    const maxScoreCtx =
-      Math.min(
-        100,
-        Math.round(
-          (maxRatioCo2 * 0.6 + maxRatioWater * 0.2 + maxRatioWaste * 0.2) * 100,
-        ),
-      ) || 100; // Fallback à 100 si le catalogue est vide
-
-    // Agréger les impacts individuels sur la période active en une seule requête
-    const impactsByChild = await this.prisma.actionDone.groupBy({
-      by: ['childId'],
-      where: {
-        periodId: activePeriod ? activePeriod.id : -1,
-        child: { group: { team: { instanceYearId } } },
-      },
-      _sum: { savedCo2: true, savedWater: true, savedWaste: true },
-    });
-    const childImpactMap = new Map(
-      impactsByChild.map((a) => [
-        a.childId,
-        {
-          co2: a._sum.savedCo2 ?? 0,
-          water: a._sum.savedWater ?? 0,
-          waste: a._sum.savedWaste ?? 0,
-        },
-      ]),
+    const activePeriodId = activePeriod ? activePeriod.id : null;
+    const healthMap = await this.getPlayersHealthMap(
+      instanceId,
+      schoolYear,
+      activePeriodId,
+      childrenList,
     );
 
     let teamCount = 0;
@@ -602,20 +672,7 @@ export class EvoeService {
       t.groups.forEach((g) => {
         teamCount += g.children.length;
         g.children.forEach((c) => {
-          const imp = childImpactMap.get(c.id) ?? {
-            co2: 0,
-            water: 0,
-            waste: 0,
-          };
-
-          // Ratio individuel vs référence de période (CO2: 60%, eau: 20%, déchets: 20%)
-          const rCo2 = refCo2Ctx > 0 ? imp.co2 / refCo2Ctx : 0;
-          const rWater = refWaterCtx > 0 ? imp.water / refWaterCtx : 0;
-          const rWaste = refWasteCtx > 0 ? imp.waste / refWasteCtx : 0;
-          const rawRatio = rCo2 * 0.6 + rWater * 0.2 + rWaste * 0.2;
-          const normalized =
-            maxScoreCtx > 0 ? rawRatio / (maxScoreCtx / 100) : rawRatio;
-          const health = Math.min(100, Math.round(normalized * 100));
+          const health = healthMap.get(c.id) ?? 0;
 
           players.push({
             id: c.id,
@@ -636,6 +693,34 @@ export class EvoeService {
     // 3. Récupérer les missions formatées SF
     const missions = await this.getMissions(instanceId, schoolYear);
 
+    const activeActionsDone = activePeriod
+      ? await this.prisma.actionDone.findMany({
+          where: {
+            childId: child.id,
+            periodId: activePeriod.id,
+          },
+          select: {
+            localActionId: true,
+            id: true,
+          },
+        })
+      : [];
+    const activeActionDoneMap = new Map(
+      activeActionsDone.map((ad) => [ad.localActionId, ad.id]),
+    );
+
+    const mappedMissions = missions.map((mission) => {
+      const actionDoneId = activeActionDoneMap.get(mission.id);
+      return {
+        ...mission,
+        evoeMission: {
+          ...mission.evoeMission,
+          isImpulsed: !!actionDoneId,
+          actionDoneId: actionDoneId || null,
+        },
+      };
+    });
+
     // 4. Retourner le contexte formaté pour le composant App.tsx / Portal2026
     return {
       childInfos: {
@@ -644,7 +729,7 @@ export class EvoeService {
         teamCount,
       },
       players,
-      missions,
+      missions: mappedMissions,
     };
   }
 
@@ -670,5 +755,188 @@ export class EvoeService {
     const instanceId = child.group.team.instanceYear.instanceId;
     const schoolYear = child.group.team.instanceYear.schoolYear;
     return this.resetPropulsionLevels(instanceId, schoolYear);
+  }
+
+  async calculateTeamStabilityForPeriod(teamId: number, periodId: number, instanceYearId: number): Promise<number> {
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      include: { groups: { include: { children: true } } },
+    });
+    if (!team) return 100;
+    const children: any[] = [];
+    team.groups.forEach(g => children.push(...g.children));
+    if (children.length === 0) return 100;
+
+    const instanceYearObj = await this.prisma.instanceYear.findUnique({
+      where: { id: instanceYearId },
+    });
+    const schoolYear = instanceYearObj?.schoolYear || '2024-2025';
+    const instanceId = instanceYearObj?.instanceId || 1;
+
+    const childrenWithTeam = children.map((c) => ({
+      ...c,
+      teamId,
+    }));
+
+    const healthMap = await this.getPlayersHealthMap(
+      instanceId,
+      schoolYear,
+      periodId,
+      childrenWithTeam,
+    );
+
+    let totalHealth = 0;
+    children.forEach((c) => {
+      totalHealth += healthMap.get(c.id) ?? 0;
+    });
+
+    return Math.round(totalHealth / children.length);
+  }
+
+  async getChallenges(authHeader: string, instanceIdStr?: string) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const teamId = child.group.teamId;
+    const period = await this.legacyApiService.getOpenPeriod(child.group.team.instanceYearId);
+
+    const challenges = await this.prisma.evoeChallenge.findMany({
+      where: {
+        periodId: period.id,
+        OR: [
+          { challengerTeamId: teamId },
+          { targetTeamId: teamId },
+        ],
+      },
+      include: {
+        challengerTeam: true,
+        targetTeam: true,
+        localAction: {
+          include: { actionRef: true },
+        },
+      },
+    });
+
+    const mapped = [];
+    for (const ch of challenges) {
+      let currentStatus = ch.status;
+      if (ch.status === 'ACCEPTED') {
+        const countDone = await this.prisma.actionDone.count({
+          where: {
+            periodId: period.id,
+            localActionId: ch.localActionId,
+            child: { group: { teamId: ch.targetTeamId } },
+          },
+        });
+        if (countDone > 0) {
+          currentStatus = 'SUCCESS';
+          await this.prisma.evoeChallenge.update({
+            where: { id: ch.id },
+            data: { status: 'SUCCESS' },
+          });
+        }
+      }
+      mapped.push({
+        id: ch.id,
+        challengerTeamId: ch.challengerTeamId,
+        challengerTeamName: ch.challengerTeam.name,
+        challengerTeamColor: ch.challengerTeam.color,
+        targetTeamId: ch.targetTeamId,
+        targetTeamName: ch.targetTeam.name,
+        targetTeamColor: ch.targetTeam.color,
+        localActionId: ch.localActionId,
+        actionLabel: ch.localAction.label,
+        pledge: ch.pledge,
+        status: currentStatus,
+        createdAt: ch.createdAt,
+      });
+    }
+    return mapped;
+  }
+
+  async createChallenge(
+    authHeader: string,
+    instanceIdStr: string,
+    data: { targetTeamId: number; localActionId: number; pledge: string },
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const challengerTeamId = child.group.teamId;
+    if (challengerTeamId === data.targetTeamId) {
+      throw new BadRequestException("Vous ne pouvez pas défier votre propre équipe.");
+    }
+    const instanceYearId = child.group.team.instanceYearId;
+    const period = await this.legacyApiService.getOpenPeriod(instanceYearId);
+
+    // Vérifier la stabilité de la période précédente pour déterminer le quota
+    const previousPeriod = await this.prisma.period.findFirst({
+      where: {
+        instanceYearId,
+        endDate: { lt: period.startDate },
+      },
+      orderBy: { endDate: 'desc' },
+    });
+
+    const stability = previousPeriod
+      ? await this.calculateTeamStabilityForPeriod(challengerTeamId, previousPeriod.id, instanceYearId)
+      : 100; // 100% de stabilité pour la première période si pas d'historique
+
+    let maxChallenges = 0;
+    if (stability >= 80) maxChallenges = 5;
+    else if (stability >= 60) maxChallenges = 4;
+    else if (stability >= 40) maxChallenges = 3;
+    else if (stability >= 20) maxChallenges = 2;
+    else if (stability >= 10) maxChallenges = 1;
+    else maxChallenges = 0;
+
+    const sentCount = await this.prisma.evoeChallenge.count({
+      where: {
+        challengerTeamId,
+        periodId: period.id,
+      },
+    });
+
+    if (sentCount >= maxChallenges) {
+      throw new BadRequestException(
+        `Votre équipe a atteint son quota maximum de défis (${maxChallenges}) pour cette période (Stabilité équipage précédente : ${stability}%).`,
+      );
+    }
+
+    return this.prisma.evoeChallenge.create({
+      data: {
+        challengerTeamId,
+        targetTeamId: data.targetTeamId,
+        localActionId: data.localActionId,
+        periodId: period.id,
+        pledge: data.pledge,
+        status: 'PENDING',
+      },
+    });
+  }
+
+  async respondChallenge(
+    authHeader: string,
+    instanceIdStr: string,
+    challengeId: number,
+    accept: boolean,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const teamId = child.group.teamId;
+
+    const challenge = await this.prisma.evoeChallenge.findUnique({
+      where: { id: challengeId },
+    });
+    if (!challenge) {
+      throw new NotFoundException('Défi non trouvé.');
+    }
+    if (challenge.targetTeamId !== teamId) {
+      throw new BadRequestException("Vous ne pouvez répondre qu'aux défis adressés à votre équipe.");
+    }
+    if (challenge.status !== 'PENDING') {
+      throw new BadRequestException('Ce défi a déjà été traité.');
+    }
+
+    const newStatus = accept ? 'ACCEPTED' : 'DECLINED';
+    return this.prisma.evoeChallenge.update({
+      where: { id: challengeId },
+      data: { status: newStatus },
+    });
   }
 }

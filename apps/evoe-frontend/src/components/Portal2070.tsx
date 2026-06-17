@@ -4,6 +4,7 @@ import { Sphere, Text, OrbitControls, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Vessel2070 from './Vessel2070';
+import Arch2070 from './Arch2070';
 
 
 // Composant pour l'effet d'hyperespace/tunnel de vitesse (particules scintillantes)
@@ -113,6 +114,65 @@ function CosmicScale() {
         );
       })}
     </group>
+  );
+}
+
+// Composant d'impulsion d'onde de choc temporelle (Écho)
+function TemporalEchoPulse({ globalProgression }: { globalProgression: number }) {
+  const pulseRef = useRef<THREE.Mesh>(null);
+  const lastProg = useRef(globalProgression);
+  const triggerPulse = useRef(false);
+  const pulseTime = useRef(0);
+
+  // Déclencher le flash rapide de l'onde de choc lors d'une nouvelle validation
+  if (globalProgression > lastProg.current) {
+    triggerPulse.current = true;
+    pulseTime.current = 0;
+    lastProg.current = globalProgression;
+  } else if (globalProgression < lastProg.current) {
+    // Synchroniser en cas de reset ou de baisse
+    lastProg.current = globalProgression;
+  }
+
+  useFrame((state, delta) => {
+    const t = state.clock.getElapsedTime();
+    if (pulseRef.current) {
+      if (triggerPulse.current) {
+        pulseTime.current += delta * 1.5; // Vitesse de propagation
+        const ratio = Math.min(1.0, pulseTime.current);
+        const currentZ = THREE.MathUtils.lerp(12.2, -10.2, ratio);
+        pulseRef.current.position.z = currentZ;
+        
+        // La jauge s'agrandit et s'estompe vers la fin
+        const size = 1.5 + Math.sin(ratio * Math.PI) * 2.0;
+        pulseRef.current.scale.set(size, size, 1);
+        
+        const mat = pulseRef.current.material as THREE.MeshBasicMaterial;
+        mat.opacity = (1.0 - ratio) * 0.9;
+        
+        if (ratio >= 1.0) {
+          triggerPulse.current = false;
+        }
+      } else {
+        // Pulsation ambiante douce et régulière le long du tunnel
+        const cycle = (t % 4.5) / 4.5;
+        const currentZ = THREE.MathUtils.lerp(12.2, -10.2, cycle);
+        pulseRef.current.position.z = currentZ;
+        
+        const size = 1.2 + Math.sin(cycle * Math.PI) * 0.8;
+        pulseRef.current.scale.set(size, size, 1);
+        
+        const mat = pulseRef.current.material as THREE.MeshBasicMaterial;
+        mat.opacity = Math.sin(cycle * Math.PI) * 0.22;
+      }
+    }
+  });
+
+  return (
+    <mesh ref={pulseRef} position={[0, 0.4, 12.2]}>
+      <torusGeometry args={[1.6, 0.05, 8, 32]} />
+      <meshBasicMaterial color="#00ffcc" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
+    </mesh>
   );
 }
 
@@ -359,6 +419,14 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
       {teams.map((t: any, i: number) => (
         <Vessel2070 key={t.id} team={t} index={i} total={teams.length} />
       ))}
+
+      {/* L'Arche EVOE (Origine en Z = 12.2) */}
+      <group position={[0, 0.4, 12.2]}>
+        <Arch2070 progression={globalProgression} />
+      </group>
+
+      {/* Onde de choc d'Écho Temporel */}
+      <TemporalEchoPulse globalProgression={globalProgression} />
 
       {/* Chrono-Planète Évolutive "Aeon-9" (Z = -10) */}
       <group position={[0, 0.4, -10.2]}>

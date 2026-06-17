@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Headers, Body } from '@nestjs/common';
 import { EvoeService } from './evoe.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -81,5 +81,41 @@ export class EvoeController {
     }
     const sy = schoolYear || '2024-2025';
     return this.evoeService.resetPropulsionLevels(+instanceId, sy);
+  }
+
+  @Get('challenges')
+  @ApiOperation({
+    summary: "Liste les défis PvP (reçus et envoyés) pour l'équipe active",
+  })
+  getChallenges(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.evoeService.getChallenges(auth, instanceIdStr);
+  }
+
+  @Post('challenges')
+  @ApiOperation({
+    summary: 'Crée un nouveau défi PvP pour une équipe cible',
+  })
+  createChallenge(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Body() data: { targetTeamId: number; localActionId: number; pledge: string },
+  ) {
+    return this.evoeService.createChallenge(auth, instanceIdStr, data);
+  }
+
+  @Post('challenges/:id/respond')
+  @ApiOperation({
+    summary: 'Accepte ou refuse un défi PvP reçu',
+  })
+  respondChallenge(
+    @Param('id') challengeId: string,
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Body() body: { accept: boolean },
+  ) {
+    return this.evoeService.respondChallenge(auth, instanceIdStr, +challengeId, body.accept);
   }
 }

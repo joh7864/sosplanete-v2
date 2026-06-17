@@ -174,16 +174,53 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
       {/* Barre de santé des descendants */}
       <Billboard follow={true}>
         <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
-          {/* Fond de la jauge */}
-          <mesh>
-            <planeGeometry args={[0.5 * avatarScale, 0.03]} />
-            <meshBasicMaterial color="#333333" transparent opacity={0.8} depthWrite={false} />
+          {/* Fond sombre de la jauge */}
+          <mesh renderOrder={998}>
+            <planeGeometry args={[0.5 * avatarScale, 0.052]} />
+            <meshBasicMaterial 
+              color="#0d0d15" 
+              transparent 
+              opacity={0.8} 
+              toneMapped={false} 
+              depthWrite={false} 
+              depthTest={false} 
+            />
           </mesh>
-          {/* Remplissage coloré de la jauge (dégradé Rouge -> Vert) */}
+          {/* Remplissage néon de la jauge — meshBasicMaterial pour rendre sans lumière */}
           {player.health !== undefined && player.health > 0 && (
-            <mesh position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}>
-              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.02]} />
-              <meshBasicMaterial color={`hsl(${player.health * 1.2}, 85%, 45%)`} depthWrite={false} />
+            <mesh 
+              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}
+              renderOrder={999}
+            >
+              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.04]} />
+              <meshBasicMaterial 
+                color={
+                  player.health < 35 ? '#ff0055' // Rouge néon très vif
+                  : player.health < 70 ? '#ff7700' // Orange néon très vif
+                  : '#00ff66' // Vert néon brillant
+                }
+                transparent={true} // Crucial pour le tri de rendu dans Three.js !
+                toneMapped={false}
+                depthWrite={false}
+                depthTest={false}
+              />
+            </mesh>
+          )}
+          {/* Ligne de lueur au-dessus de la barre (effet néon) */}
+          {player.health !== undefined && player.health > 0 && (
+            <mesh 
+              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.024, 0.002]}
+              renderOrder={1000}
+            >
+              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.006]} />
+              <meshBasicMaterial 
+                color="#ffffff"
+                transparent
+                opacity={0.8}
+                toneMapped={false}
+                depthWrite={false}
+                depthTest={false}
+              />
             </mesh>
           )}
         </group>
@@ -313,6 +350,44 @@ function ThematicSector({
   );
 }
 
+// Composant pour l'onde de choc radiale au sol
+function RadialShockwave({ pulseTime }: { pulseTime: number | null }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const lastPulse = useRef<number | null>(null);
+  const active = useRef(false);
+  const animTime = useRef(0);
+
+  if (pulseTime && pulseTime !== lastPulse.current) {
+    active.current = true;
+    animTime.current = 0;
+    lastPulse.current = pulseTime;
+  }
+
+  useFrame((_, delta) => {
+    if (active.current && meshRef.current) {
+      animTime.current += delta * 1.5; // 0.6s animation
+      const ratio = Math.min(1.0, animTime.current);
+      const size = ratio * 8.5; // S'étend au-delà des avatars à 6.5
+      meshRef.current.scale.set(size, size, 1);
+      
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = (1.0 - ratio) * 0.85;
+
+      if (ratio >= 1.0) {
+        active.current = false;
+        mat.opacity = 0;
+      }
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, 0]}>
+      <ringGeometry args={[0.95, 1.0, 32]} />
+      <meshBasicMaterial color="#00ffcc" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
 export default function Portal2026({ 
   categories = [], 
   onSelectSector 
@@ -324,6 +399,21 @@ export default function Portal2026({
   const { players } = useAuth();
   const { camera } = useThree();
 
+  // Détection de l'impulsion temporelle
+  const teamList = players || [];
+  const me = teamList.find(p => p.isCurrent);
+  const lastHealth = useRef<number | null>(null);
+  const [pulseTime, setPulseTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (me && lastHealth.current !== null && me.health > lastHealth.current) {
+      setPulseTime(Date.now());
+    }
+    if (me) {
+      lastHealth.current = me.health;
+    }
+  }, [me?.health]);
+
   // Réinitialisation de la caméra pour l'univers 2026
   useEffect(() => {
     camera.position.set(0, 5, 10);
@@ -332,7 +422,6 @@ export default function Portal2026({
   }, [camera]);
   
   // Utilise un tableau vide si les joueurs ne sont pas encore chargés
-  const teamList = players || [];
 
   // Chargement de la texture de la Terre (locale)
   const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
@@ -352,6 +441,7 @@ export default function Portal2026({
 
   return (
     <group>
+      <RadialShockwave pulseTime={pulseTime} />
       <OrbitControls 
         enableZoom={false} 
         enablePan={false} 

@@ -970,3 +970,32 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* --- Glitch Écran Temporel --- */
+.screen-glitch {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 255, 204, 0.15);
+  z-index: 99999;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  animation: glitchPulse 0.2s steps(2) infinite;
+}
+
+@keyframes glitchPulse {
+  0% {
+    transform: translate(2px, 1px) skew(1deg);
+    background: rgba(0, 255, 204, 0.25);
+  }
+  50% {
+    transform: translate(-1px, -2px) skew(-2deg);
+    background: rgba(0, 180, 255, 0.3);
+  }
+  100% {
+    transform: translate(1px, 2px) skew(0deg);
+    background: rgba(0, 255, 150, 0.25);
+  }
+}

@@ -43,6 +43,12 @@ describe('EvoeService', () => {
         findFirst: jest
           .fn()
           .mockResolvedValue({ avgActionsPerChildPerPeriod: 8 }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ avgActionsPerChildPerPeriod: 8, gamePeriodsCount: 40 }),
+      },
+      evoeChallenge: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
       team: {
         findMany: jest.fn().mockResolvedValue([
@@ -66,6 +72,20 @@ describe('EvoeService', () => {
         findFirst: jest.fn().mockResolvedValue({ id: 50, isOpen: true }),
       },
       actionDone: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 10,
+            childId: 300,
+            localActionId: 1,
+            savedCo2: 1,
+            savedWater: 2,
+            savedWaste: 0.5,
+            localAction: {
+              id: 1,
+              actionRef: { co2Year: 12 },
+            },
+          },
+        ]),
         aggregate: jest.fn().mockResolvedValue({
           // Low values so that calculatedLevel is 1, but it stays at mock level 2
           _sum: { savedCo2: 1.0, savedWater: 2.0, savedWaste: 0.5 },
