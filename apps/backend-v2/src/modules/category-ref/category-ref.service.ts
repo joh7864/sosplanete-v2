@@ -23,21 +23,31 @@ export class CategoryRefService {
     });
   }
 
-  async update(id: number, data: { name?: string; icon?: string; order?: number }) {
-    const existing = await this.prisma.categoryRef.findUnique({ where: { id } });
+  async update(
+    id: number,
+    data: { name?: string; icon?: string; order?: number },
+  ) {
+    const existing = await this.prisma.categoryRef.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`CategoryRef ${id} introuvable`);
     return this.prisma.categoryRef.update({
       where: { id },
       data: {
         name: data.name,
-        icon: data.icon !== undefined ? data.icon?.toLowerCase() || null : existing.icon,
+        icon:
+          data.icon !== undefined
+            ? data.icon?.toLowerCase() || null
+            : existing.icon,
         order: data.order,
       },
     });
   }
 
   async remove(id: number) {
-    const existing = await this.prisma.categoryRef.findUnique({ where: { id } });
+    const existing = await this.prisma.categoryRef.findUnique({
+      where: { id },
+    });
     if (!existing) throw new NotFoundException(`CategoryRef ${id} introuvable`);
     // Délier les ActionRef avant la suppression
     await this.prisma.actionRef.updateMany({
@@ -66,7 +76,8 @@ export class CategoryRefService {
       delimiter: ';',
     });
 
-    if (errors.length > 0) throw new Error('CSV invalide : ' + errors[0].message);
+    if (errors.length > 0)
+      throw new Error('CSV invalide : ' + errors[0].message);
 
     const rows = (data as string[][]).slice(1); // ignore header
     const stats = { created: 0, updated: 0 };
@@ -77,7 +88,9 @@ export class CategoryRefService {
       const icon = row[1]?.trim().toLowerCase() || null;
       const order = parseInt(row[2]?.trim() || '0', 10);
 
-      const existing = await this.prisma.categoryRef.findUnique({ where: { name } });
+      const existing = await this.prisma.categoryRef.findUnique({
+        where: { name },
+      });
       await this.prisma.categoryRef.upsert({
         where: { name },
         update: { icon, order: isNaN(order) ? 0 : order },
@@ -119,19 +132,25 @@ export class CategoryRefService {
    * N'écrase pas les catégories existantes (skipDuplicates par nom normalisé).
    */
   async inheritToInstance(instanceYearId: number) {
-    const refs = await this.prisma.categoryRef.findMany({ orderBy: { order: 'asc' } });
-    const existing = await this.prisma.category.findMany({ where: { instanceYearId } });
-    const existingNames = existing.map(c => c.name.toLowerCase().trim());
+    const refs = await this.prisma.categoryRef.findMany({
+      orderBy: { order: 'asc' },
+    });
+    const existing = await this.prisma.category.findMany({
+      where: { instanceYearId },
+    });
+    const existingNames = existing.map((c) => c.name.toLowerCase().trim());
 
-    const toCreate = refs.filter(r => !existingNames.includes(r.name.toLowerCase().trim()));
+    const toCreate = refs.filter(
+      (r) => !existingNames.includes(r.name.toLowerCase().trim()),
+    );
 
     if (toCreate.length === 0) return { created: 0 };
 
     await this.prisma.category.createMany({
-      data: toCreate.map(r => ({
-        name:           r.name,
-        icon:           r.icon,
-        order:          r.order,
+      data: toCreate.map((r) => ({
+        name: r.name,
+        icon: r.icon,
+        order: r.order,
         instanceYearId,
       })),
     });

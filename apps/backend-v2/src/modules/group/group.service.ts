@@ -13,7 +13,10 @@ export class GroupService {
     });
     if (!team) throw new Error('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
@@ -29,11 +32,17 @@ export class GroupService {
     });
     if (!team) throw new Error('Équipe non trouvée');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
-    return this.prisma.group.findMany({ where: { teamId }, include: { children: true } });
+    return this.prisma.group.findMany({
+      where: { teamId },
+      include: { children: true },
+    });
   }
 
   async remove(id: number, user: any) {
@@ -43,7 +52,10 @@ export class GroupService {
     });
     if (!group) return { success: false, message: 'Groupe non trouvé' };
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(group.team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 

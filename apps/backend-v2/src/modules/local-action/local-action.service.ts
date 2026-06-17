@@ -7,22 +7,28 @@ import { CategoryService } from '../category/category.service';
 export class LocalActionService {
   constructor(
     private prisma: PrismaService,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
   ) {}
 
-  async create(data: { 
-    instanceId: number; 
-    actionRefId: number; 
-    customLabel?: string; 
-    categoryId?: number;
-    schoolYear?: string;
-  }, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
+  async create(
+    data: {
+      instanceId: number;
+      actionRefId: number;
+      customLabel?: string;
+      categoryId?: number;
+      schoolYear?: string;
+    },
+    user: any,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
-    const actionRef = await this.prisma.actionRef.findUnique({ where: { id: data.actionRefId } });
+    const actionRef = await this.prisma.actionRef.findUnique({
+      where: { id: data.actionRefId },
+    });
     if (!actionRef) throw new Error('Action de référence non trouvée');
 
     return this.prisma.localAction.create({
@@ -38,32 +44,39 @@ export class LocalActionService {
   }
 
   async findAll(instanceId: number, schoolYear: string, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
 
     return this.prisma.localAction.findMany({
       where: { instanceId, schoolYear: sy },
       include: {
-        actionRef: true
-      }
+        actionRef: true,
+      },
     });
   }
 
-  async importFromRef(instanceId: number, actionRefIds: number[], schoolYear: string, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+  async importFromRef(
+    instanceId: number,
+    actionRefIds: number[],
+    schoolYear: string,
+    user: any,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
     const actionRefs = await this.prisma.actionRef.findMany({
-      where: { id: { in: actionRefIds } }
+      where: { id: { in: actionRefIds } },
     });
 
-    const data = actionRefs.map(ref => ({
+    const data = actionRefs.map((ref) => ({
       instanceId,
       actionRefId: ref.id,
       label: ref.referenceName,
@@ -74,17 +87,23 @@ export class LocalActionService {
     // On utilise createMany avec skipDuplicates car nous avons maintenant une contrainte @unique
     return this.prisma.localAction.createMany({
       data,
-      skipDuplicates: true
+      skipDuplicates: true,
     });
   }
 
-  async importByCodes(instanceId: number, actions: any[], schoolYear: string, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+  async importByCodes(
+    instanceId: number,
+    actions: any[],
+    schoolYear: string,
+    user: any,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
-    const codes = actions.map(a => a.actionRef);
+    const codes = actions.map((a) => a.actionRef);
     const actionRefs = await this.prisma.actionRef.findMany({
-      where: { code: { in: codes } }
+      where: { code: { in: codes } },
     });
 
     // Récupération des catégories existantes via l'InstanceYear
@@ -92,19 +111,25 @@ export class LocalActionService {
       where: { instanceId, schoolYear },
     });
     const existingCategories = instanceYear
-      ? await this.prisma.category.findMany({ where: { instanceYearId: instanceYear.id } })
+      ? await this.prisma.category.findMany({
+          where: { instanceYearId: instanceYear.id },
+        })
       : [];
 
     const results = [];
     for (const actionInput of actions) {
-      const ref = actionRefs.find(r => r.code === actionInput.actionRef);
+      const ref = actionRefs.find((r) => r.code === actionInput.actionRef);
       if (!ref) continue;
 
       // Mapping de la catégorie par nom (normalisé)
       let categoryId = undefined;
       if (actionInput.category) {
-        const normCatName = this.categoryService.normalizeString(actionInput.category);
-        const match = existingCategories.find(c => this.categoryService.normalizeString(c.name) === normCatName);
+        const normCatName = this.categoryService.normalizeString(
+          actionInput.category,
+        );
+        const match = existingCategories.find(
+          (c) => this.categoryService.normalizeString(c.name) === normCatName,
+        );
         if (match) {
           categoryId = match.id;
         }
@@ -117,7 +142,7 @@ export class LocalActionService {
             instanceId,
             actionRefId: ref.id,
             schoolYear,
-          }
+          },
         },
         update: {
           label: actionInput.name || ref.referenceName,
@@ -133,20 +158,31 @@ export class LocalActionService {
           description: actionInput.description || ref.description || null,
           categoryId: categoryId,
           schoolYear,
-        }
+        },
       });
       results.push(local);
     }
     return results;
   }
 
-  async update(id: number, data: { label?: string, description?: string, image?: string, categoryId?: number }, user: any) {
+  async update(
+    id: number,
+    data: {
+      label?: string;
+      description?: string;
+      image?: string;
+      categoryId?: number;
+    },
+    user: any,
+  ) {
     const localAction = await this.prisma.localAction.findUnique({
-      where: { id }
+      where: { id },
     });
     if (!localAction) throw new Error('Action locale non trouvée');
 
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(localAction.instanceId);
+    const isAllowed =
+      user.role === Role.AS ||
+      user.instanceIds?.includes(localAction.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     return this.prisma.localAction.update({
@@ -156,11 +192,15 @@ export class LocalActionService {
         description: data.description,
         image: data.image,
         categoryId: data.categoryId,
-      }
+      },
     });
   }
 
-  async bulkAssignCategory(actionIds: number[], categoryId: number | null, user: any) {
+  async bulkAssignCategory(
+    actionIds: number[],
+    categoryId: number | null,
+    user: any,
+  ) {
     // Vérification que l'utilisateur peut accéder à toutes ces actions
     const actions = await this.prisma.localAction.findMany({
       where: { id: { in: actionIds } },
@@ -168,7 +208,8 @@ export class LocalActionService {
     });
 
     for (const action of actions) {
-      const isAllowed = user.role === Role.AS || user.instanceIds?.includes(action.instanceId);
+      const isAllowed =
+        user.role === Role.AS || user.instanceIds?.includes(action.instanceId);
       if (!isAllowed) throw new ForbiddenException('Action non autorisée');
     }
 
@@ -180,15 +221,17 @@ export class LocalActionService {
 
   async remove(id: number, user: any) {
     const localAction = await this.prisma.localAction.findUnique({
-      where: { id }
+      where: { id },
     });
     if (!localAction) throw new Error('Action locale non trouvée');
 
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(localAction.instanceId);
+    const isAllowed =
+      user.role === Role.AS ||
+      user.instanceIds?.includes(localAction.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     return this.prisma.localAction.delete({
-      where: { id }
+      where: { id },
     });
   }
 }

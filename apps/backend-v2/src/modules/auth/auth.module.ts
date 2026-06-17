@@ -13,7 +13,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
     // SEC-01 — Lecture dynamique du secret depuis les variables d'environnement
     JwtModule.registerAsync({
       useFactory: () => ({
-        secret: process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
+        secret:
+          process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
         signOptions: { expiresIn: '30d' },
       }),
     }),

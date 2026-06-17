@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 function getStartYear(yearStr: string): number {
@@ -6,7 +11,10 @@ function getStartYear(yearStr: string): number {
   return match ? parseInt(match[1], 10) : new Date().getFullYear();
 }
 
-function shiftDateByYears(date: Date | null | undefined, offset: number): Date | null {
+function shiftDateByYears(
+  date: Date | null | undefined,
+  offset: number,
+): Date | null {
   if (!date) return null;
   const newDate = new Date(date);
   newDate.setFullYear(newDate.getFullYear() + offset);
@@ -21,7 +29,11 @@ export class YearService {
    * Initialise une nouvelle année scolaire pour une instance.
    * Crée une InstanceYear, puis clone la configuration (Teams, Groups, Children, LocalActions, Categories).
    */
-  async initializeYear(instanceId: number, targetYear: string, currentUser?: any) {
+  async initializeYear(
+    instanceId: number,
+    targetYear: string,
+    currentUser?: any,
+  ) {
     // 1. Vérifier si l'InstanceYear existe déjà
     const existing = await this.prisma.instanceYear.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear: targetYear } },
@@ -36,15 +48,23 @@ export class YearService {
 
     if (!lastIy) {
       // Aucune année précédente → créer une InstanceYear vierge
-      await this.prisma.instanceYear.create({ data: { instanceId, schoolYear: targetYear } });
-      await this.triggerYearInitializationNotifications(instanceId, targetYear, currentUser);
+      await this.prisma.instanceYear.create({
+        data: { instanceId, schoolYear: targetYear },
+      });
+      await this.triggerYearInitializationNotifications(
+        instanceId,
+        targetYear,
+        currentUser,
+      );
       return { message: 'Nouvelle InstanceYear créée (sans clonage)' };
     }
 
     const fromYear = lastIy.schoolYear;
     if (fromYear === targetYear) return { message: 'Même année' };
 
-    console.log(`[YearService] Cloning from ${fromYear} to ${targetYear} for instance ${instanceId}`);
+    console.log(
+      `[YearService] Cloning from ${fromYear} to ${targetYear} for instance ${instanceId}`,
+    );
 
     const fromStartYear = getStartYear(fromYear);
     const toStartYear = getStartYear(targetYear);
@@ -55,26 +75,28 @@ export class YearService {
       const newIy = await tx.instanceYear.create({
         data: {
           instanceId,
-          schoolYear:      targetYear,
-          hostUrl:         lastIy.hostUrl,
-          icon:            lastIy.icon,
-          isOpen:          lastIy.isOpen,
-          gameStartDate:   shiftDateByYears(lastIy.gameStartDate, yearOffset),
-          gameEndDate:     shiftDateByYears(lastIy.gameEndDate, yearOffset),
+          schoolYear: targetYear,
+          hostUrl: lastIy.hostUrl,
+          icon: lastIy.icon,
+          isOpen: lastIy.isOpen,
+          gameStartDate: shiftDateByYears(lastIy.gameStartDate, yearOffset),
+          gameEndDate: shiftDateByYears(lastIy.gameEndDate, yearOffset),
           gamePeriodsCount: lastIy.gamePeriodsCount,
-          adminId:         lastIy.adminId,
+          adminId: lastIy.adminId,
         },
       });
 
       // --- A. CLONAGE DES CATEGORIES ---
-      const categories = await tx.category.findMany({ where: { instanceYearId: lastIy.id } });
+      const categories = await tx.category.findMany({
+        where: { instanceYearId: lastIy.id },
+      });
       const categoryMap = new Map<number, number>();
       for (const cat of categories) {
         const newCat = await tx.category.create({
           data: {
-            name:           cat.name,
-            icon:           cat.icon,
-            order:          cat.order,
+            name: cat.name,
+            icon: cat.icon,
+            order: cat.order,
             instanceYearId: newIy.id,
           },
         });
@@ -83,13 +105,18 @@ export class YearService {
 
       // --- B. CLONAGE DES TEAMS, GROUPS & CHILDREN ---
       const teams = await tx.team.findMany({
-        where:   { instanceYearId: lastIy.id },
+        where: { instanceYearId: lastIy.id },
         include: { groups: { include: { children: true } } },
       });
 
       for (const team of teams) {
         const newTeam = await tx.team.create({
-          data: { name: team.name, color: team.color, icon: team.icon, instanceYearId: newIy.id },
+          data: {
+            name: team.name,
+            color: team.color,
+            icon: team.icon,
+            instanceYearId: newIy.id,
+          },
         });
 
         for (const group of team.groups) {
@@ -98,27 +125,36 @@ export class YearService {
           });
           for (const child of group.children) {
             await tx.child.create({
-              data: { pseudo: child.pseudo, password: child.password, avatar: child.avatar, groupId: newGroup.id },
+              data: {
+                pseudo: child.pseudo,
+                password: child.password,
+                avatar: child.avatar,
+                groupId: newGroup.id,
+              },
             });
           }
         }
       }
 
       // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS — reste sur instanceId + schoolYear) ---
-      const localActions = await tx.localAction.findMany({ where: { instanceId, schoolYear: fromYear } });
+      const localActions = await tx.localAction.findMany({
+        where: { instanceId, schoolYear: fromYear },
+      });
       for (const action of localActions) {
         await tx.localAction.create({
           data: {
-            label:          action.label,
-            description:    action.description,
-            image:          action.image,
-            instanceId:     action.instanceId,
-            actionRefId:    action.actionRefId,
-            schoolYear:     targetYear,
-            categoryId:     action.categoryId ? categoryMap.get(action.categoryId) ?? null : null,
-            specificCo2:    action.specificCo2,
-            specificWater:  action.specificWater,
-            specificWaste:  action.specificWaste,
+            label: action.label,
+            description: action.description,
+            image: action.image,
+            instanceId: action.instanceId,
+            actionRefId: action.actionRefId,
+            schoolYear: targetYear,
+            categoryId: action.categoryId
+              ? (categoryMap.get(action.categoryId) ?? null)
+              : null,
+            specificCo2: action.specificCo2,
+            specificWater: action.specificWater,
+            specificWaste: action.specificWaste,
             specificEnergy: action.specificEnergy,
           },
         });
@@ -132,13 +168,16 @@ export class YearService {
         await tx.gameConfig.create({
           data: {
             instanceId,
-            schoolYear:                   targetYear,
-            avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
-            animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
-            bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
-            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
-            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
-            gamePeriodsCount:             gameConfig.gamePeriodsCount,
+            schoolYear: targetYear,
+            avgActionsPerChildPerPeriod: gameConfig.avgActionsPerChildPerPeriod,
+            animalAdvanceMargin: gameConfig.animalAdvanceMargin,
+            bienveillanceThreshold: gameConfig.bienveillanceThreshold,
+            gameStartDate: shiftDateByYears(
+              gameConfig.gameStartDate,
+              yearOffset,
+            ),
+            gameEndDate: shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount: gameConfig.gamePeriodsCount,
           },
         });
       }
@@ -146,16 +185,24 @@ export class YearService {
       return { success: true, fromYear, targetYear, instanceYearId: newIy.id };
     });
 
-    await this.triggerYearInitializationNotifications(instanceId, targetYear, currentUser);
+    await this.triggerYearInitializationNotifications(
+      instanceId,
+      targetYear,
+      currentUser,
+    );
     return result;
   }
 
-  async triggerYearInitializationNotifications(instanceId: number, targetYear: string, currentUser?: any) {
+  async triggerYearInitializationNotifications(
+    instanceId: number,
+    targetYear: string,
+    currentUser?: any,
+  ) {
     if (!currentUser) return;
     try {
       const yearInt = parseInt(targetYear.split('-')[0], 10);
       const annualData = await this.prisma.annualImpactData.findUnique({
-        where: { year: yearInt }
+        where: { year: yearInt },
       });
       const isCustomized = annualData ? annualData.isCustomized : false;
 
@@ -163,18 +210,19 @@ export class YearService {
       if (!isCustomized && currentUser.role === 'AM') {
         const instance = await this.prisma.instance.findUnique({
           where: { id: instanceId },
-          include: { admin: true }
+          include: { admin: true },
         });
         const schoolName = instance?.schoolName ?? `Espace #${instanceId}`;
 
         const amUser = await this.prisma.user.findUnique({
-          where: { id: currentUser.userId }
+          where: { id: currentUser.userId },
         });
-        const amName = amUser?.name || amUser?.email || currentUser.email || 'un animateur';
+        const amName =
+          amUser?.name || amUser?.email || currentUser.email || 'un animateur';
 
         // 1. Trouver les administrateurs AS
         const asUsers = await this.prisma.user.findMany({
-          where: { role: 'AS' }
+          where: { role: 'AS' },
         });
 
         const titleAS = `Demande d'initialisation des paramètres globaux - ${targetYear}`;
@@ -185,8 +233,8 @@ export class YearService {
             where: {
               recipientId: asUser.id,
               status: 'PENDING',
-              content: contentAS
-            }
+              content: contentAS,
+            },
           });
           if (!exists) {
             await this.prisma.notification.create({
@@ -196,8 +244,8 @@ export class YearService {
                 title: titleAS,
                 content: contentAS,
                 status: 'PENDING',
-                isRead: false
-              }
+                isRead: false,
+              },
             });
           }
         }
@@ -210,8 +258,8 @@ export class YearService {
           where: {
             recipientId: currentUser.userId,
             status: 'PENDING',
-            content: contentAM
-          }
+            content: contentAM,
+          },
         });
         if (!existsAM) {
           const systemSenderId = asUsers[0]?.id || currentUser.userId;
@@ -222,8 +270,8 @@ export class YearService {
               title: titleAM,
               content: contentAM,
               status: 'PENDING',
-              isRead: false
-            }
+              isRead: false,
+            },
           });
         }
       }
@@ -249,9 +297,16 @@ export class YearService {
    * Duplique les catégories, équipes (avec groupes et élèves), catalogue d'actions locales et GameConfig
    * d'une année source vers une année cible existante vide pour une instance donnée.
    */
-  async duplicateYear(instanceId: number, fromYear: string, toYear: string, currentUser?: any) {
+  async duplicateYear(
+    instanceId: number,
+    fromYear: string,
+    toYear: string,
+    currentUser?: any,
+  ) {
     if (fromYear === toYear) {
-      throw new BadRequestException("L'année source et l'année cible doivent être différentes");
+      throw new BadRequestException(
+        "L'année source et l'année cible doivent être différentes",
+      );
     }
 
     // 1. Vérifier la source
@@ -259,7 +314,9 @@ export class YearService {
       where: { instanceId_schoolYear: { instanceId, schoolYear: fromYear } },
     });
     if (!fromIy) {
-      throw new NotFoundException(`Année source ${fromYear} non trouvée pour cet établissement`);
+      throw new NotFoundException(
+        `Année source ${fromYear} non trouvée pour cet établissement`,
+      );
     }
 
     // 2. Vérifier la cible : si elle existe déjà, on refuse la duplication (déjà existante)
@@ -267,10 +324,12 @@ export class YearService {
       where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
     });
     if (toIy) {
-      throw new ConflictException("Un espace du même nom existe déjà");
+      throw new ConflictException('Un espace du même nom existe déjà');
     }
 
-    console.log(`[YearService] Creating and duplicating space from ${fromYear} to ${toYear} for instance ${instanceId}`);
+    console.log(
+      `[YearService] Creating and duplicating space from ${fromYear} to ${toYear} for instance ${instanceId}`,
+    );
 
     const fromStartYear = getStartYear(fromYear);
     const toStartYear = getStartYear(toYear);
@@ -281,26 +340,28 @@ export class YearService {
       const newIy = await tx.instanceYear.create({
         data: {
           instanceId,
-          schoolYear:       toYear,
-          hostUrl:          fromIy.hostUrl,
-          icon:             fromIy.icon,
-          isOpen:           fromIy.isOpen,
-          gameStartDate:    shiftDateByYears(fromIy.gameStartDate, yearOffset),
-          gameEndDate:      shiftDateByYears(fromIy.gameEndDate, yearOffset),
+          schoolYear: toYear,
+          hostUrl: fromIy.hostUrl,
+          icon: fromIy.icon,
+          isOpen: fromIy.isOpen,
+          gameStartDate: shiftDateByYears(fromIy.gameStartDate, yearOffset),
+          gameEndDate: shiftDateByYears(fromIy.gameEndDate, yearOffset),
           gamePeriodsCount: fromIy.gamePeriodsCount,
-          adminId:          fromIy.adminId,
+          adminId: fromIy.adminId,
         },
       });
 
       // --- A. CLONAGE DES CATEGORIES ---
-      const categories = await tx.category.findMany({ where: { instanceYearId: fromIy.id } });
+      const categories = await tx.category.findMany({
+        where: { instanceYearId: fromIy.id },
+      });
       const categoryMap = new Map<number, number>();
       for (const cat of categories) {
         const newCat = await tx.category.create({
           data: {
-            name:           cat.name,
-            icon:           cat.icon,
-            order:          cat.order,
+            name: cat.name,
+            icon: cat.icon,
+            order: cat.order,
             instanceYearId: newIy.id,
           },
         });
@@ -309,13 +370,18 @@ export class YearService {
 
       // --- B. CLONAGE DES TEAMS, GROUPS & CHILDREN ---
       const teams = await tx.team.findMany({
-        where:   { instanceYearId: fromIy.id },
+        where: { instanceYearId: fromIy.id },
         include: { groups: { include: { children: true } } },
       });
 
       for (const team of teams) {
         const newTeam = await tx.team.create({
-          data: { name: team.name, color: team.color, icon: team.icon, instanceYearId: newIy.id },
+          data: {
+            name: team.name,
+            color: team.color,
+            icon: team.icon,
+            instanceYearId: newIy.id,
+          },
         });
 
         for (const group of team.groups) {
@@ -324,27 +390,36 @@ export class YearService {
           });
           for (const child of group.children) {
             await tx.child.create({
-              data: { pseudo: child.pseudo, password: child.password, avatar: child.avatar, groupId: newGroup.id },
+              data: {
+                pseudo: child.pseudo,
+                password: child.password,
+                avatar: child.avatar,
+                groupId: newGroup.id,
+              },
             });
           }
         }
       }
 
       // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS) ---
-      const localActions = await tx.localAction.findMany({ where: { instanceId, schoolYear: fromYear } });
+      const localActions = await tx.localAction.findMany({
+        where: { instanceId, schoolYear: fromYear },
+      });
       for (const action of localActions) {
         await tx.localAction.create({
           data: {
-            label:          action.label,
-            description:    action.description,
-            image:          action.image,
-            instanceId:     action.instanceId,
-            actionRefId:    action.actionRefId,
-            schoolYear:     toYear,
-            categoryId:     action.categoryId ? categoryMap.get(action.categoryId) ?? null : null,
-            specificCo2:    action.specificCo2,
-            specificWater:  action.specificWater,
-            specificWaste:  action.specificWaste,
+            label: action.label,
+            description: action.description,
+            image: action.image,
+            instanceId: action.instanceId,
+            actionRefId: action.actionRefId,
+            schoolYear: toYear,
+            categoryId: action.categoryId
+              ? (categoryMap.get(action.categoryId) ?? null)
+              : null,
+            specificCo2: action.specificCo2,
+            specificWater: action.specificWater,
+            specificWaste: action.specificWaste,
             specificEnergy: action.specificEnergy,
           },
         });
@@ -358,22 +433,28 @@ export class YearService {
         await tx.gameConfig.upsert({
           where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
           update: {
-            avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
-            animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
-            bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
-            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
-            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
-            gamePeriodsCount:             gameConfig.gamePeriodsCount,
+            avgActionsPerChildPerPeriod: gameConfig.avgActionsPerChildPerPeriod,
+            animalAdvanceMargin: gameConfig.animalAdvanceMargin,
+            bienveillanceThreshold: gameConfig.bienveillanceThreshold,
+            gameStartDate: shiftDateByYears(
+              gameConfig.gameStartDate,
+              yearOffset,
+            ),
+            gameEndDate: shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount: gameConfig.gamePeriodsCount,
           },
           create: {
             instanceId,
-            schoolYear:                   toYear,
-            avgActionsPerChildPerPeriod:  gameConfig.avgActionsPerChildPerPeriod,
-            animalAdvanceMargin:          gameConfig.animalAdvanceMargin,
-            bienveillanceThreshold:       gameConfig.bienveillanceThreshold,
-            gameStartDate:                shiftDateByYears(gameConfig.gameStartDate, yearOffset),
-            gameEndDate:                  shiftDateByYears(gameConfig.gameEndDate, yearOffset),
-            gamePeriodsCount:             gameConfig.gamePeriodsCount,
+            schoolYear: toYear,
+            avgActionsPerChildPerPeriod: gameConfig.avgActionsPerChildPerPeriod,
+            animalAdvanceMargin: gameConfig.animalAdvanceMargin,
+            bienveillanceThreshold: gameConfig.bienveillanceThreshold,
+            gameStartDate: shiftDateByYears(
+              gameConfig.gameStartDate,
+              yearOffset,
+            ),
+            gameEndDate: shiftDateByYears(gameConfig.gameEndDate, yearOffset),
+            gamePeriodsCount: gameConfig.gamePeriodsCount,
           },
         });
       }

@@ -1,6 +1,16 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, UseGuards,
-  Request, UploadedFile, UseInterceptors, ForbiddenException
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  UploadedFile,
+  UseInterceptors,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CategoryRefService } from './category-ref.service';
@@ -13,7 +23,8 @@ export class CategoryRefController {
   constructor(private readonly categoryRefService: CategoryRefService) {}
 
   private ensureAS(user: any) {
-    if (user?.role !== Role.AS) throw new ForbiddenException('Accès réservé à l\'administrateur système');
+    if (user?.role !== Role.AS)
+      throw new ForbiddenException("Accès réservé à l'administrateur système");
   }
 
   @Get()
@@ -22,7 +33,10 @@ export class CategoryRefController {
   }
 
   @Post()
-  create(@Body() body: { name: string; icon?: string; order?: number }, @Request() req: any) {
+  create(
+    @Body() body: { name: string; icon?: string; order?: number },
+    @Request() req: any,
+  ) {
     this.ensureAS(req.user);
     return this.categoryRefService.create(body);
   }
@@ -48,7 +62,10 @@ export class CategoryRefController {
   /** Import CSV des catégories globales (AS only) */
   @Post('import')
   @UseInterceptors(FileInterceptor('file'))
-  async importCsv(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
+  async importCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
     this.ensureAS(req.user);
     const content = file.buffer.toString('utf-8');
     const stats = await this.categoryRefService.importCsv(content);
@@ -66,7 +83,10 @@ export class CategoryRefController {
 
   /** Hérite les CategoryRef vers une InstanceYear (AS only) */
   @Post('inherit/:instanceYearId')
-  inherit(@Param('instanceYearId') instanceYearId: string, @Request() req: any) {
+  inherit(
+    @Param('instanceYearId') instanceYearId: string,
+    @Request() req: any,
+  ) {
     this.ensureAS(req.user);
     return this.categoryRefService.inheritToInstance(+instanceYearId);
   }

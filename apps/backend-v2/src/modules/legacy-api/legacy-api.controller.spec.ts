@@ -8,9 +8,7 @@ describe('LegacyApiController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LegacyApiController],
-      providers: [
-        { provide: LegacyApiService, useValue: {} },
-      ],
+      providers: [{ provide: LegacyApiService, useValue: {} }],
     }).compile();
 
     controller = module.get<LegacyApiController>(LegacyApiController);

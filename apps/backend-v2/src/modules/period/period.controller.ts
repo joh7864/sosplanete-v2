@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Req, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { PeriodService } from './period.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -13,26 +24,40 @@ export class PeriodController {
 
   @Post()
   @ApiOperation({ summary: 'Définir une nouvelle période de saisie' })
-  async create(@Body() body: { startDate: Date; endDate: Date; instanceYearId: number }, @Req() req: any) {
+  async create(
+    @Body() body: { startDate: Date; endDate: Date; instanceYearId: number },
+    @Req() req: any,
+  ) {
     return this.periodService.create(body, req.user);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister les périodes d\'une InstanceYear' })
-  async findAll(@Query('instanceYearId', ParseIntPipe) instanceYearId: number, @Req() req: any) {
+  @ApiOperation({ summary: "Lister les périodes d'une InstanceYear" })
+  async findAll(
+    @Query('instanceYearId', ParseIntPipe) instanceYearId: number,
+    @Req() req: any,
+  ) {
     return this.periodService.findAll(instanceYearId, req.user);
   }
 
   @Get(':id/impact')
-  @ApiOperation({ summary: 'Obtenir l\'impact de la suppression d\'une période (Nb actions et détails)' })
+  @ApiOperation({
+    summary:
+      "Obtenir l'impact de la suppression d'une période (Nb actions et détails)",
+  })
   async getImpact(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.periodService.getImpact(id, req.user);
   }
 
   @Post('repair-school-years')
-  @ApiOperation({ summary: '[OBSOLETE] Route de migration legacy - maintenant sans effet' })
+  @ApiOperation({
+    summary: '[OBSOLETE] Route de migration legacy - maintenant sans effet',
+  })
   async repairSchoolYears(@Req() req: any) {
-    return { success: true, message: 'Migration InstanceYear déjà effectuée. Route obsolète.' };
+    return {
+      success: true,
+      message: 'Migration InstanceYear déjà effectuée. Route obsolète.',
+    };
   }
 
   @Post(':id') // Note : maintenu en POST pour compatibilité — idéalement devrait être @Patch
@@ -40,13 +65,16 @@ export class PeriodController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { startDate?: Date; endDate?: Date; isOpen?: boolean },
-    @Req() req: any
+    @Req() req: any,
   ) {
     return this.periodService.update(id, body, req.user);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Supprimer une période (avec avertissement côté client si non vide)' })
+  @ApiOperation({
+    summary:
+      'Supprimer une période (avec avertissement côté client si non vide)',
+  })
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.periodService.remove(id, req.user);
   }

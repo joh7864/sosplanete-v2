@@ -10,7 +10,7 @@ export class ActionRefService {
 
   async importFromCSV(fileBuffer: Buffer) {
     const csvData = fileBuffer.toString('utf-8');
-    
+
     return new Promise((resolve) => {
       Papa.parse(csvData, {
         header: false,
@@ -20,7 +20,7 @@ export class ActionRefService {
           const rows = results.data as string[][];
           // On ignore l'en-tête (ligne 0)
           const dataLines = rows.slice(1);
-          
+
           let count = 0;
           let errors = 0;
 
@@ -29,10 +29,10 @@ export class ActionRefService {
 
             const code = row[0]?.trim();
             const name = row[1]?.trim();
-            
+
             if (!code || !name) continue;
 
-                        const co2 = parseFloat(row[2]?.replace(',', '.') || '0');
+            const co2 = parseFloat(row[2]?.replace(',', '.') || '0');
             const water = parseFloat(row[3]?.replace(',', '.') || '0');
             const waste = parseFloat(row[4]?.replace(',', '.') || '0');
             const category = row[5]?.trim();
@@ -81,9 +81,11 @@ export class ActionRefService {
             }
           }
 
-          this.logger.log(`Import finished: ${count} success, ${errors} errors.`);
+          this.logger.log(
+            `Import finished: ${count} success, ${errors} errors.`,
+          );
           resolve({ success: true, count, errors });
-        }
+        },
       });
     });
   }
@@ -103,7 +105,7 @@ export class ActionRefService {
         ],
       },
       take: 100,
-      orderBy: { code: 'asc' }
+      orderBy: { code: 'asc' },
     });
   }
 }

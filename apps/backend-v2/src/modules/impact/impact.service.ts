@@ -11,11 +11,17 @@ export class ImpactService {
    * Calculate impact for a specific year and optional instanceId.
    * If instanceId is null, calculates globally across all instances.
    */
-  async calculateImpact(yearOrSchoolYear: number | string, instanceId: number | null = null) {
+  async calculateImpact(
+    yearOrSchoolYear: number | string,
+    instanceId: number | null = null,
+  ) {
     let year: number;
     let schoolYearFilter: string | null = null;
 
-    if (typeof yearOrSchoolYear === 'string' && yearOrSchoolYear.includes('-')) {
+    if (
+      typeof yearOrSchoolYear === 'string' &&
+      yearOrSchoolYear.includes('-')
+    ) {
       schoolYearFilter = yearOrSchoolYear;
       year = parseInt(yearOrSchoolYear.split('-')[0], 10);
     } else {
@@ -33,7 +39,7 @@ export class ImpactService {
       if (!annualData) {
         // Récupérer la plus récente pour copier ses valeurs, ou utiliser des valeurs par défaut
         const mostRecent = await this.prisma.annualImpactData.findFirst({
-          orderBy: { year: 'desc' }
+          orderBy: { year: 'desc' },
         });
 
         annualData = await this.prisma.annualImpactData.create({
@@ -44,21 +50,24 @@ export class ImpactService {
             moyEauMonde: mostRecent?.moyEauMonde ?? 1385000,
             moyDechetsMonde: mostRecent?.moyDechetsMonde ?? 270,
             popMonde: mostRecent?.popMonde ?? 8.1,
-            isCustomized: false
-          }
+            isCustomized: false,
+          },
         });
-        this.logger.log(`Création automatique des constantes d'impact globales par défaut pour l'année ${year}`);
+        this.logger.log(
+          `Création automatique des constantes d'impact globales par défaut pour l'année ${year}`,
+        );
       }
 
       // 2. Nombre total d'enfants inscrits
       let nbChildrenTotal = 1;
       if (instanceId !== null) {
-        nbChildrenTotal = await this.prisma.child.count({
-          where: { group: { team: { instanceYear: { instanceId } } } }
-        }) || 1;
+        nbChildrenTotal =
+          (await this.prisma.child.count({
+            where: { group: { team: { instanceYear: { instanceId } } } },
+          })) || 1;
       } else {
         // En global, on prend tous les enfants de la base pour cette session (toutes instances)
-        nbChildrenTotal = await this.prisma.child.count() || 1;
+        nbChildrenTotal = (await this.prisma.child.count()) || 1;
       }
 
       // 3. Récupérer les actions effectuées
@@ -66,12 +75,17 @@ export class ImpactService {
       if (instanceId !== null) {
         actionFilter.period = { instanceYear: { instanceId } };
         if (schoolYearFilter) {
-          actionFilter.period.instanceYear = { instanceId, schoolYear: schoolYearFilter };
+          actionFilter.period.instanceYear = {
+            instanceId,
+            schoolYear: schoolYearFilter,
+          };
         }
       } else if (schoolYearFilter) {
-        actionFilter.period = { instanceYear: { schoolYear: schoolYearFilter } };
+        actionFilter.period = {
+          instanceYear: { schoolYear: schoolYearFilter },
+        };
       }
-      
+
       const actionsDone = await this.prisma.actionDone.findMany({
         where: actionFilter,
         select: {
@@ -94,29 +108,35 @@ export class ImpactService {
 
       // 4. Calcul du Ratio d'Assiduité (V11)
       // On compare les saisies réelles au potentiel maximum (Nb_Enfants * Nb_Actions * Nb_Semaines)
-      const catalogSize = await this.prisma.actionRef.count() || 62;
-      
+      const catalogSize = (await this.prisma.actionRef.count()) || 62;
+
       let gameDuration = 52; // Valeur par défaut pour une année scolaire complète
       if (instanceId !== null) {
         const sy = schoolYearFilter || `${year}-${year + 1}`;
-        const config = await this.prisma.gameConfig.findUnique({ 
-          where: { instanceId_schoolYear: { instanceId, schoolYear: sy } } 
+        const config = await this.prisma.gameConfig.findUnique({
+          where: { instanceId_schoolYear: { instanceId, schoolYear: sy } },
         });
         gameDuration = config?.gamePeriodsCount || 52;
       }
-      
+
       const totalPossibleEntries = nbChildrenTotal * catalogSize * gameDuration;
-      const assiduiteRatio = totalPossibleEntries > 0 ? (actionsDone.length / totalPossibleEntries) : 0;
+      const assiduiteRatio =
+        totalPossibleEntries > 0
+          ? actionsDone.length / totalPossibleEntries
+          : 0;
 
       // 5. Extrapolation Annuelle de l'effort individuel
-      const annualRatio = 52.0 / gameDuration; 
-      const avgCo2PerChild = nbChildrenTotal > 0 ? (realCo2 / nbChildrenTotal) : 0;
-      const avgWaterPerChild = nbChildrenTotal > 0 ? (realWater / nbChildrenTotal) : 0;
-      const avgWastePerChild = nbChildrenTotal > 0 ? (realWaste / nbChildrenTotal) : 0;
+      const annualRatio = 52.0 / gameDuration;
+      const avgCo2PerChild =
+        nbChildrenTotal > 0 ? realCo2 / nbChildrenTotal : 0;
+      const avgWaterPerChild =
+        nbChildrenTotal > 0 ? realWater / nbChildrenTotal : 0;
+      const avgWastePerChild =
+        nbChildrenTotal > 0 ? realWaste / nbChildrenTotal : 0;
 
       const effortCo2Indiv = (avgCo2PerChild / 1000) * annualRatio; // Tonnes/an par joueur
-      const effortWaterIndiv = avgWaterPerChild * annualRatio;      // Litres/an par joueur
-      const effortWasteIndiv = avgWastePerChild * annualRatio;      // kg/an par joueur
+      const effortWaterIndiv = avgWaterPerChild * annualRatio; // Litres/an par joueur
+      const effortWasteIndiv = avgWastePerChild * annualRatio; // kg/an par joueur
 
       // 6. Projection Mondiale
       // Le facteur ambassadeur de 4 (foyer) et le diviseur de population de 4 (nombre de foyers) s'annulant mutuellement,
@@ -132,24 +152,26 @@ export class ImpactService {
       const pWaste = effortWasteIndiv / (annualData.moyDechetsMonde || 270);
 
       // Pondération : 60% CO2, 20% Eau, 20% Déchets
-      const rawEffortRatio = (pCo2 * 0.60) + (pWater * 0.20) + (pWaste * 0.20);
-      
-      // L'effort individuel moyen intègre déjà les saisies réelles loggées, 
+      const rawEffortRatio = pCo2 * 0.6 + pWater * 0.2 + pWaste * 0.2;
+
+      // L'effort individuel moyen intègre déjà les saisies réelles loggées,
       // donc on n'applique plus de double pénalisation par l'assiduité.
       const weightedEffortRatio = rawEffortRatio;
       const safeEffortRatio = Math.min(weightedEffortRatio, 0.99);
 
       // 8. Calcul des Planètes et Jour J (Modèle Asymptotique 25%)
-      const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+      const isLeapYear =
+        (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
       const jAnnee = isLeapYear ? 366 : 365;
-      
+
       const basePlanetes = jAnnee / (annualData.dActuel || 214); // Ex: 1.71
-      
+
       // Plafond d'action individuelle limité à 25%, avec progression asymptotique (facteur 2.0 pour lisser la courbe)
       const FACTEUR_DE_DIFFICULTE = 2.0;
-      const reductionImpactTotal = 0.25 * (1 - Math.exp(-weightedEffortRatio * FACTEUR_DE_DIFFICULTE)); 
+      const reductionImpactTotal =
+        0.25 * (1 - Math.exp(-weightedEffortRatio * FACTEUR_DE_DIFFICULTE));
       const nbPlanetes = basePlanetes * (1 - reductionImpactTotal);
-      
+
       const nouveauJourAnnee = jAnnee / nbPlanetes;
 
       // Formatage des dates
@@ -157,7 +179,9 @@ export class ImpactService {
       eodDate.setDate(eodDate.getDate() + Math.floor(nouveauJourAnnee) - 1);
 
       const eodDateSans = new Date(`${year}-01-01`);
-      eodDateSans.setDate(eodDateSans.getDate() + Math.floor(annualData.dActuel || 214) - 1);
+      eodDateSans.setDate(
+        eodDateSans.getDate() + Math.floor(annualData.dActuel || 214) - 1,
+      );
 
       // 9. Informations d'identité (si instance)
       let name = undefined;
@@ -183,12 +207,12 @@ export class ImpactService {
         nbChildren,
         isDefaultConstants: !annualData.isCustomized,
         sums: {
-          totalCo2: projectionCo2Monde,   // tCO2e projection mondiale
+          totalCo2: projectionCo2Monde, // tCO2e projection mondiale
           totalWater: projectionWaterMonde, // Projection mondiale L
           totalWaste: projectionWasteMonde, // Projection mondiale kg
         },
         realSums: {
-          totalCo2: realCo2 / 1000, 
+          totalCo2: realCo2 / 1000,
           totalWater: realWater,
           totalWaste: realWaste,
         },
@@ -197,13 +221,15 @@ export class ImpactService {
           participation: Number((weightedEffortRatio * 100).toFixed(2)), // % de l'objectif citoyen réalisé
         },
         results: {
-          effortPlanetairePercent: Number((reductionImpactTotal * 100).toFixed(2)),
+          effortPlanetairePercent: Number(
+            (reductionImpactTotal * 100).toFixed(2),
+          ),
           nouveauJourAnnee: Number(nouveauJourAnnee.toFixed(2)),
           nbPlanetes: Number(nbPlanetes.toFixed(2)),
           dateDepassement: eodDate.toLocaleDateString('fr-FR'),
           dateDepassementSans: eodDateSans.toLocaleDateString('fr-FR'),
           dateDepassementFormat: eodDate.toISOString(),
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Erreur dans calculateImpact:', error);
@@ -214,18 +240,18 @@ export class ImpactService {
   async getImpactSummary(yearOrSchoolYear: string) {
     // 1. Récupérer toutes les instances pour calculer individuellement
     const instances = await this.prisma.instance.findMany({
-      select: { id: true, schoolName: true }
+      select: { id: true, schoolName: true },
     });
 
     const instancesImpact = [];
     let totalPlanets = 0;
     let totalEffortPercent = 0;
     let totalJourAnnee = 0;
-    
+
     let sumRealCo2 = 0;
     let sumRealWater = 0;
     let sumRealWaste = 0;
-    
+
     let sumProjCo2 = 0;
     let sumProjWater = 0;
     let sumProjWaste = 0;
@@ -233,7 +259,7 @@ export class ImpactService {
     for (const inst of instances) {
       const impact = await this.calculateImpact(yearOrSchoolYear, inst.id);
       const impactData = impact as any;
-      
+
       instancesImpact.push({
         id: inst.id,
         name: impactData.name || inst.schoolName,
@@ -242,7 +268,7 @@ export class ImpactService {
         sums: impactData.sums,
         realSums: impactData.realSums,
         ratios: impactData.ratios,
-        isDefaultConstants: impactData.isDefaultConstants
+        isDefaultConstants: impactData.isDefaultConstants,
       });
 
       // Agrégation pour le global selon les règles de l'utilisateur
@@ -266,7 +292,7 @@ export class ImpactService {
     }
 
     const count = instances.length || 1;
-    
+
     // Formatage du Jour du Dépassement Moyen
     const avgJourAnnee = totalJourAnnee / count;
     const year = parseInt(yearOrSchoolYear.split('-')[0], 10);
@@ -278,31 +304,42 @@ export class ImpactService {
         realSums: {
           totalCo2: sumRealCo2,
           totalWater: sumRealWater,
-          totalWaste: sumRealWaste
+          totalWaste: sumRealWaste,
         },
         sums: {
           totalCo2: sumProjCo2,
           totalWater: sumProjWater,
-          totalWaste: sumProjWaste
+          totalWaste: sumProjWaste,
         },
         results: {
           nbPlanetes: Number((totalPlanets / count).toFixed(2)),
-          effortPlanetairePercent: Number((totalEffortPercent / count).toFixed(2)),
+          effortPlanetairePercent: Number(
+            (totalEffortPercent / count).toFixed(2),
+          ),
           dateDepassement: eodDate.toLocaleDateString('fr-FR'),
-          nouveauJourAnnee: avgJourAnnee
+          nouveauJourAnnee: avgJourAnnee,
         },
-        isDefaultConstants: instancesImpact.some(i => i.isDefaultConstants)
+        isDefaultConstants: instancesImpact.some((i) => i.isDefaultConstants),
       },
-      instances: instancesImpact
+      instances: instancesImpact,
     };
   }
 
   async getAnnualConstants(schoolYear: string) {
     const year = parseInt(schoolYear.split('-')[0], 10);
-    let data = await this.prisma.annualImpactData.findUnique({ where: { year } });
+    let data = await this.prisma.annualImpactData.findUnique({
+      where: { year },
+    });
     if (!data) {
       data = await this.prisma.annualImpactData.create({
-        data: { year, dActuel: 214, moyCo2Monde: 4.7, moyEauMonde: 1385000, moyDechetsMonde: 270, popMonde: 8.1 }
+        data: {
+          year,
+          dActuel: 214,
+          moyCo2Monde: 4.7,
+          moyEauMonde: 1385000,
+          moyDechetsMonde: 270,
+          popMonde: 8.1,
+        },
       });
     }
     return data;
@@ -318,7 +355,7 @@ export class ImpactService {
         moyEauMonde: payload.moyEauMonde,
         moyDechetsMonde: payload.moyDechetsMonde,
         popMonde: payload.popMonde,
-        isCustomized: true
+        isCustomized: true,
       },
       create: {
         year,
@@ -327,8 +364,8 @@ export class ImpactService {
         moyEauMonde: payload.moyEauMonde,
         moyDechetsMonde: payload.moyDechetsMonde,
         popMonde: payload.popMonde || 8.1,
-        isCustomized: true
-      }
+        isCustomized: true,
+      },
     });
 
     try {
@@ -338,9 +375,9 @@ export class ImpactService {
         where: { schoolYear: targetSchoolYear },
         include: {
           instance: {
-            select: { adminId: true }
-          }
-        }
+            select: { adminId: true },
+          },
+        },
       });
 
       const amIds = new Set<number>();
@@ -358,8 +395,8 @@ export class ImpactService {
         const existsReply = await this.prisma.notification.findFirst({
           where: {
             recipientId: amId,
-            title: titleReply
-          }
+            title: titleReply,
+          },
         });
         if (!existsReply) {
           await this.prisma.notification.create({
@@ -369,8 +406,8 @@ export class ImpactService {
               title: titleReply,
               content: contentReply,
               status: 'PENDING',
-              isRead: false
-            }
+              isRead: false,
+            },
           });
         }
       }
@@ -386,7 +423,10 @@ export class ImpactService {
         data: { status: 'PROCESSED' },
       });
     } catch (err) {
-      this.logger.error(`[ImpactService] Error triggering constants updated notifications:`, err);
+      this.logger.error(
+        `[ImpactService] Error triggering constants updated notifications:`,
+        err,
+      );
     }
 
     return updated;
@@ -424,11 +464,14 @@ export class ImpactService {
         dateDepassement: '02/08/2026',
         dateDepassementSans: '02/08/2026',
         dateDepassementFormat: new Date().toISOString(),
-      }
+      },
     };
   }
 
-  async getImpactHistory(yearOrSchoolYear: string, targetInstanceId: number | null = null) {
+  async getImpactHistory(
+    yearOrSchoolYear: string,
+    targetInstanceId: number | null = null,
+  ) {
     try {
       const year = parseInt(yearOrSchoolYear.split('-')[0], 10);
       const annualDataYear = year - 1;
@@ -443,7 +486,9 @@ export class ImpactService {
         where: {
           instanceYear: {
             schoolYear: yearOrSchoolYear,
-            ...(targetInstanceId !== null ? { instanceId: targetInstanceId } : {}),
+            ...(targetInstanceId !== null
+              ? { instanceId: targetInstanceId }
+              : {}),
           },
         },
         orderBy: { startDate: 'asc' },
@@ -453,7 +498,7 @@ export class ImpactService {
       if (periods.length === 0) return [];
 
       // Récupérer toutes les actions liées à ces périodes
-      const periodIds = periods.map(p => p.id);
+      const periodIds = periods.map((p) => p.id);
       const allActions = await this.prisma.actionDone.findMany({
         where: { periodId: { in: periodIds } },
         select: {
@@ -461,26 +506,42 @@ export class ImpactService {
           savedCo2: true,
           savedWater: true,
           savedWaste: true,
-        }
+        },
       });
 
       // Calculer le nombre total d'enfants (dans l'année scolaire demandée)
       let nbChildren = 1;
       if (targetInstanceId !== null) {
-        nbChildren = await this.prisma.child.count({
-          where: { group: { team: { instanceYear: { instanceId: targetInstanceId, schoolYear: yearOrSchoolYear } } } }
-        }) || 1;
+        nbChildren =
+          (await this.prisma.child.count({
+            where: {
+              group: {
+                team: {
+                  instanceYear: {
+                    instanceId: targetInstanceId,
+                    schoolYear: yearOrSchoolYear,
+                  },
+                },
+              },
+            },
+          })) || 1;
       } else {
-        nbChildren = await this.prisma.child.count({
-          where: { group: { team: { instanceYear: { schoolYear: yearOrSchoolYear } } } }
-        }) || 1;
+        nbChildren =
+          (await this.prisma.child.count({
+            where: {
+              group: {
+                team: { instanceYear: { schoolYear: yearOrSchoolYear } },
+              },
+            },
+          })) || 1;
       }
 
-      const catalogSize = await this.prisma.actionRef.count() || 62;
-      const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+      const catalogSize = (await this.prisma.actionRef.count()) || 62;
+      const isLeapYear =
+        (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
       const jAnnee = isLeapYear ? 366 : 365;
       const basePlanetes = jAnnee / annualData.dActuel;
-      const partIncompressible = basePlanetes * 0.60;
+      const partIncompressible = basePlanetes * 0.6;
 
       const history: any[] = [];
       let cumulativeActionsCount = 0;
@@ -490,7 +551,9 @@ export class ImpactService {
 
       for (let i = 0; i < periods.length; i++) {
         const period = periods[i];
-        const periodActions = allActions.filter(a => a.periodId === period.id);
+        const periodActions = allActions.filter(
+          (a) => a.periodId === period.id,
+        );
         cumulativeActionsCount += periodActions.length;
         for (const a of periodActions) {
           cumulativeCo2 += a.savedCo2 || 0;
@@ -503,19 +566,29 @@ export class ImpactService {
 
         // Calcul des efforts par enfant (Ratio sur le gisement 40%)
         // Potentiel d'effort max annuel : CO2 (4T), Eau (116m3), Déchets (520kg)
-        const effortCo2 = Math.min(40, (cumulativeCo2 / nbChildren / 4000) * 40);
-        const effortWater = Math.min(40, (cumulativeWater / nbChildren / 116) * 40);
-        const effortWaste = Math.min(40, (cumulativeWaste / nbChildren / 520) * 40);
+        const effortCo2 = Math.min(
+          40,
+          (cumulativeCo2 / nbChildren / 4000) * 40,
+        );
+        const effortWater = Math.min(
+          40,
+          (cumulativeWater / nbChildren / 116) * 40,
+        );
+        const effortWaste = Math.min(
+          40,
+          (cumulativeWaste / nbChildren / 520) * 40,
+        );
 
         // Pondération de l'Indice de Pression (CO2: 60%, Eau: 20%, Déchets: 20%)
-        const globalEffort = (effortCo2 * 0.6) + (effortWater * 0.2) + (effortWaste * 0.2);
+        const globalEffort =
+          effortCo2 * 0.6 + effortWater * 0.2 + effortWaste * 0.2;
 
         // L'indice d'impact total : 100 (départ) - effort cumulé
         const totalImpact = 100 - globalEffort;
 
         history.push({
           label,
-          impact: Number(totalImpact.toFixed(2))
+          impact: Number(totalImpact.toFixed(2)),
         });
       }
 
@@ -526,4 +599,3 @@ export class ImpactService {
     }
   }
 }
-

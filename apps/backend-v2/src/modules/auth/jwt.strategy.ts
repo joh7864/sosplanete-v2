@@ -18,13 +18,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false,
       // SEC-01 — Secret lu depuis env uniquement. Le démarrage est bloqué en production si absent (voir main.ts)
-      secretOrKey: process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
+      secretOrKey:
+        process.env.JWT_SECRET || 'dev_fallback_secret_not_for_production',
     });
   }
 
   async validate(payload: any) {
     let instanceIds = payload.instanceIds || [];
-    
+
     // Dynamic fallback to load managed instances in real-time for AM users
     // We load from BOTH Instance.adminId and InstanceYear.adminId to cover all cases
     if (payload.role === 'AM') {
@@ -32,17 +33,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const [userWithInstances, instanceYears] = await Promise.all([
           this.prisma.user.findUnique({
             where: { id: payload.sub },
-            select: { managedInstances: { select: { id: true } } }
+            select: { managedInstances: { select: { id: true } } },
           }),
           this.prisma.instanceYear.findMany({
             where: { adminId: payload.sub },
-            select: { instanceId: true }
-          })
+            select: { instanceId: true },
+          }),
         ]);
-        
-        const fromInstances = userWithInstances?.managedInstances.map(i => i.id) || [];
-        const fromInstanceYears = instanceYears.map(iy => iy.instanceId);
-        
+
+        const fromInstances =
+          userWithInstances?.managedInstances.map((i) => i.id) || [];
+        const fromInstanceYears = instanceYears.map((iy) => iy.instanceId);
+
         // Deduplicate
         instanceIds = [...new Set([...fromInstances, ...fromInstanceYears])];
       } catch (err) {
@@ -50,13 +52,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
-    return { 
-      userId: payload.sub, 
-      email: payload.email, 
-      role: payload.role, 
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
       instanceId: payload.instanceId,
-      instanceIds
+      instanceIds,
     };
   }
 }
-

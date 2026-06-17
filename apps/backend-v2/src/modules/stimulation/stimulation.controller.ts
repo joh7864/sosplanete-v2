@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Put, Request, Query, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Put,
+  Request,
+  Query,
+  HttpCode,
+} from '@nestjs/common';
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,13 +20,13 @@ import { ApiOperation } from '@nestjs/swagger';
 @UseGuards(JwtAuthGuard)
 export class StimulationController {
   @Get('years')
-  @ApiOperation({ summary: "Liste des années scolaires disponibles" })
+  @ApiOperation({ summary: 'Liste des années scolaires disponibles' })
   getAvailableYears() {
     return this.stimulationService.getAvailableYears();
   }
 
   @Post('initialize-year')
-  @ApiOperation({ summary: "Initialiser une nouvelle année scolaire (global)" })
+  @ApiOperation({ summary: 'Initialiser une nouvelle année scolaire (global)' })
   initializeYear(@Body() data: { schoolYear: string }, @Request() req: any) {
     return this.stimulationService.initializeYear(data.schoolYear, req.user);
   }
@@ -32,13 +43,29 @@ export class StimulationController {
   }
 
   @Put('system-config')
-  updateSystemConfig(@Body() data: any, @Query('schoolYear') schoolYear: string, @Request() req: any) {
-    return this.stimulationService.updateSystemConfig(data, schoolYear, req.user);
+  updateSystemConfig(
+    @Body() data: any,
+    @Query('schoolYear') schoolYear: string,
+    @Request() req: any,
+  ) {
+    return this.stimulationService.updateSystemConfig(
+      data,
+      schoolYear,
+      req.user,
+    );
   }
 
   @Get('game-config/:instanceId')
-  getGameConfig(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string, @Request() req: any) {
-    return this.stimulationService.getGameConfig(+instanceId, schoolYear, req.user);
+  getGameConfig(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear: string,
+    @Request() req: any,
+  ) {
+    return this.stimulationService.getGameConfig(
+      +instanceId,
+      schoolYear,
+      req.user,
+    );
   }
 
   @Put('game-config/:instanceId')
@@ -47,24 +74,35 @@ export class StimulationController {
     // DÉPRÉCIÉE — La config du jeu est désormais gérée exclusivement via PATCH /instances/:id
     // qui garantit l'atomicité via une transaction Prisma unique.
     // Cette route ne sera plus utilisée et sera supprimée dans une prochaine version.
-    throw new Error('Cette route est dépréciée. Utilisez PATCH /instances/:id pour modifier la configuration du jeu.');
+    throw new Error(
+      'Cette route est dépréciée. Utilisez PATCH /instances/:id pour modifier la configuration du jeu.',
+    );
   }
 
   @Get('animals/:instanceId/history')
-  getAnimalUnlockHistory(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+  getAnimalUnlockHistory(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
     return this.animalUnlockService.getUnlockHistory(+instanceId, sy);
   }
 
   @Get('animals/:instanceId/current')
-  getCurrentAnimalUnlock(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+  getCurrentAnimalUnlock(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
     return this.animalUnlockService.getCurrentUnlock(+instanceId, sy);
   }
 
   @Post('animals/:instanceId/recalculate')
-  recalculateAnimals(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+  recalculateAnimals(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
     return this.animalUnlockService.recalculateAllPeriods(+instanceId, sy);
   }
 
@@ -72,13 +110,13 @@ export class StimulationController {
 
   @Get('eco-bar-race/history')
   getEcoBarRaceHistory(@Query('schoolYear') schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.ecoBarRaceService.getHistory(sy);
   }
 
   @Post('eco-bar-race/recalculate')
   recalculateEcoBarRace(@Query('schoolYear') schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.ecoBarRaceService.recalculateAllHistory(sy);
   }
 }

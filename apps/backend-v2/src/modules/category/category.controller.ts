@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -13,8 +25,21 @@ export class CategoryController {
 
   @Post()
   @ApiOperation({ summary: 'Creates a new category for an instance' })
-  create(@Body() body: { name: string; icon?: string; order?: number; instanceId: number; schoolYear?: string }, @Req() req: any) {
-    return this.categoryService.create({ ...body, schoolYear: body.schoolYear ?? '2024-2025' }, req.user);
+  create(
+    @Body()
+    body: {
+      name: string;
+      icon?: string;
+      order?: number;
+      instanceId: number;
+      schoolYear?: string;
+    },
+    @Req() req: any,
+  ) {
+    return this.categoryService.create(
+      { ...body, schoolYear: body.schoolYear ?? '2024-2025' },
+      req.user,
+    );
   }
 
   @Get()
@@ -25,33 +50,55 @@ export class CategoryController {
     @Query('instanceYearId') instanceYearIdStr: string | undefined,
     @Req() req: any,
   ) {
-    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
-    return this.categoryService.findAll(instanceId, req.user, schoolYear, instanceYearId);
+    const instanceYearId = instanceYearIdStr
+      ? parseInt(instanceYearIdStr)
+      : undefined;
+    return this.categoryService.findAll(
+      instanceId,
+      req.user,
+      schoolYear,
+      instanceYearId,
+    );
   }
 
   @Post('reorder')
   @ApiOperation({ summary: 'Reorder categories' })
-  reorder(@Body() body: { categoryIds: number[]; instanceId: number }, @Req() req: any) {
+  reorder(
+    @Body() body: { categoryIds: number[]; instanceId: number },
+    @Req() req: any,
+  ) {
     return this.categoryService.reorder(body, req.user);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Updates a category' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
     return this.categoryService.update(id, body, req.user);
   }
 
   @Post('import-csv')
   @ApiOperation({ summary: 'Bulk import categories for an instance from CSV' })
   importCsv(
-    @Query('instanceId', ParseIntPipe) instanceId: number, 
+    @Query('instanceId', ParseIntPipe) instanceId: number,
     @Query('schoolYear') schoolYear: string,
     @Query('instanceYearId') instanceYearIdStr: string | undefined,
-    @Body() body: { csvContent: string }, 
-    @Req() req: any
+    @Body() body: { csvContent: string },
+    @Req() req: any,
   ) {
-    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
-    return this.categoryService.importCsv(instanceId, body.csvContent, schoolYear, req.user, instanceYearId);
+    const instanceYearId = instanceYearIdStr
+      ? parseInt(instanceYearIdStr)
+      : undefined;
+    return this.categoryService.importCsv(
+      instanceId,
+      body.csvContent,
+      schoolYear,
+      req.user,
+      instanceYearId,
+    );
   }
 
   @Delete(':id')

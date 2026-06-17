@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
@@ -11,7 +16,9 @@ export class PeriodService {
   // Helper : retrouver l'instanceYearId depuis une Period (pour les
   //          vérifications d'autorisation qui passaient par instanceId)
   // ----------------------------------------------------------------
-  private async resolveInstanceIdFromYear(instanceYearId: number): Promise<number> {
+  private async resolveInstanceIdFromYear(
+    instanceYearId: number,
+  ): Promise<number> {
     const iy = await this.prisma.instanceYear.findUnique({
       where: { id: instanceYearId },
       select: { instanceId: true },
@@ -29,14 +36,18 @@ export class PeriodService {
     },
     user: any,
   ) {
-    const instanceId = await this.resolveInstanceIdFromYear(data.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
+    const instanceId = await this.resolveInstanceIdFromYear(
+      data.instanceYearId,
+    );
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    if (!isAllowed)
+      throw new ForbiddenException('Action non autorisée sur cet espace');
 
     if (data.isOpen) {
       await this.prisma.period.updateMany({
         where: { instanceYearId: data.instanceYearId, isOpen: true },
-        data:  { isOpen: false },
+        data: { isOpen: false },
       });
     }
 
@@ -44,17 +55,23 @@ export class PeriodService {
       where: {
         instanceYearId: data.instanceYearId,
         OR: [
-          { startDate: { lte: new Date(data.endDate) }, endDate: { gte: new Date(data.startDate) } },
+          {
+            startDate: { lte: new Date(data.endDate) },
+            endDate: { gte: new Date(data.startDate) },
+          },
         ],
       },
     });
-    if (overlap) throw new ForbiddenException('La période chevauche un calendrier existant');
+    if (overlap)
+      throw new ForbiddenException(
+        'La période chevauche un calendrier existant',
+      );
 
     return this.prisma.period.create({
       data: {
-        startDate:      new Date(data.startDate),
-        endDate:        new Date(data.endDate),
-        isOpen:         data.isOpen || false,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+        isOpen: data.isOpen || false,
         instanceYearId: data.instanceYearId,
       },
     });
@@ -62,7 +79,8 @@ export class PeriodService {
 
   async findAll(instanceYearId: number, user: any) {
     const instanceId = await this.resolveInstanceIdFromYear(instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé à cet espace');
 
     return this.prisma.period.findMany({
@@ -72,18 +90,29 @@ export class PeriodService {
     });
   }
 
-  async update(id: number, data: { startDate?: Date; endDate?: Date; isOpen?: boolean }, user: any) {
+  async update(
+    id: number,
+    data: { startDate?: Date; endDate?: Date; isOpen?: boolean },
+    user: any,
+  ) {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) throw new ForbiddenException('Période non trouvée');
 
-    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const instanceId = await this.resolveInstanceIdFromYear(
+      period.instanceYearId,
+    );
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     if (data.isOpen === true) {
       await this.prisma.period.updateMany({
-        where: { instanceYearId: period.instanceYearId, id: { not: id }, isOpen: true },
-        data:  { isOpen: false },
+        where: {
+          instanceYearId: period.instanceYearId,
+          id: { not: id },
+          isOpen: true,
+        },
+        data: { isOpen: false },
       });
     }
 
@@ -91,8 +120,8 @@ export class PeriodService {
       where: { id },
       data: {
         startDate: data.startDate ? new Date(data.startDate) : undefined,
-        endDate:   data.endDate   ? new Date(data.endDate)   : undefined,
-        isOpen:    data.isOpen,
+        endDate: data.endDate ? new Date(data.endDate) : undefined,
+        isOpen: data.isOpen,
       },
     });
 
@@ -112,19 +141,21 @@ export class PeriodService {
         const nextStart = new Date(currentEnd.getTime() + 1000);
         nextStart.setHours(0, 0, 0, 0);
 
-        const d   = new Date(nextStart);
+        const d = new Date(nextStart);
         const day = d.getDay();
         let diffToWednesday = day - 3;
         if (diffToWednesday < 0) diffToWednesday += 7;
 
-        const pStart = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
+        const pStart = new Date(
+          d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000,
+        );
         pStart.setHours(0, 0, 0, 0);
         const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
         pEnd.setHours(23, 59, 59, 999);
 
         await this.prisma.period.update({
           where: { id: fp.id },
-          data:  { startDate: pStart, endDate: pEnd },
+          data: { startDate: pStart, endDate: pEnd },
         });
         currentEnd = pEnd;
       }
@@ -137,8 +168,11 @@ export class PeriodService {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) throw new ForbiddenException('Période non trouvée');
 
-    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const instanceId = await this.resolveInstanceIdFromYear(
+      period.instanceYearId,
+    );
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
     const actions = await this.prisma.actionDone.findMany({
@@ -151,11 +185,11 @@ export class PeriodService {
 
     return {
       count: actions.length,
-      list: actions.map(a => ({
-        id:         a.id,
+      list: actions.map((a) => ({
+        id: a.id,
         actionName: a.localAction.label,
-        childName:  a.child.pseudo,
-        teamName:   a.child.group.team.name,
+        childName: a.child.pseudo,
+        teamName: a.child.group.team.name,
       })),
     };
   }
@@ -164,9 +198,13 @@ export class PeriodService {
     const period = await this.prisma.period.findUnique({ where: { id } });
     if (!period) return { success: false, message: 'Période non trouvée' };
 
-    const instanceId = await this.resolveInstanceIdFromYear(period.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) throw new ForbiddenException('Action non autorisée sur cet espace');
+    const instanceId = await this.resolveInstanceIdFromYear(
+      period.instanceYearId,
+    );
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    if (!isAllowed)
+      throw new ForbiddenException('Action non autorisée sur cet espace');
 
     await this.prisma.$transaction(async (tx) => {
       await tx.actionDone.deleteMany({ where: { periodId: id } });
@@ -182,7 +220,7 @@ export class PeriodService {
   @Cron('59 23 * * *')
   async handlePeriodRotation() {
     console.log('[CRON] Début de la vérification des périodes (rotation)');
-    const now   = new Date();
+    const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // Toutes les InstanceYear ouvertes
@@ -214,24 +252,26 @@ export class PeriodService {
           where: {
             instanceYearId: iy.id,
             startDate: { lte: nextEndDate },
-            endDate:   { gte: nextStartDate },
+            endDate: { gte: nextStartDate },
           },
         });
 
         if (!existingNext) {
           await this.prisma.period.update({
             where: { id: openPeriod.id },
-            data:  { isOpen: false },
+            data: { isOpen: false },
           });
           await this.prisma.period.create({
             data: {
-              startDate:      nextStartDate,
-              endDate:        nextEndDate,
-              isOpen:         true,
+              startDate: nextStartDate,
+              endDate: nextEndDate,
+              isOpen: true,
               instanceYearId: iy.id,
             },
           });
-          console.log(`[CRON] InstanceYear ${iy.id} : Période ${openPeriod.id} fermée. Nouvelle période créée.`);
+          console.log(
+            `[CRON] InstanceYear ${iy.id} : Période ${openPeriod.id} fermée. Nouvelle période créée.`,
+          );
         }
       }
     }
@@ -245,7 +285,9 @@ export class PeriodService {
     let diffToWednesday = day - 3;
     if (diffToWednesday < 0) diffToWednesday += 7;
 
-    const startDate = new Date(d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000);
+    const startDate = new Date(
+      d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000,
+    );
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
     endDate.setHours(23, 59, 59, 999);
@@ -261,18 +303,18 @@ export class PeriodService {
       where: {
         instanceYearId,
         startDate: { lte: now },
-        endDate:   { gte: now },
+        endDate: { gte: now },
       },
     });
 
     if (period) {
       await client.period.updateMany({
         where: { instanceYearId, isOpen: true },
-        data:  { isOpen: false },
+        data: { isOpen: false },
       });
       await client.period.update({
         where: { id: period.id },
-        data:  { isOpen: true },
+        data: { isOpen: true },
       });
     }
   }
@@ -290,12 +332,14 @@ export class PeriodService {
     });
 
     if (!config || !config.gameStartDate || !config.gameEndDate) {
-      console.warn(`[syncPeriods] Skipping for instanceYear ${instanceYearId}: missing config dates.`);
+      console.warn(
+        `[syncPeriods] Skipping for instanceYear ${instanceYearId}: missing config dates.`,
+      );
       return;
     }
 
     const gameStart = new Date(config.gameStartDate);
-    const gameEnd   = new Date(config.gameEndDate);
+    const gameEnd = new Date(config.gameEndDate);
 
     const currentPeriods = await client.period.findMany({
       where: { instanceYearId },
@@ -304,11 +348,14 @@ export class PeriodService {
 
     const firstBoundaries = this.getPeriodBoundaries(gameStart);
     let pStart = firstBoundaries.startDate;
-    let pEnd   = firstBoundaries.endDate;
+    let pEnd = firstBoundaries.endDate;
 
     const generatedPeriods: { startDate: Date; endDate: Date }[] = [];
     while (pStart <= gameEnd) {
-      generatedPeriods.push({ startDate: new Date(pStart), endDate: new Date(pEnd) });
+      generatedPeriods.push({
+        startDate: new Date(pStart),
+        endDate: new Date(pEnd),
+      });
       pStart = new Date(pStart.getTime() + 7 * 24 * 60 * 60 * 1000);
       pStart.setHours(0, 0, 0, 0);
       pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
@@ -316,16 +363,20 @@ export class PeriodService {
     }
 
     if (currentPeriods.length > generatedPeriods.length) {
-      const toDelete    = currentPeriods.slice(generatedPeriods.length);
+      const toDelete = currentPeriods.slice(generatedPeriods.length);
       const idsToDelete = toDelete.map((p: { id: number }) => p.id);
-      const affectedActions = await client.actionDone.count({ where: { periodId: { in: idsToDelete } } });
+      const affectedActions = await client.actionDone.count({
+        where: { periodId: { in: idsToDelete } },
+      });
 
       if (affectedActions > 0 && !force) {
-        throw new ConflictException(JSON.stringify({
-          warning: true,
-          affectedActions,
-          message: `Ce changement supprimera ${affectedActions} actions enregistrées. Continuer ?`,
-        }));
+        throw new ConflictException(
+          JSON.stringify({
+            warning: true,
+            affectedActions,
+            message: `Ce changement supprimera ${affectedActions} actions enregistrées. Continuer ?`,
+          }),
+        );
       }
 
       for (const p of toDelete) {
@@ -339,11 +390,16 @@ export class PeriodService {
       if (currentPeriods[i]) {
         await client.period.update({
           where: { id: currentPeriods[i].id },
-          data:  { startDate: p.startDate, endDate: p.endDate },
+          data: { startDate: p.startDate, endDate: p.endDate },
         });
       } else {
         await client.period.create({
-          data: { instanceYearId, startDate: p.startDate, endDate: p.endDate, isOpen: false },
+          data: {
+            instanceYearId,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            isOpen: false,
+          },
         });
       }
     }

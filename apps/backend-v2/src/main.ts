@@ -11,24 +11,30 @@ async function bootstrap() {
   // SEC-01 — Bloquer le démarrage si JWT_SECRET n'est pas défini
   if (!process.env.JWT_SECRET) {
     if (process.env.NODE_ENV === 'production') {
-      throw new Error('[SÉCURITÉ] JWT_SECRET est absent. Arrêt du serveur en production.');
+      throw new Error(
+        '[SÉCURITÉ] JWT_SECRET est absent. Arrêt du serveur en production.',
+      );
     } else {
-      console.warn('⚠️  [DEV] JWT_SECRET non défini — un secret temporaire est utilisé. NE JAMAIS faire cela en production.');
+      console.warn(
+        '⚠️  [DEV] JWT_SECRET non défini — un secret temporaire est utilisé. NE JAMAIS faire cela en production.',
+      );
     }
   }
 
   const app = await NestFactory.create(AppModule);
-  
+
   app.use(cookieParser());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // SEC-03 — Validation globale des DTOs (active les décorateurs class-validator)
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: false,         // Désactivé : l'API utilise des objets littéraux dans de nombreux contrôleurs
-    forbidNonWhitelisted: false,
-    transform: true,          // Convertit automatiquement les types (string → number, string → Date…)
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: false, // Désactivé : l'API utilise des objets littéraux dans de nombreux contrôleurs
+      forbidNonWhitelisted: false,
+      transform: true, // Convertit automatiquement les types (string → number, string → Date…)
+    }),
+  );
 
   // SEC-04 — Filtre d'exception global (traduit erreurs Prisma, masque stacktraces)
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -43,12 +49,13 @@ async function bootstrap() {
       'http://localhost:5173',
       'http://localhost:5174',
       /^http:\/\/192\.168\.\d+\.\d+:\d+$/, // Autorise les connexions réseau local (Mobile)
-      /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,  // Alternative réseau local
-      /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:\d+$/ // Alternative réseau local
+      /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/, // Alternative réseau local
+      /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+:\d+$/, // Alternative réseau local
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With, X-Instance-Id',
+    allowedHeaders:
+      'Content-Type, Accept, Authorization, X-Requested-With, X-Instance-Id',
   });
 
   // Sécurisation de Swagger en production
@@ -58,10 +65,14 @@ async function bootstrap() {
   if (!swaggerPass) {
     if (process.env.NODE_ENV === 'production') {
       // SEC-05 — En production sans SWAGGER_PASSWORD, on bloque l'accès complètement
-      console.warn('⚠️ WARNING: SWAGGER_PASSWORD non défini. Swagger désactivé en production.');
+      console.warn(
+        '⚠️ WARNING: SWAGGER_PASSWORD non défini. Swagger désactivé en production.',
+      );
       return; // Ne pas exposer Swagger
     } else {
-      console.warn('⚠️  [DEV] SWAGGER_PASSWORD non défini — Swagger sans authentification en développement.');
+      console.warn(
+        '⚠️  [DEV] SWAGGER_PASSWORD non défini — Swagger sans authentification en développement.',
+      );
     }
   }
 

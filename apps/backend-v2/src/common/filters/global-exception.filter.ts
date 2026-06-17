@@ -56,11 +56,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           status = HttpStatus.UNPROCESSABLE_ENTITY;
           message = `Erreur base de données (${exception.code})`;
       }
-      this.logger.warn(`Prisma ${exception.code} sur ${request.method} ${request.url}: ${exception.message}`);
+      this.logger.warn(
+        `Prisma ${exception.code} sur ${request.method} ${request.url}: ${exception.message}`,
+      );
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       status = HttpStatus.BAD_REQUEST;
       message = 'Données invalides envoyées à la base de données';
-      this.logger.warn(`Prisma validation error sur ${request.method} ${request.url}`);
+      this.logger.warn(
+        `Prisma validation error sur ${request.method} ${request.url}`,
+      );
     } else {
       // Erreur inconnue — on log le stacktrace côté serveur uniquement
       this.logger.error(

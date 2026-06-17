@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUrl, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUrl,
+  IsInt,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateInstanceDto {
@@ -38,7 +44,6 @@ export class CreateInstanceDto {
   @ApiProperty({ example: '2026-06-30T00:00:00Z', required: false })
   @IsOptional()
   gameEndDate?: Date;
-
 
   @ApiProperty({ example: 24, required: false })
   @IsInt()

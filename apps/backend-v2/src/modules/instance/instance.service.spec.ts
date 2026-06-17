@@ -24,11 +24,23 @@ describe('InstanceService — syncPeriods', () => {
   const makeTxMock = (overrides: Partial<any> = {}) => ({
     instance: {
       update: jest.fn().mockResolvedValue({ id: 1, isOpen: true }),
-      findUnique: jest.fn().mockResolvedValue({ id: 1, currentSchoolYear: '2024-2025' }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 1, currentSchoolYear: '2024-2025' }),
     },
     instanceYear: {
-      findUnique: jest.fn().mockResolvedValue({ id: 1, instanceId: 1, schoolYear: '2024-2025', isOpen: true }),
-      update: jest.fn().mockResolvedValue({ id: 1, instanceId: 1, schoolYear: '2024-2025', isOpen: true }),
+      findUnique: jest.fn().mockResolvedValue({
+        id: 1,
+        instanceId: 1,
+        schoolYear: '2024-2025',
+        isOpen: true,
+      }),
+      update: jest.fn().mockResolvedValue({
+        id: 1,
+        instanceId: 1,
+        schoolYear: '2024-2025',
+        isOpen: true,
+      }),
     },
     gameConfig: {
       upsert: jest.fn().mockResolvedValue({}),
@@ -119,7 +131,9 @@ describe('InstanceService — syncPeriods', () => {
       },
     });
 
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(txMock));
+    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) =>
+      fn(txMock),
+    );
 
     // THEN : ConflictException levée AVANT toute suppression
     await expect(
@@ -168,7 +182,9 @@ describe('InstanceService — syncPeriods', () => {
       },
     });
 
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) => fn(txMock));
+    (prisma.$transaction as jest.Mock).mockImplementation(async (fn) =>
+      fn(txMock),
+    );
 
     // WHEN : force=true
     await service.update(1, {
@@ -201,16 +217,27 @@ describe('InstanceService — syncPeriods', () => {
         }),
       },
       period: {
-        findMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]),
-        create: jest.fn().mockImplementation(() => { mutationCount++; return {}; }),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]),
+        create: jest.fn().mockImplementation(() => {
+          mutationCount++;
+          return {};
+        }),
         update: jest.fn().mockResolvedValue({}),
         updateMany: jest.fn().mockResolvedValue({}),
-        delete: jest.fn().mockImplementation(() => { mutationCount++; return {}; }),
+        delete: jest.fn().mockImplementation(() => {
+          mutationCount++;
+          return {};
+        }),
         findFirst: jest.fn().mockResolvedValue(null),
       },
       actionDone: {
         count: jest.fn().mockResolvedValue(3), // 3 actions dans les périodes à supprimer
-        deleteMany: jest.fn().mockImplementation(() => { mutationCount++; return {}; }),
+        deleteMany: jest.fn().mockImplementation(() => {
+          mutationCount++;
+          return {};
+        }),
       },
     });
 

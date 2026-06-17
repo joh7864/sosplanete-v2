@@ -5,7 +5,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class NotificationService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(senderId: number, recipientId: number, title: string, content: string, status = 'PENDING') {
+  async create(
+    senderId: number,
+    recipientId: number,
+    title: string,
+    content: string,
+    status = 'PENDING',
+  ) {
     return this.prisma.notification.create({
       data: {
         senderId,
@@ -53,10 +59,11 @@ export class NotificationService {
     if (!notif) return;
 
     if (notif.status === 'PENDING') {
-      const yearMatch = notif.title.match(/\d{4}-\d{4}/) || notif.content.match(/\d{4}-\d{4}/);
+      const yearMatch =
+        notif.title.match(/\d{4}-\d{4}/) || notif.content.match(/\d{4}-\d{4}/);
       if (yearMatch) {
         const schoolYear = yearMatch[0];
-        
+
         await this.prisma.notification.updateMany({
           where: {
             status: 'PENDING',
@@ -67,10 +74,10 @@ export class NotificationService {
                   { senderId: notif.senderId },
                   { recipientId: notif.recipientId },
                   { senderId: notif.recipientId },
-                  { recipientId: notif.senderId }
-                ]
-              }
-            ]
+                  { recipientId: notif.senderId },
+                ],
+              },
+            ],
           },
           data: { status: 'DELETED' },
         });

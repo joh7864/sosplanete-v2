@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CategoryRefService } from '../category-ref/category-ref.service';
 import { Role } from '@prisma/client';
@@ -11,12 +15,14 @@ export class StimulationService {
   ) {}
 
   async getSystemConfig(schoolYear: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     let config = await this.prisma.systemConfig.findUnique({
-      where: { schoolYear: sy }
+      where: { schoolYear: sy },
     });
     if (!config) {
-      config = await this.prisma.systemConfig.create({ data: { schoolYear: sy } });
+      config = await this.prisma.systemConfig.create({
+        data: { schoolYear: sy },
+      });
     }
     return config;
   }
@@ -24,18 +30,18 @@ export class StimulationService {
   async getAvailableYears() {
     const years = await this.prisma.systemConfig.findMany({
       select: { schoolYear: true },
-      orderBy: { schoolYear: 'asc' }
+      orderBy: { schoolYear: 'asc' },
     });
-    
-    let yearList = years.map(y => y.schoolYear);
-    
+
+    let yearList = years.map((y) => y.schoolYear);
+
     // Sécurité : Si la base est vide (reset), on s'assure que les années par défaut existent
     if (yearList.length === 0) {
-      await this.getSystemConfig("2023-2024");
-      await this.getSystemConfig("2024-2025");
-      yearList = ["2023-2024", "2024-2025"];
+      await this.getSystemConfig('2023-2024');
+      await this.getSystemConfig('2024-2025');
+      yearList = ['2023-2024', '2024-2025'];
     }
-    
+
     return yearList;
   }
 
@@ -43,10 +49,10 @@ export class StimulationService {
     if (user.role !== Role.AS) {
       throw new ForbiddenException('Action non autorisée');
     }
-    
+
     // 1. Créer le SystemConfig pour la nouvelle année
     const systemConfig = await this.getSystemConfig(schoolYear);
-    
+
     // 2. Créer les GameConfig par défaut et hériter les categories pour chaque instance
     const instances = await this.prisma.instance.findMany();
     for (const inst of instances) {
@@ -59,7 +65,7 @@ export class StimulationService {
         await this.categoryRefService.inheritToInstance(instanceYear.id);
       }
     }
-    
+
     return systemConfig;
   }
 
@@ -67,7 +73,7 @@ export class StimulationService {
     if (user.role !== Role.AS) {
       throw new ForbiddenException('Action non autorisée');
     }
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     const config = await this.getSystemConfig(sy);
     return this.prisma.systemConfig.update({
       where: { id: config.id },
@@ -81,28 +87,34 @@ export class StimulationService {
   }
 
   async getGameConfig(instanceId: number, schoolYear: string, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé');
 
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     let config = await this.prisma.gameConfig.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear: sy } },
     });
 
     if (!config) {
       // Vérifier que l'instance existe avant de créer la GameConfig
-      const instance = await this.prisma.instance.findUnique({ where: { id: instanceId } });
-      if (!instance) throw new NotFoundException(`Instance ${instanceId} introuvable`);
+      const instance = await this.prisma.instance.findUnique({
+        where: { id: instanceId },
+      });
+      if (!instance)
+        throw new NotFoundException(`Instance ${instanceId} introuvable`);
 
       const match = sy.match(/^(\d{4})/);
-      const startYear = match ? parseInt(match[1], 10) : new Date().getFullYear();
+      const startYear = match
+        ? parseInt(match[1], 10)
+        : new Date().getFullYear();
       const endYear = startYear + 1;
       const gameStartDate = new Date(Date.UTC(startYear, 10, 1, 0, 0, 0, 0));
       const gameEndDate = new Date(Date.UTC(endYear, 6, 31, 23, 59, 59, 999));
 
       config = await this.prisma.gameConfig.create({
-        data: { 
-          instanceId, 
+        data: {
+          instanceId,
           schoolYear: sy,
           gameStartDate,
           gameEndDate,
@@ -124,13 +136,19 @@ export class StimulationService {
     return config;
   }
 
-  async updateGameConfig(instanceId: number, data: any, schoolYear: string, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+  async updateGameConfig(
+    instanceId: number,
+    data: any,
+    schoolYear: string,
+    user: any,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     const config = await this.getGameConfig(instanceId, sy, user);
-    
+
     return this.prisma.gameConfig.update({
       where: { id: config.id },
       data: {

@@ -20,16 +20,29 @@ describe('EvoeService', () => {
             description: 'Description 1',
             categoryId: 10,
             category: { name: 'Energie' },
-            actionRef: { co2Year: 12, defaultCo2: 0.23, defaultWater: 50, defaultWaste: 0.1, image: 'temp.png' },
-            evoeMission: { titreSF: 'Mission : Bouclier', descriptionSF: 'Desc SF', pointsGagnes: 20, isHacked: false }
-          }
-        ])
+            actionRef: {
+              co2Year: 12,
+              defaultCo2: 0.23,
+              defaultWater: 50,
+              defaultWaste: 0.1,
+              image: 'temp.png',
+            },
+            evoeMission: {
+              titreSF: 'Mission : Bouclier',
+              descriptionSF: 'Desc SF',
+              pointsGagnes: 20,
+              isHacked: false,
+            },
+          },
+        ]),
       },
       instanceYear: {
-        findUnique: jest.fn().mockResolvedValue({ gamePeriodsCount: 40 })
+        findUnique: jest.fn().mockResolvedValue({ gamePeriodsCount: 40 }),
       },
       gameConfig: {
-        findFirst: jest.fn().mockResolvedValue({ avgActionsPerChildPerPeriod: 8 })
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ avgActionsPerChildPerPeriod: 8 }),
       },
       team: {
         findMany: jest.fn().mockResolvedValue([
@@ -42,20 +55,20 @@ describe('EvoeService', () => {
                 id: 200,
                 children: [
                   { id: 300, pseudo: 'Guardian 1' },
-                  { id: 301, pseudo: 'Guardian 2' }
-                ]
-              }
-            ]
-          }
-        ])
+                  { id: 301, pseudo: 'Guardian 2' },
+                ],
+              },
+            ],
+          },
+        ]),
       },
       period: {
-        findFirst: jest.fn().mockResolvedValue({ id: 50, isOpen: true })
+        findFirst: jest.fn().mockResolvedValue({ id: 50, isOpen: true }),
       },
       actionDone: {
         aggregate: jest.fn().mockResolvedValue({
           // Low values so that calculatedLevel is 1, but it stays at mock level 2
-          _sum: { savedCo2: 1.0, savedWater: 2.0, savedWaste: 0.5 }
+          _sum: { savedCo2: 1.0, savedWater: 2.0, savedWaste: 0.5 },
         }),
         count: jest.fn().mockImplementation(({ where }) => {
           if (where.childId === 300) return Promise.resolve(3); // 100% health (3 actions)
@@ -63,17 +76,24 @@ describe('EvoeService', () => {
           return Promise.resolve(2); // default
         }),
         groupBy: jest.fn().mockResolvedValue([
-          { childId: 300, _sum: { savedCo2: 10, savedWater: 20, savedWaste: 5 } },
-          { childId: 301, _sum: { savedCo2: 0, savedWater: 0, savedWaste: 0 } }
-        ])
+          {
+            childId: 300,
+            _sum: { savedCo2: 10, savedWater: 20, savedWaste: 5 },
+          },
+          { childId: 301, _sum: { savedCo2: 0, savedWater: 0, savedWaste: 0 } },
+        ]),
       },
       evoeTeamTechnology: {
         findUnique: jest.fn().mockResolvedValue({ maxLevel: 2 }), // already at N2 solar sails
-        upsert: jest.fn().mockResolvedValue({ maxLevel: 3 })
+        upsert: jest.fn().mockResolvedValue({ maxLevel: 3 }),
       },
       annualImpactData: {
-        findUnique: jest.fn().mockResolvedValue({ moyCo2Monde: 4.7, moyEauMonde: 1385000, moyDechetsMonde: 270 })
-      }
+        findUnique: jest.fn().mockResolvedValue({
+          moyCo2Monde: 4.7,
+          moyEauMonde: 1385000,
+          moyDechetsMonde: 270,
+        }),
+      },
     } as unknown as jest.Mocked<PrismaService>;
 
     const legacyApiMock = {
@@ -85,19 +105,23 @@ describe('EvoeService', () => {
             instanceYear: {
               instanceId: 1,
               id: 2,
-              schoolYear: '2024-2025'
-            }
-          }
-        }
-      })
+              schoolYear: '2024-2025',
+            },
+          },
+        },
+      }),
     } as unknown as jest.Mocked<LegacyApiService>;
 
     const impactMock = {
       calculateImpact: jest.fn().mockResolvedValue({
         sums: { totalCo2: 5, totalWater: 1000000, totalWaste: 500 },
         realSums: { totalCo2: 5, totalWater: 1000000, totalWaste: 500 },
-        results: { nbPlanetes: 1.5, dateDepassement: '15/09/2026', dateDepassementSans: '10/08/2026' }
-      })
+        results: {
+          nbPlanetes: 1.5,
+          dateDepassement: '15/09/2026',
+          dateDepassementSans: '10/08/2026',
+        },
+      }),
     } as unknown as jest.Mocked<ImpactService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -105,8 +129,8 @@ describe('EvoeService', () => {
         EvoeService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: LegacyApiService, useValue: legacyApiMock },
-        { provide: ImpactService, useValue: impactMock }
-      ]
+        { provide: ImpactService, useValue: impactMock },
+      ],
     }).compile();
 
     service = module.get<EvoeService>(EvoeService);
@@ -147,10 +171,12 @@ describe('EvoeService', () => {
   it('should upgrade propulsion level irreversibly if calculated level is higher than max level', async () => {
     // Mock team to return very high savings to qualify for higher level (level 5)
     (prisma.actionDone.aggregate as jest.Mock).mockResolvedValue({
-      _sum: { savedCo2: 10000, savedWater: 500000, savedWaste: 2000 }
+      _sum: { savedCo2: 10000, savedWater: 500000, savedWaste: 2000 },
     });
     // Existing tech maxLevel = 2
-    (prisma.evoeTeamTechnology.findUnique as jest.Mock).mockResolvedValue({ maxLevel: 2 });
+    (prisma.evoeTeamTechnology.findUnique as jest.Mock).mockResolvedValue({
+      maxLevel: 2,
+    });
 
     const result = await service.getDashboardStatus(1, '2024-2025');
     expect(result.teams[0].level).toBe(5); // Upgraded to 5 (from calculated level)
@@ -158,7 +184,7 @@ describe('EvoeService', () => {
     expect(prisma.evoeTeamTechnology.upsert).toHaveBeenCalledWith({
       where: { teamId: 100 },
       update: { maxLevel: 5 },
-      create: { teamId: 100, maxLevel: 5 }
+      create: { teamId: 100, maxLevel: 5 },
     });
   });
 });

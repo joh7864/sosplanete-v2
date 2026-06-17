@@ -7,40 +7,56 @@ export class AnimalUnlockService {
 
   constructor(private prisma: PrismaService) {}
 
-  async calculateForInstance(instanceId: number, periodId: number, periodIndex: number, totalPeriods: number) {
+  async calculateForInstance(
+    instanceId: number,
+    periodId: number,
+    periodIndex: number,
+    totalPeriods: number,
+  ) {
     // Compter les enfants via l'instanceYear de cette période
     const period = await this.prisma.period.findUnique({
       where: { id: periodId },
       include: { instanceYear: true },
     });
-    if (!period) throw new NotFoundException(`Période #${periodId} non trouvée`);
+    if (!period)
+      throw new NotFoundException(`Période #${periodId} non trouvée`);
 
     const { instanceYearId } = period;
     const schoolYear = period.instanceYear.schoolYear;
 
-    const totalChildren = await this.prisma.child.count({
-      where: { group: { team: { instanceYearId } } },
-    }) || 1;
+    const totalChildren =
+      (await this.prisma.child.count({
+        where: { group: { team: { instanceYearId } } },
+      })) || 1;
 
     let config = await this.prisma.gameConfig.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear } },
     });
 
     if (!config) {
-      this.logger.warn(`Aucune GameConfig pour l'instance ${instanceId} / ${schoolYear} — création par défaut`);
+      this.logger.warn(
+        `Aucune GameConfig pour l'instance ${instanceId} / ${schoolYear} — création par défaut`,
+      );
       config = await this.prisma.gameConfig.create({
-        data: { instanceId, schoolYear, avgActionsPerChildPerPeriod: 8, animalAdvanceMargin: 2, bienveillanceThreshold: 0.40 },
+        data: {
+          instanceId,
+          schoolYear,
+          avgActionsPerChildPerPeriod: 8,
+          animalAdvanceMargin: 2,
+          bienveillanceThreshold: 0.4,
+        },
       });
     }
 
-    const globalTarget = totalChildren * config.avgActionsPerChildPerPeriod * totalPeriods;
+    const globalTarget =
+      totalChildren * config.avgActionsPerChildPerPeriod * totalPeriods;
 
     const periodsUpToNow = await this.prisma.period.findMany({
       where: { instanceYearId },
       orderBy: { startDate: 'asc' },
       take: periodIndex,
     });
-    const periodIds = periodsUpToNow.map(p => p.id);
+    const periodIds = periodsUpToNow.map((p) => p.id);
 
     const actionsCount = await this.prisma.actionDone.count({
       where: {
@@ -51,9 +67,12 @@ export class AnimalUnlockService {
 
     const minimum = Math.round(9 * (periodIndex / totalPeriods));
     const maximum = minimum + config.animalAdvanceMargin;
-    let deserved  = Math.floor(9 * (actionsCount / globalTarget));
+    let deserved = Math.floor(9 * (actionsCount / globalTarget));
 
-    if (periodIndex === totalPeriods && (actionsCount / globalTarget) >= config.bienveillanceThreshold) {
+    if (
+      periodIndex === totalPeriods &&
+      actionsCount / globalTarget >= config.bienveillanceThreshold
+    ) {
       deserved = 9;
     }
 
@@ -80,13 +99,19 @@ export class AnimalUnlockService {
     const openIy = await this.prisma.instanceYear.findFirst({
       where: { instanceId, isOpen: true },
     });
-    if (!openIy) throw new NotFoundException(`Aucune InstanceYear ouverte pour l'instance ${instanceId}`);
+    if (!openIy)
+      throw new NotFoundException(
+        `Aucune InstanceYear ouverte pour l'instance ${instanceId}`,
+      );
 
     const period = await this.prisma.period.findFirst({
       where: { instanceYearId: openIy.id, isOpen: true },
       orderBy: { id: 'desc' },
     });
-    if (!period) throw new NotFoundException(`Aucune période ouverte pour l'instance ${instanceId}`);
+    if (!period)
+      throw new NotFoundException(
+        `Aucune période ouverte pour l'instance ${instanceId}`,
+      );
 
     this.logger.log(`Recalcul instance=${instanceId} période=${period.id}`);
 
@@ -94,48 +119,91 @@ export class AnimalUnlockService {
       where: { instanceYearId: openIy.id },
       orderBy: { startDate: 'asc' },
     });
-    const periodIndex = allPeriods.findIndex(p => p.id === period.id) + 1;
-    const count = await this.calculateForInstance(instanceId, period.id, periodIndex, allPeriods.length);
+    const periodIndex = allPeriods.findIndex((p) => p.id === period.id) + 1;
+    const count = await this.calculateForInstance(
+      instanceId,
+      period.id,
+      periodIndex,
+      allPeriods.length,
+    );
 
     return this.prisma.instanceAnimalUnlock.upsert({
-      where: { instanceId_period_schoolYear: { instanceId, period: periodIndex, schoolYear: openIy.schoolYear } },
+      where: {
+        instanceId_period_schoolYear: {
+          instanceId,
+          period: periodIndex,
+          schoolYear: openIy.schoolYear,
+        },
+      },
       update: { animalsCount: count, periodDate: period.endDate },
-      create: { instanceId, period: periodIndex, schoolYear: openIy.schoolYear, animalsCount: count, periodDate: period.endDate },
+      create: {
+        instanceId,
+        period: periodIndex,
+        schoolYear: openIy.schoolYear,
+        animalsCount: count,
+        periodDate: period.endDate,
+      },
     });
   }
 
   async recalculateAllPeriods(instanceId: number, schoolYear: string) {
-    this.logger.log(`Début du recalcul TOTAL pour l'instance ${instanceId} (année ${schoolYear})...`);
+    this.logger.log(
+      `Début du recalcul TOTAL pour l'instance ${instanceId} (année ${schoolYear})...`,
+    );
 
     const instanceYear = await this.prisma.instanceYear.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear } },
     });
-    if (!instanceYear) throw new NotFoundException(`Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`);
+    if (!instanceYear)
+      throw new NotFoundException(
+        `Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`,
+      );
 
     const allPeriods = await this.prisma.period.findMany({
       where: { instanceYearId: instanceYear.id },
       orderBy: { startDate: 'asc' },
     });
-    if (allPeriods.length === 0) throw new NotFoundException('Aucune période trouvée');
+    if (allPeriods.length === 0)
+      throw new NotFoundException('Aucune période trouvée');
 
-    const currentPeriodIndex = allPeriods.findIndex(p => p.isOpen);
-    const maxIndexToCalculate = currentPeriodIndex !== -1 ? currentPeriodIndex + 1 : allPeriods.length;
+    const currentPeriodIndex = allPeriods.findIndex((p) => p.isOpen);
+    const maxIndexToCalculate =
+      currentPeriodIndex !== -1 ? currentPeriodIndex + 1 : allPeriods.length;
 
     const results = [];
     for (let i = 0; i < maxIndexToCalculate; i++) {
-      const p           = allPeriods[i];
+      const p = allPeriods[i];
       const periodIndex = i + 1;
-      const count       = await this.calculateForInstance(instanceId, p.id, periodIndex, allPeriods.length);
+      const count = await this.calculateForInstance(
+        instanceId,
+        p.id,
+        periodIndex,
+        allPeriods.length,
+      );
 
       const result = await this.prisma.instanceAnimalUnlock.upsert({
-        where: { instanceId_period_schoolYear: { instanceId, period: periodIndex, schoolYear } },
+        where: {
+          instanceId_period_schoolYear: {
+            instanceId,
+            period: periodIndex,
+            schoolYear,
+          },
+        },
         update: { animalsCount: count, periodDate: p.endDate },
-        create: { instanceId, period: periodIndex, schoolYear, animalsCount: count, periodDate: p.endDate },
+        create: {
+          instanceId,
+          period: periodIndex,
+          schoolYear,
+          animalsCount: count,
+          periodDate: p.endDate,
+        },
       });
       results.push(result);
     }
 
-    this.logger.log(`Recalcul TOTAL terminé : ${results.length} périodes mises à jour.`);
+    this.logger.log(
+      `Recalcul TOTAL terminé : ${results.length} périodes mises à jour.`,
+    );
     return results;
   }
 }

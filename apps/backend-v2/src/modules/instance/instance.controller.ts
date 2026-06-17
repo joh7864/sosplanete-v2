@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { InstanceService } from './instance.service';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateInstanceDto } from './dto/create-instance.dto';
@@ -12,7 +24,12 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { BadRequestException, UseInterceptors, UploadedFile, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  UseInterceptors,
+  UploadedFile,
+  ForbiddenException,
+} from '@nestjs/common';
 
 import { YearService } from './year.service';
 
@@ -21,7 +38,7 @@ import { YearService } from './year.service';
 export class InstanceController {
   constructor(
     private readonly instanceService: InstanceService,
-    private readonly yearService: YearService
+    private readonly yearService: YearService,
   ) {}
 
   @Post()
@@ -29,7 +46,10 @@ export class InstanceController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AS, Role.AM)
   @ApiOperation({ summary: "Création d'une nouvelle école (instance)" })
-  async create(@Body() createInstanceDto: CreateInstanceDto, @Request() req: any) {
+  async create(
+    @Body() createInstanceDto: CreateInstanceDto,
+    @Request() req: any,
+  ) {
     if (req.user.role === Role.AM) {
       createInstanceDto.adminId = req.user.userId;
     }
@@ -47,9 +67,13 @@ export class InstanceController {
   @Get()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: "Liste des écoles (filtrée par rôle)" })
+  @ApiOperation({ summary: 'Liste des écoles (filtrée par rôle)' })
   async findAll(@Request() req: any, @Query('schoolYear') schoolYear: string) {
-    return this.instanceService.findAll(req.user.userId, req.user.role, schoolYear);
+    return this.instanceService.findAll(
+      req.user.userId,
+      req.user.role,
+      schoolYear,
+    );
   }
 
   @Get(':id')
@@ -65,10 +89,14 @@ export class InstanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AS, Role.AM)
-  @ApiOperation({ summary: "Mettre à jour une école" })
+  @ApiOperation({ summary: 'Mettre à jour une école' })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateInstanceDto: UpdateInstanceDto & { force?: boolean; schoolYear?: string },
+    @Body()
+    updateInstanceDto: UpdateInstanceDto & {
+      force?: boolean;
+      schoolYear?: string;
+    },
     @Request() req: any,
   ) {
     return this.instanceService.update(id, updateInstanceDto, req.user);
@@ -78,7 +106,7 @@ export class InstanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AS)
-  @ApiOperation({ summary: "Supprimer une école (cascade)" })
+  @ApiOperation({ summary: 'Supprimer une école (cascade)' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.instanceService.remove(id);
   }
@@ -87,17 +115,23 @@ export class InstanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AS, Role.AM)
-  @ApiOperation({ summary: "Supprimer la configuration d'une année spécifique" })
+  @ApiOperation({
+    summary: "Supprimer la configuration d'une année spécifique",
+  })
   async removeYear(
     @Param('id', ParseIntPipe) id: number,
     @Query('schoolYear') schoolYear: string,
     @Request() req: any,
   ) {
-    if (!schoolYear) throw new BadRequestException('Le paramètre schoolYear est requis');
+    if (!schoolYear)
+      throw new BadRequestException('Le paramètre schoolYear est requis');
     if (req.user.role === Role.AM) {
       // Vérification : un AM ne peut supprimer que les années de ses propres espaces
       const isOwner = req.user.instanceIds?.includes(id);
-      if (!isOwner) throw new ForbiddenException('Vous ne pouvez supprimer que les espaces que vous gérez');
+      if (!isOwner)
+        throw new ForbiddenException(
+          'Vous ne pouvez supprimer que les espaces que vous gérez',
+        );
     }
     return this.instanceService.removeYear(id, schoolYear);
   }
@@ -110,7 +144,9 @@ export class InstanceController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
           const path = join(basePath, 'icons');
           if (!fs.existsSync(path)) {
             fs.mkdirSync(path, { recursive: true });
@@ -125,7 +161,12 @@ export class InstanceController {
       limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|webp)$/)) {
-          cb(new BadRequestException('Seuls les formats JPEG, PNG et WebP sont acceptés.'), false);
+          cb(
+            new BadRequestException(
+              'Seuls les formats JPEG, PNG et WebP sont acceptés.',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -144,7 +185,9 @@ export class InstanceController {
   @Post(':id/initialize-year')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: "Initialiser une nouvelle année scolaire (clonage configuration)" })
+  @ApiOperation({
+    summary: 'Initialiser une nouvelle année scolaire (clonage configuration)',
+  })
   async initializeYear(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { targetYear: string },
@@ -156,7 +199,9 @@ export class InstanceController {
   @Get(':id/year')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Résoudre l\'instanceYearId depuis (instanceId, schoolYear)' })
+  @ApiOperation({
+    summary: "Résoudre l'instanceYearId depuis (instanceId, schoolYear)",
+  })
   async resolveInstanceYear(
     @Param('id', ParseIntPipe) id: number,
     @Query('schoolYear') schoolYear: string,
@@ -170,7 +215,9 @@ export class InstanceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AS, Role.AM)
-  @ApiOperation({ summary: "Dupliquer la configuration d'une année scolaire sur une autre" })
+  @ApiOperation({
+    summary: "Dupliquer la configuration d'une année scolaire sur une autre",
+  })
   async duplicateYear(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { fromSchoolYear: string; toSchoolYear: string },
@@ -179,22 +226,32 @@ export class InstanceController {
     if (req.user.role === Role.AM) {
       // Vérification : un AM ne peut dupliquer que ses propres instances
       const isOwner = req.user.instanceIds?.includes(id);
-      if (!isOwner) throw new ForbiddenException('Vous ne pouvez dupliquer que vos propres espaces');
+      if (!isOwner)
+        throw new ForbiddenException(
+          'Vous ne pouvez dupliquer que vos propres espaces',
+        );
     }
-    return this.yearService.duplicateYear(id, body.fromSchoolYear, body.toSchoolYear, req.user);
+    return this.yearService.duplicateYear(
+      id,
+      body.fromSchoolYear,
+      body.toSchoolYear,
+      req.user,
+    );
   }
 
   @Get(':id/years')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: "Liste de toutes les années existantes d'une école" })
-  async getYears(
-    @Param('id', ParseIntPipe) id: number,
-    @Request() req: any,
-  ) {
+  @ApiOperation({
+    summary: "Liste de toutes les années existantes d'une école",
+  })
+  async getYears(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     if (req.user.role === Role.AM) {
       const isOwner = req.user.instanceIds?.includes(id);
-      if (!isOwner) throw new ForbiddenException('Vous ne pouvez lister que les années de vos propres espaces');
+      if (!isOwner)
+        throw new ForbiddenException(
+          'Vous ne pouvez lister que les années de vos propres espaces',
+        );
     }
     return this.instanceService.findYears(id);
   }

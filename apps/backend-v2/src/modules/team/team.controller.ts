@@ -1,6 +1,27 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, UseGuards, Request, Query, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common';
 import { TeamService } from './team.service';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -34,12 +55,19 @@ export class TeamController {
     @Query('instanceYearId') instanceYearIdStr: string | undefined,
     @Request() req: any,
   ) {
-    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
-    return this.teamService.findAll(instanceId, req.user, schoolYear, instanceYearId);
+    const instanceYearId = instanceYearIdStr
+      ? parseInt(instanceYearIdStr)
+      : undefined;
+    return this.teamService.findAll(
+      instanceId,
+      req.user,
+      schoolYear,
+      instanceYearId,
+    );
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: "Mettre à jour une équipe" })
+  @ApiOperation({ summary: 'Mettre à jour une équipe' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTeamDto: UpdateTeamDto,
@@ -49,13 +77,15 @@ export class TeamController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: "Supprimer une équipe (cascade)" })
+  @ApiOperation({ summary: 'Supprimer une équipe (cascade)' })
   async remove(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     return this.teamService.remove(id, req.user);
   }
 
   @Post('import-csv')
-  @ApiOperation({ summary: "Import massif d'équipes, groupes et joueurs via CSV" })
+  @ApiOperation({
+    summary: "Import massif d'équipes, groupes et joueurs via CSV",
+  })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String })
   @ApiQuery({ name: 'instanceYearId', type: Number, required: false })
@@ -66,8 +96,16 @@ export class TeamController {
     @Body() body: ImportCsvDto,
     @Request() req: any,
   ) {
-    const instanceYearId = instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined;
-    return this.teamService.importCsv(instanceId, body.csvContent, schoolYear, req.user, instanceYearId);
+    const instanceYearId = instanceYearIdStr
+      ? parseInt(instanceYearIdStr)
+      : undefined;
+    return this.teamService.importCsv(
+      instanceId,
+      body.csvContent,
+      schoolYear,
+      req.user,
+      instanceYearId,
+    );
   }
 
   // --- UPLOAD ICONE ---
@@ -78,8 +116,10 @@ export class TeamController {
       ? join(process.env.UPLOADS_DIR, 'teams')
       : join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'teams');
     try {
-      const files = readdirSync(uploadsDir).filter(f =>
-        ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(extname(f).toLowerCase())
+      const files = readdirSync(uploadsDir).filter((f) =>
+        ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(
+          extname(f).toLowerCase(),
+        ),
       );
       return files;
     } catch {
@@ -90,29 +130,31 @@ export class TeamController {
   @Post('upload-icon')
   @ApiOperation({ summary: "Upload d'une icône d'équipe" })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dest = process.env.UPLOADS_DIR
-          ? join(process.env.UPLOADS_DIR, 'teams')
-          : join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'teams');
-        cb(null, dest);
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dest = process.env.UPLOADS_DIR
+            ? join(process.env.UPLOADS_DIR, 'teams')
+            : join(__dirname, '..', '..', '..', '..', '..', 'uploads', 'teams');
+          cb(null, dest);
+        },
+        filename: (req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        if (allowed.includes(extname(file.originalname).toLowerCase())) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Format de fichier non supporté'), false);
+        }
       },
-      filename: (req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
-        cb(null, unique + extname(file.originalname));
-      },
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
     }),
-    fileFilter: (req, file, cb) => {
-      const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-      if (allowed.includes(extname(file.originalname).toLowerCase())) {
-        cb(null, true);
-      } else {
-        cb(new BadRequestException('Format de fichier non supporté'), false);
-      }
-    },
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
-  }))
+  )
   uploadIcon(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     return { filename: file.filename };
@@ -121,32 +163,36 @@ export class TeamController {
   @Post('children/upload-avatar')
   @ApiOperation({ summary: "Upload d'un avatar pour un enfant/joueur" })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
-        const path = join(basePath, 'avatars');
-        const fs = require('fs');
-        if (!fs.existsSync(path)) {
-          fs.mkdirSync(path, { recursive: true });
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const path = join(basePath, 'avatars');
+          const fs = require('fs');
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path, { recursive: true });
+          }
+          cb(null, path);
+        },
+        filename: (req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        if (allowed.includes(extname(file.originalname).toLowerCase())) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Format de fichier non supporté'), false);
         }
-        cb(null, path);
       },
-      filename: (req, file, cb) => {
-        const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
-        cb(null, unique + extname(file.originalname));
-      },
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
     }),
-    fileFilter: (req, file, cb) => {
-      const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-      if (allowed.includes(extname(file.originalname).toLowerCase())) {
-        cb(null, true);
-      } else {
-        cb(new BadRequestException('Format de fichier non supporté'), false);
-      }
-    },
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
-  }))
+  )
   uploadChildAvatar(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     return { filename: `avatars/${file.filename}` };
@@ -160,63 +206,70 @@ export class TeamController {
   }
 
   @Post('groups/bulk-delete')
-  @ApiOperation({ summary: "Suppression massive de groupes" })
+  @ApiOperation({ summary: 'Suppression massive de groupes' })
   async bulkDeleteGroups(@Body() body: { ids: number[] }) {
     return this.teamService.removeGroups(body.ids);
   }
 
   @Post('children/bulk-delete')
-  @ApiOperation({ summary: "Suppression massive de joueurs" })
+  @ApiOperation({ summary: 'Suppression massive de joueurs' })
   async bulkDeleteChildren(@Body() body: { ids: number[] }) {
     return this.teamService.removeChildren(body.ids);
   }
 
   // --- GROUPS CRUD ---
   @Post('groups')
-  async createGroup(@Body() body: { teamId: number; name: string; color?: string }) {
+  async createGroup(
+    @Body() body: { teamId: number; name: string; color?: string },
+  ) {
     return this.teamService.createGroup(body.teamId, body.name, body.color);
   }
 
   @Patch('groups/:id')
-  async updateGroup(@Param('id', ParseIntPipe) id: number, @Body() body: { name?: string; color?: string }) {
+  async updateGroup(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { name?: string; color?: string },
+  ) {
     return this.teamService.updateGroup(id, body);
   }
 
   // --- CHILDREN CRUD ---
   @Post('children')
   async createChild(
-    @Body() body: { 
-      groupId: number; 
-      pseudo: string; 
-      password?: string; 
-      isDelegate?: boolean; 
-      gender?: string; 
-      birthDate?: string; 
+    @Body()
+    body: {
+      groupId: number;
+      pseudo: string;
+      password?: string;
+      isDelegate?: boolean;
+      gender?: string;
+      birthDate?: string;
       avatar?: string;
-    }
+    },
   ) {
     return this.teamService.createChild(
-      body.groupId, 
-      body.pseudo, 
-      body.password, 
-      body.isDelegate, 
-      body.gender, 
-      body.birthDate, 
-      body.avatar
+      body.groupId,
+      body.pseudo,
+      body.password,
+      body.isDelegate,
+      body.gender,
+      body.birthDate,
+      body.avatar,
     );
   }
 
   @Patch('children/:id')
   async updateChild(
-    @Param('id', ParseIntPipe) id: number, 
-    @Body() body: { 
-      pseudo?: string; 
-      password?: string; 
-      isDelegate?: boolean; 
-      gender?: string; 
-      birthDate?: string | null; 
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      pseudo?: string;
+      password?: string;
+      isDelegate?: boolean;
+      gender?: string;
+      birthDate?: string | null;
       avatar?: string | null;
-    }
+    },
   ) {
     return this.teamService.updateChild(id, body);
   }

@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Patch, Delete, UseGuards, Request, Body, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Delete,
+  UseGuards,
+  Request,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -11,13 +21,15 @@ export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Liste des notifications reçues par l\'utilisateur' })
+  @ApiOperation({ summary: "Liste des notifications reçues par l'utilisateur" })
   async getNotifications(@Request() req: any) {
     return this.notificationService.findAllForUser(req.user.userId);
   }
 
   @Get('sent')
-  @ApiOperation({ summary: 'Liste des notifications envoyées par l\'utilisateur' })
+  @ApiOperation({
+    summary: "Liste des notifications envoyées par l'utilisateur",
+  })
   async getSentNotifications(@Request() req: any) {
     return this.notificationService.findSentByUser(req.user.userId);
   }
@@ -29,7 +41,7 @@ export class NotificationController {
   }
 
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Mettre à jour le statut d\'une notification' })
+  @ApiOperation({ summary: "Mettre à jour le statut d'une notification" })
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { status: string },

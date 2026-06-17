@@ -34,10 +34,12 @@ import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
     ScheduleModule.forRoot(),
     // SEC-07 — Rate limiting global : 100 requêtes/minute par IP par défaut
     // Les routes d'auth ont une limite plus stricte via @Throttle() dans auth.controller.ts
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 500, // Augmenté à 500 pour éviter les 429 sur le jeu v1
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 500, // Augmenté à 500 pour éviter les 429 sur le jeu v1
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -52,13 +54,17 @@ import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
     ServeStaticModule.forRoot(
       {
         // Route /static/ → pointe directement vers le dossier uploads (pour le jeu v1)
-        rootPath: process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', 'uploads'),
+        rootPath:
+          process.env.UPLOADS_DIR ||
+          join(__dirname, '..', '..', '..', 'uploads'),
         serveRoot: '/static',
       },
       {
-        rootPath: process.env.UPLOADS_DIR ? join(process.env.UPLOADS_DIR, '..') : join(__dirname, '..', '..', '..'),
+        rootPath: process.env.UPLOADS_DIR
+          ? join(process.env.UPLOADS_DIR, '..')
+          : join(__dirname, '..', '..', '..'),
         serveRoot: '/',
-      }
+      },
     ),
     LegacyApiModule,
     StimulationModule,

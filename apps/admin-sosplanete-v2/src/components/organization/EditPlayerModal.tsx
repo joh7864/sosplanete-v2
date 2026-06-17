@@ -305,7 +305,8 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                     <option value="">Non spécifié</option>
                     <option value="M">Homme</option>
                     <option value="F">Femme</option>
-                    <option value="E">Enfant</option>
+                    <option value="EF">Enfant Féminin</option>
+                    <option value="EH">Enfant Masculin</option>
                   </select>
                 </div>
 

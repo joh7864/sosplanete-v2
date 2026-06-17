@@ -13,7 +13,14 @@ describe('LegacyApiService', () => {
         LegacyApiService,
         { provide: PrismaService, useValue: {} },
         { provide: ImpactService, useValue: {} },
-        { provide: AnimalUnlockService, useValue: { getCurrentUnlock: jest.fn().mockResolvedValue({ animalsUnlocked: 0 }) } },
+        {
+          provide: AnimalUnlockService,
+          useValue: {
+            getCurrentUnlock: jest
+              .fn()
+              .mockResolvedValue({ animalsUnlocked: 0 }),
+          },
+        },
       ],
     }).compile();
 

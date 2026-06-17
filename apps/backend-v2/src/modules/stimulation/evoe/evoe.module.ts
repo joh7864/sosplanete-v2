@@ -9,6 +9,6 @@ import { ImpactModule } from '../../impact/impact.module';
   imports: [PrismaModule, LegacyApiModule, ImpactModule],
   controllers: [EvoeController],
   providers: [EvoeService],
-  exports: [EvoeService]
+  exports: [EvoeService],
 })
 export class EvoeModule {}

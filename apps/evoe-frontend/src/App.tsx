@@ -156,7 +156,7 @@ function MainApp() {
     if (currentPlayer?.birthDate) {
       age = new Date().getFullYear() - new Date(currentPlayer.birthDate).getFullYear();
     }
-    if (currentPlayer?.gender === 'E' || age < 15) {
+    if (currentPlayer?.gender === 'EF' || currentPlayer?.gender === 'EH' || currentPlayer?.gender === 'E' || age < 15) {
       avatarIndex = 34 + (hash % 6);
     } else if (currentPlayer?.gender === 'F') {
       avatarIndex = 22 + (hash % 12);

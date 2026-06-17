@@ -13,4 +13,3 @@ import { CategoryRefModule } from '../category-ref/category-ref.module';
   exports: [StimulationService, AnimalUnlockService, EcoBarRaceService],
 })
 export class StimulationModule {}
-

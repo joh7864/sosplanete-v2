@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Req, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { ChildService } from './child.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -13,7 +24,10 @@ export class ChildController {
 
   @Post()
   @ApiOperation({ summary: 'Ajouter un enfant dans un groupe' })
-  async create(@Body() body: { pseudo: string; groupId: number }, @Req() req: any) {
+  async create(
+    @Body() body: { pseudo: string; groupId: number },
+    @Req() req: any,
+  ) {
     return this.childService.create(body, req.user);
   }
 
@@ -28,8 +42,11 @@ export class ChildController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lister les enfants d\'un groupe' })
-  async findAll(@Query('groupId', ParseIntPipe) groupId: number, @Req() req: any) {
+  @ApiOperation({ summary: "Lister les enfants d'un groupe" })
+  async findAll(
+    @Query('groupId', ParseIntPipe) groupId: number,
+    @Req() req: any,
+  ) {
     return this.childService.findAll(groupId, req.user);
   }
 

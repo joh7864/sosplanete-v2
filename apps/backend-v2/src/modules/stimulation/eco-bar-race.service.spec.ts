@@ -35,7 +35,11 @@ describe('EcoBarRaceService', () => {
       instanceYear: {
         findUnique: jest.fn().mockImplementation(({ where }) => {
           const { instanceId } = where.instanceId_schoolYear;
-          return Promise.resolve({ id: instanceId * 10, schoolYear: '2024-2025', icon: instanceId === 1 ? '🌿' : '🌊' });
+          return Promise.resolve({
+            id: instanceId * 10,
+            schoolYear: '2024-2025',
+            icon: instanceId === 1 ? '🌿' : '🌊',
+          });
         }),
       },
       period: {
@@ -56,9 +60,23 @@ describe('EcoBarRaceService', () => {
       actionDone: {
         aggregate: jest.fn().mockImplementation(({ where }) => {
           if (where.child.group.team.instanceYearId === 10) {
-            return Promise.resolve({ _sum: { savedCo2: 100, savedWater: 200, savedWaste: 50, savedEnergy: 30 } });
+            return Promise.resolve({
+              _sum: {
+                savedCo2: 100,
+                savedWater: 200,
+                savedWaste: 50,
+                savedEnergy: 30,
+              },
+            });
           }
-          return Promise.resolve({ _sum: { savedCo2: 150, savedWater: 100, savedWaste: 80, savedEnergy: 20 } });
+          return Promise.resolve({
+            _sum: {
+              savedCo2: 150,
+              savedWater: 100,
+              savedWaste: 80,
+              savedEnergy: 20,
+            },
+          });
         }),
       },
       ecoBarRaceSnapshot: {
@@ -68,10 +86,12 @@ describe('EcoBarRaceService', () => {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       gameConfig: {
-        findMany: jest.fn().mockResolvedValue([
-          { gamePeriodsCount: 24 },
-          { gamePeriodsCount: 20 },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { gamePeriodsCount: 24 },
+            { gamePeriodsCount: 20 },
+          ]),
       },
     } as unknown as jest.Mocked<PrismaService>;
 
@@ -93,7 +113,8 @@ describe('EcoBarRaceService', () => {
     await service.calculateRankingsForPeriod(1, SCHOOL_YEAR);
 
     // Le snapshot créé doit avoir une date (pas undefined/null)
-    const createCall = (prisma.ecoBarRaceSnapshot.create as jest.Mock).mock.calls[0]?.[0];
+    const createCall = (prisma.ecoBarRaceSnapshot.create as jest.Mock).mock
+      .calls[0]?.[0];
     expect(createCall?.data?.periodDate).toBeDefined();
     expect(createCall?.data?.periodDate).toBeInstanceOf(Date);
   });
@@ -104,7 +125,8 @@ describe('EcoBarRaceService', () => {
   it('2. calculateRankingsForPeriod : classe les écoles par co2Total décroissant', async () => {
     await service.calculateRankingsForPeriod(1, SCHOOL_YEAR);
 
-    const createCall = (prisma.ecoBarRaceSnapshot.create as jest.Mock).mock.calls[0]?.[0];
+    const createCall = (prisma.ecoBarRaceSnapshot.create as jest.Mock).mock
+      .calls[0]?.[0];
     const rankings: any[] = createCall?.data?.rankings;
 
     expect(rankings).toBeDefined();
@@ -124,7 +146,8 @@ describe('EcoBarRaceService', () => {
 
     // calculateRankingsForPeriod doit avoir été appelé exactement 24 fois (max des configs)
     // Pour vérifier ça, on espie les appels à prisma.period.findMany
-    const periodFindManyCalls = (prisma.period.findMany as jest.Mock).mock.calls;
+    const periodFindManyCalls = (prisma.period.findMany as jest.Mock).mock
+      .calls;
     // 24 périodes × 2 instances = 48 appels à period.findMany
     expect(periodFindManyCalls.length).toBe(48);
   });

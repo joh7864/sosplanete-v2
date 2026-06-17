@@ -1,4 +1,13 @@
-import { Controller, Get, Param, Query, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ImpactService } from './impact.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -11,19 +20,19 @@ export class ImpactController {
 
   @Get('global')
   async getGlobalImpact(@Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.impactService.calculateImpact(sy, null);
   }
 
   @Get('summary')
   async getSummary(@Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.impactService.getImpactSummary(sy);
   }
 
   @Get('constants')
   async getAnnualConstants(@Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.impactService.getAnnualConstants(sy);
   }
 
@@ -36,19 +45,25 @@ export class ImpactController {
 
   @Get('history')
   async getGlobalHistory(@Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+    const sy = schoolYear || '2024-2025';
     return this.impactService.getImpactHistory(sy, null);
   }
 
   @Get('history/:instanceId')
-  async getInstanceHistory(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+  async getInstanceHistory(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear?: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
     return this.impactService.getImpactHistory(sy, parseInt(instanceId, 10));
   }
 
   @Get('instance/:instanceId')
-  async getInstanceImpact(@Param('instanceId') instanceId: string, @Query('schoolYear') schoolYear?: string) {
-    const sy = schoolYear || "2024-2025";
+  async getInstanceImpact(
+    @Param('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear?: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
     return this.impactService.calculateImpact(sy, parseInt(instanceId, 10));
   }
 }

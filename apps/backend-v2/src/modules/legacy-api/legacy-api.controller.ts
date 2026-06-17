@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Post, Delete, Body, Query, Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Delete,
+  Body,
+  Query,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { LegacyApiService } from './legacy-api.service';
 
 @Controller('legacy')
@@ -10,25 +20,48 @@ export class LegacyApiController {
     if (!auth || !auth.startsWith('Basic ')) {
       throw new UnauthorizedException('Basic auth required');
     }
-    const decoded = Buffer.from(auth.replace('Basic ', ''), 'base64').toString('utf8');
+    const decoded = Buffer.from(auth.replace('Basic ', ''), 'base64').toString(
+      'utf8',
+    );
     const [pseudo, password] = decoded.split(':');
-    
+
     return this.legacyApiService.checkAuthChild(pseudo, password);
   }
 
   @Get('categories')
-  getCategories(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getCategories(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getCategories(origin, instanceIdStr);
   }
 
   @Get('categories/:id/actions')
-  getActionsByCategory(@Param('id') id: string, @Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
-    return this.legacyApiService.getActionsByCategory(id, origin, instanceIdStr);
+  getActionsByCategory(
+    @Param('id') id: string,
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.legacyApiService.getActionsByCategory(
+      id,
+      origin,
+      instanceIdStr,
+    );
   }
 
   @Post('actiondone/:childId')
-  postActionDone(@Param('childId') childId: string, @Body() payload: any, @Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
-    return this.legacyApiService.postActionDone(childId, payload, origin, instanceIdStr);
+  postActionDone(
+    @Param('childId') childId: string,
+    @Body() payload: any,
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.legacyApiService.postActionDone(
+      childId,
+      payload,
+      origin,
+      instanceIdStr,
+    );
   }
 
   @Delete('actiondone/:actionId')
@@ -37,7 +70,10 @@ export class LegacyApiController {
   }
 
   @Get('children/:childId/actionsdone')
-  getActionsDone(@Param('childId') childId: string, @Query('week_id') weekId: string) {
+  getActionsDone(
+    @Param('childId') childId: string,
+    @Query('week_id') weekId: string,
+  ) {
     return this.legacyApiService.getActionsDone(childId, weekId);
   }
 
@@ -47,32 +83,52 @@ export class LegacyApiController {
   }
 
   @Get('impact')
-  getImpact(@Query('week_id') weekId: string, @Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getImpact(
+    @Query('week_id') weekId: string,
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getImpact(weekId, origin, instanceIdStr);
   }
 
   @Get('teams')
-  getTeams(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getTeams(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getTeams(origin, instanceIdStr);
   }
 
   @Get('teams/total')
-  getTeamsTotal(@Query('week_id') weekId: string, @Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getTeamsTotal(
+    @Query('week_id') weekId: string,
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getTeamsTotal(weekId, origin, instanceIdStr);
   }
 
   @Get('school')
-  getSchool(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getSchool(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getSchool(origin, instanceIdStr);
   }
 
   @Get('week')
-  getWeek(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getWeek(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getWeek(origin, instanceIdStr);
   }
 
   @Get('children')
-  getChildren(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getChildren(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getChildren(origin, instanceIdStr);
   }
 
@@ -82,7 +138,11 @@ export class LegacyApiController {
     @Headers('origin') origin: string,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
-    return this.legacyApiService.getChildByPseudo(pseudo, origin, instanceIdStr);
+    return this.legacyApiService.getChildByPseudo(
+      pseudo,
+      origin,
+      instanceIdStr,
+    );
   }
 
   @Get('child/:id')
@@ -91,22 +151,37 @@ export class LegacyApiController {
   }
 
   @Get('actions')
-  getActions(@Headers('origin') origin: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getActions(
+    @Headers('origin') origin: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getActions(origin, instanceIdStr);
   }
 
   @Get('delegate/impact')
-  getDelegateImpact(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getDelegateImpact(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getDelegateImpact(auth, instanceIdStr);
   }
 
   @Get('delegate/tracking')
-  getDelegateTracking(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
+  getDelegateTracking(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
     return this.legacyApiService.getDelegateTracking(auth, instanceIdStr);
   }
 
   @Get('delegate/eco-bar-race/history')
-  getDelegateEcoBarRaceHistory(@Headers('authorization') auth: string, @Headers('x-instance-id') instanceIdStr?: string) {
-    return this.legacyApiService.getDelegateEcoBarRaceHistory(auth, instanceIdStr);
+  getDelegateEcoBarRaceHistory(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.legacyApiService.getDelegateEcoBarRaceHistory(
+      auth,
+      instanceIdStr,
+    );
   }
 }

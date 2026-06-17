@@ -50,7 +50,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
       let avatarIndex = 1;
 
       // Choix de l'avatar selon le sexe et l'âge
-      if (player.gender === 'E' || (age !== null && age < 15)) {
+      if (player.gender === 'EF' || player.gender === 'EH' || player.gender === 'E' || (age !== null && age < 15)) {
         // Enfant : de avatar_34 à avatar_39 (6 avatars)
         avatarIndex = 34 + (hash % 6);
       } else if (player.gender === 'F') {

@@ -38,7 +38,9 @@ export class UsersController {
 
   @Get('me')
   async getProfile(@Request() req: any) {
-    const { password, ...user } = await this.usersService.findOne(req.user.userId);
+    const { password, ...user } = await this.usersService.findOne(
+      req.user.userId,
+    );
     return user;
   }
 
@@ -53,7 +55,9 @@ export class UsersController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
           const path = join(basePath, 'avatars');
           if (!fs.existsSync(path)) {
             fs.mkdirSync(path, { recursive: true });
@@ -79,7 +83,10 @@ export class UsersController {
       },
     }),
   )
-  async uploadMyAvatar(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
+  async uploadMyAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
+  ) {
     if (!file) throw new BadRequestException('Aucun fichier envoyé.');
     const avatarUrl = `/uploads/avatars/${file.filename}`;
     await this.usersService.updateUser(req.user.userId, { avatar: avatarUrl });
@@ -91,7 +98,9 @@ export class UsersController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (_req, _file, cb) => {
-          const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
           const path = join(basePath, 'avatars');
           if (!fs.existsSync(path)) {
             fs.mkdirSync(path, { recursive: true });
@@ -125,7 +134,9 @@ export class UsersController {
     const targetId = parseInt(id, 10);
     // Un AM ne peut modifier que lui-même. Un AS peut tout modifier.
     if (req.user.role !== Role.AS && req.user.userId !== targetId) {
-      throw new BadRequestException("Vous n'avez pas la permission de modifier cet utilisateur");
+      throw new BadRequestException(
+        "Vous n'avez pas la permission de modifier cet utilisateur",
+      );
     }
 
     if (!file) throw new BadRequestException('Aucun fichier envoyé.');
@@ -150,10 +161,15 @@ export class UsersController {
     const targetId = parseInt(id, 10);
     // Un AM ne peut modifier que lui-même. Un AS peut tout modifier.
     if (req.user.role !== Role.AS && req.user.userId !== targetId) {
-      throw new BadRequestException("Vous n'avez pas la permission de modifier cet utilisateur");
+      throw new BadRequestException(
+        "Vous n'avez pas la permission de modifier cet utilisateur",
+      );
     }
 
-    const { password, ...user } = await this.usersService.updateUser(targetId, dto);
+    const { password, ...user } = await this.usersService.updateUser(
+      targetId,
+      dto,
+    );
     return user;
   }
 

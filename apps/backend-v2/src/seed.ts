@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const password = await bcrypt.hash('admin123', 10);
-  
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@sos-planete.fr' },
     update: {},
@@ -17,7 +17,7 @@ async function main() {
   });
 
   const passwordJo = await bcrypt.hash('jo', 10);
-  
+
   const adminJo = await prisma.user.upsert({
     where: { email: 'jo@dev.fr' },
     update: {
@@ -41,7 +41,7 @@ async function main() {
       moyCo2Monde: 4.7,
       moyEauMonde: 1200000,
       moyDechetsMonde: 450,
-    }
+    },
   });
 
   await prisma.annualImpactData.upsert({
@@ -53,7 +53,7 @@ async function main() {
       moyCo2Monde: 4.8,
       moyEauMonde: 1210000,
       moyDechetsMonde: 455,
-    }
+    },
   });
 
   console.log('Seed terminé. Admins :', admin.email, adminJo.email);

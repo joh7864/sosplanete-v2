@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import * as Papa from 'papaparse';
@@ -36,40 +41,63 @@ export class CategoryService {
   // Résoudre l'instanceYearId depuis (instanceId, schoolYear)
   // Utilisé par les routes qui reçoivent encore instanceId + schoolYear
   // ----------------------------------------------------------------
-  async resolveInstanceYearId(instanceId: number, schoolYear: string): Promise<number> {
+  async resolveInstanceYearId(
+    instanceId: number,
+    schoolYear: string,
+  ): Promise<number> {
     const iy = await this.prisma.instanceYear.findUnique({
       where: { instanceId_schoolYear: { instanceId, schoolYear } },
     });
-    if (!iy) throw new NotFoundException(`Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`);
+    if (!iy)
+      throw new NotFoundException(
+        `Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`,
+      );
     return iy.id;
   }
 
   async create(
-    data: { name: string; icon?: string; order?: number; instanceId: number; schoolYear: string },
+    data: {
+      name: string;
+      icon?: string;
+      order?: number;
+      instanceId: number;
+      schoolYear: string;
+    },
     user: any,
   ) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
-    const instanceYearId = await this.resolveInstanceYearId(data.instanceId, data.schoolYear);
+    const instanceYearId = await this.resolveInstanceYearId(
+      data.instanceId,
+      data.schoolYear,
+    );
 
     return this.prisma.category.create({
       data: {
-        name:           data.name,
-        icon:           this.normalizeIcon(data.icon),
-        order:          data.order || 0,
+        name: data.name,
+        icon: this.normalizeIcon(data.icon),
+        order: data.order || 0,
         instanceYearId,
       },
     });
   }
 
-  async findAll(instanceId: number, user: any, schoolYear?: string, instanceYearIdDirect?: number) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+  async findAll(
+    instanceId: number,
+    user: any,
+    schoolYear?: string,
+    instanceYearIdDirect?: number,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Accès refusé');
 
     // Court-circuit : si instanceYearId fourni directement, pas besoin de résolution
-    const instanceYearId = instanceYearIdDirect
-      ?? await this.resolveInstanceYearId(instanceId, schoolYear || '2024-2025');
+    const instanceYearId =
+      instanceYearIdDirect ??
+      (await this.resolveInstanceYearId(instanceId, schoolYear || '2024-2025'));
 
     return this.prisma.category.findMany({
       where: { instanceYearId },
@@ -83,14 +111,15 @@ export class CategoryService {
     if (!cat) throw new ForbiddenException('Introuvable');
 
     const instanceId = await this.resolveInstanceId(cat.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Non autorisé');
 
     return this.prisma.category.update({
       where: { id },
       data: {
-        name:  data.name,
-        icon:  this.normalizeIcon(data.icon),
+        name: data.name,
+        icon: this.normalizeIcon(data.icon),
         order: data.order,
       },
     });
@@ -101,15 +130,20 @@ export class CategoryService {
     if (!cat) return { success: false, message: 'Introuvable' };
 
     const instanceId = await this.resolveInstanceId(cat.instanceYearId);
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
     if (!isAllowed) throw new ForbiddenException('Non autorisé');
 
     await this.prisma.category.delete({ where: { id } });
     return { success: true };
   }
 
-  async reorder(data: { categoryIds: number[]; instanceId: number }, user: any) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
+  async reorder(
+    data: { categoryIds: number[]; instanceId: number },
+    user: any,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(data.instanceId);
     if (!isAllowed) throw new ForbiddenException('Non autorisé');
 
     const updates = data.categoryIds.map((id, index) =>
@@ -120,23 +154,33 @@ export class CategoryService {
     return { success: true };
   }
 
-  async importCsv(instanceId: number, csvContent: string, schoolYear: string, user: any, instanceYearIdDirect?: number) {
-    const isAllowed = user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) throw new ForbiddenException('Accès refusé pour l\'import');
+  async importCsv(
+    instanceId: number,
+    csvContent: string,
+    schoolYear: string,
+    user: any,
+    instanceYearIdDirect?: number,
+  ) {
+    const isAllowed =
+      user.role === Role.AS || user.instanceIds?.includes(instanceId);
+    if (!isAllowed) throw new ForbiddenException("Accès refusé pour l'import");
 
     // Court-circuit : si instanceYearId fourni directement, pas besoin de résolution
-    const instanceYearId = instanceYearIdDirect
-      ?? await this.resolveInstanceYearId(instanceId, schoolYear);
+    const instanceYearId =
+      instanceYearIdDirect ??
+      (await this.resolveInstanceYearId(instanceId, schoolYear));
 
     const { data, errors } = Papa.parse(csvContent, {
-      header:           true,
-      skipEmptyLines:   true,
-      delimiter:        ';',
-      transformHeader:  (h) => h.trim().toLowerCase(),
+      header: true,
+      skipEmptyLines: true,
+      delimiter: ';',
+      transformHeader: (h) => h.trim().toLowerCase(),
     });
 
     if (errors.length > 0) {
-      throw new BadRequestException('Format CSV invalide : ' + errors[0].message);
+      throw new BadRequestException(
+        'Format CSV invalide : ' + errors[0].message,
+      );
     }
 
     const stats = { created: 0, updated: 0 };
@@ -147,20 +191,29 @@ export class CategoryService {
     try {
       await this.prisma.$transaction(async (tx) => {
         for (const row of data as any[]) {
-          const rawName = row['nom']?.toString().trim() || row['name']?.toString().trim();
-          const icon    = row['icone']?.toString().trim() || row['icon']?.toString().trim() || null;
-          const order   = parseInt(row['ordre']?.toString() || row['order']?.toString() || '0', 10);
+          const rawName =
+            row['nom']?.toString().trim() || row['name']?.toString().trim();
+          const icon =
+            row['icone']?.toString().trim() ||
+            row['icon']?.toString().trim() ||
+            null;
+          const order = parseInt(
+            row['ordre']?.toString() || row['order']?.toString() || '0',
+            10,
+          );
 
           if (!rawName) continue;
 
           const normName = this.normalizeString(rawName);
-          const existing = existingCategories.find(c => this.normalizeString(c.name) === normName);
+          const existing = existingCategories.find(
+            (c) => this.normalizeString(c.name) === normName,
+          );
 
           if (existing) {
             await tx.category.update({
               where: { id: existing.id },
               data: {
-                icon:  icon ? this.normalizeIcon(icon) : existing.icon,
+                icon: icon ? this.normalizeIcon(icon) : existing.icon,
                 order: isNaN(order) ? existing.order : order,
               },
             });
@@ -177,7 +230,7 @@ export class CategoryService {
                   instanceId,
                   schoolYear,
                   categoryId: null,
-                  actionRefId: { in: actionRefs.map(r => r.id) },
+                  actionRefId: { in: actionRefs.map((r) => r.id) },
                 },
                 data: { categoryId: existing.id },
               });
@@ -185,10 +238,10 @@ export class CategoryService {
           } else {
             const created = await tx.category.create({
               data: {
-                name:           rawName,
+                name: rawName,
                 instanceYearId,
-                icon:           this.normalizeIcon(icon),
-                order:          isNaN(order) ? 0 : order,
+                icon: this.normalizeIcon(icon),
+                order: isNaN(order) ? 0 : order,
               },
             });
             stats.created++;
@@ -203,8 +256,8 @@ export class CategoryService {
                 where: {
                   instanceId,
                   schoolYear,
-                  categoryId:  null,
-                  actionRefId: { in: actionRefs.map(r => r.id) },
+                  categoryId: null,
+                  actionRefId: { in: actionRefs.map((r) => r.id) },
                 },
                 data: { categoryId: created.id },
               });

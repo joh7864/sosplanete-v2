@@ -20,7 +20,11 @@ export class TrackingController {
     @Query('instanceYearId') instanceYearIdStr?: string,
   ) {
     const yearToFetch = schoolYear || '2024-2025';
-    return this.trackingService.getTrackingStats(parseInt(instanceId), yearToFetch, instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined);
+    return this.trackingService.getTrackingStats(
+      parseInt(instanceId),
+      yearToFetch,
+      instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined,
+    );
   }
 
   @Post('import-actions-csv')
@@ -35,6 +39,11 @@ export class TrackingController {
     @Body('csvContent') csvContent: string,
   ) {
     const sy = schoolYear || '2024-2025';
-    return this.trackingService.importActionsCsv(parseInt(instanceId), csvContent, sy, instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined);
+    return this.trackingService.importActionsCsv(
+      parseInt(instanceId),
+      csvContent,
+      sy,
+      instanceYearIdStr ? parseInt(instanceYearIdStr) : undefined,
+    );
   }
 }

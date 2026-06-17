@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import * as Papa from 'papaparse';
@@ -8,13 +12,16 @@ export class ChildService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: { pseudo: string; groupId: number }, user: any) {
-    const group = await this.prisma.group.findUnique({ 
+    const group = await this.prisma.group.findUnique({
       where: { id: data.groupId },
-      include: { team: { include: { instanceYear: true } } }
+      include: { team: { include: { instanceYear: true } } },
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(group.team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
@@ -27,13 +34,16 @@ export class ChildService {
   }
 
   async importFromCSV(fileContent: string, groupId: number, user: any) {
-    const group = await this.prisma.group.findUnique({ 
+    const group = await this.prisma.group.findUnique({
       where: { id: groupId },
-      include: { team: { include: { instanceYear: true } } }
+      include: { team: { include: { instanceYear: true } } },
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(group.team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
@@ -75,29 +85,37 @@ export class ChildService {
   }
 
   async findAll(groupId: number, user: any) {
-    const group = await this.prisma.group.findUnique({ 
+    const group = await this.prisma.group.findUnique({
       where: { id: groupId },
-      include: { team: { include: { instanceYear: true } } }
+      include: { team: { include: { instanceYear: true } } },
     });
     if (!group) throw new Error('Groupe non trouvé');
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(group.team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(group.team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Accès refusé à cet espace');
     }
 
     return this.prisma.child.findMany({
-      where: { groupId }
+      where: { groupId },
     });
   }
 
   async remove(id: number, user: any) {
-    const child = await this.prisma.child.findUnique({ 
+    const child = await this.prisma.child.findUnique({
       where: { id },
-      include: { group: { include: { team: { include: { instanceYear: true } } } } }
+      include: {
+        group: { include: { team: { include: { instanceYear: true } } } },
+      },
     });
     if (!child) return { success: false, message: 'Enfant non trouvé' };
 
-    if (user.role !== Role.AS && !user.instanceIds?.includes(child.group.team.instanceYear.instanceId)) {
+    if (
+      user.role !== Role.AS &&
+      !user.instanceIds?.includes(child.group.team.instanceYear.instanceId)
+    ) {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
