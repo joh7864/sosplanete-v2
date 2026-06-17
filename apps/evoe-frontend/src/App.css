@@ -485,10 +485,17 @@ body {
 
 @media (max-width: 1024px) {
   .evoe-dashboards-container {
-    flex-direction: column;
-    overflow-y: auto;
-    gap: 20px;
-    padding: 0 15px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    max-height: none;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 100;
   }
 }
 
@@ -513,9 +520,52 @@ body {
 
 @media (max-width: 1024px) {
   .evoe-glass-panel {
-    width: 100%;
-    max-height: none;
+    position: fixed;
+    top: 75px;
+    bottom: 75px;
+    width: 330px;
+    max-width: 85vw;
+    height: auto;
+    max-height: calc(100vh - 150px);
+    margin: 0;
+    z-index: 101;
+    pointer-events: auto;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+    opacity: 0;
   }
+
+  /* Le panel gauche glisse depuis la gauche */
+  .evoe-glass-panel.panel-left {
+    left: 20px;
+    transform: translateX(-110%);
+  }
+
+  .evoe-glass-panel.panel-left.mobile-active {
+    transform: translateX(0);
+    opacity: 1;
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Le panel droit glisse depuis la droite */
+  .evoe-glass-panel.panel-right {
+    right: 20px;
+    transform: translateX(110%);
+  }
+
+  .evoe-glass-panel.panel-right.mobile-active {
+    transform: translateX(0);
+    opacity: 1;
+    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
+  }
+}
+
+.evoe-panel-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 255, 204, 0.2);
+  padding-bottom: 10px;
+  width: 100%;
 }
 
 .evoe-glass-panel h2 {
@@ -525,8 +575,116 @@ body {
   text-transform: uppercase;
   letter-spacing: 1.5px;
   text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
-  border-bottom: 1px solid rgba(0, 255, 204, 0.2);
-  padding-bottom: 10px;
+}
+
+.panel-close-btn {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .panel-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 204, 0.4);
+    color: #00ffcc;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .panel-close-btn:hover {
+    background: rgba(0, 255, 204, 0.2);
+    color: #fff;
+  }
+}
+
+/* --- Mobile Control Dock --- */
+.evoe-mobile-dock {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .evoe-mobile-dock {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 105;
+    background: rgba(10, 15, 30, 0.75);
+    border: 1px solid rgba(0, 255, 204, 0.35);
+    border-radius: 30px;
+    padding: 8px 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.15);
+    pointer-events: auto;
+  }
+
+  .dock-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #a0aec0;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .dock-btn.active {
+    background: rgba(0, 255, 204, 0.18);
+    border-color: rgba(0, 255, 204, 0.5);
+    color: #00ffcc;
+    text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.15);
+  }
+
+  .dock-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+  }
+}
+
+/* --- Mobile Background Overlay --- */
+.evoe-mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .evoe-mobile-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99;
+    animation: fadeInOverlay 0.3s ease;
+  }
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .evoe-glass-panel h3 {
