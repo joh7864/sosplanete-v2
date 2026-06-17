@@ -205,7 +205,7 @@ export class EvoeService {
 
     // Potentiel max par action du catalogue LOCAL sur une période
     const localActions = await this.prisma.localAction.findMany({
-      where: { instanceId },
+      where: { instanceId, schoolYear },
       include: { actionRef: true }
     });
 
@@ -234,7 +234,13 @@ export class EvoeService {
       // 1. Calculer le score total d'impact de l'équipe (CO2 + eau + déchets)
       const teamImpact = await this.prisma.actionDone.aggregate({
         where: {
-          child: { group: { teamId: team.id } }
+          child: { group: { teamId: team.id } },
+          period: {
+            instanceYear: {
+              instanceId,
+              schoolYear
+            }
+          }
         },
         _sum: {
           savedCo2: true,
