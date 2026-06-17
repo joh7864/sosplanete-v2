@@ -150,23 +150,46 @@ function MainApp() {
     for (let i = 0; i < name.length; i++) {
       hash += name.charCodeAt(i);
     }
-    let avatarIndex = 1;
+    
     // Approximation de l'âge à partir de birthDate si disponible
     let age = 18;
     if (currentPlayer?.birthDate) {
       age = new Date().getFullYear() - new Date(currentPlayer.birthDate).getFullYear();
     }
-    if (currentPlayer?.gender === 'EF' || currentPlayer?.gender === 'EH' || currentPlayer?.gender === 'E' || age < 15) {
-      avatarIndex = 34 + (hash % 6);
+
+    // Détermination du genre
+    let genre = '';
+    if (currentPlayer?.gender === 'EF') {
+      genre = 'EF';
+    } else if (currentPlayer?.gender === 'EH') {
+      genre = 'EH';
+    } else if (currentPlayer?.gender === 'E' || age < 15) {
+      genre = (hash % 2 === 0) ? 'EF' : 'EH';
     } else if (currentPlayer?.gender === 'F') {
-      avatarIndex = 22 + (hash % 12);
+      genre = 'F';
     } else if (currentPlayer?.gender === 'M') {
-      avatarIndex = 1 + (hash % 21);
+      genre = 'H';
     } else {
-      avatarIndex = (hash % 39) + 1;
+      const genres = ['EF', 'EH', 'F', 'H'];
+      genre = genres[hash % 4];
     }
-    const formattedIndex = avatarIndex.toString().padStart(2, '0');
-    return `${EVOE_IMG_URL}avatars_3D/avatar_${formattedIndex}.png`;
+
+    let file = '';
+    if (genre === 'EF') {
+      const idx = (hash % 3) + 1;
+      file = `EF_avatar_0${idx}.png`;
+    } else if (genre === 'EH') {
+      const idx = (hash % 3) + 1;
+      file = `EH_avatar_0${idx}.png`;
+    } else if (genre === 'F') {
+      const idx = (hash % 12) + 1;
+      file = `F_avatar_${idx.toString().padStart(2, '0')}.png`;
+    } else { // 'H'
+      const idx = (hash % 21) + 1;
+      file = `H_avatar_0${idx}.png`;
+    }
+
+    return `${EVOE_IMG_URL}avatars_3D/${file}`;
   };
 
   // Calcul du pourcentage de l'année pour la jauge EOD

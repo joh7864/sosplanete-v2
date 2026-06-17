@@ -47,27 +47,40 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
         age = currentYear - birthYear;
       }
 
-      let avatarIndex = 1;
-
-      // Choix de l'avatar selon le sexe et l'âge
-      if (player.gender === 'EF' || player.gender === 'EH' || player.gender === 'E' || (age !== null && age < 15)) {
-        // Enfant : de avatar_34 à avatar_39 (6 avatars)
-        avatarIndex = 34 + (hash % 6);
+      // Détermination du genre
+      let genre = '';
+      if (player.gender === 'EF') {
+        genre = 'EF';
+      } else if (player.gender === 'EH') {
+        genre = 'EH';
+      } else if (player.gender === 'E' || (age !== null && age < 15)) {
+        genre = (hash % 2 === 0) ? 'EF' : 'EH';
       } else if (player.gender === 'F') {
-        // Femme : de avatar_22 à avatar_33 (12 avatars)
-        avatarIndex = 22 + (hash % 12);
+        genre = 'F';
       } else if (player.gender === 'M') {
-        // Homme : de avatar_01 à avatar_21 (21 avatars)
-        avatarIndex = 1 + (hash % 21);
+        genre = 'H';
       } else {
-        // Fallback global de avatar_01 à avatar_39
-        avatarIndex = (hash % 39) + 1;
+        const genres = ['EF', 'EH', 'F', 'H'];
+        genre = genres[hash % 4];
       }
 
-      const formattedIndex = avatarIndex.toString().padStart(2, '0');
+      let file = '';
+      if (genre === 'EF') {
+        const idx = (hash % 3) + 1;
+        file = `EF_avatar_0${idx}.png`;
+      } else if (genre === 'EH') {
+        const idx = (hash % 3) + 1;
+        file = `EH_avatar_0${idx}.png`;
+      } else if (genre === 'F') {
+        const idx = (hash % 12) + 1;
+        file = `F_avatar_${idx.toString().padStart(2, '0')}.png`;
+      } else { // 'H'
+        const idx = (hash % 21) + 1;
+        file = `H_avatar_0${idx}.png`;
+      }
       
       // URL pointant vers le dossier uploads/avatars_3D/ (servi par /static/ sur le backend)
-      const avatarUrl = `${EVOE_IMG_URL}avatars_3D/avatar_${formattedIndex}.png`;
+      const avatarUrl = `${EVOE_IMG_URL}avatars_3D/${file}`;
       
       const loader = new THREE.TextureLoader();
       loader.setCrossOrigin('anonymous');

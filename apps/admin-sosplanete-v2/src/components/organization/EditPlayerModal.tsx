@@ -50,6 +50,23 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const getAvatarList = () => {
+    const list: string[] = [];
+    if (!gender || gender === 'EF') {
+      for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EF_avatar_0${i}.png`);
+    }
+    if (!gender || gender === 'EH') {
+      for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EH_avatar_0${i}.png`);
+    }
+    if (!gender || gender === 'F') {
+      for (let i = 1; i <= 12; i++) list.push(`avatars_3D/F_avatar_${i.toString().padStart(2, '0')}.png`);
+    }
+    if (!gender || gender === 'M') {
+      for (let i = 1; i <= 21; i++) list.push(`avatars_3D/H_avatar_0${i}.png`);
+    }
+    return list;
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -247,22 +264,21 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                       )}
                     </div>
                     <div className="grid grid-cols-6 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-                      {Array.from({ length: 39 }, (_, i) => {
-                        const idxStr = (i + 1).toString().padStart(2, '0');
-                        const file = `avatars_3D/avatar_${idxStr}.png`;
+                      {getAvatarList().map((file) => {
+                        const filename = file.split('/').pop() || '';
                         const url = `${cleanApiUrl}/static/${file}`;
                         return (
                           <button
-                            key={i}
+                            key={file}
                             type="button"
                             onClick={() => {
                               setAvatar(file);
                               setShowAvatarPicker(false);
                             }}
                             className={`w-10 h-10 rounded-xl bg-white border flex items-center justify-center overflow-hidden hover:scale-105 hover:border-emerald-400 transition-all ${avatar === file ? 'ring-2 ring-emerald-500 border-transparent shadow-md' : 'border-slate-100'}`}
-                            title={`Avatar ${idxStr}`}
+                            title={filename}
                           >
-                            <img src={url} alt={`Avatar ${idxStr}`} className="w-full h-full object-cover" />
+                            <img src={url} alt={filename} className="w-full h-full object-cover" />
                           </button>
                         );
                       })}
