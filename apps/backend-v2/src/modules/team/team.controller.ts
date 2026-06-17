@@ -118,6 +118,40 @@ export class TeamController {
     return { filename: file.filename };
   }
 
+  @Post('children/upload-avatar')
+  @ApiOperation({ summary: "Upload d'un avatar pour un enfant/joueur" })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const basePath = process.env.UPLOADS_DIR || join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+        const path = join(basePath, 'avatars');
+        const fs = require('fs');
+        if (!fs.existsSync(path)) {
+          fs.mkdirSync(path, { recursive: true });
+        }
+        cb(null, path);
+      },
+      filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+        cb(null, unique + extname(file.originalname));
+      },
+    }),
+    fileFilter: (req, file, cb) => {
+      const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+      if (allowed.includes(extname(file.originalname).toLowerCase())) {
+        cb(null, true);
+      } else {
+        cb(new BadRequestException('Format de fichier non supporté'), false);
+      }
+    },
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
+  }))
+  uploadChildAvatar(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu');
+    return { filename: `avatars/${file.filename}` };
+  }
+
   // --- BULK DELETE ---
   @Post('bulk-delete')
   @ApiOperation({ summary: "Suppression massive d'équipes" })

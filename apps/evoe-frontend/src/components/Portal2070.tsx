@@ -2,11 +2,9 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Sphere, Text, OrbitControls, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
-import { useAuth } from '../context/AuthContext';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Vessel2070 from './Vessel2070';
 
-const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
 // Composant pour l'effet d'hyperespace/tunnel de vitesse (particules scintillantes)
 function SpeedParticles() {
@@ -71,198 +69,6 @@ function SpeedParticles() {
   );
 }
 
-// Composant pour l'avatar 3D holographique glitché du Gardien descendant
-function DescendantAvatar({ player, position }: { player: any; position: [number, number, number] }) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const groupRef = useRef<THREE.Group>(null);
-
-  const health = typeof player.health === 'number' ? player.health : 100;
-  const healthNormalized = health / 100;
-  const teamColor = useMemo(() => new THREE.Color(player.color || '#00ffcc'), [player.color]);
-
-  useEffect(() => {
-    const loadStatic3DAvatar = () => {
-      const pseudo = player.pseudo || 'default';
-      let hash = 0;
-      for (let i = 0; i < pseudo.length; i++) {
-        hash += pseudo.charCodeAt(i);
-      }
-      let age = 18;
-      if (player.birthDate) {
-        age = new Date().getFullYear() - new Date(player.birthDate).getFullYear();
-      }
-      let avatarIndex = 1;
-      if (player.gender === 'E' || age < 15) {
-        avatarIndex = 34 + (hash % 6);
-      } else if (player.gender === 'F') {
-        avatarIndex = 22 + (hash % 12);
-      } else if (player.gender === 'M') {
-        avatarIndex = 1 + (hash % 21);
-      } else {
-        avatarIndex = (hash % 39) + 1;
-      }
-      const formattedIndex = avatarIndex.toString().padStart(2, '0');
-      const avatarUrl = `${EVOE_IMG_URL}avatars_3D/avatar_${formattedIndex}.png`;
-      const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
-        avatarUrl,
-        (tex) => setTexture(tex),
-        undefined,
-        () => setTexture(null)
-      );
-    };
-
-    if (player.avatar && player.avatar !== 'avatars/default.png') {
-      const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
-        `${EVOE_IMG_URL}${player.avatar}`,
-        (tex) => setTexture(tex),
-        undefined,
-        () => loadStatic3DAvatar()
-      );
-    } else {
-      loadStatic3DAvatar();
-    }
-  }, [player.avatar, player.pseudo]);
-
-  // Texture fallback blanche
-  const activeTexture = useMemo(() => {
-    if (texture) return texture;
-    const canvas = document.createElement('canvas');
-    canvas.width = 32;
-    canvas.height = 32;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 32, 32);
-    return new THREE.CanvasTexture(canvas);
-  }, [texture]);
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (materialRef.current) {
-      materialRef.current.uniforms.time.value = t;
-      materialRef.current.uniforms.health.value = healthNormalized;
-    }
-    
-    if (groupRef.current) {
-      // Flottaison cryogénique asynchrone (déphasée par rapport au pseudo du joueur)
-      const pseudo = player.pseudo || '';
-      let phase = 0;
-      for (let i = 0; i < pseudo.length; i++) {
-        phase += pseudo.charCodeAt(i);
-      }
-      groupRef.current.position.y = position[1] + Math.sin(t * 1.5 + phase) * 0.12;
-      groupRef.current.position.x = position[0] + Math.cos(t * 0.8 + phase) * 0.04;
-    }
-  });
-
-  const shaderArgs = useMemo(() => {
-    return {
-      uniforms: {
-        map: { value: activeTexture },
-        time: { value: 0 },
-        health: { value: healthNormalized },
-        teamColor: { value: teamColor }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D map;
-        uniform float time;
-        uniform float health;
-        uniform vec3 teamColor;
-        varying vec2 vUv;
-
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-        }
-
-        void main() {
-          vec2 uv = vUv;
-          float glitchFactor = 1.0 - health;
-          
-          if (glitchFactor > 0.01) {
-            float shift = random(vec2(floor(uv.y * 20.0), time)) * 0.03 * glitchFactor;
-            if (random(vec2(time, 1.0)) > 0.7) {
-              uv.x += (random(vec2(uv.y, time)) - 0.5) * 0.08 * glitchFactor;
-            }
-          }
-          
-          vec4 texColor = texture2D(map, uv);
-          float scanline = sin(vUv.y * 80.0 + time * 5.0) * 0.15 * (1.0 - glitchFactor);
-          vec3 tintColor = mix(teamColor, vec3(0.0, 0.9, 1.0), 0.5);
-          vec3 finalColor = texColor.rgb * tintColor + vec3(scanline);
-          float alpha = texColor.a * health;
-          
-          if (glitchFactor > 0.05) {
-            float flicker = random(vec2(time, 2.0));
-            if (flicker > (0.1 + health * 0.9)) {
-              alpha *= 0.15;
-              finalColor = mix(finalColor, vec3(1.0, 0.0, 0.0), 0.6);
-            }
-          }
-          
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      transparent: true,
-      depthWrite: false
-    };
-  }, [activeTexture, teamColor, healthNormalized]);
-
-  return (
-    <group position={position} ref={groupRef}>
-      {/* Disque de stase holographique horizontal sous l'avatar */}
-      <mesh position={[0, -0.42, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.3, 0.45, 32]} />
-        <meshBasicMaterial color={player.color || '#00ffcc'} transparent opacity={0.3 * healthNormalized} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-      <mesh position={[0, -0.42, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0, 0.28, 32]} />
-        <meshBasicMaterial color={player.color || '#00ffcc'} transparent opacity={0.08 * healthNormalized} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
-
-      <Billboard follow={true}>
-        {/* Cadre holographique */}
-        <mesh position={[0, 0, -0.01]}>
-          <planeGeometry args={[0.9, 0.9]} />
-          <meshBasicMaterial color={player.color || '#00ffcc'} transparent opacity={0.15 * healthNormalized} wireframe />
-        </mesh>
-        
-        {/* Sprite descendant avec shader de glitch */}
-        <mesh position={[0, 0, 0]} frustumCulled={false}>
-          <planeGeometry args={[0.8, 0.8]} />
-          <shaderMaterial ref={materialRef} attach="material" args={[shaderArgs]} />
-        </mesh>
-
-        {/* Pseudo et santé */}
-        <Text
-          position={[0, -0.6, 0]}
-          fontSize={0.18}
-          color={player.color || '#00ffcc'}
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#000000"
-          frustumCulled={false}
-          fillOpacity={healthNormalized}
-          outlineOpacity={healthNormalized}
-        >
-          {player.pseudo} ({health}%)
-        </Text>
-      </Billboard>
-    </group>
-  );
-}
-
 // Composant Vessel extrait vers Vessel2070.tsx
 
 // Échelle cosmique commune (Frise de progression latérale)
@@ -315,7 +121,7 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
   const planetMeshRef = useRef<THREE.Mesh>(null);
   const planetMaterialRef = useRef<THREE.ShaderMaterial>(null);
   const spikesGroupRef = useRef<THREE.Group>(null);
-  const { players } = useAuth();
+
   const { camera } = useThree();
 
   // Positionner idéalement la caméra pour la course temporelle en 2070
@@ -326,8 +132,7 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
     camera.updateProjectionMatrix();
   }, [camera]);
 
-  const teamList = players || [];
-  const count = teamList.length;
+
 
   // Récupération stable des équipes avec fallback
   const teams = useMemo(() => {

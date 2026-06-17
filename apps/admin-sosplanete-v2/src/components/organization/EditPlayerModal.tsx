@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Key, Trash2, Save, Eye, EyeOff } from 'lucide-react';
+import { X, User, Key, Trash2, Save, Eye, EyeOff, Upload, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { getAuthData } from '@/utils/storage';
 
 interface EditPlayerModalProps {
   isOpen: boolean;
@@ -46,6 +47,33 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [birthDate, setBirthDate] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/children/upload-avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
+        body: formData,
+      });
+      if (resp.ok) {
+        const { filename } = await resp.json();
+        setAvatar(filename);
+      } else {
+        console.error('Error uploading avatar:', resp.statusText);
+      }
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -176,6 +204,33 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden bg-slate-50 rounded-2xl border border-slate-100 p-4"
                   >
+                    {/* Option Upload Avatar */}
+                    <div className="flex items-center gap-4 mb-4 p-3 bg-white rounded-xl border border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden hover:border-emerald-400 hover:bg-emerald-50/30 transition-all shrink-0"
+                      >
+                        {uploading ? (
+                          <Loader2 size={16} className="animate-spin text-emerald-500" />
+                        ) : (
+                          <Upload size={16} className="text-slate-400 hover:text-emerald-500" />
+                        )}
+                      </button>
+                      <div className="flex flex-col text-left">
+                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Avatar personnalisé</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">PNG, JPG, WebP (Max 2 Mo)</span>
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handleAvatarUpload} 
+                        />
+                      </div>
+                    </div>
+
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Choisir un avatar 3D</span>
                       {avatar && (

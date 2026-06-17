@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -50,6 +50,15 @@ function MainApp() {
   const [dashboardStatus, setDashboardStatus] = useState<any>(null);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'extrapolation' | 'radar' | null>(null);
   const [isResettingPropulsion, setIsResettingPropulsion] = useState(false);
+
+  const [allowPortrait, setAllowPortrait] = useState<boolean>(() => {
+    return localStorage.getItem('evoe_allow_portrait') === 'true';
+  });
+
+  const handleBypassOrientation = () => {
+    setAllowPortrait(true);
+    localStorage.setItem('evoe_allow_portrait', 'true');
+  };
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
 
@@ -184,15 +193,24 @@ function MainApp() {
   return (
     <div className="app-container">
       {/* Overlay Mode Portrait (Paysage Requis) */}
-      <div className="orientation-warning">
-        <div className="orientation-warning-content">
-          <div className="phone-rotate-icon">🔄</div>
-          <h2>ALERTE MATRICE NEXUS</h2>
-          <p>
-            Veuillez tourner votre appareil en <strong>mode paysage</strong> (horizontal) pour synchroniser le Codex Temporel.
-          </p>
+      {!allowPortrait && (
+        <div className="orientation-warning">
+          <div className="orientation-warning-content">
+            <div className="phone-rotate-icon">🔄</div>
+            <h2>ALERTE MATRICE NEXUS</h2>
+            <p>
+              Veuillez tourner votre appareil en <strong>mode paysage</strong> (horizontal) pour synchroniser le Codex Temporel.
+            </p>
+            <button 
+              className="switch-btn" 
+              style={{ marginTop: '15px', padding: '8px 16px', fontSize: '0.85rem' }}
+              onClick={handleBypassOrientation}
+            >
+              Continuer en Portrait
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
@@ -236,7 +254,7 @@ function MainApp() {
                     className="avatar-pulse-ring"
                     style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${currentPlayer?.color || '#00ffcc'}`, objectFit: 'cover' }} 
                   />
-                  <span>Gardien {childInfos.pseudo}</span>
+                  <span>Agent Temporel {childInfos.pseudo}</span>
                 </div>
               )}
             </div>
@@ -247,6 +265,18 @@ function MainApp() {
                 Fermer le Codex
               </button>
             )}
+            <button 
+              className="switch-btn" 
+              onClick={() => {
+                const newVal = !allowPortrait;
+                setAllowPortrait(newVal);
+                localStorage.setItem('evoe_allow_portrait', String(newVal));
+              }}
+              title={allowPortrait ? "Forcer le mode Paysage (Activer l'alerte)" : "Autoriser le mode Portrait (Désactiver l'alerte)"}
+            >
+              {allowPortrait ? <Smartphone className="icon-sm" /> : <Monitor className="icon-sm" />}
+              {allowPortrait ? 'Portrait Autorisé' : 'Paysage Requis'}
+            </button>
             <button className="switch-btn" onClick={handleSwitchEra} disabled={isTransitioning}>
               {era === '2026' ? <Scan className="icon-sm" /> : <Radio className="icon-sm" />}
               {era === '2026' ? 'Ouvrir le Radar 2070' : 'Retour au QG 2026'}
@@ -485,7 +515,7 @@ function MainApp() {
                         {/* Barre de stase / santé de l'équipage */}
                         <div className="vessel-health-container">
                           <div className="vessel-health-label">
-                            <span>Stabilité Équipage (Gardiens)</span>
+                            <span>Stabilité Équipage (Agents Temporels)</span>
                             <span style={{ fontWeight: 'bold', color: t.crewBioStability < 50 ? '#ff3b3b' : (t.crewBioStability < 100 ? '#ff9f43' : '#10b981') }}>
                               {t.crewBioStability}%
                             </span>
@@ -501,7 +531,7 @@ function MainApp() {
                           </div>
                           {t.crewBioStability < 100 && (
                             <div className="vessel-paradox-warning">
-                              ⚠️ Paradoxe Ancestral : Gardiens en stase !
+                              ⚠️ Paradoxe Ancestral : Agents Temporels en stase !
                             </div>
                           )}
                         </div>

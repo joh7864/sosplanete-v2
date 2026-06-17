@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -225,7 +225,7 @@ function EngineN2() {
   const sailRef = useRef<THREE.Group>(null);
   const flashRef = useRef<THREE.PointLight>(null);
   
-  useFrame((state) => {
+  useFrame(() => {
     if (sailRef.current) {
       sailRef.current.scale.x = THREE.MathUtils.lerp(sailRef.current.scale.x, 1.0, 0.05);
     }

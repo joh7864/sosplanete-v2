@@ -1,4 +1,4 @@
-const CACHE_NAME = 'evoe-nexus-cache-v1';
+const CACHE_NAME = 'evoe-nexus-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -39,7 +39,26 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Stratégie Stale-While-Revalidate pour le Shell et les assets statiques
+  // Stratégie Network-First pour index.html pour éviter le blocage du cache sur hash mismatch
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    e.respondWith(
+      fetch(e.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(e.request, networkResponse.clone());
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(e.request);
+        })
+    );
+    return;
+  }
+
+  // Stratégie Stale-While-Revalidate pour le reste des assets statiques (JS/CSS hashés, images, etc.)
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
       if (cachedResponse) {

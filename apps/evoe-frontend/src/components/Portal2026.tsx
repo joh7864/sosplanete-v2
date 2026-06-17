@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Sphere, Text, OrbitControls, Billboard } from '@react-three/drei';
+import { Text, OrbitControls, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAuth } from '../context/AuthContext';
 
