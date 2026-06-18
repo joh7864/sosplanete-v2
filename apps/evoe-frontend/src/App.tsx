@@ -143,6 +143,22 @@ function AgentProfileModal({
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges'>('missions');
+  const [impulsingId, setImpulsingId] = useState<number | null>(null);
+
+  const handleImpulseMission = async (localActionId: number) => {
+    setImpulsingId(localActionId);
+    try {
+      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
+      await axios.post(`${BASE_API_URL}/actiondone/${profileId}`, { id: localActionId });
+      refreshData();
+      const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
+      setProfileData(res.data);
+    } catch (err) {
+      console.error("Erreur lors de l'impulsion depuis le défi:", err);
+    } finally {
+      setImpulsingId(null);
+    }
+  };
   
   // Form states (owner mode)
   const [pseudo, setPseudo] = useState('');
@@ -536,11 +552,39 @@ function AgentProfileModal({
                             {c.isChallenger ? 'DÉFI ENVOYÉ À ' : 'DÉFI REÇU DE '}
                             <strong style={{ color: c.opponentColor }}>{c.opponentName}</strong>
                           </span>
-                          <span className={`challenge-status ${c.status.toLowerCase()}`}>{c.status}</span>
+                          <span className={`challenge-status ${c.status.toLowerCase()}`}>
+                            {c.status}
+                            {c.isRetroactive && <span title="Mission accomplie d'avance !" style={{marginLeft: '4px'}}>✨</span>}
+                          </span>
                         </div>
                         <div className="challenge-body">
                           <p className="challenge-action"><strong>Mission :</strong> {c.actionLabel}</p>
                           <p className="challenge-pledge"><strong>Gage :</strong> <em>{c.pledge}</em></p>
+                          {c.isChallenger && c.isRetroactive && c.status === 'SUCCESS' && (
+                            <p style={{color: '#10b981', fontSize: '0.85rem', marginTop: '8px'}}>
+                              💡 <em>Mission déjà accomplie d'avance !</em>
+                            </p>
+                          )}
+                          {!c.isChallenger && c.status === 'ACCEPTED' && isOwner && (
+                            <button 
+                              onClick={() => handleImpulseMission(c.localActionId)}
+                              disabled={impulsingId === c.localActionId}
+                              style={{
+                                marginTop: '12px',
+                                width: '100%',
+                                background: 'rgba(0, 255, 204, 0.15)',
+                                border: '1px solid #00ffcc',
+                                color: '#00ffcc',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                fontWeight: 'bold',
+                                cursor: impulsingId === c.localActionId ? 'wait' : 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              {impulsingId === c.localActionId ? 'IMPULSION EN COURS...' : '⚡ IMPULSER LA MISSION'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -762,17 +806,30 @@ function MainApp() {
     }, 1000); // 1s de transition "zoom visière"
   };
 
-  // Grouper les missions par categorySF
-  const missionsByCategory = missions?.reduce((acc: Record<string, any[]>, mission: any) => {
-    const cat = mission.categorySF || 'Secteur Inconnu';
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(mission);
-    return acc;
-  }, {});
-
   // Trouver les informations de profil du Gardien connecté
   const currentPlayer = players?.find(p => p.id === childInfos?.id);
   const myTeamId = currentPlayer?.teamId;
+
+  const activeChallengeActionIds = challenges
+    .filter(c => c.status === 'ACCEPTED' && c.targetTeamId === myTeamId)
+    .map(c => c.localActionId);
+
+  // Grouper les missions par categorySF et trier pour remonter les défis
+  const missionsByCategory = missions?.reduce((acc: Record<string, any[]>, mission: any) => {
+    const cat = mission.categorySF || 'Secteur Inconnu';
+    if (!acc[cat]) acc[cat] = [];
+    
+    const isChallengeActif = activeChallengeActionIds.includes(mission.id);
+    acc[cat].push({ ...mission, isChallengeActif });
+    
+    acc[cat].sort((a: any, b: any) => {
+      if (a.isChallengeActif && !b.isChallengeActif) return -1;
+      if (!a.isChallengeActif && b.isChallengeActif) return 1;
+      return 0;
+    });
+    return acc;
+  }, {});
+
   const receivedChallenges = challenges.filter(c => c.targetTeamId === myTeamId);
   const sentChallenges = challenges.filter(c => c.challengerTeamId === myTeamId);
   const otherTeams = dashboardStatus?.teams?.filter((t: any) => t.id !== myTeamId) || [];
@@ -1053,6 +1110,18 @@ function MainApp() {
                             <img src={`${EVOE_IMG_URL}${mission.icon}`} alt="" className="mission-icon" />
                           )}
                           {!isCodexCollapsed && <h3>{mission.evoeMission?.titreSF || mission.label}</h3>}
+                          {mission.isChallengeActif && !isCodexCollapsed && (
+                            <span style={{
+                              marginLeft: 'auto',
+                              background: '#ff3b3b',
+                              color: '#fff',
+                              fontSize: '0.65rem',
+                              padding: '3px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 'bold',
+                              whiteSpace: 'nowrap'
+                            }}>⚔️ DÉFI EN COURS</span>
+                          )}
                         </div>
                         {!isCodexCollapsed && (
                           <>
@@ -1115,6 +1184,7 @@ function MainApp() {
                               <span>De : <strong style={{ color: ch.challengerTeamColor }}>{ch.challengerTeamName}</strong></span>
                               <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: ch.status === 'PENDING' ? '#ffd700' : ch.status === 'ACCEPTED' ? '#00b3ff' : ch.status === 'SUCCESS' ? '#10b981' : '#ff3b3b' }}>
                                 {ch.status}
+                                {ch.isRetroactive && <span title="Mission accomplie d'avance !" style={{marginLeft: '4px'}}>✨</span>}
                               </span>
                             </div>
                             <p style={{ fontSize: '0.8rem', color: '#fff', margin: '4px 0', fontWeight: 'bold' }}>
@@ -1139,6 +1209,27 @@ function MainApp() {
                                 </button>
                               </div>
                             )}
+                            {ch.status === 'ACCEPTED' && (
+                              <button 
+                                onClick={() => handleImpulseMission(ch.localActionId)}
+                                disabled={loadingMissionId === ch.localActionId}
+                                style={{
+                                  marginTop: '10px',
+                                  width: '100%',
+                                  background: 'rgba(0, 255, 204, 0.15)',
+                                  border: '1px solid #00ffcc',
+                                  color: '#00ffcc',
+                                  padding: '6px',
+                                  borderRadius: '6px',
+                                  fontWeight: 'bold',
+                                  cursor: loadingMissionId === ch.localActionId ? 'wait' : 'pointer',
+                                  transition: 'all 0.2s',
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                {loadingMissionId === ch.localActionId ? 'IMPULSION EN COURS...' : '⚡ IMPULSER LA MISSION'}
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1160,6 +1251,7 @@ function MainApp() {
                               <span>Cible : <strong style={{ color: ch.targetTeamColor }}>{ch.targetTeamName}</strong></span>
                               <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: ch.status === 'PENDING' ? '#ffd700' : ch.status === 'ACCEPTED' ? '#00b3ff' : ch.status === 'SUCCESS' ? '#10b981' : '#ff3b3b' }}>
                                 {ch.status}
+                                {ch.isRetroactive && <span title="Mission accomplie d'avance !" style={{marginLeft: '4px'}}>✨</span>}
                               </span>
                             </div>
                             <p style={{ fontSize: '0.8rem', color: '#fff', margin: '4px 0', fontWeight: 'bold' }}>
@@ -1168,6 +1260,11 @@ function MainApp() {
                             <p style={{ fontSize: '0.75rem', color: '#ff9f43', margin: '4px 0', fontStyle: 'italic' }}>
                               Gage : {ch.pledge}
                             </p>
+                            {ch.isRetroactive && ch.status === 'SUCCESS' && (
+                              <p style={{color: '#10b981', fontSize: '0.75rem', marginTop: '8px', marginBottom: 0}}>
+                                💡 <em>Mission déjà accomplie d'avance !</em>
+                              </p>
+                            )}
                           </div>
                         ))}
                       </div>

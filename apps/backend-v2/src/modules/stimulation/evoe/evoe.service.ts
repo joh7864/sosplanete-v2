@@ -855,15 +855,19 @@ export class EvoeService {
     const mapped = [];
     for (const ch of challenges) {
       let currentStatus = ch.status;
+      let isRetroactive = false;
+
+      const actionDone = await this.prisma.actionDone.findFirst({
+        where: {
+          periodId: period.id,
+          localActionId: ch.localActionId,
+          child: { group: { teamId: ch.targetTeamId } },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
       if (ch.status === 'ACCEPTED') {
-        const countDone = await this.prisma.actionDone.count({
-          where: {
-            periodId: period.id,
-            localActionId: ch.localActionId,
-            child: { group: { teamId: ch.targetTeamId } },
-          },
-        });
-        if (countDone > 0) {
+        if (actionDone) {
           currentStatus = 'SUCCESS';
           await this.prisma.evoeChallenge.update({
             where: { id: ch.id },
@@ -871,6 +875,13 @@ export class EvoeService {
           });
         }
       }
+
+      if (currentStatus === 'SUCCESS' && actionDone) {
+        if (actionDone.createdAt < ch.createdAt) {
+          isRetroactive = true;
+        }
+      }
+
       mapped.push({
         id: ch.id,
         challengerTeamId: ch.challengerTeamId,
@@ -883,6 +894,7 @@ export class EvoeService {
         actionLabel: ch.localAction.label,
         pledge: ch.pledge,
         status: currentStatus,
+        isRetroactive,
         createdAt: ch.createdAt,
       });
     }
@@ -970,7 +982,21 @@ export class EvoeService {
       throw new BadRequestException('Ce défi a déjà été traité.');
     }
 
-    const newStatus = accept ? 'ACCEPTED' : 'DECLINED';
+    let newStatus: 'ACCEPTED' | 'DECLINED' | 'SUCCESS' = accept ? 'ACCEPTED' : 'DECLINED';
+
+    if (accept) {
+      const countDone = await this.prisma.actionDone.count({
+        where: {
+          periodId: challenge.periodId,
+          localActionId: challenge.localActionId,
+          child: { group: { teamId } },
+        },
+      });
+      if (countDone > 0) {
+        newStatus = 'SUCCESS';
+      }
+    }
+
     return this.prisma.evoeChallenge.update({
       where: { id: challengeId },
       data: { status: newStatus },
@@ -1129,16 +1155,26 @@ export class EvoeService {
     const mappedChallenges = [];
     for (const ch of challenges) {
       let currentStatus = ch.status;
+      let isRetroactive = false;
+
+      const actionDone = await this.prisma.actionDone.findFirst({
+        where: {
+          periodId: activePeriodId as number,
+          localActionId: ch.localActionId,
+          child: { group: { teamId: ch.targetTeamId } },
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+
       if (ch.status === 'ACCEPTED') {
-        const countDone = await this.prisma.actionDone.count({
-          where: {
-            periodId: activePeriodId as number,
-            localActionId: ch.localActionId,
-            child: { group: { teamId: ch.targetTeamId } },
-          },
-        });
-        if (countDone > 0) {
+        if (actionDone) {
           currentStatus = 'SUCCESS';
+        }
+      }
+
+      if (currentStatus === 'SUCCESS' && actionDone) {
+        if (actionDone.createdAt < ch.createdAt) {
+          isRetroactive = true;
         }
       }
 
@@ -1150,6 +1186,8 @@ export class EvoeService {
         actionLabel: getMissionLabel(ch.localAction),
         pledge: ch.pledge,
         status: currentStatus,
+        localActionId: ch.localActionId,
+        isRetroactive,
       });
     }
 
