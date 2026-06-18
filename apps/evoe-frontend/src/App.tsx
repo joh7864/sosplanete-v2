@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -128,6 +128,433 @@ function EvoeRadarMeter({ value, label, color, id }: { value: number; label: str
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
 
+function AgentProfileModal({
+  profileId,
+  onClose,
+  isOwner,
+  refreshData
+}: {
+  profileId: number;
+  onClose: () => void;
+  isOwner: boolean;
+  refreshData: () => void;
+}) {
+  const { refreshContext } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges'>('missions');
+  
+  // Form states (owner mode)
+  const [pseudo, setPseudo] = useState('');
+  const [gender, setGender] = useState<string>('');
+  const [birthDate, setBirthDate] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [saving, setSaving] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
+        if (active) {
+          setProfileData(res.data);
+          if (isOwner) {
+            setPseudo(res.data.profile.pseudo || '');
+            setGender(res.data.profile.gender || '');
+            const bDate = res.data.profile.birthDate;
+            setBirthDate(bDate ? bDate.substring(0, 10) : '');
+            setAvatar(res.data.profile.avatar || null);
+            setPassword('');
+          }
+        }
+      } catch (err) {
+        console.error("Erreur de chargement du profil:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchProfile();
+    return () => {
+      active = false;
+    };
+  }, [profileId, isOwner]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
+      const resp = await axios.post(`${BASE_API_URL}/teams/children/upload-avatar`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      if (resp.status === 200 || resp.status === 201) {
+        setAvatar(resp.data.filename);
+      }
+    } catch (err) {
+      console.error("Erreur d'upload d'avatar:", err);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
+      const payload: any = {
+        pseudo,
+        gender: gender || null,
+        birthDate: birthDate || null,
+        avatar: avatar || null,
+      };
+      if (password && password.trim() !== '') {
+        payload.password = password;
+      }
+      await axios.patch(`${BASE_API_URL}/teams/children/${profileId}`, payload);
+      await refreshContext();
+      refreshData();
+      onClose();
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour du profil:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getAvatars3DList = () => {
+    const list: string[] = [];
+    for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EF_avatar_0${i}.png`);
+    for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EH_avatar_0${i}.png`);
+    for (let i = 1; i <= 12; i++) list.push(`avatars_3D/F_avatar_${String(i).padStart(2, '0')}.png`);
+    for (let i = 1; i <= 21; i++) list.push(`avatars_3D/H_avatar_0${i}.png`);
+    return list;
+  };
+
+  const renderAvatar = (avatarValue: string | null, genderValue: string | null, pseudoValue: string) => {
+    if (avatarValue && avatarValue !== 'avatars/default.png') {
+      return `${EVOE_IMG_URL}${avatarValue}`;
+    }
+    let hash = 0;
+    const name = pseudoValue || '';
+    for (let i = 0; i < name.length; i++) {
+      hash += name.charCodeAt(i);
+    }
+    let genre = genderValue;
+    if (!genre) {
+      genre = ['EF', 'EH', 'F', 'H'][hash % 4];
+    }
+    let file = '';
+    if (genre === 'EF') {
+      file = `EF_avatar_0${(hash % 3) + 1}.png`;
+    } else if (genre === 'EH') {
+      file = `EH_avatar_0${(hash % 3) + 1}.png`;
+    } else if (genre === 'F') {
+      file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
+    } else {
+      file = `H_avatar_0${(hash % 21) + 1}.png`;
+    }
+    return `${EVOE_IMG_URL}avatars_3D/${file}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="agent-profile-backdrop">
+        <div className="agent-profile-modal-loading">
+          <RefreshCw className="icon spin-loading" size={48} />
+          <p>Déchiffrement des données de l'Agent...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData) return null;
+
+  const currentAvatar = isOwner ? avatar : profileData.profile.avatar;
+  const currentGender = isOwner ? gender : profileData.profile.gender;
+  const currentPseudo = isOwner ? pseudo : profileData.profile.pseudo;
+  const teamColor = profileData.profile.teamColor || '#00ffcc';
+
+  return (
+    <div className="agent-profile-backdrop" onClick={onClose}>
+      <div 
+        className="agent-profile-modal" 
+        style={{ border: `1.5px solid ${teamColor}`, boxShadow: `0 0 35px ${teamColor}33, 0 20px 50px rgba(0,0,0,0.8)` }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button className="agent-profile-close" onClick={onClose}><X size={20} /></button>
+
+        <div className="agent-profile-container">
+          {/* Section Identité & Vitalité */}
+          <div className="agent-profile-sidebar">
+            <div className="agent-profile-avatar-wrapper" style={{ borderColor: teamColor }}>
+              <img 
+                src={renderAvatar(currentAvatar, currentGender, currentPseudo)} 
+                alt="" 
+                className="agent-profile-avatar" 
+              />
+              {isOwner && (
+                <button 
+                  className="agent-profile-avatar-edit-btn" 
+                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                  title="Changer d'avatar"
+                >
+                  <Camera size={14} />
+                </button>
+              )}
+            </div>
+
+            {showAvatarPicker && isOwner && (
+              <div className="agent-avatar-picker-popover">
+                <div className="agent-avatar-picker-header">
+                  <h4>Choisir un Avatar 3D</h4>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="picker-upload-btn"
+                    >
+                      <Upload size={12} /> Importer
+                    </button>
+                    <button onClick={() => setShowAvatarPicker(false)} className="picker-close-btn">×</button>
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept="image/*"
+                  onChange={(e) => {
+                    handleAvatarUpload(e);
+                    setShowAvatarPicker(false);
+                  }}
+                />
+                <div className="agent-avatar-grid">
+                  {getAvatars3DList().map((av) => (
+                    <img 
+                      key={av} 
+                      src={`${EVOE_IMG_URL}${av}`} 
+                      alt="" 
+                      className={`agent-avatar-grid-item ${avatar === av ? 'selected' : ''}`}
+                      onClick={() => {
+                        setAvatar(av);
+                        setShowAvatarPicker(false);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
+            <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
+
+            {/* Barre de Vitalité */}
+            <div className="agent-vitality-container">
+              <div className="agent-vitality-label">
+                <span>Vitalité Temporelle</span>
+                <span style={{ color: teamColor }}>{profileData.health} HP</span>
+              </div>
+              <div className="agent-vitality-track">
+                <div 
+                  className="agent-vitality-bar" 
+                  style={{ 
+                    width: `${Math.min(100, profileData.health)}%`,
+                    background: profileData.health < 35 ? '#ff3b3b' : (profileData.health < 80 ? '#ff9f43' : '#10b981')
+                  }} 
+                />
+              </div>
+            </div>
+
+            {/* Formulaire Propriétaire (Privé) */}
+            {isOwner && (
+              <form onSubmit={handleSave} className="agent-profile-form">
+                <div className="form-group">
+                  <label>Pseudo de l'Agent</label>
+                  <input 
+                    type="text" 
+                    value={pseudo} 
+                    onChange={(e) => setPseudo(e.target.value)} 
+                    required 
+                  />
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Genre</label>
+                    <select value={gender || ''} onChange={(e) => setGender(e.target.value)}>
+                      <option value="">Non défini</option>
+                      <option value="EH">Kid Garçon (EH)</option>
+                      <option value="EF">Kid Fille (EF)</option>
+                      <option value="M">Adulte Homme (M)</option>
+                      <option value="F">Adulte Femme (F)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Date de Naissance</label>
+                    <input 
+                      type="date" 
+                      value={birthDate} 
+                      onChange={(e) => setBirthDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Nouveau Mot de Passe</label>
+                  <div className="password-input-wrapper">
+                    <input 
+                      type={showPassword ? 'text' : 'password'} 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                      placeholder="Laisser vide pour ne pas modifier"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="password-toggle"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={saving} className="agent-profile-save-btn">
+                  {saving ? <RefreshCw className="icon-sm spin-loading" /> : <Save size={14} />} 
+                  {saving ? 'Enregistrement...' : 'Sauvegarder'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Section Statistiques, Missions et Défis */}
+          <div className="agent-profile-content">
+            {/* Grille des 3 indicateurs personnels */}
+            <div className="profile-metrics-grid">
+              <div className="profile-metric-card">
+                <Shield size={20} className="metric-icon co2" />
+                <div className="metric-info">
+                  <span className="label">Carbone Évité</span>
+                  <span className="value">{fmtMass(profileData.personalMetrics.co2)}</span>
+                </div>
+              </div>
+              <div className="profile-metric-card">
+                <Droplet size={20} className="metric-icon water" />
+                <div className="metric-info">
+                  <span className="label">Eau Épargnée</span>
+                  <span className="value">{fmtVolume(profileData.personalMetrics.water)}</span>
+                </div>
+              </div>
+              <div className="profile-metric-card">
+                <Trash2 size={20} className="metric-icon waste" />
+                <div className="metric-info">
+                  <span className="label">Déchets Évités</span>
+                  <span className="value">{fmtMass(profileData.personalMetrics.waste)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation des Onglets */}
+            <div className="profile-tabs-nav">
+              <button 
+                className={`profile-tab-btn ${activeTab === 'missions' ? 'active' : ''}`}
+                onClick={() => setActiveTab('missions')}
+              >
+                Missions Période ({profileData.periodMissions.length})
+              </button>
+              <button 
+                className={`profile-tab-btn ${activeTab === 'top5' ? 'active' : ''}`}
+                onClick={() => setActiveTab('top5')}
+              >
+                Top 5 Historique
+              </button>
+              <button 
+                className={`profile-tab-btn ${activeTab === 'challenges' ? 'active' : ''}`}
+                onClick={() => setActiveTab('challenges')}
+              >
+                Défis PvP ({profileData.challenges.length})
+              </button>
+            </div>
+
+            {/* Contenu des Onglets */}
+            <div className="profile-tab-content">
+              {activeTab === 'missions' && (
+                <div className="missions-tab-list">
+                  {profileData.periodMissions.length === 0 ? (
+                    <p className="empty-state">Aucune éco-mission impulsée sur cette période.</p>
+                  ) : (
+                    profileData.periodMissions.map((m: any) => (
+                      <div key={m.id} className="profile-mission-item">
+                        <div className="mission-details">
+                          <span className="mission-label">{m.label}</span>
+                          <span className="mission-date">
+                            {new Date(m.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <span className="mission-points">+{m.amplitude} AT</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'top5' && (
+                <div className="top5-tab-list">
+                  {profileData.top5Missions.length === 0 ? (
+                    <p className="empty-state">Historique vierge. Impulsez des missions pour activer la biométrie.</p>
+                  ) : (
+                    profileData.top5Missions.map((m: any, idx: number) => (
+                      <div key={m.localActionId} className="profile-top-item">
+                        <div className="top-rank">
+                          <Trophy size={16} className={`rank-icon rank-${idx + 1}`} />
+                          <span className="label">{m.label}</span>
+                        </div>
+                        <span className="count-badge">{m.count} fois</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'challenges' && (
+                <div className="challenges-tab-list">
+                  {profileData.challenges.length === 0 ? (
+                    <p className="empty-state">Aucun défi temporel enregistré sur cette période.</p>
+                  ) : (
+                    profileData.challenges.map((c: any) => (
+                      <div key={c.id} className="profile-challenge-item">
+                        <div className="challenge-header">
+                          <span className="challenge-opponent">
+                            {c.isChallenger ? 'DÉFI ENVOYÉ À ' : 'DÉFI REÇU DE '}
+                            <strong style={{ color: c.opponentColor }}>{c.opponentName}</strong>
+                          </span>
+                          <span className={`challenge-status ${c.status.toLowerCase()}`}>{c.status}</span>
+                        </div>
+                        <div className="challenge-body">
+                          <p className="challenge-action"><strong>Mission :</strong> {c.actionLabel}</p>
+                          <p className="challenge-pledge"><strong>Gage :</strong> <em>{c.pledge}</em></p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MainApp() {
   const [era, setEra] = useState<'2026' | '2070'>('2026');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -161,6 +588,7 @@ function MainApp() {
   const [cancelMissionConfirm, setCancelMissionConfirm] = useState<{ actionDoneId: number; label: string } | null>(null);
 
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
   const [allowPortrait, setAllowPortrait] = useState<boolean>(() => {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
@@ -175,6 +603,10 @@ function MainApp() {
 
   const fetchEvoeData = () => {
     if (!instanceId) return;
+    
+    // Rafraîchir le contexte pour maintenir les avatars et leurs HP à jour en temps réel dans la scène 3D
+    refreshContext();
+
     axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/extrapolation/metrics`)
       .then(res => setExtrapolation(res.data))
       .catch(err => console.error("Erreur extrapolation:", err));
@@ -450,6 +882,7 @@ function MainApp() {
             <Portal2026 
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={setSelectedSector} 
+              onSelectPlayer={(p) => setSelectedProfileId(p.childId)}
             />
           ) : (
             <Portal2070 dashboardStatus={dashboardStatus} />
@@ -478,7 +911,10 @@ function MainApp() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <h1>EVOE {era}</h1>
               {childInfos && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto' }}>
+                <div 
+                  onClick={() => setSelectedProfileId(childInfos.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto', cursor: 'pointer' }}
+                >
                   <img 
                     src={getAvatarUrl()} 
                     alt="" 
@@ -1503,13 +1939,18 @@ function MainApp() {
                           <img 
                             src={avatarUrl} 
                             alt="" 
+                            onClick={() => {
+                              setSelectedProfileId(p.childId);
+                              setShowLeaderboardModal(false);
+                            }}
                             style={{ 
                               width: '32px', 
                               height: '32px', 
                               borderRadius: '50%', 
                               border: `1.5px solid ${p.color || '#00ffcc'}`, 
                               objectFit: 'cover',
-                              background: 'rgba(0,0,0,0.3)'
+                              background: 'rgba(0,0,0,0.3)',
+                              cursor: 'pointer'
                             }} 
                           />
 
@@ -1562,6 +2003,18 @@ function MainApp() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal du Profil Agent */}
+      <AnimatePresence>
+        {selectedProfileId !== null && (
+          <AgentProfileModal
+            profileId={selectedProfileId}
+            onClose={() => setSelectedProfileId(null)}
+            isOwner={selectedProfileId === childInfos?.id}
+            refreshData={fetchEvoeData}
+          />
         )}
       </AnimatePresence>
     </div>

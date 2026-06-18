@@ -68,7 +68,7 @@ const bracketsTexture = (() => {
   return tex;
 })();
 
-function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, position: [number, number, number], avatarScale?: number }) {
+function PlayerAvatar({ player, position, avatarScale = 1, onSelectPlayer }: { player: any, position: [number, number, number], avatarScale?: number, onSelectPlayer?: (player: any) => void }) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
   const initial = (player.pseudo || '?')[0].toUpperCase();
@@ -185,7 +185,23 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
   });
 
   return (
-    <group ref={groupRef} position={position} frustumCulled={false}>
+    <group 
+      ref={groupRef} 
+      position={position} 
+      frustumCulled={false}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelectPlayer?.(player);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'auto';
+      }}
+    >
       {/* Halo lumineux */}
       <pointLight position={[0, 0.5, 0]} color={color} intensity={isMe ? 1.2 : 0.3} distance={2} />
       
@@ -461,10 +477,12 @@ function RadialShockwave({ pulseTime }: { pulseTime: number | null }) {
 
 export default function Portal2026({ 
   categories = [], 
-  onSelectSector 
+  onSelectSector,
+  onSelectPlayer
 }: { 
   categories?: string[];
   onSelectSector?: (c: string) => void;
+  onSelectPlayer?: (player: any) => void;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
   const { players } = useAuth();
@@ -583,7 +601,7 @@ export default function Portal2026({
           const x = Math.cos(angle) * radius;
           const z = Math.sin(angle) * radius;
           
-          return <PlayerAvatar key={player.id} player={player} position={[x, 0, z]} avatarScale={avatarScale} />;
+          return <PlayerAvatar key={player.id} player={player} position={[x, 0, z]} avatarScale={avatarScale} onSelectPlayer={onSelectPlayer} />;
         });
       })() : (
         // Fallback visuel le temps du chargement

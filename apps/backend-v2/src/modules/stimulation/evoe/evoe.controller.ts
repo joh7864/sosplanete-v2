@@ -118,4 +118,12 @@ export class EvoeController {
   ) {
     return this.evoeService.respondChallenge(auth, instanceIdStr, +challengeId, body.accept);
   }
+
+  @Get('profile/:childId')
+  @ApiOperation({
+    summary: "Récupère le profil complet d'un agent temporel",
+  })
+  getPlayerProfile(@Param('childId') childId: string) {
+    return this.evoeService.getPlayerProfile(+childId);
+  }
 }

@@ -467,8 +467,14 @@ export class EvoeService {
       for (const child of children) {
         const health = healthMap.get(child.id) ?? 0;
         const ph = {
+          id: child.id,
           childId: child.id,
           pseudo: child.pseudo,
+          avatar: child.avatar,
+          gender: child.gender,
+          birthDate: child.birthDate,
+          color: team.color,
+          teamName: team.name,
           health,
         };
         teamPlayersHealth.push(ph);
@@ -699,12 +705,14 @@ export class EvoeService {
 
           players.push({
             id: c.id,
+            childId: c.id,
             pseudo: c.pseudo,
             avatar: c.avatar,
             color: t.color || '#40916C',
             isCurrent: c.id === child.id,
             groupId: g.id,
             teamId: t.id,
+            teamName: t.name,
             gender: c.gender,
             birthDate: c.birthDate,
             health,
@@ -966,5 +974,199 @@ export class EvoeService {
       where: { id: challengeId },
       data: { status: newStatus },
     });
+  }
+
+  async getPlayerProfile(childId: number) {
+    const getMissionLabel = (localAction: any) => {
+      if (!localAction) return 'Mission inconnue';
+      let titreSF = localAction.evoeMission?.titreSF || localAction.label;
+      if (
+        titreSF === 'Intervention Systémique Mineure' ||
+        titreSF === `Opération : ${localAction.label}`
+      ) {
+        titreSF = `Mission : ${localAction.label}`;
+      }
+      return titreSF;
+    };
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: {
+        group: {
+          include: {
+            team: {
+              include: {
+                instanceYear: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!child) {
+      throw new NotFoundException("Joueur non trouvé");
+    }
+
+    const team = child.group.team;
+    const instanceYearId = team.instanceYearId;
+    const instanceId = team.instanceYear.instanceId;
+    const schoolYear = team.instanceYear.schoolYear;
+
+    // 1. Trouver la période active
+    const activePeriod = await this.prisma.period.findFirst({
+      where: { instanceYearId, isOpen: true },
+    });
+    const activePeriodId = activePeriod ? activePeriod.id : null;
+
+    // 2. Calculer le score de santé actuel (HP)
+    const teamChildren = await this.prisma.child.findMany({
+      where: { group: { teamId: team.id } },
+    });
+    const healthMap = await this.getPlayersHealthMap(
+      instanceId,
+      schoolYear,
+      activePeriodId,
+      teamChildren.map(c => ({ ...c, teamId: team.id })),
+    );
+    const health = healthMap.get(child.id) ?? 100;
+
+    // 3. Calculer l'empreinte totale depuis le début du jeu (CO2, eau, déchets personnels)
+    const personalImpact = await this.prisma.actionDone.aggregate({
+      where: {
+        childId,
+      },
+      _sum: {
+        savedCo2: true,
+        savedWater: true,
+        savedWaste: true,
+      },
+    });
+
+    const personalMetrics = {
+      co2: personalImpact._sum?.savedCo2 || 0,
+      water: personalImpact._sum?.savedWater || 0,
+      waste: personalImpact._sum?.savedWaste || 0,
+    };
+
+    // 4. Éco-missions réalisées sur la période active
+    let actionsDonePeriod: any[] = [];
+    if (activePeriodId) {
+      actionsDonePeriod = await this.prisma.actionDone.findMany({
+        where: {
+          childId,
+          periodId: activePeriodId,
+        },
+        include: {
+          localAction: {
+            include: { actionRef: true, evoeMission: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    const periodMissions = actionsDonePeriod.map((ad) => ({
+      id: ad.id,
+      date: ad.createdAt,
+      label: getMissionLabel(ad.localAction),
+      amplitude: Math.round(ad.savedCo2 + ad.savedWater + ad.savedWaste) || 10,
+    }));
+
+    // 5. Top 5 des éco-missions réalisées depuis le début du jeu
+    const topMissionsGrouped = await this.prisma.actionDone.groupBy({
+      by: ['localActionId'],
+      where: { childId },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+      take: 5,
+    });
+
+    const top5Missions = [];
+    for (const item of topMissionsGrouped) {
+      const localAction = await this.prisma.localAction.findUnique({
+        where: { id: item.localActionId },
+        include: { actionRef: true, evoeMission: true },
+      });
+      if (localAction) {
+        top5Missions.push({
+          localActionId: item.localActionId,
+          count: item._count.id,
+          label: getMissionLabel(localAction),
+          description: localAction.evoeMission?.descriptionSF || localAction.description || '',
+        });
+      }
+    }
+
+    // 6. Liste des défis PvP de la période (reçus et envoyés par son équipe)
+    const challenges = activePeriodId
+      ? await this.prisma.evoeChallenge.findMany({
+          where: {
+            periodId: activePeriodId,
+            OR: [
+              { challengerTeamId: team.id },
+              { targetTeamId: team.id },
+            ],
+          },
+          include: {
+            challengerTeam: true,
+            targetTeam: true,
+            localAction: {
+              include: { actionRef: true, evoeMission: true },
+            },
+          },
+          orderBy: { id: 'desc' },
+        })
+      : [];
+
+    const mappedChallenges = [];
+    for (const ch of challenges) {
+      let currentStatus = ch.status;
+      if (ch.status === 'ACCEPTED') {
+        const countDone = await this.prisma.actionDone.count({
+          where: {
+            periodId: activePeriodId as number,
+            localActionId: ch.localActionId,
+            child: { group: { teamId: ch.targetTeamId } },
+          },
+        });
+        if (countDone > 0) {
+          currentStatus = 'SUCCESS';
+        }
+      }
+
+      mappedChallenges.push({
+        id: ch.id,
+        isChallenger: ch.challengerTeamId === team.id,
+        opponentName: ch.challengerTeamId === team.id ? ch.targetTeam.name : ch.challengerTeam.name,
+        opponentColor: ch.challengerTeamId === team.id ? ch.targetTeam.color : ch.challengerTeam.color,
+        actionLabel: getMissionLabel(ch.localAction),
+        pledge: ch.pledge,
+        status: currentStatus,
+      });
+    }
+
+    return {
+      profile: {
+        id: child.id,
+        pseudo: child.pseudo,
+        avatar: child.avatar,
+        gender: child.gender,
+        birthDate: child.birthDate,
+        teamName: team.name,
+        teamColor: team.color,
+      },
+      health,
+      personalMetrics,
+      periodMissions,
+      top5Missions,
+      challenges: mappedChallenges,
+    };
   }
 }
