@@ -814,19 +814,14 @@ function MainApp() {
     .filter(c => c.status === 'ACCEPTED' && c.targetTeamId === myTeamId)
     .map(c => c.localActionId);
 
-  // Grouper les missions par categorySF et trier pour remonter les défis
+  // Grouper les missions par categorySF. On exclut les défis actifs car ils auront leur propre section en haut.
   const missionsByCategory = missions?.reduce((acc: Record<string, any[]>, mission: any) => {
+    const isChallengeActif = activeChallengeActionIds.includes(mission.id);
+    if (isChallengeActif) return acc; // Exclus des catégories classiques
+    
     const cat = mission.categorySF || 'Secteur Inconnu';
     if (!acc[cat]) acc[cat] = [];
-    
-    const isChallengeActif = activeChallengeActionIds.includes(mission.id);
-    acc[cat].push({ ...mission, isChallengeActif });
-    
-    acc[cat].sort((a: any, b: any) => {
-      if (a.isChallengeActif && !b.isChallengeActif) return -1;
-      if (!a.isChallengeActif && b.isChallengeActif) return 1;
-      return 0;
-    });
+    acc[cat].push(mission);
     return acc;
   }, {});
 
@@ -1088,9 +1083,69 @@ function MainApp() {
             
             <div className="mission-list">
               {isCodexCollapsed || codexTab === 'missions' ? (
-                missionsByCategory && missionsByCategory[selectedSector] ? (
-                  <div key={selectedSector} className="category-section">
-                    <div className="category-title">{selectedSector}</div>
+                <>
+                  {activeChallengeActionIds.length > 0 && (
+                    <div className="category-section" style={{ marginBottom: '20px' }}>
+                      {!isCodexCollapsed && <div className="category-title" style={{ color: '#ff3b3b', borderColor: '#ff3b3b', textShadow: '0 0 10px rgba(255,59,59,0.3)' }}>⚔️ DÉFIS PRIORITAIRES</div>}
+                      {missions?.filter((m: any) => activeChallengeActionIds.includes(m.id)).map((missionWithChallenge: any) => (
+                        <div 
+                          key={`challenge-${missionWithChallenge.id}`} 
+                          className="mission-card"
+                          onClick={(e) => {
+                            if (isCodexCollapsed) {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setPopoverPos(rect.top + rect.height / 2);
+                              setExpandedMission(missionWithChallenge);
+                            }
+                          }}
+                          style={{ cursor: isCodexCollapsed ? 'pointer' : 'default', border: '1px solid #ff3b3b', background: 'rgba(255, 59, 59, 0.05)' }}
+                        >
+                          <div className="mission-header" title={isCodexCollapsed ? '' : (missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label)}>
+                            {missionWithChallenge.icon && (
+                              <img src={`${EVOE_IMG_URL}${missionWithChallenge.icon}`} alt="" className="mission-icon" />
+                            )}
+                            {!isCodexCollapsed && <h3>{missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label}</h3>}
+                          </div>
+                          {!isCodexCollapsed && (
+                            <>
+                              <p>{parseBold(missionWithChallenge.evoeMission?.descriptionSF || missionWithChallenge.description || "Mission secrète en attente de déchiffrage.")}</p>
+                              <button 
+                                className={`hack-btn ${missionWithChallenge.evoeMission?.isImpulsed ? 'impulsed-btn' : ''}`}
+                                disabled={loadingMissionId === missionWithChallenge.id}
+                                onClick={() => {
+                                  if (missionWithChallenge.evoeMission?.isImpulsed) {
+                                    setCancelMissionConfirm({
+                                      actionDoneId: missionWithChallenge.evoeMission.actionDoneId,
+                                      label: missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label
+                                    });
+                                  } else {
+                                    handleImpulseMission(missionWithChallenge.id);
+                                  }
+                                }}
+                                style={missionWithChallenge.evoeMission?.isImpulsed ? {
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  borderColor: '#10b981',
+                                  color: '#10b981'
+                                } : {}}
+                              >
+                                {loadingMissionId === missionWithChallenge.id ? (
+                                  <RefreshCw className="icon-sm spin-loading" style={{ margin: '0 auto' }} />
+                                ) : missionWithChallenge.evoeMission?.isImpulsed ? (
+                                  "Déjà Impulsé"
+                                ) : (
+                                  `Impulser (+${missionWithChallenge.evoeMission?.amplitude || 10} AT)`
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {missionsByCategory && missionsByCategory[selectedSector] ? (
+                    <div key={selectedSector} className="category-section">
+                      <div className="category-title">{selectedSector}</div>
                     
                     {missionsByCategory[selectedSector].map((mission: any) => (
                       <div 
@@ -1162,7 +1217,8 @@ function MainApp() {
                   <p style={{color: '#a0aec0', fontStyle: 'italic', padding: '10px', textAlign: 'center'}}>
                     Aucune mission détectée dans ce secteur.
                   </p>
-                )
+                )}
+                </>
               ) : (
                 /* Contenu de l'onglet Défis */
                 <div className="challenges-section" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
