@@ -21,6 +21,53 @@ const haloTexture = (() => {
   return tex;
 })();
 
+const bracketsTexture = (() => {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  
+  ctx.strokeStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 10;
+  ctx.lineWidth = 6;
+  
+  const pad = 24;
+  const len = 45;
+  
+  // Top-left
+  ctx.beginPath();
+  ctx.moveTo(pad, pad + len);
+  ctx.lineTo(pad, pad);
+  ctx.lineTo(pad + len, pad);
+  ctx.stroke();
+
+  // Top-right
+  ctx.beginPath();
+  ctx.moveTo(size - pad, pad + len);
+  ctx.lineTo(size - pad, pad);
+  ctx.lineTo(size - pad - len, pad);
+  ctx.stroke();
+
+  // Bottom-left
+  ctx.beginPath();
+  ctx.moveTo(pad, size - pad - len);
+  ctx.lineTo(pad, size - pad);
+  ctx.lineTo(pad + len, size - pad);
+  ctx.stroke();
+
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(size - pad, size - pad - len);
+  ctx.lineTo(size - pad, size - pad);
+  ctx.lineTo(size - pad - len, size - pad);
+  ctx.stroke();
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+})();
+
 function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, position: [number, number, number], avatarScale?: number }) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
@@ -28,6 +75,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
 
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const bracketsRef = useRef<THREE.Mesh>(null);
 
   useEffect(() => {
     const loadStatic3DAvatar = () => {
@@ -113,6 +161,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
   const fontSize = 0.18 * avatarScale;
 
   useFrame((state) => {
+    const t = state.clock.getElapsedTime();
     if (groupRef.current) {
       const worldPos = new THREE.Vector3();
       groupRef.current.getWorldPosition(worldPos);
@@ -128,6 +177,10 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
       const scaleFactor = 1.0 + (dot * 0.4); // Varie de 0.6 à 1.4
       
       groupRef.current.scale.lerp(new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor), 0.1);
+    }
+    if (bracketsRef.current) {
+      const pulse = 1.0 + Math.sin(t * 5.0) * 0.04;
+      bracketsRef.current.scale.set(pulse, pulse, 1);
     }
   });
 
@@ -171,16 +224,15 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
         </Text>
       )}
 
-      {/* Barre de santé des descendants */}
       <Billboard follow={true}>
         <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
-          {/* Fond sombre de la jauge */}
+          {/* Fond sombre de la jauge (style verre dépoli) */}
           <mesh renderOrder={998}>
-            <planeGeometry args={[0.5 * avatarScale, 0.052]} />
+            <planeGeometry args={[0.5 * avatarScale, 0.065]} />
             <meshBasicMaterial 
-              color="#0d0d15" 
+              color="#ffffff" 
               transparent 
-              opacity={0.8} 
+              opacity={0.25} 
               toneMapped={false} 
               depthWrite={false} 
               depthTest={false} 
@@ -192,7 +244,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
               position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}
               renderOrder={999}
             >
-              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.04]} />
+              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.052]} />
               <meshBasicMaterial 
                 color={
                   player.health < 35 ? '#ff0055' // Rouge néon très vif
@@ -209,7 +261,7 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
           {/* Ligne de lueur au-dessus de la barre (effet néon) */}
           {player.health !== undefined && player.health > 0 && (
             <mesh 
-              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.024, 0.002]}
+              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.027, 0.002]}
               renderOrder={1000}
             >
               <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.006]} />
@@ -222,6 +274,22 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
                 depthTest={false}
               />
             </mesh>
+          )}
+          {/* Affichage numérique HP néon (Option A) */}
+          {player.health !== undefined && (
+            <Text
+              position={[0, 0, 0.003]}
+              fontSize={0.042}
+              fontWeight="bold"
+              color="#050a15"
+              anchorX="center"
+              anchorY="middle"
+              material-depthTest={false}
+              material-depthWrite={false}
+              renderOrder={1001}
+            >
+              {`${player.health} HP`}
+            </Text>
           )}
         </group>
       </Billboard>
@@ -243,20 +311,23 @@ function PlayerAvatar({ player, position, avatarScale = 1 }: { player: any, posi
         </Text>
       </Billboard>
       
-      {/* Indicateur de "Moi" */}
+      {/* Indicateur "Moi" en Brackets HUD (Proposition 2) */}
       {isMe && (
         <Billboard follow={true}>
-          <Text
-            position={[0, -(haloScale * 0.5 + 0.5), 0]}
-            fontSize={fontSize}
-            color="#00ffcc"
-            anchorX="center"
-            anchorY="middle"
-            material-depthWrite={false}
-            frustumCulled={false}
+          <mesh 
+            ref={bracketsRef} 
+            position={[0, avatarYOffset / 2, 0.005]} 
+            renderOrder={1001}
           >
-            ▼ MOI
-          </Text>
+            <planeGeometry args={[avatarScale * 1.15, avatarScale * 1.15]} />
+            <meshBasicMaterial 
+              map={bracketsTexture} 
+              transparent={true} 
+              toneMapped={false}
+              depthWrite={false}
+              depthTest={false}
+            />
+          </mesh>
         </Billboard>
       )}
     </group>
@@ -502,10 +573,11 @@ export default function Portal2026({
         // Trouver l'index du joueur courant pour le centrer
         const currentIndex = teamList.findIndex(p => p.isCurrent);
         const shift = currentIndex !== -1 ? currentIndex : 0;
+        const midIndex = Math.floor(playerCount / 2);
 
         return teamList.map((player, i) => {
           // Décaler les index pour que le joueur courant soit au centre de l'arc
-          const normalizedIndex = (i - shift + playerCount) % playerCount;
+          const normalizedIndex = (i - shift + midIndex + playerCount) % playerCount;
           
           const angle = arcStart + (normalizedIndex / (playerCount - 1 || 1)) * arcSpan;
           const x = Math.cos(angle) * radius;

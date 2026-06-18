@@ -327,6 +327,27 @@ export class EvoeService {
     const formattedTeams = [];
     const allPlayersHealth = [];
 
+    // Collect all children of all teams to call getPlayersHealthMap in one go
+    const allChildrenList: any[] = [];
+    teams.forEach((t) => {
+      t.groups.forEach((g) => {
+        g.children.forEach((c) => {
+          allChildrenList.push({
+            ...c,
+            teamId: t.id,
+          });
+        });
+      });
+    });
+
+    const activePeriodId = activePeriod ? activePeriod.id : null;
+    const healthMap = await this.getPlayersHealthMap(
+      instanceId,
+      schoolYear,
+      activePeriodId,
+      allChildrenList,
+    );
+
     for (const team of teams) {
       // 1. Calculer le score total d'impact de l'équipe (CO2 + eau + déchets)
       const teamImpact = await this.prisma.actionDone.aggregate({
@@ -444,28 +465,7 @@ export class EvoeService {
 
       const teamPlayersHealth = [];
       for (const child of children) {
-        let health = 0;
-        if (activePeriod) {
-          // Agréger CO2, eau, déchets réels du joueur sur la période active
-          const childImpact = await this.prisma.actionDone.aggregate({
-            where: { childId: child.id, periodId: activePeriod.id },
-            _sum: { savedCo2: true, savedWater: true, savedWaste: true },
-          });
-          const childCo2 = childImpact._sum?.savedCo2 ?? 0; // g
-          const childWater = childImpact._sum?.savedWater ?? 0; // L
-          const childWaste = childImpact._sum?.savedWaste ?? 0; // kg
-
-          // Ratio individuel vs référence de période (même pondération que calculateImpact)
-          const rCo2 = refCo2Period > 0 ? childCo2 / refCo2Period : 0;
-          const rWater = refWaterPeriod > 0 ? childWater / refWaterPeriod : 0;
-          const rWaste = refWastePeriod > 0 ? childWaste / refWastePeriod : 0;
-          const rawRatio = rCo2 * 0.6 + rWater * 0.2 + rWaste * 0.2;
-
-          // Normaliser : 100% = avoir atteint le même ratio que le max catalogue possible
-          const normalized =
-            maxHealthScore > 0 ? rawRatio / (maxHealthScore / 100) : rawRatio;
-          health = Math.min(100, Math.round(normalized * 100));
-        }
+        const health = healthMap.get(child.id) ?? 0;
         const ph = {
           childId: child.id,
           pseudo: child.pseudo,
@@ -487,6 +487,7 @@ export class EvoeService {
         id: team.id,
         name: team.name,
         color: team.color,
+        icon: team.icon,
         level: currentMaxLevel,
         propulsionType: propTech.name,
         propulsionDesc: propTech.description,
@@ -494,6 +495,9 @@ export class EvoeService {
         speed,
         position,
         crewBioStability,
+        co2,
+        water,
+        waste,
       });
     }
 
@@ -508,9 +512,14 @@ export class EvoeService {
           )
         : 0;
 
+    const topPlayers = [...allPlayersHealth]
+      .sort((a, b) => b.health - a.health)
+      .slice(0, 10);
+
     return {
       teams: formattedTeams,
       playersHealth: allPlayersHealth,
+      topPlayers,
       globalProgression,
     };
   }
@@ -579,6 +588,17 @@ export class EvoeService {
       childActionsMap.set(ad.childId, list);
     });
 
+    const period = await this.prisma.period.findUnique({
+      where: { id: periodId },
+    });
+    let decay = 0;
+    if (period) {
+      const totalDuration = period.endDate.getTime() - period.startDate.getTime();
+      const elapsed = Math.max(0, Date.now() - period.startDate.getTime());
+      const elapsedRatio = totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
+      decay = Math.round(elapsedRatio * 85); // Perte max de 85 HP (finit à 15 HP si aucune action)
+    }
+
     const activeChallenges = await this.prisma.evoeChallenge.findMany({
       where: {
         periodId,
@@ -604,7 +624,10 @@ export class EvoeService {
       const hpCo2 = Math.min(60, (childCo2 / targetCo2) * 60);
       const hpWater = Math.min(20, (childWater / targetWater) * 20);
       const hpWaste = Math.min(20, (childWaste / targetWaste) * 20);
-      const baseHp = hpCo2 + hpWater + hpWaste;
+      const baseRegen = hpCo2 + hpWater + hpWaste;
+
+      // HP Decay model: start at 100, lose decay, heal baseRegen
+      const baseHp = Math.max(0, Math.min(100, 100 - decay + baseRegen));
 
       let challengeBonus = 0;
       activeChallenges.forEach((ch) => {
@@ -721,6 +744,10 @@ export class EvoeService {
       };
     });
 
+    const topPlayers = [...players]
+      .sort((a, b) => b.health - a.health)
+      .slice(0, 10);
+
     // 4. Retourner le contexte formaté pour le composant App.tsx / Portal2026
     return {
       childInfos: {
@@ -729,6 +756,7 @@ export class EvoeService {
         teamCount,
       },
       players,
+      topPlayers,
       missions: mappedMissions,
     };
   }

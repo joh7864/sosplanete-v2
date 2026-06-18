@@ -824,7 +824,7 @@ body {
 .vessels-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .vessel-row {
@@ -832,10 +832,10 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-left: 4px solid #fff;
   border-radius: 8px;
-  padding: 12px;
+  padding: 6px 12px 4px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
   transition: transform 0.2s;
 }
 
@@ -904,13 +904,13 @@ body {
 }
 
 .vessel-paradox-warning {
-  font-size: 0.65rem;
+  font-size: 0.70rem;
   color: #ff3b3b;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  font-weight: bold;
-  text-transform: uppercase;
+  font-style: italic;
   margin-top: 2px;
   animation: blinkWarn 1.5s infinite;
 }

@@ -70,6 +70,12 @@ describe('EvoeService', () => {
       },
       period: {
         findFirst: jest.fn().mockResolvedValue({ id: 50, isOpen: true }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 50,
+          isOpen: true,
+          startDate: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+          endDate: new Date(Date.now() + 4 * 24 * 3600 * 1000),
+        }),
       },
       actionDone: {
         findMany: jest.fn().mockResolvedValue([
@@ -206,5 +212,31 @@ describe('EvoeService', () => {
       update: { maxLevel: 5 },
       create: { teamId: 100, maxLevel: 5 },
     });
+  });
+
+  it('should apply HP decay based on elapsed period time and regeneration from actions', async () => {
+    // 1. Début de période (ratio = 0)
+    (prisma.period.findUnique as jest.Mock).mockResolvedValue({
+      id: 50,
+      isOpen: true,
+      startDate: new Date(Date.now()),
+      endDate: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+    });
+    const resultStart = await service.getDashboardStatus(1, '2024-2025');
+    expect(resultStart.topPlayers.length).toBeGreaterThan(0);
+    const guardianStartHealth = resultStart.playersHealth.find(p => p.childId === 300)?.health;
+    expect(guardianStartHealth).toBe(100); // capped at 100
+
+    // 2. Fin de période (ratio = 1.0)
+    (prisma.period.findUnique as jest.Mock).mockResolvedValue({
+      id: 50,
+      isOpen: true,
+      startDate: new Date(Date.now() - 7 * 24 * 3600 * 1000),
+      endDate: new Date(Date.now()),
+    });
+    const resultEnd = await service.getDashboardStatus(1, '2024-2025');
+    const guardianEndHealth = resultEnd.playersHealth.find(p => p.childId === 300)?.health;
+    // With max decay (85) and some regen from actions, it should be lower than 100
+    expect(guardianEndHealth).toBeLessThan(100);
   });
 });
