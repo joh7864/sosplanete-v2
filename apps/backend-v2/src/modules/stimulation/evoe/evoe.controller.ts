@@ -1,6 +1,9 @@
-import { Controller, Get, Post, Param, Query, Headers, Body } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Headers, Body, Patch, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { EvoeService } from './evoe.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
 
 @ApiTags('Evoe')
 @Controller('evoe')
@@ -125,5 +128,59 @@ export class EvoeController {
   })
   getPlayerProfile(@Param('childId') childId: string) {
     return this.evoeService.getPlayerProfile(+childId);
+  }
+
+  @Post('profile/upload-avatar')
+  @ApiOperation({ summary: "Upload d'un avatar pour un agent temporel" })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', '..', 'uploads');
+          const path = join(basePath, 'avatars');
+          const fs = require('fs');
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path, { recursive: true });
+          }
+          cb(null, path);
+        },
+        filename: (req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        if (allowed.includes(extname(file.originalname).toLowerCase())) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Format de fichier non supporté'), false);
+        }
+      },
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2 Mo max
+    }),
+  )
+  async uploadAvatar(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu');
+    // Validation de l'authentification
+    await this.evoeService.verifyAuth(auth, instanceIdStr);
+    return { filename: `avatars/${file.filename}` };
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: "Mise à jour du profil d'un agent temporel" })
+  async updateProfile(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Body() body: { pseudo?: string; password?: string; gender?: string | null; birthDate?: string | null; avatar?: string | null },
+  ) {
+    return this.evoeService.updateProfile(auth, instanceIdStr, body);
   }
 }

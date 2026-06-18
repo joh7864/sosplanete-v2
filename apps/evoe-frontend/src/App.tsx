@@ -192,7 +192,7 @@ function AgentProfileModal({
     formData.append('file', file);
     try {
       const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      const resp = await axios.post(`${BASE_API_URL}/teams/children/upload-avatar`, formData, {
+      const resp = await axios.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -219,7 +219,7 @@ function AgentProfileModal({
       if (password && password.trim() !== '') {
         payload.password = password;
       }
-      await axios.patch(`${BASE_API_URL}/teams/children/${profileId}`, payload);
+      await axios.patch(`${BASE_API_URL}/evoe/profile`, payload);
       await refreshContext();
       refreshData();
       onClose();

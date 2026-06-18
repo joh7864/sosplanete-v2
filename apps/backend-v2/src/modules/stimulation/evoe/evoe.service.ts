@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
+import * as bcrypt from 'bcrypt';
 
 const CATEGORY_SF_MAP: Record<string, string> = {
   // Pôle Ressources Vitales
@@ -1168,5 +1169,48 @@ export class EvoeService {
       top5Missions,
       challenges: mappedChallenges,
     };
+  }
+
+  async verifyAuth(authHeader: string, instanceIdStr?: string) {
+    return this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+  }
+
+  async updateProfile(
+    authHeader: string,
+    instanceIdStr: string,
+    data: { pseudo?: string; password?: string; gender?: string | null; birthDate?: string | null; avatar?: string | null }
+  ) {
+    const child = await this.verifyAuth(authHeader, instanceIdStr);
+
+    const updateData: any = {};
+    if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
+    if (data.password && data.password.trim() !== '') {
+      updateData.password = await bcrypt.hash(data.password, 10);
+    }
+    if (data.gender !== undefined) {
+      let genderCode = null;
+      if (data.gender) {
+        const str = data.gender.trim().toLowerCase();
+        if (str === 'm' || str.startsWith('hom') || str.startsWith('gar') || str.startsWith('mal') || str === 'h') {
+          genderCode = 'M';
+        } else if (str === 'f' || str.startsWith('fem') || str.startsWith('fil') || str === 'w') {
+          genderCode = 'F';
+        }
+      }
+      updateData.gender = genderCode;
+    }
+    if (data.birthDate !== undefined) {
+      let parsedDate = null;
+      if (data.birthDate) {
+        const dateObj = new Date(data.birthDate);
+        if (!isNaN(dateObj.getTime())) {
+          parsedDate = dateObj;
+        }
+      }
+      updateData.birthDate = parsedDate;
+    }
+    if (data.avatar !== undefined) updateData.avatar = data.avatar;
+
+    return this.prisma.child.update({ where: { id: child.id }, data: updateData });
   }
 }
