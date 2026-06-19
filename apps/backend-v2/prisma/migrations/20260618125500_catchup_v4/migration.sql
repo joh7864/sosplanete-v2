@@ -1,7 +1,7 @@
 -- 1. Création de l'ENUM ChallengeStatus s'il n'existe pas
 DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ChallengeStatus') THEN
+    IF to_regtype('"ChallengeStatus"') IS NULL THEN
         CREATE TYPE "ChallengeStatus" AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', 'SUCCESS', 'FAILED');
     END IF;
 END $$;
