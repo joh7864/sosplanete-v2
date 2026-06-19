@@ -608,7 +608,7 @@ function MainApp() {
   const [expandedMission, setExpandedMission] = useState<any | null>(null);
   const [popoverPos, setPopoverPos] = useState(0);
 
-  const [showBriefing, setShowBriefing] = useState<boolean>(() => localStorage.getItem('evoe_skip_briefing') !== 'true');
+  const [showBriefing, setShowBriefing] = useState<boolean>(false);
 
   // States pour les métriques de Sprint 2
   const [extrapolation, setExtrapolation] = useState<any>(null);
@@ -647,6 +647,13 @@ function MainApp() {
   };
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
+
+  useEffect(() => {
+    if (childInfos?.id) {
+      const skipped = localStorage.getItem(`evoe_skip_briefing_${childInfos.id}`) === 'true';
+      setShowBriefing(!skipped);
+    }
+  }, [childInfos?.id]);
 
   const fetchEvoeData = () => {
     if (!instanceId) return;
@@ -909,7 +916,11 @@ function MainApp() {
     <div className="app-container">
       {/* Briefing Temporel (Onboarding Vidéo) */}
       {showBriefing && childInfos?.youtubeBriefingUrl && (
-        <TemporalBriefing onComplete={() => setShowBriefing(false)} youtubeUrl={childInfos.youtubeBriefingUrl} />
+        <TemporalBriefing 
+          onComplete={() => setShowBriefing(false)} 
+          youtubeUrl={childInfos.youtubeBriefingUrl} 
+          childId={childInfos.id}
+        />
       )}
 
       {/* Glitch Écran Temporel */}

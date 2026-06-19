@@ -13,7 +13,7 @@ function getYoutubeId(url: string | null | undefined): string {
   return match && match[1] ? match[1] : "";
 }
 
-export default function TemporalBriefing({ onComplete, youtubeUrl }: { onComplete: () => void, youtubeUrl?: string | null }) {
+export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { onComplete: () => void, youtubeUrl?: string | null, childId?: number }) {
   const [phase, setPhase] = useState<'interception' | 'video'>('interception');
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -68,8 +68,8 @@ export default function TemporalBriefing({ onComplete, youtubeUrl }: { onComplet
   };
 
   const finishBriefing = () => {
-    if (skipNextTime) {
-      localStorage.setItem('evoe_skip_briefing', 'true');
+    if (skipNextTime && childId) {
+      localStorage.setItem(`evoe_skip_briefing_${childId}`, 'true');
     }
     onComplete();
   };
