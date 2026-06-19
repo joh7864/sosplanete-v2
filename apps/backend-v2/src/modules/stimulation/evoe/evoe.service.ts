@@ -757,12 +757,18 @@ export class EvoeService {
       .sort((a, b) => b.health - a.health)
       .slice(0, 10);
 
-    // 4. Retourner le contexte formaté pour le composant App.tsx / Portal2026
+    // 4. Récupérer la configuration système (pour l'URL YouTube du briefing)
+    const systemConfig = await this.prisma.systemConfig.findFirst({
+      where: { schoolYear },
+    });
+
+    // 5. Retourner le contexte formaté pour le composant App.tsx / Portal2026
     return {
       childInfos: {
         id: child.id,
         pseudo: child.pseudo,
         teamCount,
+        youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
       },
       players,
       topPlayers,

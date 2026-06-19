@@ -82,6 +82,7 @@ export class StimulationService {
         temperatureMalade: data.temperatureMalade,
         temperatureSaine: data.temperatureSaine,
         populationReference: data.populationReference,
+        youtubeBriefingUrl: data.youtubeBriefingUrl,
       },
     });
   }

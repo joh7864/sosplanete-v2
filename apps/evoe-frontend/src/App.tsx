@@ -8,6 +8,7 @@ import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import TemporalBriefing from './components/TemporalBriefing';
 import './App.css';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -607,6 +608,8 @@ function MainApp() {
   const [expandedMission, setExpandedMission] = useState<any | null>(null);
   const [popoverPos, setPopoverPos] = useState(0);
 
+  const [showBriefing, setShowBriefing] = useState<boolean>(() => localStorage.getItem('evoe_skip_briefing') !== 'true');
+
   // States pour les métriques de Sprint 2
   const [extrapolation, setExtrapolation] = useState<any>(null);
   const [dashboardStatus, setDashboardStatus] = useState<any>(null);
@@ -904,6 +907,11 @@ function MainApp() {
 
   return (
     <div className="app-container">
+      {/* Briefing Temporel (Onboarding Vidéo) */}
+      {showBriefing && childInfos?.youtubeBriefingUrl && (
+        <TemporalBriefing onComplete={() => setShowBriefing(false)} youtubeUrl={childInfos.youtubeBriefingUrl} />
+      )}
+
       {/* Glitch Écran Temporel */}
       {isGlitching && <div className="screen-glitch" />}
 

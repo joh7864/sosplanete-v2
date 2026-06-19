@@ -223,6 +223,7 @@ model SystemConfig {
   temperatureSaine       Float  @default(37.0)
   populationReference    Int    @default(68000000)
   schoolYear             String @unique @default("2024-2025")
+  youtubeBriefingUrl     String?
 }
 
 model InstanceAnimalUnlock {

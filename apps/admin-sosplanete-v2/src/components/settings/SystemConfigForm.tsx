@@ -152,7 +152,8 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
     emissionsParHabitantAn: 11.0,
     temperatureMalade: 42.0,
     temperatureSaine: 37.0,
-    populationReference: 68000000
+    populationReference: 68000000,
+    youtubeBriefingUrl: ''
   });
 
   useEffect(() => {
@@ -167,7 +168,13 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
       });
       if (resp.ok) {
         const data = await resp.json();
-        setConfig(data);
+        setConfig({
+          emissionsParHabitantAn: data.emissionsParHabitantAn || 11.0,
+          temperatureMalade: data.temperatureMalade || 42.0,
+          temperatureSaine: data.temperatureSaine || 37.0,
+          populationReference: data.populationReference || 68000000,
+          youtubeBriefingUrl: data.youtubeBriefingUrl || ''
+        });
       }
     } catch (e) {
       console.error(e);
@@ -180,7 +187,7 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
     setSaving(true);
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${getAuthData('access_token')}`,
@@ -210,7 +217,7 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
     <GlassCard className="p-10 rounded-3xl border-none shadow-2xl bg-white/95">
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100">
         <div>
-          <h2 className="text-xl font-black text-slate-800 tracking-tight">Paramètres Terre-momètre</h2>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">Paramètres Globaux & Terre-momètre</h2>
           <p className="text-sm font-medium text-slate-500">Configuration mondiale pour l'année {schoolYear}.</p>
         </div>
       </div>
@@ -249,6 +256,16 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
              type="number"
              value={config.populationReference}
              onChange={e => setConfig(prev => ({ ...prev, populationReference: Number(e.target.value) }))}
+             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+           />
+        </div>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">URL YouTube (Briefing Initial)</label>
+           <Input
+             type="text"
+             placeholder="https://youtu.be/..."
+             value={config.youtubeBriefingUrl}
+             onChange={e => setConfig(prev => ({ ...prev, youtubeBriefingUrl: e.target.value }))}
              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
            />
         </div>
