@@ -23,7 +23,7 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ players = [], teams = [] }: ChatPanelProps) {
-  const { childInfos } = useAuth();
+  const { childInfos, instanceId } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'global' | 'team' | 'mp' | 'system'>('global');
@@ -141,6 +141,9 @@ export default function ChatPanel({ players = [], teams = [] }: ChatPanelProps) 
     const socketInstance = io(`${socketUrl}/chat`, {
       auth: {
         token: savedAuth
+      },
+      query: {
+        instanceId: instanceId || ''
       }
     });
 

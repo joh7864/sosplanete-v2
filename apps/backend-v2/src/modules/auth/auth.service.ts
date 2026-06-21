@@ -64,9 +64,12 @@ export class AuthService {
     };
   }
 
-  async validateChild(pseudo: string, pass: string): Promise<any> {
+  async validateChild(pseudo: string, pass: string, instanceId?: number): Promise<any> {
     const child = await this.prisma.child.findFirst({
-      where: { pseudo },
+      where: { 
+        pseudo,
+        ...(instanceId ? { group: { team: { instanceYear: { instanceId } } } } : {})
+      },
       include: {
         group: {
           include: {

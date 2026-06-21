@@ -54,6 +54,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       let child = null;
       let user = null;
 
+      // Extract instanceId from query
+      const instanceIdStr = client.handshake.query?.instanceId as string;
+
       // 1. Essayer de décoder comme Basic Auth (ou chaîne base64 brute)
       let isBasic = false;
       let base64Token = authHeader;
@@ -71,8 +74,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           if (decoded.includes(':')) {
             const [username, password] = decoded.split(':');
             
+            // Convert instanceId to number if present
+            const parsedInstanceId = instanceIdStr ? parseInt(instanceIdStr, 10) : undefined;
+            
             // Valider en tant que joueur (child)
-            child = await this.authService.validateChild(username, password);
+            child = await this.authService.validateChild(username, password, parsedInstanceId);
             
             if (!child) {
               // Valider en tant qu'admin (user)
