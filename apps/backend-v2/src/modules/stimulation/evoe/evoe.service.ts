@@ -68,12 +68,15 @@ const isValidImageFilename = (s: string | null | undefined): boolean => {
   return /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(s);
 };
 
+import { ChatGateway } from '../chat.gateway';
+
 @Injectable()
 export class EvoeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly legacyApiService: LegacyApiService,
     private readonly impactService: ImpactService,
+    private readonly chatGateway?: ChatGateway,
   ) {}
 
   async getMissions(instanceId: number, schoolYear: string) {
@@ -954,7 +957,11 @@ export class EvoeService {
       );
     }
 
-    return this.prisma.evoeChallenge.create({
+    const challengerTeam = await this.prisma.team.findUnique({ where: { id: challengerTeamId } });
+    const targetTeam = await this.prisma.team.findUnique({ where: { id: data.targetTeamId } });
+    const localAction = await this.prisma.localAction.findUnique({ where: { id: data.localActionId } });
+
+    const challenge = await this.prisma.evoeChallenge.create({
       data: {
         challengerTeamId,
         targetTeamId: data.targetTeamId,
@@ -964,6 +971,14 @@ export class EvoeService {
         status: 'PENDING',
       },
     });
+
+    if (this.chatGateway && challengerTeam && targetTeam && localAction) {
+      this.chatGateway.sendSystemAlert(
+        `🚨 DÉFI SPATIO-TEMPOREL ! L'équipe "${challengerTeam.name}" défie l'équipe "${targetTeam.name}" sur la mission "${localAction.label}". Gage : "${data.pledge || 'aucun'}"`
+      );
+    }
+
+    return challenge;
   }
 
   async respondChallenge(
@@ -1003,10 +1018,29 @@ export class EvoeService {
       }
     }
 
-    return this.prisma.evoeChallenge.update({
+    const updated = await this.prisma.evoeChallenge.update({
       where: { id: challengeId },
       data: { status: newStatus },
+      include: { challengerTeam: true, targetTeam: true, localAction: true },
     });
+
+    if (this.chatGateway) {
+      if (newStatus === 'ACCEPTED') {
+        this.chatGateway.sendSystemAlert(
+          `⚔️ DÉFI ACCEPTÉ ! L'équipe "${updated.targetTeam.name}" relève officiellement le gant lancé par l'équipe "${updated.challengerTeam.name}" sur la mission "${updated.localAction.label}".`
+        );
+      } else if (newStatus === 'DECLINED') {
+        this.chatGateway.sendSystemAlert(
+          `🛡️ DÉFI ESQUIVÉ ! L'équipe "${updated.targetTeam.name}" a décliné le défi de l'équipe "${updated.challengerTeam.name}".`
+        );
+      } else if (newStatus === 'SUCCESS') {
+        this.chatGateway.sendSystemAlert(
+          `⚡ DÉFI REMPORTÉ ! L'équipe "${updated.targetTeam.name}" a accompli sa mission rétroactivement et triomphe du défi de l'équipe "${updated.challengerTeam.name}" !`
+        );
+      }
+    }
+
+    return updated;
   }
 
   async getPlayerProfile(childId: number) {

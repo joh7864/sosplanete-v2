@@ -107,10 +107,10 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
 
 ## Plan des 4 Sprints (User Stories Agile & Détails Techniques)
 
-### Sprint 1 : Habillage et Univers de Science-Fiction (Double Portail & Codex)
+### Sprint 1 : Habillage et Univers de Science-Fiction (Double Portail & Codex) - **[RÉALISÉ]**
 *Objectif : Mettre en place la dualité d'univers, le catalogue de missions SF, et la représentation des descendants sous forme d'avatars glitchant en cas de retard.*
 
-#### US 1.1 : Le Codage du Codex Temporel (Mappage SF)
+#### US 1.1 : Le Codex Temporel (Mappage SF) - **[RÉALISÉ]**
 **En tant que** Watchman,  
 **Je veux** que mes éco-missions quotidiennes de 2026 soient présentées sous forme de missions de science-fiction (ex: "Activer le Bouclier Thermique Passif" pour baisser le chauffage),  
 **Afin de** m'immerger avec humour dans l'effort de guerre temporel de l'an 2070.
@@ -127,7 +127,7 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
     - *Quand* je consulte le catalogue des missions de la semaine,
     - *Alors* je vois s'afficher "Activer le Bouclier Thermique Passif" en surimpression de "Baisser le chauffage de 1°C".
 
-#### US 1.2 : Le Nexus Temporel & Les Avatars Glitchés (Le Paradoxe Ancestral)
+#### US 1.2 : Le Nexus Temporel & Les Avatars Glitchés (Le Paradoxe Ancestral) - **[RÉALISÉ]**
 **En tant que** Watchman,  
 **Je veux** basculer entre le Portail 2026 de synchronisation et le Portail 2070 montrant la course de vaisseaux et les descendants,  
 **Afin de** constater l'effet de mes missions sur la présence de mon descendant dans le futur.
@@ -146,10 +146,10 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
 
 ---
 
-### Sprint 2 : Le Moteur d'Extrapolation & Les Technologies de Propulsion
+### Sprint 2 : Le Moteur d'Extrapolation & Les Technologies de Propulsion - **[RÉALISÉ]**
 *Objectif : Coder le moteur de projection mathématique et restituer visuellement la course des vaisseaux avec leurs propulsions permanentes.*
 
-#### US 2.1 : L'Algorithme de Projection Micro -> Macro
+#### US 2.1 : L'Algorithme de Projection Micro -> Macro - **[RÉALISÉ]**
 **En tant que** Concepteur Scientifique,  
 **Je veux** extrapoler l'impact cumulé de notre groupe de 30 copains à l'échelle de la population française (68 millions d'habitants),  
 **Afin de** simuler l'impact de nos comportements s'ils devenaient la norme nationale en 2070.
@@ -168,7 +168,7 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
     - *Quand* je consulte le moteur de projection,
     - *Alors* l'application affiche la surface de banquise préservée à l'échelle nationale.
 
-#### US 2.2 : La Course de Vaisseaux & Évolution Permanente de la Propulsion
+#### US 2.2 : La Course de Vaisseaux & Évolution Permanente de la Propulsion - **[RÉALISÉ]**
 **En tant que** Membre d'une Équipe,  
 **Je veux** visualiser notre vaisseau rivaliser avec les autres sur le Radar Temporel, et le voir évoluer de façon permanente vers de nouvelles propulsions,  
 **Afin de** motiver mon équipe à débloquer des technologies futures et distancer les autres.
@@ -188,10 +188,10 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
 
 ---
 
-### Sprint 3 : Intégration WhatsApp, Défis & Leaderboard Premium
+### Sprint 3 : Intégration WhatsApp, Défis & Leaderboard Premium - **[PARTIELLEMENT RÉALISÉ]**
 *Objectif : Connecter le jeu au canal de communication existant pour stimuler les taquineries et intégrer le leaderboard premium en glassmorphism.*
 
-#### US 3.1 : Le Système de Défis "Distorsion Temporelle" (PVP Coopératif)
+#### US 3.1 : Le Système de Défis "Distorsion Temporelle" (PVP Coopératif) - **[RÉALISÉ]**
 **En tant que** Membre de l'Équipe A,  
 **Je veux** défier l'Équipe B à accomplir une mission thématique spécifique (ex: "Défi 0 viande pendant 3 jours"),  
 **Afin de** booster notre jauge de timeline commune tout en mettant amicalement la pression à mes amis.
@@ -209,23 +209,26 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
     - *Quand* le délai expire et que 100% des membres de l'Équipe B n'ont pas enregistré leurs repas végétariens,
     - *Alors* le statut du défi passe à "Échoué" et l'application affiche le gage : "L'Équipe B doit payer l'apéro au groupe !".
 
-#### US 3.2 : Le Chrono-Messager WhatsApp & Leaderboard Premium
+#### US 3.2 : Le Chrono-Messager WhatsApp & Leaderboard Premium - **[PARTIEL]**
+*   **Leaderboard Premium** : **[RÉALISÉ]** (Intégration du classement premium en glassmorphism et podium stylisé).
+*   **Chrono-Messager WhatsApp** : **[À FAIRE]** (Script ou service d'envoi automatique de rapports).
 **En tant que** Joueur,  
 **Je veux** consulter un leaderboard premium et recevoir des résumés hebdomadaires automatiques et humoristiques sur WhatsApp,  
 **Afin de** me mesurer aux autres joueurs et rigoler des performances de chacun.
 
-*   **Détails de l'implémentation technique** :
+*   **Détails de l'implémentation technique (WhatsApp)** :
     - **Générateur de Messages (Python)** : Script planifié (cron) extrayant le statut de la Timeline, le classement des vaisseaux, les descendants glitchant en 2070 et les vainqueurs/perdants.
+    - **Paramétrage des Canaux** : Intégration de champs de configuration en base de données pour lister les webhooks et les liens d'invitation des groupes WhatsApp (un canal général pour tout le groupe de joueurs configuré, et un canal privé par équipe).
     - **Script Python (`weekly_whatsapp_report.py`)** :
       ```python
       def generate_humorous_report(stats):
-          # Exemple de message personnalisé avec le jargon SF et le concept du paradoxe ancestral
+          # Message personnalisé avec le jargon SF et le concept du paradoxe ancestral
           if stats['glitching_descendants']:
               names = ", ".join([f"@{p['pseudo']}" for p in stats['glitching_descendants']])
               return f"🚨 ALERTE PARADOXE TEMPOREL 🚨\n\nWatchmen, la Timeline vacille ! En 2070, les descendants de {names} sont en train de s'effacer du cockpit de leur vaisseau à cause de missions oubliées en 2026... 🧬🔌\n\nPendant ce temps, l'équipe '{stats['leading_team']}' a débloqué la Propulsion Quantique 🚀✨.\n\nStatut global de la Timeline : {stats['stability_percentage']}%. Remplissez vos Codex !"
       ```
 *   **Interface Graphique (UI/UX)** :
-    - **Intégration du Leaderboard Premium** : Implémentation exacte du panneau en glassmorphism avec son podium d'avatars expressifs (1er déterminé, 2e avec coeurs, 3e en pleurs), et les lignes horizontales avec jauges vertes pour les rangs inférieurs.
+    - **Intégration du Leaderboard Premium** : Implémentation exacte du panneau en glassmorphism avec son podium d'avatars expressifs (1er déterminé, 2e avec coeurs, 3e en pleurs), et les lignes horizontales avec jauges vertes pour les rangs inférieurs (s'adaptant dynamiquement au nombre total de joueurs).
 *   **Critères d'acceptation (BDD)** :
     - *Étant donné que* j'ouvre le Classement des Joueurs sur l'application,
     - *Quand* le panneau s'affiche,
@@ -233,10 +236,36 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
 
 ---
 
-### Sprint 4 : Analyse du Pilote & Rétention Long Terme
+#### US 3.3 : Le Terminal de Discussion Instantanée (Nexus Comm-Link) - **[À FAIRE]**
+**En tant que** Joueur,  
+**Je veux** échanger en temps réel avec les autres joueurs ou uniquement avec mon équipe dans un chat intégré de style terminal SF,  
+**Afin de** collaborer sur l'effort de guerre temporel et de réagir en direct aux alertes système.
+
+*   **Détails de l'implémentation technique (Chat)** :
+    - **Option A : WebSockets (FastAPI + Socket.io)** : Moteur bidirectionnel en temps réel.
+    - **Gestion des Canaux** : 
+      - `[GLOBAL]` : Discussion ouverte à tous les participants du jeu.
+      - `[ÉQUIPE]` : Discussion restreinte aux membres de la même équipe.
+      - `[SYSTEM]` : Messages d'alertes générés par le serveur lors de la validation d'éco-missions importantes ou de l'envoi de défis.
+    - **Mesures de Sécurité & Fiabilité** :
+      - **Transport Sécurisé** : Utilisation obligatoire du protocole `wss://` (WebSockets over SSL/TLS) pour chiffrer les échanges en transit et éviter les attaques de type Man-in-the-Middle.
+      - **Authentification forte** : Vérification de l'identité de l'utilisateur par transmission de son token JWT lors de la poignée de main (handshake) initiale du WebSocket.
+      - **Contrôle d'Accès Strict** : Validation systématique côté serveur de l'appartenance d'un joueur à son équipe (`teamId`) avant de l'autoriser à s'abonner et à publier sur le canal `[ÉQUIPE]` correspondant.
+      - **Protection contre le Spam (Rate-Limiting)** : Limitation du nombre de messages envoyés par seconde par utilisateur pour prévenir les surcharges réseau et base de données.
+      - **Assainissement des données (Sanitization)** : Nettoyage strict des inputs textuels côté serveur pour éviter les injections de scripts malveillants (XSS).
+*   **Interface Graphique (UI/UX)** :
+    - Panneau latéral droit rétractable (glassmorphism noir translucide `backdrop-filter: blur(12px)`) s'ouvrant avec le raccourci clavier `Entrée` ou `/`. Traitement thématique avec police terminal monospace, curseur clignotant et indicateurs de saisie en temps réel.
+*   **Critères d'acceptation (BDD)** :
+    - *Étant donné que* je suis authentifié dans mon équipe,
+    - *Quand* je rejoins le chat et bascule sur le canal `[ÉQUIPE]`,
+    - *Alors* je peux envoyer un message à mon équipe en temps réel sans que les membres des autres équipes ne puissent l'intercepter ou le lire.
+
+---
+
+### Sprint 4 : Analyse du Pilote & Rétention Long Terme - **[À FAIRE]**
 *Objectif : Structurer le scénario de jeu sur plusieurs mois et préparer le bilan pour le groupe d'amis.*
 
-#### US 4.1 : Les Chapitres de la Timeline (Progression Narrative)
+#### US 4.1 : Les Chapitres de la Timeline (Progression Narrative) - **[À FAIRE]**
 **En tant que** Joueur,  
 **Je veux** que l'expérience de jeu de 3 à 6 mois soit découpée en chapitres thématiques mensuels (ex: Mois 1 : "La Crise de l'Énergie", Mois 2 : "Le Vortex Hydrique"),  
 **Afin de** maintenir mon intérêt sur le long terme avec de nouvelles règles et missions.
@@ -251,7 +280,7 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
     - *Quand* je me connecte,
     - *Alors* seul le Chapitre 1 ("La Distorsion Thermique" - Focus Énergie) est débloqué, et l'application me propose en priorité les missions liées à l'énergie.
 
-#### US 4.2 : L'Extracteur de Bilan Temporel (Data Export)
+#### US 4.2 : L'Extracteur de Bilan Temporel (Data Export) - **[À FAIRE]**
 **En tant que** Product Owner / Organisateur du Pilote,  
 **Je veux** exporter un bilan global et détaillé des 3 à 6 mois de test sous la forme d'infographies et de fichiers exploitables,  
 **Afin de** célébrer nos résultats lors de notre prochain repas de groupe physique.
@@ -265,6 +294,15 @@ Pour coller au visuel validé (mockup du Classement des Joueurs) :
     - *Étant donné que* je suis l'administrateur du pilote et que le jeu est terminé,
     - *Quand* je clique sur "Télécharger le Bilan Temporel",
     - *Alors* un rapport PDF magnifiquement mis en page aux couleurs du jeu est généré avec le total de CO2/Eau sauvés et les anecdotes du groupe.
+
+---
+
+## Nice to Have (Évolutions futures)
+
+### 1. Musique d'ambiance de fond (Background Music) - **[À FAIRE]**
+*   **Description** : Intégrer une piste musicale d'ambiance futuriste/ludique en boucle (`loop`) diffusée en arrière-plan pour renforcer l'immersion.
+*   **Contournement de l'Autoplay** : En raison des restrictions des navigateurs sur le son automatique, la musique commencera uniquement après le premier clic de l'utilisateur (connexion, fermeture du briefing, etc.).
+*   **Interface utilisateur** : Ajout d'un bouton d'activation/désactivation (icône haut-parleur Mute/Unmute) dans le bandeau supérieur de l'application avec mémorisation de l'état dans le `localStorage` du joueur.
 
 ---
 

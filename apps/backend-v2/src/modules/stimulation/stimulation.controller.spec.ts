@@ -3,6 +3,7 @@ import { StimulationController } from './stimulation.controller';
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { EcoBarRaceService } from './eco-bar-race.service';
+import { WhatsAppService } from './whatsapp.service';
 
 describe('StimulationController', () => {
   let controller: StimulationController;
@@ -14,6 +15,7 @@ describe('StimulationController', () => {
         { provide: StimulationService, useValue: {} },
         { provide: AnimalUnlockService, useValue: {} },
         { provide: EcoBarRaceService, useValue: {} },
+        { provide: WhatsAppService, useValue: {} },
       ],
     }).compile();
 

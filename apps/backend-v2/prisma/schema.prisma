@@ -119,7 +119,10 @@ model Team {
   evoeTechnology     EvoeTeamTechnology?
   challengesSent     EvoeChallenge[]     @relation("ChallengerTeam")
   challengesReceived EvoeChallenge[]     @relation("TargetTeam")
+  whatsappInviteUrl  String?
+  whatsappGroupId    String?
 }
+
 
 model Group {
   id       Int     @id @default(autoincrement())
@@ -224,6 +227,8 @@ model SystemConfig {
   populationReference    Int    @default(68000000)
   schoolYear             String @unique @default("2024-2025")
   youtubeBriefingUrl     String?
+  whatsappGeneralUrl     String?
+  whatsappGeneralId      String?
 }
 
 model InstanceAnimalUnlock {

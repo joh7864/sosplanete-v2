@@ -29,4 +29,14 @@ export class CreateTeamDto {
   @ApiProperty({ example: 42, required: false })
   @IsOptional()
   instanceYearId?: number;
+
+  @ApiProperty({ example: 'https://chat.whatsapp.com/...', required: false })
+  @IsString()
+  @IsOptional()
+  whatsappInviteUrl?: string;
+
+  @ApiProperty({ example: '120363024888888888@g.us', required: false })
+  @IsString()
+  @IsOptional()
+  whatsappGroupId?: string;
 }

@@ -15,6 +15,7 @@ import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EcoBarRaceService } from './eco-bar-race.service';
 import { ApiOperation } from '@nestjs/swagger';
+import { WhatsAppService } from './whatsapp.service';
 
 @Controller('stimulation')
 @UseGuards(JwtAuthGuard)
@@ -35,7 +36,14 @@ export class StimulationController {
     private readonly stimulationService: StimulationService,
     private readonly animalUnlockService: AnimalUnlockService,
     private readonly ecoBarRaceService: EcoBarRaceService,
+    private readonly whatsAppService: WhatsAppService,
   ) {}
+
+  @Post('whatsapp/send-report')
+  @ApiOperation({ summary: 'Déclencher manuellement l\'envoi du rapport WhatsApp' })
+  sendWhatsAppReport(@Query('schoolYear') schoolYear: string) {
+    return this.whatsAppService.sendReport(schoolYear);
+  }
 
   @Get('system-config')
   getSystemConfig(@Query('schoolYear') schoolYear: string) {

@@ -3,6 +3,7 @@ import { EvoeService } from './evoe.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
+import { ChatGateway } from '../chat.gateway';
 
 describe('EvoeService', () => {
   let service: EvoeService;
@@ -156,6 +157,7 @@ describe('EvoeService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: LegacyApiService, useValue: legacyApiMock },
         { provide: ImpactService, useValue: impactMock },
+        { provide: ChatGateway, useValue: {} },
       ],
     }).compile();
 

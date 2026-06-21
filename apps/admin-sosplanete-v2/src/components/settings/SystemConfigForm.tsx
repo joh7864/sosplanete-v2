@@ -153,7 +153,9 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
     temperatureMalade: 42.0,
     temperatureSaine: 37.0,
     populationReference: 68000000,
-    youtubeBriefingUrl: ''
+    youtubeBriefingUrl: '',
+    whatsappGeneralUrl: '',
+    whatsappGeneralId: ''
   });
 
   useEffect(() => {
@@ -173,7 +175,9 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
           temperatureMalade: data.temperatureMalade || 42.0,
           temperatureSaine: data.temperatureSaine || 37.0,
           populationReference: data.populationReference || 68000000,
-          youtubeBriefingUrl: data.youtubeBriefingUrl || ''
+          youtubeBriefingUrl: data.youtubeBriefingUrl || '',
+          whatsappGeneralUrl: data.whatsappGeneralUrl || '',
+          whatsappGeneralId: data.whatsappGeneralId || ''
         });
       }
     } catch (e) {
@@ -259,16 +263,36 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
            />
         </div>
-        <div className="space-y-2">
-           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">URL YouTube (Briefing Initial)</label>
-           <Input
-             type="text"
-             placeholder="https://youtu.be/..."
-             value={config.youtubeBriefingUrl}
-             onChange={e => setConfig(prev => ({ ...prev, youtubeBriefingUrl: e.target.value }))}
-             className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
-           />
-        </div>
+         <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">URL YouTube (Briefing Initial)</label>
+            <Input
+              type="text"
+              placeholder="https://youtu.be/..."
+              value={config.youtubeBriefingUrl}
+              onChange={e => setConfig(prev => ({ ...prev, youtubeBriefingUrl: e.target.value }))}
+              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+            />
+         </div>
+         <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Lien d'invitation WhatsApp Général</label>
+            <Input
+              type="text"
+              placeholder="https://chat.whatsapp.com/..."
+              value={config.whatsappGeneralUrl}
+              onChange={e => setConfig(prev => ({ ...prev, whatsappGeneralUrl: e.target.value }))}
+              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+            />
+         </div>
+         <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">ID du Groupe WhatsApp Général</label>
+            <Input
+              type="text"
+              placeholder="Ex: 120363212891234567@g.us"
+              value={config.whatsappGeneralId}
+              onChange={e => setConfig(prev => ({ ...prev, whatsappGeneralId: e.target.value }))}
+              className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
+            />
+         </div>
       </div>
 
       <div className="flex justify-end items-center gap-4 mt-10 pt-6 border-t border-slate-100">

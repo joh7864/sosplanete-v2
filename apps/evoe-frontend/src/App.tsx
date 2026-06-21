@@ -9,6 +9,7 @@ import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import TemporalBriefing from './components/TemporalBriefing';
+import ChatPanel from './components/ChatPanel';
 import './App.css';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -2189,6 +2190,9 @@ function MainApp() {
           />
         )}
       </AnimatePresence>
+
+      {/* Terminal de discussion instantanée (Chat) */}
+      <ChatPanel players={players} teams={dashboardStatus?.teams || []} />
     </div>
   );
 }

@@ -46,6 +46,8 @@ export const TeamEditModal: React.FC<TeamEditModalProps> = ({
   const [name, setName]         = useState(team?.name || '');
   const [color, setColor]       = useState(team?.color || PRESET_COLORS[0]);
   const [icon, setIcon]         = useState<string>(team?.icon || '');
+  const [whatsappInviteUrl, setWhatsappInviteUrl] = useState(team?.whatsappInviteUrl || '');
+  const [whatsappGroupId, setWhatsappGroupId]     = useState(team?.whatsappGroupId || '');
   const [loading, setLoading]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [availableIcons, setAvailableIcons] = useState<string[]>([]);
@@ -128,6 +130,8 @@ export const TeamEditModal: React.FC<TeamEditModalProps> = ({
           instanceId: Number(instanceId),
           schoolYear,
           instanceYearId: instanceYearId ? Number(instanceYearId) : undefined,
+          whatsappInviteUrl,
+          whatsappGroupId,
         }),
       });
       if (resp.ok) { onUpdate(); onClose(); }
@@ -319,6 +323,33 @@ export const TeamEditModal: React.FC<TeamEditModalProps> = ({
                     }
                   </label>
                   <span className="text-[10px] font-mono text-slate-500">{color}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Liaison WhatsApp Équipe */}
+            <div className="space-y-4 border-t border-slate-100 pt-6">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-800 bg-sky-50 px-3 py-1 rounded-full w-fit">
+                Liaison WhatsApp Équipe
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lien d'invitation du groupe</label>
+                  <Input
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={whatsappInviteUrl}
+                    onChange={(e) => setWhatsappInviteUrl(e.target.value)}
+                    className="h-12 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID du groupe WhatsApp</label>
+                  <Input
+                    placeholder="Ex: 120363212891234567@g.us"
+                    value={whatsappGroupId}
+                    onChange={(e) => setWhatsappGroupId(e.target.value)}
+                    className="h-12 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white text-sm"
+                  />
                 </div>
               </div>
             </div>

@@ -83,6 +83,8 @@ export class StimulationService {
         temperatureSaine: data.temperatureSaine,
         populationReference: data.populationReference,
         youtubeBriefingUrl: data.youtubeBriefingUrl,
+        whatsappGeneralUrl: data.whatsappGeneralUrl,
+        whatsappGeneralId: data.whatsappGeneralId,
       },
     });
   }
