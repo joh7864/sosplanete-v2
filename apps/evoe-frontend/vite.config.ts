@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
       host: true,
       allowedHosts: true,
       hmr: isProd ? false : {
-        clientPort: 5174,
+        clientPort: 443,
+        protocol: 'wss',
       },
       fs: {
         allow: ['../..']

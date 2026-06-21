@@ -141,8 +141,7 @@ export default function ChatPanel({ players = [], teams = [] }: ChatPanelProps) 
     const socketInstance = io(`${socketUrl}/chat`, {
       auth: {
         token: savedAuth
-      },
-      transports: ['websocket']
+      }
     });
 
     socketInstance.on('connect', () => {
