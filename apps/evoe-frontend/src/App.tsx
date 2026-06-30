@@ -626,7 +626,8 @@ function MainApp() {
   // States pour les métriques de Sprint 2
   const [extrapolation, setExtrapolation] = useState<any>(null);
   const [dashboardStatus, setDashboardStatus] = useState<any>(null);
-  const [activeMobilePanel, setActiveMobilePanel] = useState<'extrapolation' | 'radar' | null>(null);
+  const [showExtrapolation, setShowExtrapolation] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
   const [isResettingPropulsion, setIsResettingPropulsion] = useState(false);
 
   // States pour les défis et l'impulsion (Sprint 3)
@@ -839,7 +840,8 @@ function MainApp() {
 
   const handleSwitchEra = () => {
     setIsTransitioning(true);
-    setActiveMobilePanel(null);
+    setShowExtrapolation(false);
+    setShowRadar(false);
     setTimeout(() => {
       setEra(prev => prev === '2026' ? '2070' : '2026');
       setIsTransitioning(false);
@@ -1556,10 +1558,10 @@ function MainApp() {
           <>
             <div className="evoe-dashboards-container">
               {/* Panel de Gauche : Extrapolation Temporelle */}
-              <aside className={`evoe-glass-panel panel-left ${activeMobilePanel === 'extrapolation' ? 'mobile-active' : ''}`}>
+              <aside className={`evoe-glass-panel panel-left ${showExtrapolation ? 'mobile-active' : ''}`}>
                 <div className="evoe-panel-title-row">
                   <h2>Extrapolation 2070</h2>
-                  <button className="panel-close-btn" onClick={() => setActiveMobilePanel(null)}>×</button>
+                  <button className="panel-close-btn" onClick={() => setShowExtrapolation(false)}>×</button>
                 </div>
                 {extrapolation ? (
                   <>
@@ -1679,7 +1681,7 @@ function MainApp() {
               </aside>
 
               {/* Panel de Droite : Course des Vaisseaux & Stase */}
-              <aside className={`evoe-glass-panel panel-right ${activeMobilePanel === 'radar' ? 'mobile-active' : ''}`}>
+              <aside className={`evoe-glass-panel panel-right ${showRadar ? 'mobile-active' : ''}`}>
                 <div className="evoe-panel-title-row">
                   <h2>Radar Temporel</h2>
                   <button 
@@ -1690,7 +1692,7 @@ function MainApp() {
                   >
                     <RefreshCw className={`icon-sm ${isResettingPropulsion ? 'spin-loading' : ''}`} />
                   </button>
-                  <button className="panel-close-btn" onClick={() => setActiveMobilePanel(null)}>×</button>
+                  <button className="panel-close-btn" onClick={() => setShowRadar(false)}>×</button>
                 </div>
                 {dashboardStatus ? (
                   <div className="vessels-list">
@@ -1800,22 +1802,22 @@ function MainApp() {
             {/* Dock de contrôle mobile au bas de l'écran */}
             <div className="evoe-mobile-dock">
               <button 
-                className={`dock-btn ${activeMobilePanel === 'extrapolation' ? 'active' : ''}`}
-                onClick={() => setActiveMobilePanel(activeMobilePanel === 'extrapolation' ? null : 'extrapolation')}
+                className={`dock-btn ${showExtrapolation ? 'active' : ''}`}
+                onClick={() => setShowExtrapolation(v => !v)}
               >
                 📊 Extrapolation 2070
               </button>
               <button 
-                className={`dock-btn ${activeMobilePanel === 'radar' ? 'active' : ''}`}
-                onClick={() => setActiveMobilePanel(activeMobilePanel === 'radar' ? null : 'radar')}
+                className={`dock-btn ${showRadar ? 'active' : ''}`}
+                onClick={() => setShowRadar(v => !v)}
               >
                 📡 Radar Temporel
               </button>
             </div>
 
             {/* Overlay d'arrière-plan pour fermer au clic en dehors */}
-            {activeMobilePanel && (
-              <div className="evoe-mobile-overlay" onClick={() => setActiveMobilePanel(null)} />
+            {(showExtrapolation || showRadar) && (
+              <div className="evoe-mobile-overlay" onClick={() => { setShowExtrapolation(false); setShowRadar(false); }} />
             )}
           </>
         )}
