@@ -471,37 +471,28 @@ body {
 
 /* --- Evoe 2070 Dashboards (Glassmorphism & Neon Style) --- */
 .evoe-dashboards-container {
-  display: flex;
-  justify-content: space-between;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 0 40px;
-  box-sizing: border-box;
-  pointer-events: none;
-  flex: 1;
-  max-height: calc(100vh - 120px);
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  max-height: none;
   overflow: hidden;
-  margin-top: 10px;
+  pointer-events: none;
+  z-index: 100;
 }
 
-@media (max-width: 1024px) {
-  .evoe-dashboards-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    max-height: none;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 100;
-  }
-}
-
+/* On all screens, panels are fixed, hidden by default, toggled via buttons */
 .evoe-glass-panel {
+  position: fixed;
+  top: 75px;
+  bottom: 75px;
   width: 360px;
-  max-width: 100%;
+  max-width: 85vw;
+  height: auto;
+  max-height: calc(100vh - 150px);
   background: rgba(10, 15, 30, 0.45);
   border: 1px solid rgba(0, 255, 204, 0.25);
   border-radius: 16px;
@@ -511,53 +502,39 @@ body {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(0, 255, 204, 0.03);
   pointer-events: auto;
   overflow-y: auto;
-  max-height: calc(100vh - 150px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  z-index: 101;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
 }
 
-@media (max-width: 1024px) {
-  .evoe-glass-panel {
-    position: fixed;
-    top: 75px;
-    bottom: 75px;
-    width: 330px;
-    max-width: 85vw;
-    height: auto;
-    max-height: calc(100vh - 150px);
-    margin: 0;
-    z-index: 101;
-    pointer-events: auto;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-    opacity: 0;
-  }
-
-  /* Le panel gauche glisse depuis la gauche */
-  .evoe-glass-panel.panel-left {
-    left: 20px;
-    transform: translateX(-110%);
-  }
-
-  .evoe-glass-panel.panel-left.mobile-active {
-    transform: translateX(0);
-    opacity: 1;
-    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
-  }
-
-  /* Le panel droit glisse depuis la droite */
-  .evoe-glass-panel.panel-right {
-    right: 20px;
-    transform: translateX(110%);
-  }
-
-  .evoe-glass-panel.panel-right.mobile-active {
-    transform: translateX(0);
-    opacity: 1;
-    box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
-  }
+/* Panel gauche glisse depuis la gauche */
+.evoe-glass-panel.panel-left {
+  left: 20px;
+  transform: translateX(-110%);
 }
+
+.evoe-glass-panel.panel-left.mobile-active {
+  transform: translateX(0);
+  opacity: 1;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+/* Panel droit glisse depuis la droite */
+.evoe-glass-panel.panel-right {
+  right: 20px;
+  transform: translateX(110%);
+}
+
+.evoe-glass-panel.panel-right.mobile-active {
+  transform: translateX(0);
+  opacity: 1;
+  box-shadow: 0 0 30px rgba(0, 255, 204, 0.15), 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
 
 .evoe-panel-title-row {
   display: flex;
@@ -604,61 +581,55 @@ body {
   }
 }
 
-/* --- Mobile Control Dock --- */
+/* --- Control Dock (always visible in 2070 mode) --- */
 .evoe-mobile-dock {
-  display: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 105;
+  background: rgba(10, 15, 30, 0.75);
+  border: 1px solid rgba(0, 255, 204, 0.35);
+  border-radius: 30px;
+  padding: 8px 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.15);
+  pointer-events: auto;
 }
 
-@media (max-width: 1024px) {
-  .evoe-mobile-dock {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 105;
-    background: rgba(10, 15, 30, 0.75);
-    border: 1px solid rgba(0, 255, 204, 0.35);
-    border-radius: 30px;
-    padding: 8px 16px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.15);
-    pointer-events: auto;
-  }
+.dock-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a0aec0;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
 
-  .dock-btn {
-    background: transparent;
-    border: 1px solid transparent;
-    color: #a0aec0;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
+.dock-btn.active {
+  background: rgba(0, 255, 204, 0.18);
+  border-color: rgba(0, 255, 204, 0.5);
+  color: #00ffcc;
+  text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.15);
+}
 
-  .dock-btn.active {
-    background: rgba(0, 255, 204, 0.18);
-    border-color: rgba(0, 255, 204, 0.5);
-    color: #00ffcc;
-    text-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
-    box-shadow: 0 0 10px rgba(0, 255, 204, 0.15);
-  }
-
-  .dock-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
-  }
+.dock-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
 }
 
 /* --- Mobile Background Overlay --- */
