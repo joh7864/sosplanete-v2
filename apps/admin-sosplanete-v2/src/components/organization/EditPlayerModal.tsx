@@ -145,8 +145,8 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   };
 
   const cleanApiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011/api/v1')
-    .replace('/api/v1', '')
-    .replace('/api', '')
+    .replace(/\/api\/v1\/?$/, '')
+    .replace(/\/api\/?$/, '')
     .replace(/\/+$/, '');
 
   return (
