@@ -39,13 +39,25 @@ const fmtVolume = (litres: number): string => {
 };
 
 
-function EvoeRadarMeter({ value, label, color, id }: { value: number; label: string; color: string; id: string }) {
+function EvoeRadarMeter({ value, label, color, id, tooltip, displayValue }: { value: number; label: string; color: string; id: string; tooltip?: string; displayValue?: string }) {
   const normalizedValue = Math.min(Math.max(value, 0), 100);
   const angle = -135 + (normalizedValue / 100) * 270;
   const strokeDashOffset = 400.5 - (400.5 * normalizedValue) / 100;
 
   return (
-    <div style={{ width: '90px', height: '90px', position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <div 
+      title={tooltip}
+      style={{ 
+        width: '90px', 
+        height: '90px', 
+        position: 'relative', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        cursor: tooltip ? 'help' : 'default'
+      }}
+    >
       <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
         <defs>
           <linearGradient id={`grad-${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
@@ -106,7 +118,7 @@ function EvoeRadarMeter({ value, label, color, id }: { value: number; label: str
           textAnchor="middle"
           style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
         >
-          {Math.round(value)}%
+          {displayValue !== undefined ? displayValue : `${Math.round(value)}%`}
         </text>
 
         {/* Label sous l'aiguille */}
@@ -1717,17 +1729,27 @@ function MainApp() {
 
                         {/* Deux mini-compteurs circulaires de contrôle (Timeline & Stase) */}
                         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 20px', marginTop: '0px', marginBottom: '0px' }}>
-                          <EvoeRadarMeter 
-                            value={t.position} 
-                            label="TIMELINE" 
-                            color="#ffd700" 
-                            id={`timeline-${t.id}`} 
-                          />
+                          {(() => {
+                            const startYearMatch = dashboardStatus?.schoolYear?.match(/^(\d{4})-\d{4}$/);
+                            const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : 2026;
+                            const calculatedYear = Math.min(startYear + 44, startYear + Math.round(((t.position || 0) * 44) / 100 / 5) * 5);
+                            return (
+                              <EvoeRadarMeter 
+                                value={t.position} 
+                                label="TIMELINE" 
+                                color="#ffd700" 
+                                id={`timeline-${t.id}`} 
+                                displayValue={String(calculatedYear)}
+                                tooltip="État de la Terre et progression de la ligne temporelle vers 2070. Les défis et missions réussis permettent de stabiliser le futur et de repousser la dystopie."
+                              />
+                            );
+                          })()}
                           <EvoeRadarMeter 
                             value={t.crewBioStability} 
                             label="STABILITÉ" 
                             color={t.crewBioStability < 40 ? '#ff3b3b' : (t.crewBioStability < 80 ? '#ff9f43' : '#10b981')} 
                             id={`stability-${t.id}`} 
+                            tooltip="Score de santé de l'équipage. S'il est trop bas, la stase se fige et vous ne pouvez plus modifier la dystopie future (seuil minimal d'action : 10%)."
                           />
                         </div>
 

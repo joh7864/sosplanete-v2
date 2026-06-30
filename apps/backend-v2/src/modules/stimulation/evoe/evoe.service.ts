@@ -527,6 +527,7 @@ export class EvoeService {
       .slice(0, 10);
 
     return {
+      schoolYear,
       teams: formattedTeams,
       playersHealth: allPlayersHealth,
       topPlayers,

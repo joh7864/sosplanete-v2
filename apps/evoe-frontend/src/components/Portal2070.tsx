@@ -73,9 +73,11 @@ function SpeedParticles() {
 // Composant Vessel extrait vers Vessel2070.tsx
 
 // Échelle cosmique commune (Frise de progression latérale)
-function CosmicScale() {
+function CosmicScale({ schoolYear }: { schoolYear?: string }) {
   const scaleX = -6.5; // Positionnée sur la gauche
   const markers = [0, 20, 40, 60, 80, 100];
+  const startYearMatch = schoolYear?.match(/^(\d{4})-\d{4}$/);
+  const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : 2026;
 
   return (
     <group>
@@ -88,6 +90,8 @@ function CosmicScale() {
       {/* Graduations et Textes */}
       {markers.map(pct => {
         const markerZ = 11 - (pct / 100) * 17;
+        const calculatedYear = Math.min(startYear + 44, startYear + Math.round((pct * 44) / 100 / 5) * 5);
+        
         return (
           <group key={pct} position={[scaleX, -0.51, markerZ]}>
             {/* Tiret de graduation pointant vers les vaisseaux */}
@@ -107,7 +111,7 @@ function CosmicScale() {
                 outlineColor="#000000"
                 fillOpacity={0.6}
               >
-                {pct}%
+                {calculatedYear}
               </Text>
             </Billboard>
           </group>
@@ -413,7 +417,7 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
       </Sphere>
 
       {/* Échelle Cosmique (remplace les pistes) */}
-      <CosmicScale />
+      <CosmicScale schoolYear={dashboardStatus?.schoolYear} />
 
       {/* Vaisseaux des équipes */}
       {teams.map((t: any, i: number) => (
