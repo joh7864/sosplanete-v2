@@ -70,8 +70,11 @@ export class ImpactService {
             where: { group: { team: { instanceYear: { instanceId } } } },
           })) || 1;
       } else {
-        // En global, on prend tous les enfants de la base pour cette session (toutes instances)
-        nbChildrenTotal = (await this.prisma.child.count()) || 1;
+        const sy = schoolYearFilter || `${year}-${year + 1}`;
+        nbChildrenTotal =
+          (await this.prisma.child.count({
+            where: { group: { team: { instanceYear: { schoolYear: sy } } } },
+          })) || 1;
       }
 
       // 3. Récupérer les actions effectuées
@@ -121,6 +124,15 @@ export class ImpactService {
           where: { instanceId_schoolYear: { instanceId, schoolYear: sy } },
         });
         gameDuration = config?.gamePeriodsCount || 52;
+      } else {
+        const sy = schoolYearFilter || `${year}-${year + 1}`;
+        const configs = await this.prisma.gameConfig.findMany({
+          where: { schoolYear: sy },
+          select: { gamePeriodsCount: true },
+        });
+        if (configs.length > 0) {
+          gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+        }
       }
 
       const totalPossibleEntries = nbChildrenTotal * catalogSize * gameDuration;
@@ -359,8 +371,11 @@ export class ImpactService {
       where: { year },
     });
 
-    // En global, on prend tous les enfants de la base
-    const nbChildrenTotal = (await this.prisma.child.count()) || 1;
+    // En global, on prend tous les enfants actifs dans l'année scolaire
+    const nbChildrenTotal =
+      (await this.prisma.child.count({
+        where: { group: { team: { instanceYear: { schoolYear } } } },
+      })) || 1;
     const actionsDone = await this.prisma.actionDone.findMany({
       where: { period: { instanceYear: { schoolYear } } },
       select: { savedCo2: true, savedWater: true, savedWaste: true },
@@ -376,7 +391,15 @@ export class ImpactService {
     }
 
     const catalogSize = (await this.prisma.actionRef.count()) || 62;
-    const gameDuration = 52; // Default for global
+    
+    let gameDuration = 52; // Default for global
+    const configs = await this.prisma.gameConfig.findMany({
+      where: { schoolYear },
+      select: { gamePeriodsCount: true },
+    });
+    if (configs.length > 0) {
+      gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+    }
 
     return {
       annualData: annualData || {
