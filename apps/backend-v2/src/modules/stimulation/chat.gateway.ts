@@ -29,6 +29,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Stockage temporaire pour le rate-limiting : clientId -> timestamps de messages (ms)
   private clientMessageTimestamps = new Map<string, number[]>();
 
+  // Historique des messages en mémoire (survit aux rechargements clients)
+  private globalHistory: any[] = [];
+  private teamHistories = new Map<number, any[]>();
+  private privateHistories = new Map<string, any[]>();
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
@@ -155,6 +160,41 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Rejoindre automatiquement le canal global
       await client.join('global');
 
+      // Diffuser la liste des connectés
+      this.broadcastOnlineUsers();
+
+      // Envoyer l'historique de chat approprié au client connecté
+      const myPseudo = (child ? child.pseudo : (user ? (user.name || 'Admin') : '')).toLowerCase();
+      const myTeamName = child?.group?.team?.name;
+      const myTeamId = child?.group?.teamId;
+
+      const myPrivateHistory: any[] = [];
+      for (const [key, msgs] of this.privateHistories.entries()) {
+        if (key.startsWith('team:')) {
+          const targetTeam = key.substring(5).toLowerCase();
+          if (myTeamName && targetTeam === myTeamName.toLowerCase()) {
+            myPrivateHistory.push(...msgs);
+          } else {
+            // Inclure si l'utilisateur courant est l'expéditeur
+            const sentToTeam = msgs.filter(m => m.sender.toLowerCase() === myPseudo);
+            myPrivateHistory.push(...sentToTeam);
+          }
+        } else {
+          if (key.split(':').includes(myPseudo)) {
+            myPrivateHistory.push(...msgs);
+          }
+        }
+      }
+
+      // Trier l'historique privé chronologiquement
+      myPrivateHistory.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+      client.emit('chatHistory', {
+        global: this.globalHistory,
+        team: myTeamId ? (this.teamHistories.get(myTeamId) || []) : [],
+        private: myPrivateHistory,
+      });
+
     } catch (err) {
       this.logger.error(`[Chat WebSockets] Erreur de poignée de main : ${err.message}`);
       client.disconnect();
@@ -164,6 +204,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     this.clientMessageTimestamps.delete(client.id);
     this.logger.log(`[Chat WebSockets] Client déconnecté : ${client.id}`);
+    this.broadcastOnlineUsers();
   }
 
   /**
@@ -172,7 +213,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendGlobal')
   async handleGlobalMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { text: string },
+    @MessageBody() body: { text: string; parentId?: string },
   ) {
     if (!client.data.pseudo) return;
 
@@ -184,7 +225,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Interception des commandes (messages privés / chuchotements)
     if (body.text && body.text.startsWith('/')) {
-      const isCommand = await this.handleChatCommand(client, body.text);
+      const isCommand = await this.handleChatCommand(client, body.text, body.parentId);
       if (isCommand) return;
     }
 
@@ -199,7 +240,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       teamName: client.data.teamName || null,
       content: sanitizedText,
       timestamp: new Date(),
+      parentId: body.parentId || null,
     };
+
+    // Enregistrer dans l'historique global
+    this.addToHistory(this.globalHistory, messageData);
 
     // Propager à tous ceux présents dans la room global
     this.server.to('global').emit('msgGlobal', messageData);
@@ -211,7 +256,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendTeam')
   async handleTeamMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { text: string },
+    @MessageBody() body: { text: string; parentId?: string },
   ) {
     // Les admins ne peuvent pas envoyer de messages sur le canal équipe car ils n'ont pas d'équipe
     if (client.data.role !== 'CHILD' || !client.data.teamId) {
@@ -227,7 +272,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Interception des commandes (messages privés / chuchotements)
     if (body.text && body.text.startsWith('/')) {
-      const isCommand = await this.handleChatCommand(client, body.text);
+      const isCommand = await this.handleChatCommand(client, body.text, body.parentId);
       if (isCommand) return;
     }
 
@@ -242,7 +287,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       teamName: client.data.teamName,
       content: sanitizedText,
       timestamp: new Date(),
+      parentId: body.parentId || null,
     };
+
+    // Enregistrer dans l'historique d'équipe
+    const teamId = client.data.teamId;
+    if (teamId) {
+      if (!this.teamHistories.has(teamId)) {
+        this.teamHistories.set(teamId, []);
+      }
+      this.addToHistory(this.teamHistories.get(teamId)!, messageData);
+    }
 
     const teamRoom = `team_${client.data.teamId}`;
     // Propager uniquement à l'équipe
@@ -256,6 +311,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private async handleChatCommand(
     client: Socket,
     text: string,
+    parentId?: string,
   ): Promise<boolean> {
     if (!text.startsWith('/')) {
       return false;
@@ -309,7 +365,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         content: sanitizedContent,
         isPrivate: true,
         timestamp: new Date(),
+        parentId: parentId || null,
       };
+
+      // Enregistrer dans l'historique privé d'équipe
+      const key = `team:${targetTeam.name.toLowerCase()}`;
+      if (!this.privateHistories.has(key)) {
+        this.privateHistories.set(key, []);
+      }
+      this.addToHistory(this.privateHistories.get(key)!, messageData);
 
       // Diffuser à la room de l'équipe cible
       const teamRoom = `team_${targetTeam.id}`;
@@ -346,7 +410,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         content: sanitizedContent,
         isPrivate: true,
         timestamp: new Date(),
+        parentId: parentId || null,
       };
+
+      // Enregistrer dans l'historique privé
+      const key = [client.data.pseudo.toLowerCase(), targetSocket.data.pseudo.toLowerCase()].sort().join(':');
+      if (!this.privateHistories.has(key)) {
+        this.privateHistories.set(key, []);
+      }
+      this.addToHistory(this.privateHistories.get(key)!, messageData);
 
       // Émettre au destinataire et à l'expéditeur
       targetSocket.emit('msgPrivate', messageData);
@@ -401,7 +473,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() body: { messageId: string; emoji: string },
   ) {
-    if (!client.data.pseudo || !body.messageId || !body.emoji) return;
+    this.logger.log(`[Chat WebSockets] Réception de addReaction : pseudo=${client.data.pseudo}, messageId=${body?.messageId}, emoji=${body?.emoji}`);
+    if (!client.data.pseudo || !body.messageId || !body.emoji) {
+      this.logger.warn(`[Chat WebSockets] addReaction rejetée : paramètres manquants.`);
+      return;
+    }
+
+    // Enregistrer la réaction dans l'historique en mémoire
+    this.addReactionToHistory(body.messageId, this.sanitize(body.emoji), client.data.pseudo);
 
     // Diffuser la réaction à tous les clients connectés pour mise à jour synchrone locale
     this.server.emit('reactionAdded', {
@@ -409,6 +488,113 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       emoji: this.sanitize(body.emoji),
       username: client.data.pseudo,
     });
+    this.logger.log(`[Chat WebSockets] Émission de reactionAdded : messageId=${body.messageId}, emoji=${body.emoji}`);
+  }
+
+  /**
+   * Suppression d'un message en temps réel
+   */
+  @SubscribeMessage('deleteMessage')
+  async handleDeleteMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { messageId: string },
+  ) {
+    if (!client.data.pseudo || !body.messageId) return;
+
+    this.logger.log(`[Chat WebSockets] Demande de suppression : pseudo=${client.data.pseudo}, messageId=${body.messageId}`);
+    
+    // Fonction helper pour chercher et supprimer dans un historique
+    const filterOut = (arr: any[]): boolean => {
+      const idx = arr.findIndex(m => m.id === body.messageId);
+      if (idx !== -1) {
+        const msg = arr[idx];
+        if (msg.sender === client.data.pseudo || client.data.role === 'ADMIN') {
+          arr.splice(idx, 1);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // 1. Chercher dans global
+    if (filterOut(this.globalHistory)) {
+      this.server.emit('msgDeleted', { messageId: body.messageId });
+      this.logger.log(`[Chat WebSockets] Message global supprimé : ${body.messageId}`);
+      return;
+    }
+
+    // 2. Chercher dans les équipes
+    for (const [_, msgs] of this.teamHistories) {
+      if (filterOut(msgs)) {
+        this.server.emit('msgDeleted', { messageId: body.messageId });
+        this.logger.log(`[Chat WebSockets] Message d'équipe supprimé : ${body.messageId}`);
+        return;
+      }
+    }
+
+    // 3. Chercher dans les privés
+    for (const [_, msgs] of this.privateHistories) {
+      if (filterOut(msgs)) {
+        this.server.emit('msgDeleted', { messageId: body.messageId });
+        this.logger.log(`[Chat WebSockets] Message privé supprimé : ${body.messageId}`);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Modification d'un message en temps réel
+   */
+  @SubscribeMessage('editMessage')
+  async handleEditMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { messageId: string; text: string },
+  ) {
+    if (!client.data.pseudo || !body.messageId || !body.text) return;
+
+    this.logger.log(`[Chat WebSockets] Demande de modification : pseudo=${client.data.pseudo}, messageId=${body.messageId}`);
+    
+    const sanitizedText = this.sanitize(body.text);
+    if (!sanitizedText || sanitizedText.trim() === '') return;
+
+    // Fonction helper pour chercher et modifier dans un historique
+    const updateInHistory = (arr: any[]): boolean => {
+      const idx = arr.findIndex(m => m.id === body.messageId);
+      if (idx !== -1) {
+        const msg = arr[idx];
+        if (msg.sender === client.data.pseudo || client.data.role === 'ADMIN') {
+          msg.content = sanitizedText;
+          msg.isEdited = true;
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // 1. Chercher dans global
+    if (updateInHistory(this.globalHistory)) {
+      this.server.emit('msgEdited', { messageId: body.messageId, content: sanitizedText, isEdited: true });
+      this.logger.log(`[Chat WebSockets] Message global modifié : ${body.messageId}`);
+      return;
+    }
+
+    // 2. Chercher dans les équipes
+    for (const [_, msgs] of this.teamHistories) {
+      if (updateInHistory(msgs)) {
+        this.server.emit('msgEdited', { messageId: body.messageId, content: sanitizedText, isEdited: true });
+        this.logger.log(`[Chat WebSockets] Message d'équipe modifié : ${body.messageId}`);
+        return;
+      }
+    }
+
+    // 3. Chercher dans les privés
+    for (const [_, msgs] of this.privateHistories) {
+      if (updateInHistory(msgs)) {
+        this.server.emit('msgEdited', { messageId: body.messageId, content: sanitizedText, isEdited: true });
+        this.logger.log(`[Chat WebSockets] Message privé modifié : ${body.messageId}`);
+        return;
+      }
+    }
   }
 
   /**
@@ -422,6 +608,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       content: this.sanitize(content),
       timestamp: new Date(),
     };
+    
+    // Enregistrer dans l'historique global
+    this.addToHistory(this.globalHistory, alertData);
+
     this.server.to('global').emit('msgGlobal', alertData);
   }
 
@@ -457,5 +647,67 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;');
+  }
+
+  /**
+   * Diffuse la liste des pseudos connectés à tous les clients
+   */
+  private async broadcastOnlineUsers() {
+    try {
+      const sockets = await this.server.fetchSockets();
+      const onlinePseudos = sockets
+        .map(s => s.data.pseudo)
+        .filter((pseudo): pseudo is string => !!pseudo);
+      
+      const uniquePseudos = Array.from(new Set(onlinePseudos));
+      this.server.emit('onlineUsersUpdate', uniquePseudos);
+    } catch (err) {
+      this.logger.error(`[Chat WebSockets] Erreur lors de la diffusion des utilisateurs en ligne : ${err.message}`);
+    }
+  }
+
+  private addToHistory(history: any[], message: any, limit = 100) {
+    history.push(message);
+    if (history.length > limit) {
+      history.shift();
+    }
+  }
+
+  private addReactionToHistory(messageId: string, emoji: string, username: string) {
+    const updateMessage = (msg: any) => {
+      if (msg.id === messageId) {
+        if (!msg.reactions) msg.reactions = [];
+        const existing = msg.reactions.find((r: any) => r.emoji === emoji);
+        if (existing) {
+          const userIndex = existing.users.indexOf(username);
+          if (userIndex >= 0) {
+            existing.users.splice(userIndex, 1);
+            existing.count = existing.users.length;
+          } else {
+            existing.users.push(username);
+            existing.count = existing.users.length;
+          }
+          msg.reactions = msg.reactions.filter((r: any) => r.count > 0);
+        } else {
+          msg.reactions.push({ emoji, count: 1, users: [username] });
+        }
+        return true;
+      }
+      return false;
+    };
+
+    for (const msg of this.globalHistory) {
+      if (updateMessage(msg)) return;
+    }
+    for (const teamMsgs of this.teamHistories.values()) {
+      for (const msg of teamMsgs) {
+        if (updateMessage(msg)) return;
+      }
+    }
+    for (const privateMsgs of this.privateHistories.values()) {
+      for (const msg of privateMsgs) {
+        if (updateMessage(msg)) return;
+      }
+    }
   }
 }

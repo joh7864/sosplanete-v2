@@ -68,7 +68,7 @@ export class AuthService {
     const child = await this.prisma.child.findFirst({
       where: { 
         pseudo,
-        ...(instanceId ? { group: { team: { instanceYear: { instanceId } } } } : {})
+        ...(instanceId ? { group: { team: { instanceYear: { instanceId, isOpen: true } } } } : {})
       },
       include: {
         group: {

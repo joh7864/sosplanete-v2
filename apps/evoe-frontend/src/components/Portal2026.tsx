@@ -68,7 +68,99 @@ const bracketsTexture = (() => {
   return tex;
 })();
 
-function PlayerAvatar({ player, position, avatarScale = 1, onSelectPlayer }: { player: any, position: [number, number, number], avatarScale?: number, onSelectPlayer?: (player: any) => void }) {
+const greenDotTexture = (() => {
+  const size = 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  
+  const r = 9;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  ctx.fillStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(5, 8, 16, 0.94)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+})();
+
+const envelopeTexture = (() => {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  
+  const r = size / 2 - 8;
+  const cx = size / 2;
+  const cy = size / 2;
+  
+  ctx.fillStyle = '#ff3b3b';
+  ctx.shadowColor = '#ff3b3b';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(5, 8, 16, 0.94)';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  const w = 24;
+  const h = 16;
+  const x = cx - w / 2;
+  const y = cy - h / 2 + 1;
+  
+  ctx.strokeRect(x, y, w, h);
+  
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(cx, y + h * 0.55);
+  ctx.lineTo(x + w, y);
+  ctx.stroke();
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+})();
+
+function PlayerAvatar({ 
+  player, 
+  position, 
+  avatarScale = 1, 
+  onSelectPlayer, 
+  isOnline = false,
+  hasUnread = false
+}: { 
+  player: any, 
+  position: [number, number, number], 
+  avatarScale?: number, 
+  onSelectPlayer?: (p: any) => void, 
+  isOnline?: boolean,
+  hasUnread?: boolean
+}) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
   const initial = (player.pseudo || '?')[0].toUpperCase();
@@ -205,40 +297,68 @@ function PlayerAvatar({ player, position, avatarScale = 1, onSelectPlayer }: { p
       {/* Halo lumineux */}
       <pointLight position={[0, 0.5, 0]} color={color} intensity={isMe ? 1.2 : 0.3} distance={2} />
       
-      {/* Cercle de couleur d'équipe en arrière plan */}
-      <sprite scale={[haloScale, haloScale, 1]} position={[0, 0, -0.01]} frustumCulled={false}>
-        <spriteMaterial 
-          map={haloTexture}
-          color={color} 
-          transparent={true} 
-          opacity={isMe ? 0.9 : 0.6} 
-          depthWrite={false} 
-        />
-      </sprite>
-
-      {/* Avatar (si existant) ou Initiale */}
-      {texture ? (
-        <sprite scale={[avatarSpriteScale, avatarSpriteScale, 1]} position={[0, avatarYOffset, 0]} frustumCulled={false}>
-          <spriteMaterial 
-            key={texture.uuid}
-            map={texture} 
-            transparent={true}
-            depthWrite={false}
+      <Billboard follow={true}>
+        {/* Cercle de couleur d'équipe en arrière plan */}
+        <mesh position={[0, 0, -0.01]}>
+          <planeGeometry args={[haloScale, haloScale]} />
+          <meshBasicMaterial 
+            map={haloTexture}
+            color={color} 
+            transparent={true} 
+            opacity={isMe ? 0.9 : 0.6} 
+            depthWrite={false} 
           />
-        </sprite>
-      ) : (
-        <Text
-          position={[0, 0, 0]}
-          fontSize={haloScale * 0.6}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          material-depthWrite={false}
-          frustumCulled={false}
-        >
-          {initial}
-        </Text>
-      )}
+        </mesh>
+
+        {/* Avatar (si existant) ou Initiale */}
+        {texture ? (
+          <mesh position={[0, avatarYOffset, 0]}>
+            <planeGeometry args={[avatarSpriteScale, avatarSpriteScale]} />
+            <meshBasicMaterial 
+              key={texture.uuid}
+              map={texture} 
+              transparent={true}
+              depthWrite={false}
+            />
+          </mesh>
+        ) : (
+          <Text
+            position={[0, 0, 0.01]}
+            fontSize={haloScale * 0.6}
+            color="#ffffff"
+            anchorX="center"
+            anchorY="middle"
+            material-depthWrite={false}
+            frustumCulled={false}
+          >
+            {initial}
+          </Text>
+        )}
+
+        {/* Indicateur de connexion en ligne (point vert) - en haut à droite */}
+        {isOnline && (
+          <mesh position={[avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.01]}>
+            <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
+            <meshBasicMaterial 
+              map={greenDotTexture}
+              transparent={true}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+
+        {/* Indicateur de message non lu (enveloppe rouge) - en haut à gauche */}
+        {hasUnread && (
+          <mesh position={[-avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.02]}>
+            <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
+            <meshBasicMaterial 
+              map={envelopeTexture}
+              transparent={true}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+      </Billboard>
 
       <Billboard follow={true}>
         <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
@@ -478,11 +598,17 @@ function RadialShockwave({ pulseTime }: { pulseTime: number | null }) {
 export default function Portal2026({ 
   categories = [], 
   onSelectSector,
-  onSelectPlayer
+  onSelectPlayer,
+  onlineUsers = new Set(),
+  unreadTeam = 0,
+  unreadMps = {},
 }: { 
   categories?: string[];
   onSelectSector?: (c: string) => void;
   onSelectPlayer?: (player: any) => void;
+  onlineUsers?: Set<string>;
+  unreadTeam?: number;
+  unreadMps?: Record<string, number>;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
   const { players } = useAuth();
@@ -593,6 +719,9 @@ export default function Portal2026({
         const shift = currentIndex !== -1 ? currentIndex : 0;
         const midIndex = Math.floor(playerCount / 2);
 
+        // Calculer le total des messages privés non lus
+        const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
+
         return teamList.map((player, i) => {
           // Décaler les index pour que le joueur courant soit au centre de l'arc
           const normalizedIndex = (i - shift + midIndex + playerCount) % playerCount;
@@ -601,7 +730,24 @@ export default function Portal2026({
           const x = Math.cos(angle) * radius;
           const z = Math.sin(angle) * radius;
           
-          return <PlayerAvatar key={player.id} player={player} position={[x, 0, z]} avatarScale={avatarScale} onSelectPlayer={onSelectPlayer} />;
+          const isOnline = onlineUsers.has(player.pseudo.toLowerCase());
+          const isMe = player.isCurrent;
+          
+          // L'enveloppe ne s'affiche que sur l'avatar du récepteur (l'utilisateur courant)
+          // si celui-ci a reçu un message d'équipe ou un message privé.
+          const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
+          
+          return (
+            <PlayerAvatar 
+              key={player.id} 
+              player={player} 
+              position={[x, 0, z]} 
+              avatarScale={avatarScale} 
+              onSelectPlayer={onSelectPlayer} 
+              isOnline={isOnline}
+              hasUnread={hasUnread}
+            />
+          );
         });
       })() : (
         // Fallback visuel le temps du chargement

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -648,6 +648,25 @@ function MainApp() {
   };
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [unreadChat, setUnreadChat] = useState<{
+    global: number;
+    team: number;
+    system: number;
+    unreadMps: Record<string, number>;
+    unreadTeams: Record<string, number>;
+    total: number;
+  }>({
+    global: 0,
+    team: 0,
+    system: 0,
+    unreadMps: {},
+    unreadTeams: {},
+    total: 0
+  });
+
+  const [chatOpen, setChatOpen] = useState<boolean | undefined>(undefined);
+  const [chatActiveTab, setChatActiveTab] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (childInfos?.id) {
@@ -913,6 +932,47 @@ function MainApp() {
   const eodN1Percent = extrapolation ? getEodPercent(extrapolation.dateDepassementSans) : 58.6;
   const eodNPercent = extrapolation ? getEodPercent(extrapolation.dateDepassement) : 70.7;
 
+  const handleSelectPlayer = (player: any) => {
+    const isMe = player.childId === childInfos?.id || player.id === childInfos?.id || player.isCurrent;
+    
+    if (isMe) {
+      // Priorité 1 : message d'équipe (inter-équipes ou interne)
+      const unreadTeamNames = Object.keys(unreadChat.unreadTeams || {}).filter(k => (unreadChat.unreadTeams?.[k] || 0) > 0);
+      if (unreadChat.team > 0 || unreadTeamNames.length > 0) {
+        setChatActiveTab(unreadTeamNames.length > 0 ? `team:${unreadTeamNames[0]}` : 'team');
+        setChatOpen(true);
+        return;
+      }
+      
+      // Priorité 2 : message privé (le premier trouvé dans les MP)
+      const unreadMpUsers = Object.keys(unreadChat.unreadMps || {}).filter(k => (unreadChat.unreadMps?.[k] || 0) > 0);
+      if (unreadMpUsers.length > 0) {
+        setChatActiveTab(`mp:${unreadMpUsers[0]}`);
+        setChatOpen(true);
+        return;
+      }
+      
+      // Priorité 3 : message global
+      if (unreadChat.global > 0) {
+        setChatActiveTab('global');
+        setChatOpen(true);
+        return;
+      }
+    } else {
+      // Si on clique sur un autre joueur
+      const pseudo = player.pseudo.toLowerCase();
+      // S'il a envoyé un message non lu, on ouvre directement son salon de chat
+      if ((unreadChat.unreadMps?.[pseudo] || 0) > 0) {
+        setChatActiveTab(`mp:${pseudo}`);
+        setChatOpen(true);
+        return;
+      }
+    }
+    
+    // Comportement par défaut si pas de message : ouvrir la fiche profil
+    setSelectedProfileId(player.childId || player.id);
+  };
+
   return (
     <div className="app-container">
       {/* Briefing Temporel (Onboarding Vidéo) */}
@@ -954,7 +1014,10 @@ function MainApp() {
             <Portal2026 
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={setSelectedSector} 
-              onSelectPlayer={(p) => setSelectedProfileId(p.childId)}
+              onSelectPlayer={handleSelectPlayer}
+              onlineUsers={onlineUsers}
+              unreadTeam={unreadChat.team}
+              unreadMps={unreadChat.unreadMps}
             />
           ) : (
             <Portal2070 dashboardStatus={dashboardStatus} />
@@ -985,25 +1048,41 @@ function MainApp() {
               {childInfos && (
                 <div 
                   onClick={() => setSelectedProfileId(childInfos.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto', cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto', cursor: 'pointer', position: 'relative' }}
                 >
-                  <img 
-                    src={getAvatarUrl()} 
-                    alt="" 
-                    className="avatar-pulse-ring"
-                    style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${currentPlayer?.color || '#00ffcc'}`, objectFit: 'cover' }} 
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <img 
+                      src={getAvatarUrl()} 
+                      alt="" 
+                      className="avatar-pulse-ring"
+                      style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${currentPlayer?.color || '#00ffcc'}`, objectFit: 'cover' }} 
+                    />
+                    {unreadChat.total > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '-5px',
+                        background: '#ff3b3b',
+                        borderRadius: '50%',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1.5px solid rgba(5, 8, 16, 0.94)',
+                        boxShadow: '0 0 6px #ff3b3b',
+                        zIndex: 10
+                      }}>
+                        <Mail size={8} color="#fff" />
+                      </div>
+                    )}
+                  </div>
                   <span>Agent Temporel {childInfos.pseudo}</span>
                 </div>
               )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            {era === '2026' && selectedSector && (
-              <button className="switch-btn" onClick={() => setSelectedSector(null)}>
-                Fermer le Codex
-              </button>
-            )}
+
             <button 
               className="switch-btn" 
               onClick={() => {
@@ -1011,30 +1090,91 @@ function MainApp() {
                 setAllowPortrait(newVal);
                 localStorage.setItem('evoe_allow_portrait', String(newVal));
               }}
-              title={allowPortrait ? "Forcer le mode Paysage (Activer l'alerte)" : "Autoriser le mode Portrait (Désactiver l'alerte)"}
+              title={allowPortrait ? "Mode : Portrait Autorisé (Forcer le mode Paysage / Activer l'alerte)" : "Mode : Paysage Requis (Autoriser le mode Portrait / Désactiver l'alerte)"}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 255, 204, 0.15)',
+                border: '1.5px solid #00ffcc',
+                color: '#00ffcc',
+                boxShadow: '0 0 10px rgba(0, 255, 204, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
             >
-              {allowPortrait ? <Smartphone className="icon-sm" /> : <Monitor className="icon-sm" />}
-              {allowPortrait ? 'Portrait Autorisé' : 'Paysage Requis'}
+              {allowPortrait ? <Smartphone size={18} /> : <Monitor size={18} />}
             </button>
-            <button className="switch-btn" onClick={handleSwitchEra} disabled={isTransitioning}>
-              {era === '2026' ? <Scan className="icon-sm" /> : <Radio className="icon-sm" />}
-              {era === '2026' ? 'Ouvrir le Radar 2070' : 'Retour au QG 2026'}
+            <button 
+              className="switch-btn" 
+              onClick={handleSwitchEra} 
+              disabled={isTransitioning}
+              title={era === '2026' ? 'Ouvrir le Radar 2070' : 'Retour au QG 2026'}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0, 179, 255, 0.15)',
+                border: '1.5px solid #00b3ff',
+                color: '#00b3ff',
+                boxShadow: '0 0 10px rgba(0, 179, 255, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+            >
+              {era === '2026' ? <Scan size={18} /> : <Radio size={18} />}
             </button>
             <button 
               className="switch-btn" 
               onClick={() => setShowLeaderboardModal(true)}
+              title="Classement - Top 10"
               style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 background: 'rgba(255, 215, 0, 0.15)',
-                borderColor: '#ffd700',
+                border: '1.5px solid #ffd700',
                 color: '#ffd700',
-                fontWeight: 'bold',
-                textShadow: '0 0 8px rgba(255, 215, 0, 0.4)'
+                boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
               }}
             >
-              🏆 Top 10
+              <Trophy size={18} />
             </button>
-            <button className="switch-btn" onClick={logoutUser} style={{ background: '#ff3b3b', color: '#fff' }}>
-              <LogOut className="icon-sm" /> Quitter
+            <button 
+              className="switch-btn" 
+              onClick={logoutUser} 
+              title="Quitter la simulation"
+              style={{ 
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255, 59, 59, 0.15)',
+                border: '1.5px solid #ff3b3b',
+                color: '#ff3b3b',
+                boxShadow: '0 0 10px rgba(255, 59, 59, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+            >
+              <LogOut size={18} />
             </button>
           </div>
         </header>
@@ -1045,18 +1185,29 @@ function MainApp() {
             className={`codex-panel ${isCodexCollapsed ? 'collapsed' : ''}`}
             onScroll={() => setExpandedMission(null)} // Ferme le pop-over au scroll
           >
-            <div className="codex-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              {!isCodexCollapsed && <h2>Codex Temporel {childInfos?.pseudo ? `- ${childInfos.pseudo}` : ''}</h2>}
-              <button 
-                className="collapse-btn" 
-                onClick={() => {
-                  setIsCodexCollapsed(!isCodexCollapsed);
-                  setExpandedMission(null);
-                }}
-                style={{ background: 'transparent', border: 'none', color: '#00ffcc', cursor: 'pointer', margin: isCodexCollapsed ? '0 auto' : '0 0 0 auto', padding: '5px' }}
-              >
-                {isCodexCollapsed ? <ChevronRight /> : <ChevronLeft />}
-              </button>
+            <div className="codex-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isCodexCollapsed ? 'column' : 'row', gap: '8px', padding: '10px 15px' }}>
+              {!isCodexCollapsed && <h2 style={{ margin: 0 }}>Codex Temporel {childInfos?.pseudo ? `- ${childInfos.pseudo}` : ''}</h2>}
+              <div style={{ display: 'flex', flexDirection: isCodexCollapsed ? 'column' : 'row', alignItems: 'center', gap: '8px', marginLeft: isCodexCollapsed ? 'auto' : '0', marginRight: isCodexCollapsed ? 'auto' : '0' }}>
+                <button 
+                  className="collapse-btn" 
+                  onClick={() => {
+                    setIsCodexCollapsed(!isCodexCollapsed);
+                    setExpandedMission(null);
+                  }}
+                  title={isCodexCollapsed ? "Agrandir le Codex" : "Réduire le Codex"}
+                  style={{ background: 'transparent', border: 'none', color: '#00ffcc', cursor: 'pointer', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {isCodexCollapsed ? <ChevronRight /> : <ChevronLeft />}
+                </button>
+                <button 
+                  className="collapse-btn" 
+                  onClick={() => setSelectedSector(null)}
+                  title="Fermer le Codex"
+                  style={{ background: 'transparent', border: 'none', color: '#ff3b3b', cursor: 'pointer', padding: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Sélecteur d'Onglets */}
@@ -2192,7 +2343,17 @@ function MainApp() {
       </AnimatePresence>
 
       {/* Terminal de discussion instantanée (Chat) */}
-      <ChatPanel players={players} teams={dashboardStatus?.teams || []} />
+      <ChatPanel 
+        players={players} 
+        teams={dashboardStatus?.teams || []} 
+        onlineUsers={onlineUsers}
+        onOnlineUsersChange={setOnlineUsers}
+        onUnreadChange={setUnreadChat}
+        isOpenProp={chatOpen}
+        activeTabProp={chatActiveTab}
+        onClose={() => setChatOpen(false)}
+        onTabChange={(tab) => setChatActiveTab(tab)}
+      />
     </div>
   );
 }
