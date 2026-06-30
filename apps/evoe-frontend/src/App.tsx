@@ -798,10 +798,8 @@ function MainApp() {
     }
   };
 
-  // Redirection si non connecté
-  if (!user || instanceChoices) {
-    return <Navigate to="/login" replace />;
-  }
+  // L'early return doit être après tous les hooks
+  const shouldRedirect = !user || instanceChoices;
 
   // Fermer le pop-over holographique si on clique n'importe où en dehors
   useEffect(() => {
@@ -847,6 +845,10 @@ function MainApp() {
       setIsTransitioning(false);
     }, 1000); // 1s de transition "zoom visière"
   };
+
+  if (shouldRedirect) {
+    return <Navigate to="/login" replace />;
+  }
 
   // Trouver les informations de profil du Gardien connecté
   const currentPlayer = players?.find(p => p.id === childInfos?.id);
