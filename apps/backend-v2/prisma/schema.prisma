@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id               Int        @id @default(autoincrement())
-  email            String     @unique
-  password         String
-  name             String?
-  avatar           String?
-  lastSeenAt       DateTime?  @updatedAt
-  role             Role       @default(AM)
-  createdAt        DateTime   @default(now())
+  id                   Int            @id @default(autoincrement())
+  email                String         @unique
+  password             String
+  name                 String?
+  avatar               String?
+  lastSeenAt           DateTime?      @updatedAt
+  role                 Role           @default(AM)
+  createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   managedInstances     Instance[]
   managedInstanceYears InstanceYear[]
@@ -43,24 +43,28 @@ model ActionRef {
 }
 
 model Category {
-  id             Int          @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   name           String
   icon           String?
-  order          Int          @default(0)
+  order          Int           @default(0)
   instanceYearId Int
-  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
+  instanceYear   InstanceYear  @relation(fields: [instanceYearId], references: [id])
   localActions   LocalAction[]
 }
 
 model AnnualImpactData {
-  id              Int      @id @default(autoincrement())
-  year            Int      @unique
-  dActuel         Int?
-  moyCo2Monde     Float?
-  moyEauMonde     Float?
-  moyDechetsMonde Float?
-  popMonde        Float?
-  isCustomized    Boolean  @default(false)
+  id                        Int     @id @default(autoincrement())
+  year                      Int     @unique
+  dActuel                   Int?
+  moyCo2Monde               Float?
+  moyEauMonde               Float?
+  moyDechetsMonde           Float?
+  popMonde                  Float?
+  isCustomized              Boolean @default(false)
+  assiduityWeight           Float   @default(0.0)
+  annualMultiplierWeight    Float   @default(1.0)
+  difficultyFactor          Float   @default(2.0)
+  worldProjectionMultiplier Float   @default(1.0)
 }
 
 model CategoryRef {
@@ -72,34 +76,34 @@ model CategoryRef {
 }
 
 model Instance {
-  id               Int                        @id @default(autoincrement())
-  schoolName       String
-  createdAt        DateTime                   @default(now())
-  adminId          Int?
-  admin            User?                      @relation(fields: [adminId], references: [id])
-  instanceYears    InstanceYear[]
-  gameConfigs      GameConfig[]
-  animalUnlocks    InstanceAnimalUnlock[]
-  localActions     LocalAction[]
+  id                Int                        @id @default(autoincrement())
+  schoolName        String
+  createdAt         DateTime                   @default(now())
+  adminId           Int?
+  admin             User?                      @relation(fields: [adminId], references: [id])
+  instanceYears     InstanceYear[]
+  gameConfigs       GameConfig[]
+  animalUnlocks     InstanceAnimalUnlock[]
+  localActions      LocalAction[]
   terreThermometers TerreThermometerSnapshot[]
 }
 
 model InstanceYear {
-  id               Int       @id @default(autoincrement())
+  id               Int        @id @default(autoincrement())
   instanceId       Int
   schoolYear       String
   hostUrl          String?
   icon             String?
-  isOpen           Boolean   @default(false)
-  allowAllDelegate Boolean   @default(false)
+  isOpen           Boolean    @default(false)
+  allowAllDelegate Boolean    @default(false)
   gameStartDate    DateTime?
   gameEndDate      DateTime?
-  gamePeriodsCount Int       @default(24)
-  unlockedChapters Int       @default(0)
-  createdAt        DateTime  @default(now())
+  gamePeriodsCount Int        @default(24)
+  unlockedChapters Int        @default(0)
+  createdAt        DateTime   @default(now())
   adminId          Int?
-  admin            User?     @relation(fields: [adminId], references: [id])
-  instance         Instance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  admin            User?      @relation(fields: [adminId], references: [id])
+  instance         Instance   @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   periods          Period[]
   teams            Team[]
   categories       Category[]
@@ -122,7 +126,6 @@ model Team {
   whatsappInviteUrl  String?
   whatsappGroupId    String?
 }
-
 
 model Group {
   id       Int     @id @default(autoincrement())
@@ -149,7 +152,7 @@ model Child {
 }
 
 model LocalAction {
-  id             Int          @id @default(autoincrement())
+  id             Int                     @id @default(autoincrement())
   label          String
   description    String?
   actionRefId    Int
@@ -163,22 +166,22 @@ model LocalAction {
   schoolYear     String?
   actionsDone    ActionDone[]
   evoeMission    EvoeMissionTranslation?
-  actionRef      ActionRef    @relation(fields: [actionRefId], references: [id])
-  category       Category?    @relation(fields: [categoryId], references: [id])
-  instance       Instance     @relation(fields: [instanceId], references: [id])
+  actionRef      ActionRef               @relation(fields: [actionRefId], references: [id])
+  category       Category?               @relation(fields: [categoryId], references: [id])
+  instance       Instance                @relation(fields: [instanceId], references: [id])
   evoeChallenges EvoeChallenge[]
 
   @@unique([instanceId, actionRefId, schoolYear])
 }
 
 model Period {
-  id             Int          @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   startDate      DateTime
   endDate        DateTime
   instanceYearId Int
-  isOpen         Boolean      @default(false)
+  isOpen         Boolean         @default(false)
   actionsDone    ActionDone[]
-  instanceYear   InstanceYear @relation(fields: [instanceYearId], references: [id])
+  instanceYear   InstanceYear    @relation(fields: [instanceYearId], references: [id])
   evoeChallenges EvoeChallenge[]
 }
 
@@ -220,12 +223,12 @@ model GameConfig {
 }
 
 model SystemConfig {
-  id                     Int    @id @default(autoincrement())
-  emissionsParHabitantAn Float  @default(11.0)
-  temperatureMalade      Float  @default(42.0)
-  temperatureSaine       Float  @default(37.0)
-  populationReference    Int    @default(68000000)
-  schoolYear             String @unique @default("2024-2025")
+  id                     Int     @id @default(autoincrement())
+  emissionsParHabitantAn Float   @default(11.0)
+  temperatureMalade      Float   @default(42.0)
+  temperatureSaine       Float   @default(37.0)
+  populationReference    Int     @default(68000000)
+  schoolYear             String  @unique @default("2024-2025")
   youtubeBriefingUrl     String?
   whatsappGeneralUrl     String?
   whatsappGeneralId      String?
@@ -287,14 +290,14 @@ model Notification {
 }
 
 model EvoeMissionTranslation {
-  id             Int          @id @default(autoincrement())
-  localActionId  Int          @unique
-  titreSF        String
-  descriptionSF  String
-  pointsGagnes   Int
-  isHacked       Boolean      @default(false)
-  localAction    LocalAction  @relation(fields: [localActionId], references: [id], onDelete: Cascade)
-  
+  id            Int         @id @default(autoincrement())
+  localActionId Int         @unique
+  titreSF       String
+  descriptionSF String
+  pointsGagnes  Int
+  isHacked      Boolean     @default(false)
+  localAction   LocalAction @relation(fields: [localActionId], references: [id], onDelete: Cascade)
+
   @@map("evoe_mission_translation")
 }
 
@@ -304,7 +307,7 @@ model EvoeTeamTechnology {
   maxLevel  Int      @default(1)
   updatedAt DateTime @updatedAt
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  
+
   @@map("evoe_team_technology")
 }
 
@@ -318,10 +321,10 @@ model EvoeChallenge {
   pledge           String?
   createdAt        DateTime        @default(now())
 
-  challengerTeam   Team            @relation("ChallengerTeam", fields: [challengerTeamId], references: [id], onDelete: Cascade)
-  targetTeam       Team            @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade)
-  localAction      LocalAction     @relation(fields: [localActionId], references: [id], onDelete: Cascade)
-  period           Period          @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  challengerTeam Team        @relation("ChallengerTeam", fields: [challengerTeamId], references: [id], onDelete: Cascade)
+  targetTeam     Team        @relation("TargetTeam", fields: [targetTeamId], references: [id], onDelete: Cascade)
+  localAction    LocalAction @relation(fields: [localActionId], references: [id], onDelete: Cascade)
+  period         Period      @relation(fields: [periodId], references: [id], onDelete: Cascade)
 
   @@map("evoe_challenge")
 }

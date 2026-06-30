@@ -43,6 +43,22 @@ export class ImpactController {
     return this.impactService.updateAnnualConstants(body, req.user);
   }
 
+  @Post('annual-tuning/:year')
+  @Roles(Role.AS)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async updateAnnualTuning(
+    @Param('year') year: string,
+    @Body() body: any,
+  ) {
+    return this.impactService.updateAnnualTuning(parseInt(year, 10), body);
+  }
+
+  @Get('simulation-base')
+  async getSimulationBase(@Query('schoolYear') schoolYear?: string) {
+    const sy = schoolYear || '2024-2025';
+    return this.impactService.getSimulationBase(sy);
+  }
+
   @Get('history')
   async getGlobalHistory(@Query('schoolYear') schoolYear?: string) {
     const sy = schoolYear || '2024-2025';

@@ -50,6 +50,10 @@ export class ImpactService {
             moyEauMonde: mostRecent?.moyEauMonde ?? 1385000,
             moyDechetsMonde: mostRecent?.moyDechetsMonde ?? 270,
             popMonde: mostRecent?.popMonde ?? 8.1,
+            assiduityWeight: mostRecent?.assiduityWeight ?? 0.0,
+            annualMultiplierWeight: mostRecent?.annualMultiplierWeight ?? 1.0,
+            difficultyFactor: mostRecent?.difficultyFactor ?? 2.0,
+            worldProjectionMultiplier: mostRecent?.worldProjectionMultiplier ?? 1.0,
             isCustomized: false,
           },
         });
@@ -126,7 +130,10 @@ export class ImpactService {
           : 0;
 
       // 5. Extrapolation Annuelle de l'effort individuel
-      const annualRatio = 52.0 / gameDuration;
+      const annualMultiplierWeight = annualData.annualMultiplierWeight ?? 1.0;
+      const baseAnnualRatio = 52.0 / gameDuration;
+      const annualRatio = 1 + (baseAnnualRatio - 1) * annualMultiplierWeight;
+
       const avgCo2PerChild =
         nbChildrenTotal > 0 ? realCo2 / nbChildrenTotal : 0;
       const avgWaterPerChild =
@@ -134,9 +141,10 @@ export class ImpactService {
       const avgWastePerChild =
         nbChildrenTotal > 0 ? realWaste / nbChildrenTotal : 0;
 
-      const effortCo2Indiv = (avgCo2PerChild / 1000) * annualRatio; // Tonnes/an par joueur
-      const effortWaterIndiv = avgWaterPerChild * annualRatio; // Litres/an par joueur
-      const effortWasteIndiv = avgWastePerChild * annualRatio; // kg/an par joueur
+      const worldProjectionMultiplier = annualData.worldProjectionMultiplier ?? 1.0;
+      const effortCo2Indiv = (avgCo2PerChild / 1000) * annualRatio * worldProjectionMultiplier; // Tonnes/an par joueur pondéré
+      const effortWaterIndiv = avgWaterPerChild * annualRatio * worldProjectionMultiplier; // Litres/an par joueur pondéré
+      const effortWasteIndiv = avgWastePerChild * annualRatio * worldProjectionMultiplier; // kg/an par joueur pondéré
 
       // 6. Projection Mondiale
       // Le facteur ambassadeur de 4 (foyer) et le diviseur de population de 4 (nombre de foyers) s'annulant mutuellement,
@@ -154,9 +162,9 @@ export class ImpactService {
       // Pondération : 60% CO2, 20% Eau, 20% Déchets
       const rawEffortRatio = pCo2 * 0.6 + pWater * 0.2 + pWaste * 0.2;
 
-      // L'effort individuel moyen intègre déjà les saisies réelles loggées,
-      // donc on n'applique plus de double pénalisation par l'assiduité.
-      const weightedEffortRatio = rawEffortRatio;
+      // Application du poids de l'assiduité
+      const assiduityWeight = annualData.assiduityWeight ?? 0.0;
+      const weightedEffortRatio = rawEffortRatio * (1 - assiduityWeight) + (rawEffortRatio * assiduiteRatio) * assiduityWeight;
       const safeEffortRatio = Math.min(weightedEffortRatio, 0.99);
 
       // 8. Calcul des Planètes et Jour J (Modèle Asymptotique 25%)
@@ -166,10 +174,10 @@ export class ImpactService {
 
       const basePlanetes = jAnnee / (annualData.dActuel || 214); // Ex: 1.71
 
-      // Plafond d'action individuelle limité à 25%, avec progression asymptotique (facteur 2.0 pour lisser la courbe)
-      const FACTEUR_DE_DIFFICULTE = 2.0;
+      // Plafond d'action individuelle limité à 25%, avec progression asymptotique (facteur 2.0 par défaut pour lisser la courbe)
+      const difficultyFactor = annualData.difficultyFactor ?? 2.0;
       const reductionImpactTotal =
-        0.25 * (1 - Math.exp(-weightedEffortRatio * FACTEUR_DE_DIFFICULTE));
+        0.25 * (1 - Math.exp(-weightedEffortRatio * difficultyFactor));
       const nbPlanetes = basePlanetes * (1 - reductionImpactTotal);
 
       const nouveauJourAnnee = jAnnee / nbPlanetes;
@@ -343,6 +351,65 @@ export class ImpactService {
       });
     }
     return data;
+  }
+
+  async getSimulationBase(schoolYear: string) {
+    const year = parseInt(schoolYear.split('-')[0], 10);
+    const annualData = await this.prisma.annualImpactData.findUnique({
+      where: { year },
+    });
+
+    // En global, on prend tous les enfants de la base
+    const nbChildrenTotal = (await this.prisma.child.count()) || 1;
+    const actionsDone = await this.prisma.actionDone.findMany({
+      where: { period: { instanceYear: { schoolYear } } },
+      select: { savedCo2: true, savedWater: true, savedWaste: true },
+    });
+
+    let realCo2 = 0;
+    let realWater = 0;
+    let realWaste = 0;
+    for (const act of actionsDone) {
+      realCo2 += act.savedCo2;
+      realWater += act.savedWater;
+      realWaste += act.savedWaste;
+    }
+
+    const catalogSize = (await this.prisma.actionRef.count()) || 62;
+    const gameDuration = 52; // Default for global
+
+    return {
+      annualData: annualData || {
+        dActuel: 214,
+        moyCo2Monde: 4.7,
+        moyEauMonde: 1385000,
+        moyDechetsMonde: 270,
+        popMonde: 8.1,
+        assiduityWeight: 0.0,
+        annualMultiplierWeight: 1.0,
+        difficultyFactor: 2.0,
+        worldProjectionMultiplier: 1.0,
+      },
+      nbChildrenTotal,
+      actionsCount: actionsDone.length,
+      realCo2,
+      realWater,
+      realWaste,
+      catalogSize,
+      gameDuration,
+    };
+  }
+
+  async updateAnnualTuning(year: number, payload: any) {
+    return this.prisma.annualImpactData.update({
+      where: { year },
+      data: {
+        assiduityWeight: payload.assiduityWeight,
+        annualMultiplierWeight: payload.annualMultiplierWeight,
+        difficultyFactor: payload.difficultyFactor,
+        worldProjectionMultiplier: payload.worldProjectionMultiplier,
+      },
+    });
   }
 
   async updateAnnualConstants(payload: any, currentUser?: any) {

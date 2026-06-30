@@ -29,6 +29,7 @@ import { AnchorsManager } from '@/components/organization/AnchorsManager';
 import { GlobalDataSettings } from '@/components/settings/GlobalDataSettings';
 import { SystemConfigForm } from '@/components/settings/SystemConfigForm';
 import { ManagedSpacesSection } from '@/components/settings/ManagedSpacesSection';
+import { TuningSimulator } from '@/components/settings/TuningSimulator';
 
 export default function SettingsPage() {
   return (
@@ -39,7 +40,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data' | 'anchors';
+  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data' | 'tuning' | 'anchors';
 
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('tab') as ActiveTab) || 'profile';
@@ -79,6 +80,7 @@ function SettingsContent() {
     { id: 'users', label: 'Utilisateurs', icon: '👥', adminOnly: true },
     { id: 'catalog', label: 'Catalogue', icon: '📚' },
     { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
+    { id: 'tuning', label: 'Tuning critères', icon: '🎛️', adminOnly: true },
     { id: 'anchors', label: 'Ecoles', icon: '🏢', adminOnly: true },
   ];
 
@@ -129,6 +131,11 @@ function SettingsContent() {
             {/* Animaux + Terre-momètre : 2 colonnes */}
             <SystemConfigForm schoolYear={schoolYear} />
           </div>
+        )}
+
+        {/* Tuning Simulateur — pleine largeur */}
+        {activeTab === 'tuning' && isAS && (
+          <TuningSimulator schoolYear={schoolYear} />
         )}
 
         {/* Profil & Utilisateurs — largeur contrainte pour lisibilité */}
