@@ -630,6 +630,11 @@ function MainApp() {
   const [showRadar, setShowRadar] = useState(false);
   const [isResettingPropulsion, setIsResettingPropulsion] = useState(false);
 
+  // State Oracle Terrestre (message machine à écrire au clic sur la planète)
+  const [earthOracleLevel, setEarthOracleLevel] = useState<number | null>(null);
+  const [earthOracleText, setEarthOracleText] = useState('');
+  const [earthOracleTyping, setEarthOracleTyping] = useState(false);
+
   // States pour les défis et l'impulsion (Sprint 3)
   const [codexTab, setCodexTab] = useState<'missions' | 'challenges'>('missions');
   const [challenges, setChallenges] = useState<any[]>([]);
@@ -852,6 +857,31 @@ function MainApp() {
     return <Navigate to="/login" replace />;
   }
 
+  // ---- Messages Oracle Terrestre ----
+  const EARTH_ORACLE_MESSAGES: Record<number, string> = {
+    1: "La Terre de 2070 est silencieuse... Les archives des Agents Temporels ont été retrouvées dans les ruines. Leur courage a laissé une trace. Mais le temps manque encore. Revenez à 2026 — chaque action compte.",
+    2: "Les premiers signes de vie réapparaissent sur la Terre de 2070. Des forêts timides, de l’eau plus pure. La mission avance. Mais les Agents ont encore le pouvoir d’écrire la suite. Chaque geste en 2026 résonne ici.",
+    3: "La Terre de 2070 reprend son souffle. Les rivières coulent à nouveau, les villes verdissent. Les Agents de 2026 ont changé le cours du temps. Continuez — le futur vous entend.",
+    4: "En 2070, la Terre respire. Vos actions à 2026 ont réécrit notre avenir. Les écosystèmes se reconstituent, la biodiversité revient. Vous avez accompli ce que beaucoup croyaient impossible.",
+    5: "La vie a triomphé sur la Terre de 2070. Les Archives des Agents Temporels sont gravées dans l’histoire de l’humanité. Vous avez sauvé notre futur. Le voyage se termine ici — en victoire.",
+  };
+
+  const handleEarthClick = (level: number) => {
+    setEarthOracleLevel(level);
+    setEarthOracleText('');
+    setEarthOracleTyping(true);
+    const fullText = EARTH_ORACLE_MESSAGES[level] || '';
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setEarthOracleText(fullText.slice(0, i));
+      if (i >= fullText.length) {
+        clearInterval(interval);
+        setEarthOracleTyping(false);
+      }
+    }, 28);
+  };
+
   // Trouver les informations de profil du Gardien connecté
   const currentPlayer = players?.find(p => p.id === childInfos?.id);
   const myTeamId = currentPlayer?.teamId;
@@ -1036,10 +1066,53 @@ function MainApp() {
               unreadMps={unreadChat.unreadMps}
             />
           ) : (
-            <Portal2070 dashboardStatus={dashboardStatus} />
+            <Portal2070 dashboardStatus={dashboardStatus} onEarthClick={handleEarthClick} />
           )}
         </Canvas>
       </div>
+
+      {/* Oracle Terrestre — Overlay machine à écrire au clic sur la Terre */}
+      {era === '2070' && earthOracleLevel !== null && (
+        <div
+          onClick={() => setEarthOracleLevel(null)}
+          style={{
+            position: 'fixed',
+            bottom: '90px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 200,
+            maxWidth: '560px',
+            width: '90vw',
+            background: 'rgba(5, 10, 22, 0.88)',
+            border: '1px solid rgba(0, 255, 204, 0.4)',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: '0 0 40px rgba(0, 255, 204, 0.12), 0 20px 50px rgba(0,0,0,0.7)',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.18em', color: '#00ffcc', textTransform: 'uppercase', textShadow: '0 0 8px rgba(0,255,204,0.5)' }}>
+              🌍 Oracle Terrestre — 2070
+            </span>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(160,174,192,0.6)', fontStyle: 'italic' }}>Cliquer pour fermer</span>
+          </div>
+          <p style={{
+            margin: 0,
+            fontSize: '0.9rem',
+            lineHeight: '1.7',
+            color: '#e2e8f0',
+            fontFamily: '"Courier New", Courier, monospace',
+            minHeight: '60px',
+          }}>
+            {earthOracleText}
+            {earthOracleTyping && <span style={{ display: 'inline-block', width: '2px', height: '1em', background: '#00ffcc', marginLeft: '2px', animation: 'blink 0.7s step-end infinite', verticalAlign: 'text-bottom' }} />}
+          </p>
+        </div>
+      )}
 
       {/* Transition Effect (Zoom Visière) */}
       <AnimatePresence>

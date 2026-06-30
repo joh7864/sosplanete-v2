@@ -892,6 +892,11 @@ body {
   100% { opacity: 0.5; }
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .avatar-pulse-ring {
   box-shadow: 0 0 10px #00ffcc;
   animation: avatarPulse 2s infinite;

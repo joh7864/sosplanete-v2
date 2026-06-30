@@ -180,7 +180,7 @@ function TemporalEchoPulse({ globalProgression }: { globalProgression: number })
   );
 }
 
-export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }) {
+export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboardStatus: any; onEarthClick?: (level: number) => void }) {
   const orbitRef = useRef<THREE.Group>(null);
   const planetMeshRef = useRef<THREE.Mesh>(null);
   const planetMaterialRef = useRef<THREE.ShaderMaterial>(null);
@@ -212,6 +212,21 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
 
   // Détermination du statut de la ligne temporelle (Chrono-Portail / Planète)
   const globalProgression = dashboardStatus?.globalProgression || 0;
+
+  // Calcul du niveau de message (basé sur la position moyenne des vaisseaux)
+  const avgPosition = useMemo(() => {
+    if (!teams || teams.length === 0) return 0;
+    return teams.reduce((sum: number, t: any) => sum + (t.position || 0), 0) / teams.length;
+  }, [teams]);
+
+  const handlePlanetClick = () => {
+    if (!onEarthClick) return;
+    if (avgPosition <= 20) onEarthClick(1);
+    else if (avgPosition <= 40) onEarthClick(2);
+    else if (avgPosition <= 60) onEarthClick(3);
+    else if (avgPosition <= 80) onEarthClick(4);
+    else onEarthClick(5);
+  };
 
   // Chargement de la texture réelle de la Terre satellite 2026 (locale)
   const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
@@ -434,7 +449,7 @@ export default function Portal2070({ dashboardStatus }: { dashboardStatus: any }
 
       {/* Chrono-Planète Évolutive "Aeon-9" (Z = -10) */}
       <group position={[0, 0.4, -10.2]}>
-        <mesh ref={planetMeshRef}>
+        <mesh ref={planetMeshRef} onClick={handlePlanetClick} style={{ cursor: 'pointer' }}>
           <sphereGeometry args={[2.8, 32, 32]} />
           <shaderMaterial key={earthTexture?.uuid || 'planet'} ref={planetMaterialRef} attach="material" args={[planetShaderArgs]} />
         </mesh>
