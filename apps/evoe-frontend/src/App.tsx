@@ -660,21 +660,23 @@ function MainApp() {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
   });
 
-  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
-    return typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false;
-  });
-
+  // Verrouillage d'orientation via l'API Screen Orientation
   useEffect(() => {
-    const handleResize = () => {
-      setIsPortrait(window.innerHeight > window.innerWidth);
+    const applyOrientation = async () => {
+      try {
+        if (!allowPortrait) {
+          // Forcer le paysage — l'utilisateur ne peut pas tourner le téléphone
+          await screen.orientation.lock('landscape');
+        } else {
+          // Déverrouiller — rotation libre portrait/paysage sans aucun message
+          screen.orientation.unlock();
+        }
+      } catch {
+        // L'API n'est pas supportée (desktop, certains navigateurs) : on ignore silencieusement
+      }
     };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
+    applyOrientation();
+  }, [allowPortrait]);
 
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
@@ -1044,19 +1046,6 @@ function MainApp() {
 
       {/* Glitch Écran Temporel */}
       {isGlitching && <div className="screen-glitch" />}
-
-      {/* Overlay Mode Portrait (Paysage Requis) */}
-      {!allowPortrait && isPortrait && (
-        <div className="orientation-warning" style={{ display: 'flex' }}>
-          <div className="orientation-warning-content">
-            <div className="phone-rotate-icon">🔄</div>
-            <h2>ALERTE MATRICE NEXUS</h2>
-            <p>
-              Veuillez tourner votre appareil en <strong>mode paysage</strong> (horizontal) pour synchroniser le Codex Temporel.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
