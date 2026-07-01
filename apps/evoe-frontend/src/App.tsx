@@ -660,10 +660,6 @@ function MainApp() {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
   });
 
-  const handleBypassOrientation = () => {
-    setAllowPortrait(true);
-    localStorage.setItem('evoe_allow_portrait', 'true');
-  };
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
@@ -1042,13 +1038,6 @@ function MainApp() {
             <p>
               Veuillez tourner votre appareil en <strong>mode paysage</strong> (horizontal) pour synchroniser le Codex Temporel.
             </p>
-            <button 
-              className="switch-btn" 
-              style={{ marginTop: '15px', padding: '8px 16px', fontSize: '0.85rem' }}
-              onClick={handleBypassOrientation}
-            >
-              Continuer en Portrait
-            </button>
           </div>
         </div>
       )}
