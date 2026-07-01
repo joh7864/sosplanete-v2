@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail, RotateCcw } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -656,9 +656,48 @@ function MainApp() {
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
+  // --- Gestion de l'orientation mobile ---
+  const [allowPortrait, setAllowPortrait] = useState<boolean>(() =>
+    localStorage.getItem('evoe_allow_portrait') === 'true'
+  );
+  const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  );
+
+  useEffect(() => {
+    const onOrientationChange = () => {
+      setTimeout(() => {
+        setIsPhysicalPortrait(window.innerHeight > window.innerWidth);
+      }, 150);
+    };
+    window.addEventListener('resize', onOrientationChange);
+    window.addEventListener('orientationchange', onOrientationChange);
+    return () => {
+      window.removeEventListener('resize', onOrientationChange);
+      window.removeEventListener('orientationchange', onOrientationChange);
+    };
+  }, []);
+
+  // Verrouillage natif (Chrome Android uniquement, silencieux sinon)
+  useEffect(() => {
+    const tryLock = async () => {
+      try {
+        if (!allowPortrait) {
+          await (screen.orientation as any).lock('landscape');
+        } else {
+          screen.orientation.unlock();
+        }
+      } catch { /* non supporté sur iOS, silencieux */ }
+    };
+    tryLock();
+  }, [allowPortrait]);
+
+  const showPortraitOverlay = !allowPortrait && isPhysicalPortrait;
+  // ---------------------------------------
 
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
+
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [unreadChat, setUnreadChat] = useState<{
     global: number;
@@ -1014,7 +1053,51 @@ function MainApp() {
 
   return (
     <div className="app-container">
-      {/* Briefing Temporel (Onboarding Vidéo) */}
+
+      {/* Overlay Portrait — affiché quand le mode paysage est requis et l'appareil est en portrait */}
+      {showPortraitOverlay && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999999,
+          background: 'rgba(4, 8, 18, 0.97)',
+          backdropFilter: 'blur(20px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '24px',
+          padding: '40px',
+          textAlign: 'center',
+        }}>
+          <RotateCcw size={64} color="#00ffcc" style={{ animation: 'spin 3s linear infinite' }} />
+          <div>
+            <h2 style={{ color: '#00ffcc', fontFamily: '"Courier New", monospace', fontSize: '1.1rem', margin: '0 0 8px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              Mode Paysage Requis
+            </h2>
+            <p style={{ color: 'rgba(160,174,192,0.8)', fontSize: '0.875rem', margin: 0 }}>
+              Tournez votre appareil pour accéder au portail temporel.
+            </p>
+          </div>
+          <button
+            onClick={() => { setAllowPortrait(true); localStorage.setItem('evoe_allow_portrait', 'true'); }}
+            style={{
+              marginTop: '8px',
+              background: 'transparent',
+              border: '1px solid rgba(160,174,192,0.35)',
+              color: 'rgba(160,174,192,0.6)',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              letterSpacing: '0.05em',
+            }}
+          >
+            Autoriser le mode Portrait
+          </button>
+        </div>
+      )}
+
       {showBriefing && childInfos?.youtubeBriefingUrl && (
         <TemporalBriefing 
           onComplete={() => setShowBriefing(false)} 
@@ -1145,8 +1228,30 @@ function MainApp() {
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
 
+            {/* Toggle Portrait / Paysage */}
+            <button
+              className="switch-btn"
+              onClick={() => {
+                const next = !allowPortrait;
+                setAllowPortrait(next);
+                localStorage.setItem('evoe_allow_portrait', String(next));
+              }}
+              title={allowPortrait ? 'Mode Portrait autorisé — cliquer pour forcer le paysage' : 'Paysage forcé — cliquer pour autoriser le portrait'}
+              style={{
+                width: '40px', height: '40px', borderRadius: '50%', padding: '0',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: allowPortrait ? 'rgba(255,255,255,0.05)' : 'rgba(0,255,204,0.15)',
+                border: allowPortrait ? '1.5px solid rgba(255,255,255,0.2)' : '1.5px solid #00ffcc',
+                color: allowPortrait ? '#a0aec0' : '#00ffcc',
+                boxShadow: allowPortrait ? 'none' : '0 0 10px rgba(0,255,204,0.2)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {allowPortrait ? <Smartphone size={18} /> : <Monitor size={18} />}
+            </button>
 
-            <button 
+            <button
               className="switch-btn" 
               onClick={handleSwitchEra} 
               disabled={isTransitioning}
