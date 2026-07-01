@@ -794,12 +794,12 @@ export default function ChatPanel({
       <div
         className={`chat-sidebar-container ${isOpen ? 'open' : ''}`}
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           right: 0,
-          height: '100dvh',
+          height: '100%',
           width: isExpanded ? '600px' : '400px',
-          maxWidth: '100vw',
+          maxWidth: '100%',
           zIndex: 9999,
           background: 'rgba(5, 8, 16, 0.94)',
           borderLeft: '1px solid rgba(0, 255, 204, 0.25)',

@@ -660,7 +660,26 @@ function MainApp() {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
   });
 
-  // Verrouillage natif de l'orientation (PWA standalone / Chrome Android fullscreen)
+  // Suivi de l'orientation physique du téléphone
+  const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false;
+  });
+
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      setTimeout(() => {
+        setIsPhysicalPortrait(window.innerHeight > window.innerWidth);
+      }, 100);
+    };
+    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    return () => {
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
+
+  // Tenter aussi le verrouillage natif (Chrome Android)
   useEffect(() => {
     const applyLock = async () => {
       try {
@@ -669,12 +688,12 @@ function MainApp() {
         } else {
           screen.orientation.unlock();
         }
-      } catch {
-        // Non supporté hors PWA/fullscreen : on ignore
-      }
+      } catch {}
     };
     applyLock();
   }, [allowPortrait]);
+
+  const shouldRotateApp = !allowPortrait && isPhysicalPortrait;
 
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
@@ -1031,8 +1050,27 @@ function MainApp() {
     setSelectedProfileId(player.childId || player.id);
   };
 
+  // La rotation CSS transforme le contenu en paysage si le téléphone est tenu à la verticale
+  const rotatedStyle: React.CSSProperties = shouldRotateApp ? {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: '100vh',
+    height: '100vw',
+    transform: 'translate(-50%, -50%) rotate(90deg)',
+    transformOrigin: 'center center',
+    overflow: 'hidden',
+  } : {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+  };
+
   return (
-    <div className="app-container">
+    <div className="app-container" style={rotatedStyle}>
       {/* Briefing Temporel (Onboarding Vidéo) */}
       {showBriefing && childInfos?.youtubeBriefingUrl && (
         <TemporalBriefing 
@@ -1942,11 +1980,11 @@ function MainApp() {
         {showChallengeModal && (
           <div 
             style={{
-              position: 'fixed',
+              position: 'absolute',
               top: 0,
               left: 0,
-              width: '100vw',
-              height: '100vh',
+              width: '100%',
+              height: '100%',
               background: 'rgba(0, 0, 0, 0.55)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
@@ -2143,11 +2181,11 @@ function MainApp() {
         {cancelMissionConfirm && (
           <div 
             style={{
-              position: 'fixed',
+              position: 'absolute',
               top: 0,
               left: 0,
-              width: '100vw',
-              height: '100vh',
+              width: '100%',
+              height: '100%',
               background: 'rgba(0, 0, 0, 0.55)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
@@ -2239,11 +2277,11 @@ function MainApp() {
         {showLeaderboardModal && (
           <div 
             style={{
-              position: 'fixed',
+              position: 'absolute',
               top: 0,
               left: 0,
-              width: '100vw',
-              height: '100vh',
+              width: '100%',
+              height: '100%',
               background: 'rgba(0, 0, 0, 0.55)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
