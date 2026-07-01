@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -656,44 +656,6 @@ function MainApp() {
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
-  const [allowPortrait, setAllowPortrait] = useState<boolean>(() => {
-    return localStorage.getItem('evoe_allow_portrait') === 'true';
-  });
-
-  // Suivi de l'orientation physique du téléphone
-  const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() => {
-    return typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false;
-  });
-
-  useEffect(() => {
-    const handleOrientationChange = () => {
-      setTimeout(() => {
-        setIsPhysicalPortrait(window.innerHeight > window.innerWidth);
-      }, 100);
-    };
-    window.addEventListener('resize', handleOrientationChange);
-    window.addEventListener('orientationchange', handleOrientationChange);
-    return () => {
-      window.removeEventListener('resize', handleOrientationChange);
-      window.removeEventListener('orientationchange', handleOrientationChange);
-    };
-  }, []);
-
-  // Tenter aussi le verrouillage natif (Chrome Android)
-  useEffect(() => {
-    const applyLock = async () => {
-      try {
-        if (!allowPortrait) {
-          await screen.orientation.lock('landscape');
-        } else {
-          screen.orientation.unlock();
-        }
-      } catch {}
-    };
-    applyLock();
-  }, [allowPortrait]);
-
-  const shouldRotateApp = !allowPortrait && isPhysicalPortrait;
 
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
@@ -714,7 +676,7 @@ function MainApp() {
     total: 0
   });
 
-  const [chatOpen, setChatOpen] = useState<boolean | undefined>(undefined);
+  const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [chatActiveTab, setChatActiveTab] = useState<string | undefined>(undefined);
 
   useEffect(() => {
@@ -1050,25 +1012,8 @@ function MainApp() {
     setSelectedProfileId(player.childId || player.id);
   };
 
-  // La rotation CSS transforme le contenu en paysage si le téléphone est tenu à la verticale
-  const rotatedStyle: React.CSSProperties = shouldRotateApp ? {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    width: '100vh',
-    height: '100vw',
-    transform: 'translate(-50%, -50%) rotate(90deg)',
-    transformOrigin: 'center center'
-  } : {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%'
-  };
-
   return (
-    <div className="app-container" style={rotatedStyle}>
+    <div className="app-container">
       {/* Briefing Temporel (Onboarding Vidéo) */}
       {showBriefing && childInfos?.youtubeBriefingUrl && (
         <TemporalBriefing 
@@ -1200,32 +1145,7 @@ function MainApp() {
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
 
-            <button 
-              className="switch-btn" 
-              onClick={() => {
-                const newVal = !allowPortrait;
-                setAllowPortrait(newVal);
-                localStorage.setItem('evoe_allow_portrait', String(newVal));
-              }}
-              title={allowPortrait ? "Mode : Portrait Autorisé (Bloquer le mode Paysage / Activer l'alerte)" : "Mode : Paysage Requis (Autoriser le mode Portrait / Désactiver l'alerte)"}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: allowPortrait ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 255, 204, 0.15)',
-                border: allowPortrait ? '1.5px solid rgba(255, 255, 255, 0.2)' : '1.5px solid #00ffcc',
-                color: allowPortrait ? '#a0aec0' : '#00ffcc',
-                boxShadow: allowPortrait ? 'none' : '0 0 10px rgba(0, 255, 204, 0.2)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              {allowPortrait ? <Smartphone size={18} /> : <Monitor size={18} />}
-            </button>
+
             <button 
               className="switch-btn" 
               onClick={handleSwitchEra} 
@@ -2478,6 +2398,7 @@ function MainApp() {
         onUnreadChange={setUnreadChat}
         isOpenProp={chatOpen}
         activeTabProp={chatActiveTab}
+        onOpen={() => setChatOpen(true)}
         onClose={() => setChatOpen(false)}
         onTabChange={(tab) => setChatActiveTab(tab)}
       />

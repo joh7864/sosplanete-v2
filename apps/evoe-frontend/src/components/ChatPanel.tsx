@@ -35,6 +35,7 @@ interface ChatPanelProps {
   isOpenProp?: boolean;
   activeTabProp?: string;
   onClose?: () => void;
+  onOpen?: () => void;
   onTabChange?: (tab: string) => void;
 }
 
@@ -47,17 +48,21 @@ export default function ChatPanel({
   isOpenProp,
   activeTabProp,
   onClose,
+  onOpen,
   onTabChange
 }: ChatPanelProps) {
   const { childInfos, instanceId, user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // Default to narrow view
+  // Composant entièrement contrôlé depuis App.tsx via isOpenProp
+  const isOpen = isOpenProp ?? false;
+  const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('global');
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // For overlay drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Fermer : on délègue entièrement à App.tsx via onClose
   const changeIsOpen = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
+    if (open) {
+      onOpen?.();
+    } else {
       onClose?.();
     }
   };
@@ -88,28 +93,17 @@ export default function ChatPanel({
   const [activeEmojiPickerId, setActiveEmojiPickerId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
+  // Refs pour les callbacks WebSocket (évite les stale closures)
   const isOpenRef = useRef(isOpen);
   const activeTabRef = useRef(activeTab);
-
-  useEffect(() => {
-    isOpenRef.current = isOpen;
-  }, [isOpen]);
-
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
+  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   useEffect(() => {
     if (activeTabProp !== undefined && activeTab !== activeTabProp) {
       setActiveTab(activeTabProp);
     }
   }, [activeTabProp]);
-
-  useEffect(() => {
-    if (isOpenProp !== undefined && isOpen !== isOpenProp) {
-      setIsOpen(isOpenProp);
-    }
-  }, [isOpenProp]);
 
 
 
@@ -735,10 +729,10 @@ export default function ChatPanel({
           onClick={() => changeIsOpen(true)}
           className="chat-toggle-btn"
           style={{
-            position: 'absolute',
+            position: 'fixed',
             bottom: '25px',
             right: '25px',
-            zIndex: 999,
+            zIndex: 9998,
             background: 'rgba(10, 15, 30, 0.8)',
             border: '1.5px solid rgba(0, 255, 204, 0.6)',
             borderRadius: '50px',
@@ -805,13 +799,10 @@ export default function ChatPanel({
           borderLeft: '1px solid rgba(0, 255, 204, 0.25)',
           backdropFilter: 'blur(16px)',
           boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.7)',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-          display: 'flex',
+          display: isOpen ? 'flex' : 'none',
           flexDirection: 'column',
           color: '#fff',
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          pointerEvents: isOpen ? 'auto' : 'none',
           overflow: 'hidden'
         }}
       >
