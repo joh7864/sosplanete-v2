@@ -660,6 +660,22 @@ function MainApp() {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
   });
 
+  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
@@ -1030,8 +1046,8 @@ function MainApp() {
       {isGlitching && <div className="screen-glitch" />}
 
       {/* Overlay Mode Portrait (Paysage Requis) */}
-      {!allowPortrait && (
-        <div className="orientation-warning">
+      {!allowPortrait && isPortrait && (
+        <div className="orientation-warning" style={{ display: 'flex' }}>
           <div className="orientation-warning-content">
             <div className="phone-rotate-icon">🔄</div>
             <h2>ALERTE MATRICE NEXUS</h2>
@@ -1168,7 +1184,7 @@ function MainApp() {
                 setAllowPortrait(newVal);
                 localStorage.setItem('evoe_allow_portrait', String(newVal));
               }}
-              title={allowPortrait ? "Mode : Portrait Autorisé (Forcer le mode Paysage / Activer l'alerte)" : "Mode : Paysage Requis (Autoriser le mode Portrait / Désactiver l'alerte)"}
+              title={allowPortrait ? "Mode : Portrait Autorisé (Bloquer le mode Paysage / Activer l'alerte)" : "Mode : Paysage Requis (Autoriser le mode Portrait / Désactiver l'alerte)"}
               style={{
                 width: '40px',
                 height: '40px',
@@ -1177,10 +1193,10 @@ function MainApp() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(0, 255, 204, 0.15)',
-                border: '1.5px solid #00ffcc',
-                color: '#00ffcc',
-                boxShadow: '0 0 10px rgba(0, 255, 204, 0.2)',
+                background: allowPortrait ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 255, 204, 0.15)',
+                border: allowPortrait ? '1.5px solid rgba(255, 255, 255, 0.2)' : '1.5px solid #00ffcc',
+                color: allowPortrait ? '#a0aec0' : '#00ffcc',
+                boxShadow: allowPortrait ? 'none' : '0 0 10px rgba(0, 255, 204, 0.2)',
                 cursor: 'pointer',
                 transition: 'transform 0.2s, box-shadow 0.2s'
               }}
