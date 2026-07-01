@@ -1058,15 +1058,13 @@ function MainApp() {
     width: '100vh',
     height: '100vw',
     transform: 'translate(-50%, -50%) rotate(90deg)',
-    transformOrigin: 'center center',
-    overflow: 'hidden',
+    transformOrigin: 'center center'
   } : {
     position: 'absolute',
     top: 0,
     left: 0,
     width: '100%',
-    height: '100%',
-    overflow: 'hidden',
+    height: '100%'
   };
 
   return (

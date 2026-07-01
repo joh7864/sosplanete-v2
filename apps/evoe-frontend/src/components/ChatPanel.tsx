@@ -735,7 +735,7 @@ export default function ChatPanel({
           onClick={() => changeIsOpen(true)}
           className="chat-toggle-btn"
           style={{
-            position: 'fixed',
+            position: 'absolute',
             bottom: '25px',
             right: '25px',
             zIndex: 999,
