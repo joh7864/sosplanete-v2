@@ -660,23 +660,44 @@ function MainApp() {
     return localStorage.getItem('evoe_allow_portrait') === 'true';
   });
 
-  // Verrouillage d'orientation via l'API Screen Orientation
+  // Suivi de l'orientation physique du téléphone
+  const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false;
+  });
+
   useEffect(() => {
-    const applyOrientation = async () => {
+    const handleOrientationChange = () => {
+      // Petit délai pour laisser le navigateur finaliser la rotation
+      setTimeout(() => {
+        setIsPhysicalPortrait(window.innerHeight > window.innerWidth);
+      }, 100);
+    };
+    window.addEventListener('resize', handleOrientationChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
+    return () => {
+      window.removeEventListener('resize', handleOrientationChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
+
+  // Tenter aussi le verrouillage natif (PWA / Chrome Android)
+  useEffect(() => {
+    const applyNativeLock = async () => {
       try {
         if (!allowPortrait) {
-          // Forcer le paysage — l'utilisateur ne peut pas tourner le téléphone
           await screen.orientation.lock('landscape');
         } else {
-          // Déverrouiller — rotation libre portrait/paysage sans aucun message
           screen.orientation.unlock();
         }
       } catch {
-        // L'API n'est pas supportée (desktop, certains navigateurs) : on ignore silencieusement
+        // Non supporté (desktop, iOS) : le fallback CSS prend le relais
       }
     };
-    applyOrientation();
+    applyNativeLock();
   }, [allowPortrait]);
+
+  // Faut-il faire pivoter l'app via CSS ? (quand le verrou paysage est actif ET le téléphone est en portrait)
+  const shouldRotateApp = !allowPortrait && isPhysicalPortrait;
 
 
   const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
@@ -1033,8 +1054,20 @@ function MainApp() {
     setSelectedProfileId(player.childId || player.id);
   };
 
+  // La rotation CSS transforme le contenu en paysage si le téléphone est tenu à la verticale
+  const rotatedStyle: React.CSSProperties = shouldRotateApp ? {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    width: '100vh',
+    height: '100vw',
+    transform: 'translate(-50%, -50%) rotate(90deg)',
+    transformOrigin: 'center center',
+    overflow: 'hidden',
+  } : {};
+
   return (
-    <div className="app-container">
+    <div className="app-container" style={rotatedStyle}>
       {/* Briefing Temporel (Onboarding Vidéo) */}
       {showBriefing && childInfos?.youtubeBriefingUrl && (
         <TemporalBriefing 
