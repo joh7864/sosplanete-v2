@@ -811,7 +811,7 @@ export default function ChatPanel({
           flexDirection: 'column',
           color: '#fff',
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          pointerEvents: 'auto',
+          pointerEvents: isOpen ? 'auto' : 'none',
           overflow: 'hidden'
         }}
       >
@@ -1461,7 +1461,7 @@ export default function ChatPanel({
                           <MessageSquare size={14} />
                         </button>
 
-                        {(msg.sender === myPseudo || user?.role === 'ADMIN') && (
+                        {(msg.sender === myPseudo || (user as any)?.role === 'ADMIN') && (
                           <>
                             <button
                               type="button"
@@ -1663,7 +1663,7 @@ export default function ChatPanel({
 
                             {/* Reply Action Toolbar */}
                             <div style={{ display: 'flex', gap: '4px', opacity: 0.7, alignSelf: 'center' }}>
-                              {(reply.sender === myPseudo || user?.role === 'ADMIN') && (
+                              {(reply.sender === myPseudo || (user as any)?.role === 'ADMIN') && (
                                 <>
                                   <button
                                     type="button"

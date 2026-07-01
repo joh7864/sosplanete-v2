@@ -449,7 +449,7 @@ export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboar
 
       {/* Chrono-Planète Évolutive "Aeon-9" (Z = -10) */}
       <group position={[0, 0.4, -10.2]}>
-        <mesh ref={planetMeshRef} onClick={handlePlanetClick} style={{ cursor: 'pointer' }}>
+        <mesh ref={planetMeshRef} onClick={handlePlanetClick}>
           <sphereGeometry args={[2.8, 32, 32]} />
           <shaderMaterial key={earthTexture?.uuid || 'planet'} ref={planetMaterialRef} attach="material" args={[planetShaderArgs]} />
         </mesh>
