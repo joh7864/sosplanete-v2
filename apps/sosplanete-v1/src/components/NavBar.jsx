@@ -14,7 +14,7 @@ import Games from './Icons/GamePad'
 import Book from './Icons/Book'
 
 const NavBar = () => {
-	const { user, logoutUser, pseudo, currentWeek, activeSchoolName, instanceChoices, school, isDelegate, allowAllDelegate } = useAuth();
+	const { user, logoutUser, pseudo, currentWeek, activeSchoolName, instanceChoices, school, isDelegate, allowAllDelegate, childInfos } = useAuth();
 	const [showNavbar, setShowNavbar] = useState(false);
 	const [navbarItemSelected, setNavbarItemSelected] = useState("/fiche");
 
@@ -64,7 +64,22 @@ const NavBar = () => {
 						<div onClick={() => handleMenuSelected("/moi")}>
 							<Link to="/moi" className={navbarItemSelected === "/moi" ? "header--link active" : "header--link"}>
 								<div className="item-menu-img-container"> 
-									<Moi fillColor={navbarItemSelected === "/moi" ? "var(--bg-color)" : "#000000"} />
+									{childInfos?.avatar && childInfos.avatar !== 'avatars/default.png' ? (
+										<img 
+											src={`${import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/'}${childInfos.avatar}`} 
+											alt="Moi" 
+											style={{
+												height: 'auto',
+												aspectRatio: '1/1',
+												borderRadius: '50%',
+												objectFit: 'cover',
+												border: navbarItemSelected === "/moi" ? "2px solid var(--bg-color)" : "2px solid transparent",
+												boxSizing: 'border-box'
+											}}
+										/>
+									) : (
+										<Moi fillColor={navbarItemSelected === "/moi" ? "var(--bg-color)" : "#000000"} />
+									)}
 								</div>
 								<div className="item-menu-container">Moi</div>
 							</Link>

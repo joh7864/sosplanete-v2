@@ -3,6 +3,8 @@
 import React from 'react';
 import { Search, Maximize2, Minimize2, Check, Loader2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { getAssetUrl } from '@/utils/assets';
+
 
 interface Period {
   label: string;
@@ -78,9 +80,12 @@ export function TrackingMatrix({
   };
 
   const getPlayerAvatar = (pseudo: string, avatarPath?: string) => {
-    if (avatarPath) return avatarPath;
+    if (avatarPath && avatarPath !== 'avatars/default.png') {
+      return getAssetUrl(avatarPath);
+    }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
   };
+
 
   return (
     <div className={`transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950/20 backdrop-blur-md p-4 md:p-10 flex items-center justify-center' : ''}`}>

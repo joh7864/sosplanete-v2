@@ -30,6 +30,8 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ReferenceLine, BarChart, Bar, Cell } from 'recharts';
 import { getAuthData } from '@/utils/storage';
+import { getAssetUrl } from '@/utils/assets';
+
 import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ActionsImportModal } from '@/components/tracking/ActionsImportModal';
@@ -249,9 +251,12 @@ export function TrackingView({
   };
 
   const getPlayerAvatar = (pseudo: string, avatarPath?: string) => {
-    if (avatarPath) return avatarPath;
+    if (avatarPath && avatarPath !== 'avatars/default.png') {
+      return getAssetUrl(avatarPath);
+    }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
   };
+
 
   return (
     <div className="flex flex-col gap-4 pb-20">
@@ -659,9 +664,12 @@ const LeaderboardOverlay = ({ type, teamData, groupData, childData, onClose }: {
   const maxScore = currentData[0]?.total || 1;
 
   const getPlayerAvatar = (pseudo: string, avatarPath?: string) => {
-    if (avatarPath) return avatarPath;
+    if (avatarPath && avatarPath !== 'avatars/default.png') {
+      return getAssetUrl(avatarPath);
+    }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
   };
+
 
   return (
     <motion.div 

@@ -16,9 +16,13 @@ const getHeatmapStyle = (count) => {
 import RankingModal from './RankingModal';
 
 const getPlayerAvatar = (pseudo, avatarPath) => {
-    if (avatarPath) return avatarPath;
+    if (avatarPath && avatarPath !== 'avatars/default.png') {
+        const imgRoot = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
+        return `${imgRoot}${avatarPath}`;
+    }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
 };
+
 
 const TrackingKpiBar = ({ stats, setModalType }) => {
     if (!stats || !stats.children || !stats.periods || stats.children.length === 0) return null;
@@ -213,7 +217,7 @@ const TrackingMatrixView = () => {
                 id: c.childId,
                 name: c.pseudo,
                 score: c.total,
-                avatar: getPlayerAvatar(c.pseudo, c.avatarPath)
+                avatar: getPlayerAvatar(c.pseudo, c.avatar)
             }));
         }
 
