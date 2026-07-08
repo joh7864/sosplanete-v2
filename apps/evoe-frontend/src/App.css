@@ -1652,3 +1652,168 @@ body {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ==========================================
+   MOBILE BOTTOM NAVBAR & FAB LAYOUT (AXIS 3)
+   ========================================== */
+
+/* Show bottom navbar only on mobile screens */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Restructure main dashboard to leave room for bottom nav */
+  .app-container {
+    padding-bottom: 70px !important;
+    box-sizing: border-box;
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 65px;
+    background: rgba(10, 16, 30, 0.85);
+    border-top: 1.5px solid rgba(0, 255, 204, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9998; /* Under chat sidebar (9999) but above standard content */
+    padding: 0 10px;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+  }
+
+  .mobile-bottom-nav .nav-item {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    height: 100%;
+    padding: 5px 0;
+  }
+
+  .mobile-bottom-nav .nav-item:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-bottom-nav .nav-item.active {
+    color: #00ffcc;
+  }
+
+  /* Central Floating Action Button (FAB) Container */
+  .mobile-bottom-nav .fab-container {
+    position: relative;
+    width: 60px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-bottom-nav .fab-button {
+    position: absolute;
+    bottom: 12px; /* Hangs slightly over the bottom bar */
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00ffcc, #00b3ff);
+    border: 2px solid rgba(10, 16, 30, 0.85);
+    color: #050a16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 255, 204, 0.4), 0 0 0 4px rgba(0, 255, 204, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .mobile-bottom-nav .fab-button:active {
+    transform: scale(0.9) translateY(4px);
+    box-shadow: 0 2px 8px rgba(0, 255, 204, 0.3);
+  }
+
+  .mobile-bottom-nav .fab-button:hover {
+    box-shadow: 0 6px 20px rgba(0, 255, 204, 0.6), 0 0 0 6px rgba(0, 255, 204, 0.1);
+  }
+
+  /* Nav Badge for Chat Unreads */
+  .mobile-bottom-nav .nav-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: #ff3b3b;
+    color: #fff;
+    border-radius: 50%;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: bold;
+    border: 1px solid rgba(10, 16, 30, 0.85);
+  }
+
+  /* Hide default floating desktop chat button on mobile to prevent overlapping */
+  .chat-toggle-btn {
+    display: none !important;
+  }
+}
+
+/* Pulsing effect for FAB icon */
+.fab-pulse-icon {
+  animation: fabPulse 2s infinite ease-in-out;
+}
+
+@keyframes fabPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(5,10,22,0.3)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 8px rgba(5,10,22,0.7)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(5,10,22,0.3)); }
+}
+
+/* Hide redundant top header buttons in mobile portrait */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Landscape mobile view for ChatPanel: render as fixed sidebar with safe-areas and 100dvh */
+@media (max-height: 500px) and (orientation: landscape) {
+  .chat-sidebar-container {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    height: 100dvh !important;
+    width: 320px !important;
+    max-width: 100% !important;
+    border-left: 1.5px solid rgba(0, 255, 204, 0.3) !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.6) !important;
+    padding-top: env(safe-area-inset-top, 10px) !important;
+    padding-right: env(safe-area-inset-right, 10px) !important;
+    padding-bottom: env(safe-area-inset-bottom, 10px) !important;
+  }
+  .chat-drag-handle {
+    display: none !important;
+  }
+}
+
+
