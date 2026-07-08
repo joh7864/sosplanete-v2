@@ -637,7 +637,7 @@ function MainApp() {
               <Trophy size={18} />
             </button>
             <button 
-              className="switch-btn desktop-only" 
+              className="switch-btn" 
               onClick={logoutUser} 
               title="Quitter la simulation"
               style={{ 
