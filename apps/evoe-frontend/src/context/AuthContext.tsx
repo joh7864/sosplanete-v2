@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import { evoeClient } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         "x-instance-id": savedInstanceId
       };
       try {
-        const res = await axios.get(`${EVOE_API_URL}/context`, { headers });
+        const res = await evoeClient.get(`${EVOE_API_URL}/context`, { headers });
         setChildInfos(res.data.childInfos);
         setMissions(res.data.missions);
         setPlayers(res.data.players || []);
@@ -71,14 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("instanceId", instId);
     sessionStorage.setItem("instanceId", instId);
     
-    // Configurer axios pour toutes les futures requêtes
-    axios.defaults.headers.common['Authorization'] = headers['Authorization'];
-    axios.defaults.headers.common['x-instance-id'] = instId;
+    // Configurer le client API isolé pour toutes les futures requêtes
+    evoeClient.defaults.headers.common['Authorization'] = headers['Authorization'];
+    evoeClient.defaults.headers.common['x-instance-id'] = instId;
 
     setErrorAuthentification("");
 
     // Charger le contexte dynamique Evoe (avatars, missions)
-    axios.get(`${EVOE_API_URL}/context`, { headers })
+    evoeClient.get(`${EVOE_API_URL}/context`, { headers })
       .then(res => {
         setChildInfos(res.data.childInfos);
         setMissions(res.data.missions);
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         Authorization: "Basic " + encodedAuth,
       };
 
-      const result = await axios.get(`${API_URL}/check_auth`, { headers });
+      const result = await evoeClient.get(`${API_URL}/check_auth`, { headers });
       
       if (result.data.status === 'multiple_choices') {
         const choices = result.data.choices;
@@ -167,8 +167,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("instanceId");
     sessionStorage.removeItem("evoe_auth");
     sessionStorage.removeItem("instanceId");
-    delete axios.defaults.headers.common['Authorization'];
-    delete axios.defaults.headers.common['x-instance-id'];
+    delete evoeClient.defaults.headers.common['Authorization'];
+    delete evoeClient.defaults.headers.common['x-instance-id'];
     navigate("/login");
   };
 
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedPseudo = decoded.split(":")[0];
         
         // Vérifier que le token est toujours valide
-        const result = await axios.get(`${API_URL}/check_auth`, { headers });
+        const result = await evoeClient.get(`${API_URL}/check_auth`, { headers });
         if (result.data.instanceId || result.data.status === 'multiple_choices') {
            setUser(savedAuth);
            setPseudo(savedPseudo);

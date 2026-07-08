@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { evoeClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
@@ -87,11 +87,11 @@ export function useEvoeData() {
     if (!instanceId) return;
     refreshContext();
 
-    axios.get(`${EVOE_API_URL}/extrapolation/metrics`)
+    evoeClient.get(`${EVOE_API_URL}/extrapolation/metrics`)
       .then(res => setExtrapolation(res.data))
       .catch(err => console.error("Erreur extrapolation:", err));
 
-    axios.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`)
+    evoeClient.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`)
       .then(res => setDashboardStatus(res.data))
       .catch(err => console.error("Erreur dashboard status:", err));
   };
@@ -100,7 +100,7 @@ export function useEvoeData() {
     if (!instanceId) return;
     try {
       setLoadingChallenges(true);
-      const res = await axios.get(`${EVOE_API_URL}/challenges`);
+      const res = await evoeClient.get(`${EVOE_API_URL}/challenges`);
       setChallenges(res.data);
     } catch (err) {
       console.error("Erreur chargement défis:", err);
@@ -116,7 +116,7 @@ export function useEvoeData() {
       setIsGlitching(true);
       setTimeout(() => setIsGlitching(false), 800);
 
-      await axios.post(`${API_URL}/actiondone/${childInfos.id}`, { id: missionId });
+      await evoeClient.post(`${API_URL}/actiondone/${childInfos.id}`, { id: missionId });
       await refreshContext();
       fetchEvoeData();
     } catch (err) {
@@ -130,7 +130,7 @@ export function useEvoeData() {
     if (!actionDoneId) return;
     try {
       setLoadingMissionId(actionDoneId);
-      await axios.delete(`${API_URL}/actiondone/${actionDoneId}`);
+      await evoeClient.delete(`${API_URL}/actiondone/${actionDoneId}`);
       await refreshContext();
       fetchEvoeData();
     } catch (err) {
@@ -149,7 +149,7 @@ export function useEvoeData() {
     setIsSubmittingChallenge(true);
     setChallengeError(null);
     try {
-      await axios.post(`${EVOE_API_URL}/challenges`, {
+      await evoeClient.post(`${EVOE_API_URL}/challenges`, {
         targetTeamId: Number(challengeTargetTeamId),
         localActionId: Number(challengeLocalActionId),
         pledge: challengePledge
@@ -170,7 +170,7 @@ export function useEvoeData() {
 
   const handleRespondChallenge = async (challengeId: number, accept: boolean) => {
     try {
-      await axios.post(`${EVOE_API_URL}/challenges/${challengeId}/respond`, {
+      await evoeClient.post(`${EVOE_API_URL}/challenges/${challengeId}/respond`, {
         accept
       });
       fetchChallenges();
@@ -183,7 +183,7 @@ export function useEvoeData() {
     if (!instanceId || isResettingPropulsion) return;
     setIsResettingPropulsion(true);
     try {
-      await axios.post(`${EVOE_API_URL}/propulsion/reset/${instanceId}`);
+      await evoeClient.post(`${EVOE_API_URL}/propulsion/reset/${instanceId}`);
       fetchEvoeData();
     } catch (err) {
       console.error("Erreur réinitialisation propulsion:", err);

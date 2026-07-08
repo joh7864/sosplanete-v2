@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw } from 'lucide-react';
 
@@ -43,9 +43,9 @@ export function AgentProfileModal({
     setImpulsingId(localActionId);
     try {
       const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      await axios.post(`${BASE_API_URL}/actiondone/${profileId}`, { id: localActionId });
+      await evoeClient.post(`${BASE_API_URL}/actiondone/${profileId}`, { id: localActionId });
       refreshData();
-      const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
+      const res = await evoeClient.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
       setProfileData(res.data);
     } catch (err) {
       console.error("Erreur lors de l'impulsion depuis le défi:", err);
@@ -71,7 +71,7 @@ export function AgentProfileModal({
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
+        const res = await evoeClient.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
         if (active) {
           setProfileData(res.data);
           if (isOwner) {
@@ -105,7 +105,7 @@ export function AgentProfileModal({
     try {
       setSaving(true);
       const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      const resp = await axios.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData, {
+      const resp = await evoeClient.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setAvatar(resp.data.avatarPath);
@@ -126,7 +126,7 @@ export function AgentProfileModal({
       if (password) {
         payload.password = password;
       }
-      await axios.patch(`${BASE_API_URL}/evoe/profile`, payload);
+      await evoeClient.patch(`${BASE_API_URL}/evoe/profile`, payload);
       await refreshContext();
       refreshData();
       onClose();
