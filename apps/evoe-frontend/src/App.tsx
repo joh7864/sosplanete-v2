@@ -2,14 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail, RotateCcw, Compass, MessageSquare } from 'lucide-react';
-import axios from 'axios';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare } from 'lucide-react';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import TemporalBriefing from './components/TemporalBriefing';
 import ChatPanel from './components/ChatPanel';
+
+// Hooks & UI Components
+import { useEvoeData } from './hooks/useEvoeData';
+import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
+import { AgentProfileModal } from './components/ui/AgentProfileModal';
+import { LeaderboardModal } from './components/ui/LeaderboardModal';
+import { ChallengeModal } from './components/ui/ChallengeModal';
+import { ConfirmCancelModal } from './components/ui/ConfirmCancelModal';
+
 import './App.css';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -38,623 +46,48 @@ const fmtVolume = (litres: number): string => {
   return `${litres.toFixed(0)} L`;
 };
 
-
-function EvoeRadarMeter({ value, label, color, id, tooltip, displayValue }: { value: number; label: string; color: string; id: string; tooltip?: string; displayValue?: string }) {
-  const normalizedValue = Math.min(Math.max(value, 0), 100);
-  const angle = -135 + (normalizedValue / 100) * 270;
-  const strokeDashOffset = 400.5 - (400.5 * normalizedValue) / 100;
-
-  return (
-    <div 
-      title={tooltip}
-      style={{ 
-        width: '90px', 
-        height: '90px', 
-        position: 'relative', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        cursor: tooltip ? 'help' : 'default'
-      }}
-    >
-      <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-        <defs>
-          <linearGradient id={`grad-${id}`} x1="0%" y1="100%" x2="0%" y2="0%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
-            <stop offset="100%" stopColor={color} />
-          </linearGradient>
-          <filter id={`glow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-
-        {/* Arc de fond */}
-        <path
-          d="M 40 160 A 85 85 0 1 1 160 160"
-          fill="none"
-          stroke="rgba(255, 255, 255, 0.08)"
-          strokeWidth="12"
-          strokeLinecap="round"
-        />
-
-        {/* Arc actif animé */}
-        <motion.path
-          d="M 40 160 A 85 85 0 1 1 160 160"
-          fill="none"
-          stroke={`url(#grad-${id})`}
-          strokeWidth="12"
-          strokeLinecap="round"
-          filter={`url(#glow-${id})`}
-          strokeDasharray="400.5"
-          initial={{ strokeDashoffset: 400.5 }}
-          animate={{ strokeDashoffset: strokeDashOffset }}
-          transition={{ duration: 2.0, ease: "easeOut" }}
-        />
-
-        {/* Aiguille rotative */}
-        <g transform="translate(100, 100)">
-          <motion.g
-            initial={{ rotate: -135 }}
-            animate={{ rotate: angle }}
-            transition={{ duration: 2.0, ease: "easeOut" }}
-          >
-            {/* Cercle invisible forçant le transform-origin à rester au centre exact (0,0) */}
-            <circle cx="0" cy="0" r="85" fill="none" stroke="none" />
-            <polygon points="-2,0 2,0 0,-85" fill="#ffffff" style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.8))' }} />
-            <circle cx="0" cy="0" r="6" fill="#111827" stroke="#ffffff" strokeWidth="2" />
-          </motion.g>
-        </g>
-
-        {/* Pourcentage au centre */}
-        <text
-          x="100"
-          y="68"
-          fill="#ffffff"
-          fontSize="36"
-          fontWeight="bold"
-          fontFamily="ui-sans-serif, system-ui, sans-serif"
-          textAnchor="middle"
-          style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}
-        >
-          {displayValue !== undefined ? displayValue : `${Math.round(value)}%`}
-        </text>
-
-        {/* Label sous l'aiguille */}
-        <text
-          x="100"
-          y="152"
-          fill={color}
-          fontSize="14"
-          fontWeight="900"
-          fontFamily="ui-sans-serif, system-ui, sans-serif"
-          textAnchor="middle"
-          letterSpacing="1.5"
-          style={{ textShadow: `0 0 8px ${color}55` }}
-        >
-          {label}
-        </text>
-      </svg>
-    </div>
-  );
-}
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
-
-function AgentProfileModal({
-  profileId,
-  onClose,
-  isOwner,
-  refreshData
-}: {
-  profileId: number;
-  onClose: () => void;
-  isOwner: boolean;
-  refreshData: () => void;
-}) {
-  const { refreshContext } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges'>('missions');
-  const [impulsingId, setImpulsingId] = useState<number | null>(null);
-
-  const handleImpulseMission = async (localActionId: number) => {
-    setImpulsingId(localActionId);
-    try {
-      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      await axios.post(`${BASE_API_URL}/actiondone/${profileId}`, { id: localActionId });
-      refreshData();
-      const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
-      setProfileData(res.data);
-    } catch (err) {
-      console.error("Erreur lors de l'impulsion depuis le défi:", err);
-    } finally {
-      setImpulsingId(null);
-    }
-  };
-  
-  // Form states (owner mode)
-  const [pseudo, setPseudo] = useState('');
-  const [gender, setGender] = useState<string>('');
-  const [birthDate, setBirthDate] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [avatar, setAvatar] = useState<string | null>(null);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [saving, setSaving] = useState(false);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    let active = true;
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
-        if (active) {
-          setProfileData(res.data);
-          if (isOwner) {
-            setPseudo(res.data.profile.pseudo || '');
-            setGender(res.data.profile.gender || '');
-            const bDate = res.data.profile.birthDate;
-            setBirthDate(bDate ? bDate.substring(0, 10) : '');
-            setAvatar(res.data.profile.avatar || null);
-            setPassword('');
-          }
-        }
-      } catch (err) {
-        console.error("Erreur de chargement du profil:", err);
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-    fetchProfile();
-    return () => {
-      active = false;
-    };
-  }, [profileId, isOwner]);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      const resp = await axios.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      if (resp.status === 200 || resp.status === 201) {
-        setAvatar(resp.data.filename);
-      }
-    } catch (err) {
-      console.error("Erreur d'upload d'avatar:", err);
-    }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      const payload: any = {
-        pseudo,
-        gender: gender || null,
-        birthDate: birthDate || null,
-        avatar: avatar || null,
-      };
-      if (password && password.trim() !== '') {
-        payload.password = password;
-      }
-      await axios.patch(`${BASE_API_URL}/evoe/profile`, payload);
-      await refreshContext();
-      refreshData();
-      onClose();
-    } catch (err) {
-      console.error("Erreur lors de la mise à jour du profil:", err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getAvatars3DList = () => {
-    const list: string[] = [];
-    for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EF_avatar_0${i}.png`);
-    for (let i = 1; i <= 3; i++) list.push(`avatars_3D/EH_avatar_0${i}.png`);
-    for (let i = 1; i <= 12; i++) list.push(`avatars_3D/F_avatar_${String(i).padStart(2, '0')}.png`);
-    for (let i = 1; i <= 21; i++) list.push(`avatars_3D/H_avatar_0${i}.png`);
-    return list;
-  };
-
-  const renderAvatar = (avatarValue: string | null, genderValue: string | null, pseudoValue: string) => {
-    if (avatarValue && avatarValue !== 'avatars/default.png') {
-      return `${EVOE_IMG_URL}${avatarValue}`;
-    }
-    let hash = 0;
-    const name = pseudoValue || '';
-    for (let i = 0; i < name.length; i++) {
-      hash += name.charCodeAt(i);
-    }
-    let genre = genderValue;
-    if (!genre) {
-      genre = ['EF', 'EH', 'F', 'H'][hash % 4];
-    }
-    let file = '';
-    if (genre === 'EF') {
-      file = `EF_avatar_0${(hash % 3) + 1}.png`;
-    } else if (genre === 'EH') {
-      file = `EH_avatar_0${(hash % 3) + 1}.png`;
-    } else if (genre === 'F') {
-      file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
-    } else {
-      file = `H_avatar_0${(hash % 21) + 1}.png`;
-    }
-    return `${EVOE_IMG_URL}avatars_3D/${file}`;
-  };
-
-  if (loading) {
-    return (
-      <div className="agent-profile-backdrop">
-        <div className="agent-profile-modal-loading">
-          <RefreshCw className="icon spin-loading" size={48} />
-          <p>Déchiffrement des données de l'Agent...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!profileData) return null;
-
-  const currentAvatar = isOwner ? avatar : profileData.profile.avatar;
-  const currentGender = isOwner ? gender : profileData.profile.gender;
-  const currentPseudo = isOwner ? pseudo : profileData.profile.pseudo;
-  const teamColor = profileData.profile.teamColor || '#00ffcc';
-
-  return (
-    <div className="agent-profile-backdrop" onClick={onClose}>
-      <div 
-        className="agent-profile-modal" 
-        style={{ border: `1.5px solid ${teamColor}`, boxShadow: `0 0 35px ${teamColor}33, 0 20px 50px rgba(0,0,0,0.8)` }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button className="agent-profile-close" onClick={onClose}><X size={20} /></button>
-
-        <div className="agent-profile-container">
-          {/* Section Identité & Vitalité */}
-          <div className="agent-profile-sidebar">
-            <div className="agent-profile-avatar-wrapper" style={{ borderColor: teamColor }}>
-              <img 
-                src={renderAvatar(currentAvatar, currentGender, currentPseudo)} 
-                alt="" 
-                className="agent-profile-avatar" 
-              />
-              {isOwner && (
-                <button 
-                  className="agent-profile-avatar-edit-btn" 
-                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-                  title="Changer d'avatar"
-                >
-                  <Camera size={14} />
-                </button>
-              )}
-            </div>
-
-            {showAvatarPicker && isOwner && (
-              <div className="agent-avatar-picker-popover">
-                <div className="agent-avatar-picker-header">
-                  <h4>Choisir un Avatar 3D</h4>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="picker-upload-btn"
-                    >
-                      <Upload size={12} /> Importer
-                    </button>
-                    <button onClick={() => setShowAvatarPicker(false)} className="picker-close-btn">×</button>
-                  </div>
-                </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  style={{ display: 'none' }} 
-                  accept="image/*"
-                  onChange={(e) => {
-                    handleAvatarUpload(e);
-                    setShowAvatarPicker(false);
-                  }}
-                />
-                <div className="agent-avatar-grid">
-                  {getAvatars3DList().map((av) => (
-                    <img 
-                      key={av} 
-                      src={`${EVOE_IMG_URL}${av}`} 
-                      alt="" 
-                      className={`agent-avatar-grid-item ${avatar === av ? 'selected' : ''}`}
-                      onClick={() => {
-                        setAvatar(av);
-                        setShowAvatarPicker(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
-            <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
-
-            {/* Barre de Vitalité */}
-            <div className="agent-vitality-container">
-              <div className="agent-vitality-label">
-                <span>Vitalité Temporelle</span>
-                <span style={{ color: teamColor }}>{profileData.health} HP</span>
-              </div>
-              <div className="agent-vitality-track">
-                <div 
-                  className="agent-vitality-bar" 
-                  style={{ 
-                    width: `${Math.min(100, profileData.health)}%`,
-                    background: profileData.health < 35 ? '#ff3b3b' : (profileData.health < 80 ? '#ff9f43' : '#10b981')
-                  }} 
-                />
-              </div>
-            </div>
-
-            {/* Formulaire Propriétaire (Privé) */}
-            {isOwner && (
-              <form onSubmit={handleSave} className="agent-profile-form">
-                <div className="form-group">
-                  <label>Pseudo de l'Agent</label>
-                  <input 
-                    type="text" 
-                    value={pseudo} 
-                    onChange={(e) => setPseudo(e.target.value)} 
-                    required 
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Genre</label>
-                    <select value={gender || ''} onChange={(e) => setGender(e.target.value)}>
-                      <option value="">Non défini</option>
-                      <option value="EH">Kid Garçon (EH)</option>
-                      <option value="EF">Kid Fille (EF)</option>
-                      <option value="M">Adulte Homme (M)</option>
-                      <option value="F">Adulte Femme (F)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Date de Naissance</label>
-                    <input 
-                      type="date" 
-                      value={birthDate} 
-                      onChange={(e) => setBirthDate(e.target.value)} 
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Nouveau Mot de Passe</label>
-                  <div className="password-input-wrapper">
-                    <input 
-                      type={showPassword ? 'text' : 'password'} 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      placeholder="Laisser vide pour ne pas modifier"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="password-toggle"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button type="submit" disabled={saving} className="agent-profile-save-btn">
-                  {saving ? <RefreshCw className="icon-sm spin-loading" /> : <Save size={14} />} 
-                  {saving ? 'Enregistrement...' : 'Sauvegarder'}
-                </button>
-              </form>
-            )}
-          </div>
-
-          {/* Section Statistiques, Missions et Défis */}
-          <div className="agent-profile-content">
-            {/* Grille des 3 indicateurs personnels */}
-            <div className="profile-metrics-grid">
-              <div className="profile-metric-card">
-                <Shield size={20} className="metric-icon co2" />
-                <div className="metric-info">
-                  <span className="label">Carbone Évité</span>
-                  <span className="value">{fmtMass(profileData.personalMetrics.co2)}</span>
-                </div>
-              </div>
-              <div className="profile-metric-card">
-                <Droplet size={20} className="metric-icon water" />
-                <div className="metric-info">
-                  <span className="label">Eau Épargnée</span>
-                  <span className="value">{fmtVolume(profileData.personalMetrics.water)}</span>
-                </div>
-              </div>
-              <div className="profile-metric-card">
-                <Trash2 size={20} className="metric-icon waste" />
-                <div className="metric-info">
-                  <span className="label">Déchets Évités</span>
-                  <span className="value">{fmtMass(profileData.personalMetrics.waste)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation des Onglets */}
-            <div className="profile-tabs-nav">
-              <button 
-                className={`profile-tab-btn ${activeTab === 'missions' ? 'active' : ''}`}
-                onClick={() => setActiveTab('missions')}
-              >
-                Missions Période ({profileData.periodMissions.length})
-              </button>
-              <button 
-                className={`profile-tab-btn ${activeTab === 'top5' ? 'active' : ''}`}
-                onClick={() => setActiveTab('top5')}
-              >
-                Top 5 Historique
-              </button>
-              <button 
-                className={`profile-tab-btn ${activeTab === 'challenges' ? 'active' : ''}`}
-                onClick={() => setActiveTab('challenges')}
-              >
-                Défis PvP ({profileData.challenges.length})
-              </button>
-            </div>
-
-            {/* Contenu des Onglets */}
-            <div className="profile-tab-content">
-              {activeTab === 'missions' && (
-                <div className="missions-tab-list">
-                  {profileData.periodMissions.length === 0 ? (
-                    <p className="empty-state">Aucune éco-mission impulsée sur cette période.</p>
-                  ) : (
-                    profileData.periodMissions.map((m: any) => (
-                      <div key={m.id} className="profile-mission-item">
-                        <div className="mission-details">
-                          <span className="mission-label">{m.label}</span>
-                          <span className="mission-date">
-                            {new Date(m.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <span className="mission-points">+{m.amplitude} AT</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'top5' && (
-                <div className="top5-tab-list">
-                  {profileData.top5Missions.length === 0 ? (
-                    <p className="empty-state">Historique vierge. Impulsez des missions pour activer la biométrie.</p>
-                  ) : (
-                    profileData.top5Missions.map((m: any, idx: number) => (
-                      <div key={m.localActionId} className="profile-top-item">
-                        <div className="top-rank">
-                          <Trophy size={16} className={`rank-icon rank-${idx + 1}`} />
-                          <span className="label">{m.label}</span>
-                        </div>
-                        <span className="count-badge">{m.count} fois</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'challenges' && (
-                <div className="challenges-tab-list">
-                  {profileData.challenges.length === 0 ? (
-                    <p className="empty-state">Aucun défi temporel enregistré sur cette période.</p>
-                  ) : (
-                    profileData.challenges.map((c: any) => (
-                      <div key={c.id} className="profile-challenge-item">
-                        <div className="challenge-header">
-                          <span className="challenge-opponent">
-                            {c.isChallenger ? 'DÉFI ENVOYÉ À ' : 'DÉFI REÇU DE '}
-                            <strong style={{ color: c.opponentColor }}>{c.opponentName}</strong>
-                          </span>
-                          <span className={`challenge-status ${c.status.toLowerCase()}`}>
-                            {c.status}
-                            {c.isRetroactive && <span title="Mission accomplie d'avance !" style={{marginLeft: '4px'}}>✨</span>}
-                          </span>
-                        </div>
-                        <div className="challenge-body">
-                          <p className="challenge-action"><strong>Mission :</strong> {c.actionLabel}</p>
-                          <p className="challenge-pledge"><strong>Gage :</strong> <em>{c.pledge}</em></p>
-                          {c.isChallenger && c.isRetroactive && c.status === 'SUCCESS' && (
-                            <p style={{color: '#10b981', fontSize: '0.85rem', marginTop: '8px'}}>
-                              💡 <em>Mission déjà accomplie d'avance !</em>
-                            </p>
-                          )}
-                          {!c.isChallenger && c.status === 'ACCEPTED' && isOwner && (
-                            <button 
-                              onClick={() => handleImpulseMission(c.localActionId)}
-                              disabled={impulsingId === c.localActionId}
-                              style={{
-                                marginTop: '12px',
-                                width: '100%',
-                                background: 'rgba(0, 255, 204, 0.15)',
-                                border: '1px solid #00ffcc',
-                                color: '#00ffcc',
-                                padding: '8px',
-                                borderRadius: '6px',
-                                fontWeight: 'bold',
-                                cursor: impulsingId === c.localActionId ? 'wait' : 'pointer',
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              {impulsingId === c.localActionId ? 'IMPULSION EN COURS...' : '⚡ IMPULSER LA MISSION'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MainApp() {
-  const [era, setEra] = useState<'2026' | '2070'>('2026');
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [selectedSector, setSelectedSector] = useState<string | null>(null);
-  const [isCodexCollapsed, setIsCodexCollapsed] = useState(false);
-  const [expandedMission, setExpandedMission] = useState<any | null>(null);
-  const [popoverPos, setPopoverPos] = useState(0);
+  const {
+    era, handleSwitchEra,
+    isTransitioning,
+    selectedSector, setSelectedSector,
+    isCodexCollapsed, setIsCodexCollapsed,
+    expandedMission, setExpandedMission,
+    popoverPos, setPopoverPos,
+    showBriefing, setShowBriefing,
+    extrapolation,
+    dashboardStatus,
+    showExtrapolation, setShowExtrapolation,
+    showRadar, setShowRadar,
+    isResettingPropulsion,
+    earthOracleLevel, setEarthOracleLevel,
+    earthOracleText, setEarthOracleText,
+    earthOracleTyping, setEarthOracleTyping,
+    codexTab, setCodexTab,
+    challenges,
+    loadingChallenges,
+    isGlitching,
+    loadingMissionId,
+    showChallengeModal, setShowChallengeModal,
+    challengeTargetTeamId, setChallengeTargetTeamId,
+    challengeLocalActionId, setChallengeLocalActionId,
+    challengePledge, setChallengePledge,
+    challengeError, setChallengeError,
+    isSubmittingChallenge,
+    cancelMissionConfirm, setCancelMissionConfirm,
+    showLeaderboardModal, setShowLeaderboardModal,
+    selectedProfileId, setSelectedProfileId,
+    allowPortrait, setAllowPortrait,
+    onlineUsers, setOnlineUsers,
+    unreadChat, setUnreadChat,
+    chatOpen, setChatOpen,
+    chatActiveTab, setChatActiveTab,
+    fetchEvoeData, fetchChallenges,
+    handleImpulseMission, handleCancelMission,
+    handleSendChallenge, handleRespondChallenge,
+    handleResetPropulsion
+  } = useEvoeData();
 
-  const [showBriefing, setShowBriefing] = useState<boolean>(false);
-
-  // States pour les métriques de Sprint 2
-  const [extrapolation, setExtrapolation] = useState<any>(null);
-  const [dashboardStatus, setDashboardStatus] = useState<any>(null);
-  const [showExtrapolation, setShowExtrapolation] = useState(false);
-  const [showRadar, setShowRadar] = useState(false);
-  const [isResettingPropulsion, setIsResettingPropulsion] = useState(false);
-
-  // State Oracle Terrestre (message machine à écrire au clic sur la planète)
-  const [earthOracleLevel, setEarthOracleLevel] = useState<number | null>(null);
-  const [earthOracleText, setEarthOracleText] = useState('');
-  const [earthOracleTyping, setEarthOracleTyping] = useState(false);
-
-  // States pour les défis et l'impulsion (Sprint 3)
-  const [codexTab, setCodexTab] = useState<'missions' | 'challenges'>('missions');
-  const [challenges, setChallenges] = useState<any[]>([]);
-  const [loadingChallenges, setLoadingChallenges] = useState(false);
-  const [isGlitching, setIsGlitching] = useState(false);
-  const [loadingMissionId, setLoadingMissionId] = useState<number | null>(null);
-
-  // States pour le modal de création de défi
-  const [showChallengeModal, setShowChallengeModal] = useState(false);
-  const [challengeTargetTeamId, setChallengeTargetTeamId] = useState<number | ''>('');
-  const [challengeLocalActionId, setChallengeLocalActionId] = useState<number | ''>('');
-  const [challengePledge, setChallengePledge] = useState('');
-  const [challengeError, setChallengeError] = useState<string | null>(null);
-  const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
-
-  // States pour le modal de confirmation d'annulation
-  const [cancelMissionConfirm, setCancelMissionConfirm] = useState<{ actionDoneId: number; label: string } | null>(null);
-
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
-  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
   // Swipe gesture detection to toggle Era (2026 <-> 2070)
   const swipeStartX = useRef(0);
@@ -663,7 +96,16 @@ function MainApp() {
   const handleTouchStartApp = (e: React.TouchEvent) => {
     // Avoid triggering if touch is on active input, button or interactive panels
     const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('.codex-panel') || target.closest('.chat-sidebar-container') || target.closest('.agent-profile-modal') || target.closest('.mobile-bottom-nav')) {
+    if (
+      target.closest('button') || 
+      target.closest('input') || 
+      target.closest('select') || 
+      target.closest('.codex-panel') || 
+      target.closest('.chat-sidebar-container') || 
+      target.closest('.agent-profile-modal') || 
+      target.closest('.mobile-bottom-nav') ||
+      target.closest('canvas')
+    ) {
       return;
     }
 
@@ -698,9 +140,6 @@ function MainApp() {
   };
 
   // --- Gestion de l'orientation mobile ---
-  const [allowPortrait, setAllowPortrait] = useState<boolean>(() =>
-    localStorage.getItem('evoe_allow_portrait') === 'true'
-  );
   const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
   );
@@ -737,145 +176,8 @@ function MainApp() {
   // ---------------------------------------
 
 
-  const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId, refreshContext } = useAuth();
+  const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
 
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
-  const [unreadChat, setUnreadChat] = useState<{
-    global: number;
-    team: number;
-    system: number;
-    unreadMps: Record<string, number>;
-    unreadTeams: Record<string, number>;
-    total: number;
-  }>({
-    global: 0,
-    team: 0,
-    system: 0,
-    unreadMps: {},
-    unreadTeams: {},
-    total: 0
-  });
-
-  const [chatOpen, setChatOpen] = useState<boolean>(false);
-  const [chatActiveTab, setChatActiveTab] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (childInfos?.id) {
-      const skipped = localStorage.getItem(`evoe_skip_briefing_${childInfos.id}`) === 'true';
-      setShowBriefing(!skipped);
-    }
-  }, [childInfos?.id]);
-
-  const fetchEvoeData = () => {
-    if (!instanceId) return;
-    
-    // Rafraîchir le contexte pour maintenir les avatars et leurs HP à jour en temps réel dans la scène 3D
-    refreshContext();
-
-    axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/extrapolation/metrics`)
-      .then(res => setExtrapolation(res.data))
-      .catch(err => console.error("Erreur extrapolation:", err));
-
-    axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/dashboard/status/${instanceId}`)
-      .then(res => setDashboardStatus(res.data))
-      .catch(err => console.error("Erreur dashboard status:", err));
-  };
-
-  const fetchChallenges = async () => {
-    if (!instanceId) return;
-    try {
-      setLoadingChallenges(true);
-      const res = await axios.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/challenges`);
-      setChallenges(res.data);
-    } catch (err) {
-      console.error("Erreur chargement défis:", err);
-    } finally {
-      setLoadingChallenges(false);
-    }
-  };
-
-  const handleImpulseMission = async (missionId: number) => {
-    if (!childInfos?.id) return;
-    try {
-      setLoadingMissionId(missionId);
-      setIsGlitching(true);
-      setTimeout(() => setIsGlitching(false), 800);
-
-      await axios.post(`${API_URL}/actiondone/${childInfos.id}`, { id: missionId });
-      await refreshContext();
-      fetchEvoeData();
-    } catch (err) {
-      console.error("Erreur d'impulsion de la mission:", err);
-    } finally {
-      setLoadingMissionId(null);
-    }
-  };
-
-  const handleCancelMission = async (actionDoneId: number) => {
-    if (!actionDoneId) return;
-    try {
-      setLoadingMissionId(actionDoneId);
-      await axios.delete(`${API_URL}/actiondone/${actionDoneId}`);
-      await refreshContext();
-      fetchEvoeData();
-    } catch (err) {
-      console.error("Erreur d'annulation de la mission:", err);
-    } finally {
-      setLoadingMissionId(null);
-    }
-  };
-
-  const handleSendChallenge = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!challengeTargetTeamId || !challengeLocalActionId || !challengePledge.trim()) {
-      setChallengeError("Veuillez remplir tous les champs.");
-      return;
-    }
-    setIsSubmittingChallenge(true);
-    setChallengeError(null);
-    try {
-      await axios.post(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/challenges`, {
-        targetTeamId: Number(challengeTargetTeamId),
-        localActionId: Number(challengeLocalActionId),
-        pledge: challengePledge
-      });
-      setShowChallengeModal(false);
-      setChallengeTargetTeamId('');
-      setChallengeLocalActionId('');
-      setChallengePledge('');
-      fetchChallenges();
-    } catch (err: any) {
-      console.error("Erreur création défi:", err);
-      const errMsg = err.response?.data?.message || "Erreur lors de la création du défi.";
-      setChallengeError(errMsg);
-    } finally {
-      setIsSubmittingChallenge(false);
-    }
-  };
-
-  const handleRespondChallenge = async (challengeId: number, accept: boolean) => {
-    try {
-      await axios.post(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/challenges/${challengeId}/respond`, {
-        accept
-      });
-      fetchChallenges();
-    } catch (err) {
-      console.error("Erreur réponse défi:", err);
-    }
-  };
-
-  const handleResetPropulsion = async () => {
-    if (!instanceId || isResettingPropulsion) return;
-    setIsResettingPropulsion(true);
-    try {
-      await axios.post(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/propulsion/reset/${instanceId}`);
-      fetchEvoeData();
-    } catch (err) {
-      console.error("Erreur réinitialisation propulsion:", err);
-    } finally {
-      setIsResettingPropulsion(false);
-    }
-  };
 
   // L'early return doit être après tous les hooks
   const shouldRedirect = !user || instanceChoices;
@@ -916,15 +218,7 @@ function MainApp() {
     };
   }, [era, instanceId]);
 
-  const handleSwitchEra = () => {
-    setIsTransitioning(true);
-    setShowExtrapolation(false);
-    setShowRadar(false);
-    setTimeout(() => {
-      setEra(prev => prev === '2026' ? '2070' : '2026');
-      setIsTransitioning(false);
-    }, 1000); // 1s de transition "zoom visière"
-  };
+
 
   if (shouldRedirect) {
     return <Navigate to="/login" replace />;
@@ -2045,489 +1339,38 @@ function MainApp() {
         </AnimatePresence>
       </div>
 
-      {/* Modal de Création de Défi */}
-      <AnimatePresence>
-        {showChallengeModal && (
-          <div 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.55)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10000,
-              pointerEvents: 'auto'
-            }}
-            onClick={() => setShowChallengeModal(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              style={{
-                background: 'rgba(10, 15, 30, 0.9)',
-                border: '1px solid rgba(0, 255, 204, 0.4)',
-                borderRadius: '16px',
-                padding: '25px',
-                width: '450px',
-                maxWidth: '90vw',
-                backdropFilter: 'blur(25px)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(0,255,204,0.1)',
-                color: '#fff',
-                pointerEvents: 'auto'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(0,255,204,0.2)', paddingBottom: '10px' }}>
-                <h2 style={{ fontSize: '1.2rem', color: '#00ffcc', textTransform: 'uppercase', margin: 0, textShadow: '0 0 10px rgba(0, 255, 204, 0.3)' }}>
-                  🚀 Lancer un Défi Temporel
-                </h2>
-                <button 
-                  onClick={() => setShowChallengeModal(false)}
-                  style={{ background: 'transparent', border: 'none', color: '#00ffcc', fontSize: '1.5rem', cursor: 'pointer' }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <form onSubmit={handleSendChallenge} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                
-                {/* Choix de l'équipe cible */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#00b3ff', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                    Équipe Cible
-                  </label>
-                  <select 
-                    value={challengeTargetTeamId} 
-                    onChange={(e) => setChallengeTargetTeamId(Number(e.target.value))}
-                    required
-                    style={{
-                      background: 'rgba(0,0,0,0.5)',
-                      border: '1px solid rgba(0,255,204,0.3)',
-                      borderRadius: '8px',
-                      padding: '10px',
-                      color: '#fff',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    <option value="">-- Sélectionner une équipe --</option>
-                    {otherTeams.map((t: any) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Choix de l'éco-mission */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#00b3ff', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                    Éco-Mission Imposée
-                  </label>
-                  <select 
-                    value={challengeLocalActionId} 
-                    onChange={(e) => setChallengeLocalActionId(Number(e.target.value))}
-                    required
-                    style={{
-                      background: 'rgba(0,0,0,0.5)',
-                      border: '1px solid rgba(0,255,204,0.3)',
-                      borderRadius: '8px',
-                      padding: '10px',
-                      color: '#fff',
-                      fontSize: '0.85rem'
-                    }}
-                  >
-                    <option value="">-- Sélectionner une mission --</option>
-                    {availableMissionsForChallenge.map((m: any) => (
-                      <option key={m.id} value={m.id}>
-                        {m.evoeMission?.titreSF || m.label} (+{m.evoeMission?.amplitude || 10} AT)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Saisie libre du gage */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.8rem', color: '#00b3ff', textTransform: 'uppercase', fontWeight: 'bold' }}>
-                    Le Gage (Pledge)
-                  </label>
-                  <input 
-                    type="text" 
-                    value={challengePledge}
-                    onChange={(e) => setChallengePledge(e.target.value)}
-                    placeholder="Saisissez un gage ou choisissez ci-dessous..."
-                    required
-                    style={{
-                      background: 'rgba(0,0,0,0.5)',
-                      border: '1px solid rgba(0,255,204,0.3)',
-                      borderRadius: '8px',
-                      padding: '10px',
-                      color: '#fff',
-                      fontSize: '0.85rem'
-                    }}
-                  />
-                  
-                  {/* Suggestions de gages */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
-                    {[
-                      "Payer les croissants 🥐",
-                      "Faire 10 pompes 💪",
-                      "Chanter le refrain d'une chanson SF 🎤",
-                      "Faire le café pour toute l'équipe ☕",
-                      "Raconter une blague spatiale 🌌"
-                    ].map((sug) => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onClick={() => setChallengePledge(sug)}
-                        style={{
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '15px',
-                          padding: '4px 10px',
-                          color: '#a0aec0',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = 'rgba(0,255,204,0.4)';
-                          e.currentTarget.style.color = '#fff';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                          e.currentTarget.style.color = '#a0aec0';
-                        }}
-                      >
-                        {sug}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {challengeError && (
-                  <div style={{ color: '#ff3b3b', fontSize: '0.8rem', marginTop: '5px', padding: '8px', background: 'rgba(255,59,59,0.1)', border: '1px solid rgba(255,59,59,0.3)', borderRadius: '6px' }}>
-                    ⚠️ {challengeError}
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  disabled={isSubmittingChallenge}
-                  style={{
-                    marginTop: '10px',
-                    background: isSubmittingChallenge ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #00ffcc, #00b3ff)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: isSubmittingChallenge ? 'rgba(255,255,255,0.3)' : '#000',
-                    padding: '12px',
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    cursor: isSubmittingChallenge ? 'not-allowed' : 'pointer',
-                    textTransform: 'uppercase',
-                    boxShadow: isSubmittingChallenge ? 'none' : '0 0 15px rgba(0,255,204,0.4)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {isSubmittingChallenge ? (
-                    <RefreshCw className="icon-sm spin-loading" />
-                  ) : "Envoyer le défi"}
-                </button>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Modal de Création de Défi PvP */}
+      <ChallengeModal
+        showChallengeModal={showChallengeModal}
+        setShowChallengeModal={setShowChallengeModal}
+        challengeTargetTeamId={challengeTargetTeamId}
+        setChallengeTargetTeamId={setChallengeTargetTeamId}
+        challengeLocalActionId={challengeLocalActionId}
+        setChallengeLocalActionId={setChallengeLocalActionId}
+        challengePledge={challengePledge}
+        setChallengePledge={setChallengePledge}
+        challengeError={challengeError}
+        isSubmittingChallenge={isSubmittingChallenge}
+        handleSendChallenge={handleSendChallenge}
+        otherTeams={otherTeams}
+        availableMissionsForChallenge={availableMissionsForChallenge}
+      />
 
       {/* Modal de Confirmation d'Annulation de Mission */}
-      <AnimatePresence>
-        {cancelMissionConfirm && (
-          <div 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.55)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10000,
-              pointerEvents: 'auto'
-            }}
-            onClick={() => setCancelMissionConfirm(null)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              style={{
-                background: 'rgba(15, 10, 20, 0.95)',
-                border: '1px solid rgba(255, 59, 59, 0.4)',
-                borderRadius: '16px',
-                padding: '25px',
-                width: '400px',
-                maxWidth: '90vw',
-                backdropFilter: 'blur(25px)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255,59,59,0.1)',
-                color: '#fff',
-                pointerEvents: 'auto',
-                textAlign: 'center'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ color: '#ff3b3b', fontSize: '2.5rem', marginBottom: '15px' }}>
-                ⚠️
-              </div>
-              <h2 style={{ fontSize: '1.2rem', color: '#ff3b3b', textTransform: 'uppercase', margin: '0 0 10px 0', textShadow: '0 0 10px rgba(255, 59, 59, 0.3)' }}>
-                Annuler l'Impulsion ?
-              </h2>
-              <p style={{ fontSize: '0.85rem', color: '#a0aec0', lineHeight: '1.5', margin: '0 0 20px 0' }}>
-                Voulez-vous vraiment annuler l'impulsion de la mission <strong style={{ color: '#fff' }}>"{cancelMissionConfirm.label}"</strong> ?
-                Cela réduira les gains écologiques accumulés de l'Arche EVOE.
-              </p>
-              
-              <div style={{ display: 'flex', gap: '15px' }}>
-                <button 
-                  onClick={() => {
-                    handleCancelMission(cancelMissionConfirm.actionDoneId);
-                    setCancelMissionConfirm(null);
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #ff3b3b, #ff7675)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    padding: '10px',
-                    fontSize: '0.85rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    boxShadow: '0 0 15px rgba(255,59,59,0.4)'
-                  }}
-                >
-                  Confirmer
-                </button>
-                <button 
-                  onClick={() => setCancelMissionConfirm(null)}
-                  style={{
-                    flex: 1,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    padding: '10px',
-                    fontSize: '0.85rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  Annuler
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmCancelModal
+        cancelMissionConfirm={cancelMissionConfirm}
+        setCancelMissionConfirm={setCancelMissionConfirm}
+        handleCancelMission={handleCancelMission}
+      />
 
       {/* Modal du Top 10 (Classement) */}
-      <AnimatePresence>
-        {showLeaderboardModal && (
-          <div 
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.55)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10000,
-              pointerEvents: 'auto'
-            }}
-            onClick={() => setShowLeaderboardModal(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              style={{
-                background: 'rgba(10, 15, 30, 0.92)',
-                border: '1px solid rgba(255, 215, 0, 0.4)',
-                borderRadius: '16px',
-                padding: '25px',
-                width: '520px',
-                maxWidth: '90vw',
-                backdropFilter: 'blur(25px)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255,215,0,0.15)',
-                color: '#fff',
-                pointerEvents: 'auto'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid rgba(255, 215, 0, 0.2)', paddingBottom: '10px' }}>
-                <h2 style={{ fontSize: '1.2rem', color: '#ffd700', textTransform: 'uppercase', margin: 0, textShadow: '0 0 10px rgba(255, 215, 0, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  🏆 Classement des Agents (Top 10)
-                </h2>
-                <button 
-                  onClick={() => setShowLeaderboardModal(false)}
-                  style={{ background: 'transparent', border: 'none', color: '#ffd700', fontSize: '1.5rem', cursor: 'pointer' }}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '5px' }}>
-                {dashboardStatus?.topPlayers && dashboardStatus.topPlayers.length > 0 ? (
-                  dashboardStatus.topPlayers.map((p: any, idx: number) => {
-                    const isCurrent = p.childId === childInfos?.id;
-                    const rank = idx + 1;
-                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-                    
-                    // Helper local pour l'URL d'avatar identique à PlayerAvatar
-                    let avatarUrl = '';
-                    if (p.avatar && p.avatar !== 'avatars/default.png') {
-                      avatarUrl = `${EVOE_IMG_URL}${p.avatar}`;
-                    } else {
-                      let hash = 0;
-                      const name = p.pseudo || '';
-                      for (let i = 0; i < name.length; i++) {
-                        hash += name.charCodeAt(i);
-                      }
-                      let age = 18;
-                      if (p.birthDate) {
-                        age = new Date().getFullYear() - new Date(p.birthDate).getFullYear();
-                      }
-                      let genre = '';
-                      if (p.gender === 'EF') genre = 'EF';
-                      else if (p.gender === 'EH') genre = 'EH';
-                      else if (p.gender === 'E' || age < 15) genre = (hash % 2 === 0) ? 'EF' : 'EH';
-                      else if (p.gender === 'F') genre = 'F';
-                      else if (p.gender === 'M') genre = 'H';
-                      else genre = ['EF', 'EH', 'F', 'H'][hash % 4];
-
-                      let file = '';
-                      if (genre === 'EF') file = `EF_avatar_0${(hash % 3) + 1}.png`;
-                      else if (genre === 'EH') file = `EH_avatar_0${(hash % 3) + 1}.png`;
-                      else if (genre === 'F') file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
-                      else file = `H_avatar_0${(hash % 21) + 1}.png`;
-
-                      avatarUrl = `${EVOE_IMG_URL}avatars_3D/${file}`;
-                    }
-
-                    return (
-                      <div 
-                        key={p.childId} 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 15px',
-                          background: isCurrent ? 'rgba(0, 255, 204, 0.08)' : 'rgba(255, 255, 255, 0.02)',
-                          border: isCurrent ? '1.5px solid rgba(0, 255, 204, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
-                          borderRadius: '10px',
-                          boxShadow: isCurrent ? '0 0 10px rgba(0, 255, 204, 0.15)' : 'none',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {/* Médaille ou Rang */}
-                          <span style={{ 
-                            fontSize: rank <= 3 ? '1.2rem' : '0.85rem', 
-                            width: '24px', 
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: rank > 3 ? '#a0aec0' : 'inherit'
-                          }}>
-                            {medal}
-                          </span>
-
-                          {/* Photo de profil */}
-                          <img 
-                            src={avatarUrl} 
-                            alt="" 
-                            onClick={() => {
-                              setSelectedProfileId(p.childId);
-                              setShowLeaderboardModal(false);
-                            }}
-                            style={{ 
-                              width: '32px', 
-                              height: '32px', 
-                              borderRadius: '50%', 
-                              border: `1.5px solid ${p.color || '#00ffcc'}`, 
-                              objectFit: 'cover',
-                              background: 'rgba(0,0,0,0.3)',
-                              cursor: 'pointer'
-                            }} 
-                          />
-
-                          {/* Pseudo et Équipe */}
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ 
-                              fontSize: '0.9rem', 
-                              fontWeight: 'bold', 
-                              color: isCurrent ? '#00ffcc' : '#fff' 
-                            }}>
-                              {p.pseudo} {isCurrent && <span style={{ fontSize: '0.7rem', color: '#00ffcc', background: 'rgba(0, 255, 204, 0.15)', padding: '1px 6px', borderRadius: '4px', marginLeft: '6px' }}>MOI</span>}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: p.color || '#a0aec0' }}>
-                              {p.teamName}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Score HP en badge */}
-                        <div style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold',
-                          background: 'rgba(0,0,0,0.3)',
-                          border: `1px solid ${
-                            p.health < 35 ? '#ff0055' 
-                            : p.health < 70 ? '#ff7700' 
-                            : '#00ff66'
-                          }`,
-                          color: p.health < 35 ? '#ff0055' 
-                            : p.health < 70 ? '#ff7700' 
-                            : '#00ff66',
-                          textShadow: `0 0 5px ${
-                            p.health < 35 ? 'rgba(255, 0, 85, 0.3)' 
-                            : p.health < 70 ? 'rgba(255, 119, 0, 0.3)' 
-                            : 'rgba(0, 255, 102, 0.3)'
-                          }`
-                        }}>
-                          {p.health} HP
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem', textAlign: 'center', margin: '20px 0' }}>
-                    Aucune donnée de classement disponible pour cette période.
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <LeaderboardModal
+        showLeaderboardModal={showLeaderboardModal}
+        setShowLeaderboardModal={setShowLeaderboardModal}
+        dashboardStatus={dashboardStatus}
+        childInfos={childInfos}
+        setSelectedProfileId={setSelectedProfileId}
+      />
 
       {/* Modal du Profil Agent */}
       <AnimatePresence>
@@ -2540,6 +1383,7 @@ function MainApp() {
           />
         )}
       </AnimatePresence>
+
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 

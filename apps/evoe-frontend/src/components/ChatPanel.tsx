@@ -1,23 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { MessageSquare, Shield, AlertTriangle, Send, X, Terminal, Radio, Info, Maximize2, Minimize2, Menu, Mail, ChevronDown, ChevronRight, Trash2, Edit2 } from 'lucide-react';
+import { MessageSquare, Shield, AlertTriangle, Send, X, Terminal, Radio, Info, Maximize2, Minimize2, Menu, Mail, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChatSocket } from '../hooks/useChatSocket';
+import { ChatMessageItem } from './chat/ChatMessageItem';
 
-interface ChatMessage {
-  id: string;
-  sender: string;
-  role: 'CHILD' | 'ADMIN' | 'SYSTEM';
-  teamName?: string;
-  targetTeamName?: string;
-  targetPseudo?: string;
-  content: string;
-  isPrivate?: boolean;
-  timestamp: string | Date;
-  channel?: 'global' | 'team';
-  reactions?: { emoji: string; count: number; users: string[] }[];
-  parentId?: string | null;
-  isEdited?: boolean;
-}
 
 interface ChatPanelProps {
   players?: any[];
@@ -51,7 +37,7 @@ export default function ChatPanel({
   onOpen,
   onTabChange
 }: ChatPanelProps) {
-  const { childInfos, instanceId, user } = useAuth();
+  const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
   const isOpen = isOpenProp ?? false;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -92,19 +78,34 @@ export default function ChatPanel({
     }
   };
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [unreadGlobal, setUnreadGlobal] = useState(0);
-  const [unreadTeam, setUnreadTeam] = useState(0);
-  const [unreadMps, setUnreadMps] = useState<Record<string, number>>({});
+
+  const {
+    socket,
+    messages,
+    errorMsg,
+    setErrorMsg,
+    unreadGlobal,
+    setUnreadGlobal,
+    unreadTeam,
+    setUnreadTeam,
+    unreadSystem,
+    setUnreadSystem,
+    unreadMps,
+    setUnreadMps,
+    unreadTeams,
+    setUnreadTeams
+  } = useChatSocket({
+    isOpen,
+    activeTab,
+    teams,
+    onOnlineUsersChange
+  });
+
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInputText, setEditInputText] = useState('');
   const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
   const [replyInputTexts, setReplyInputTexts] = useState<Record<string, string>>({});
-  const [unreadSystem, setUnreadSystem] = useState(0);
-  const [unreadTeams, setUnreadTeams] = useState<Record<string, number>>({});
   
   // Collapse/Expand state for Discord-like channel sections
   const [isGroup1Expanded, setIsGroup1Expanded] = useState(true);
@@ -114,20 +115,11 @@ export default function ChatPanel({
   const [activeEmojiPickerId, setActiveEmojiPickerId] = useState<string | null>(null);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
-  // Refs pour les callbacks WebSocket (évite les stale closures)
-  const isOpenRef = useRef(isOpen);
-  const activeTabRef = useRef(activeTab);
-  useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-
   useEffect(() => {
     if (activeTabProp !== undefined && activeTab !== activeTabProp) {
       setActiveTab(activeTabProp);
     }
   }, [activeTabProp]);
-
-
-
 
   // Suggestions state for auto-completion
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -138,7 +130,6 @@ export default function ChatPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
   const myPseudo = childInfos?.pseudo || '';
   const myPseudoRef = useRef(myPseudo);
   useEffect(() => {
@@ -146,7 +137,7 @@ export default function ChatPanel({
   }, [myPseudo]);
   const currentPlayer = (players || []).find(p => p.id === childInfos?.id || p.childId === childInfos?.id);
   const myTeamId = currentPlayer?.teamId || currentPlayer?.team?.id;
-  const myTeam = (teams || []).find(t => t.id === myTeamId);
+  const myTeam = (teams || []).find((t: any) => t.id === myTeamId);
   const myTeamName = myTeam?.name || '';
   const myTeamNameRef = useRef(myTeamName);
   useEffect(() => {
@@ -154,251 +145,8 @@ export default function ChatPanel({
   }, [myTeamName]);
   const myTeamColor = myTeam?.color || '#00b3ff';
 
-  const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
-
-  const getAvatarUrl = (msg: ChatMessage) => {
-    if (msg.role === 'SYSTEM' || msg.role === 'ADMIN') {
-      return null;
-    }
-
-    const player = (players || []).find(p => p.pseudo.toLowerCase() === msg.sender.toLowerCase());
-    const avatarValue = player?.avatar || null;
-    const genderValue = player?.gender || null;
-
-    if (avatarValue && avatarValue !== 'avatars/default.png') {
-      return `${EVOE_IMG_URL}${avatarValue}`;
-    }
-
-    const hash = msg.sender.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    let file = '';
-    const gender = genderValue || 'H';
-    if (gender === 'EF') file = `EF_avatar_0${(hash % 3) + 1}.png`;
-    else if (gender === 'EH') file = `EH_avatar_0${(hash % 3) + 1}.png`;
-    else if (gender === 'F') file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
-    else file = `H_avatar_0${(hash % 21) + 1}.png`;
-    
-    return `${EVOE_IMG_URL}avatars_3D/${file}`;
-  };
-
-  // Get WebSocket Server URL based on API URL
-  const getSocketUrl = () => {
-    const evoeApiUrl = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
-    return evoeApiUrl.replace(/\/evoe\/?$/, '');
-  };
-
-  const decodeHtmlEntities = (text: string) => {
-    if (!text) return '';
-    return text
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&#39;/g, "'")
-      .replace(/&#x2F;/g, '/');
-  };
-
-  const formatMentions = (text: string) => {
-    if (!text) return '';
-    const parts = text.split(/(@[\wÀ-ÿ-]+)/g);
-    return parts.map((part, index) => {
-      if (part.startsWith('@')) {
-        const mentionName = part.substring(1).toLowerCase();
-        const isMe = mentionName === myPseudo.toLowerCase();
-        const isMyTeam = myTeamName && mentionName === myTeamName.toLowerCase();
-        const playerExists = (players || []).some(p => p.pseudo?.toLowerCase() === mentionName);
-        const teamExists = (teams || []).some(t => t.name?.toLowerCase() === mentionName);
-
-        if (playerExists || teamExists || isMe || isMyTeam) {
-          const color = (isMe || isMyTeam) ? '#ffd700' : '#00b3ff';
-          const bg = (isMe || isMyTeam) ? 'rgba(255, 215, 0, 0.15)' : 'rgba(0, 179, 255, 0.15)';
-          return (
-            <span
-              key={index}
-              style={{
-                color,
-                background: bg,
-                padding: '0px 4px',
-                borderRadius: '3px',
-                fontWeight: 'bold',
-                display: 'inline-block',
-                wordBreak: 'break-all'
-              }}
-            >
-              {part}
-            </span>
-          );
-        }
-      }
-      return part;
-    });
-  };
-
 
   useEffect(() => {
-    if (!savedAuth) return;
-
-    const socketUrl = getSocketUrl();
-    const socketInstance = io(`${socketUrl}/chat`, {
-      auth: {
-        token: savedAuth
-      },
-      query: {
-        instanceId: instanceId || ''
-      }
-    });
-
-    socketInstance.on('connect', () => {
-      console.log('[Chat WebSockets] Connecté au serveur');
-      setMessages(prev => [
-        ...prev,
-        {
-          id: 'conn-' + Date.now(),
-          sender: 'NEXUS SYSTEM',
-          role: 'SYSTEM',
-          content: 'Liaison Comm-Link établie avec succès. Cryptage quantique actif.',
-          timestamp: new Date()
-        }
-      ]);
-    });
-
-    socketInstance.on('msgDeleted', ({ messageId }: { messageId: string }) => {
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-    });
-
-    socketInstance.on('msgEdited', ({ messageId, content, isEdited }: { messageId: string; content: string; isEdited: boolean }) => {
-      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content, isEdited } : m));
-    });
-
-    socketInstance.on('onlineUsersUpdate', (pseudos: string[]) => {
-      const lowerPseudos = pseudos.map(p => p.toLowerCase());
-      onOnlineUsersChange?.(new Set(lowerPseudos));
-    });
-
-    socketInstance.on('msgGlobal', (msg: ChatMessage) => {
-      setMessages(prev => [...prev, { ...msg, channel: 'global' }]);
-      
-      // Update unread count if panel is closed or tab is not active
-      if (!isOpenRef.current || activeTabRef.current !== (msg.role === 'SYSTEM' ? 'system' : 'global')) {
-        if (msg.role === 'SYSTEM') {
-          setUnreadSystem(u => u + 1);
-        } else {
-          setUnreadGlobal(u => u + 1);
-        }
-      }
-    });
-
-    socketInstance.on('msgTeam', (msg: ChatMessage) => {
-      setMessages(prev => [...prev, { ...msg, channel: 'team' }]);
-      
-      if (!isOpenRef.current || activeTabRef.current !== 'team') {
-        setUnreadTeam(u => u + 1);
-      }
-    });
-
-    socketInstance.on('msgPrivate', (msg: ChatMessage) => {
-      setMessages(prev => [...prev, { ...msg, isPrivate: true }]);
-      
-      const senderLower = msg.sender.toLowerCase();
-      const myPseudoLower = myPseudoRef.current.toLowerCase();
-      if (senderLower !== myPseudoLower) {
-        const isActive = isOpenRef.current && activeTabRef.current === `mp:${senderLower}`;
-        if (!isActive) {
-          setUnreadMps(prev => ({
-            ...prev,
-            [senderLower]: (prev[senderLower] || 0) + 1
-          }));
-        }
-      }
-    });
-
-    socketInstance.on('msgPrivateTeam', (msg: ChatMessage) => {
-      setMessages(prev => [...prev, { ...msg, isPrivate: true }]);
-      
-      const myTeamNameLower = myTeamNameRef.current.toLowerCase();
-      if (msg.teamName && msg.teamName.toLowerCase() !== myTeamNameLower) {
-        const fromTeamLower = msg.teamName.toLowerCase();
-        const isActive = isOpenRef.current && activeTabRef.current === `team:${fromTeamLower}`;
-        if (!isActive) {
-          setUnreadTeams(prev => ({
-            ...prev,
-            [fromTeamLower]: (prev[fromTeamLower] || 0) + 1
-          }));
-        }
-      }
-    });
-
-    socketInstance.on('chatHistory', (history: { global: ChatMessage[]; team: ChatMessage[]; private: ChatMessage[] }) => {
-      const globalMsgs = (history.global || []).map(m => ({ ...m, channel: 'global' as const }));
-      const teamMsgs = (history.team || []).map(m => ({ ...m, channel: 'team' as const }));
-      const privateMsgs = (history.private || []).map(m => ({ ...m, isPrivate: true }));
-      
-      const combined = [...globalMsgs, ...teamMsgs, ...privateMsgs].map(m => ({
-        ...m,
-        timestamp: new Date(m.timestamp)
-      }));
-      combined.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-      
-      setMessages(prev => {
-        const prevIds = new Set(prev.map(p => p.id));
-        const filteredNew = combined.filter(m => !prevIds.has(m.id));
-        return [...prev, ...filteredNew];
-      });
-    });
-
-    socketInstance.on('reactionAdded', (data: { messageId: string; emoji: string; username: string }) => {
-      setMessages(prev => prev.map(msg => {
-        if (msg.id !== data.messageId) return msg;
-
-        const currentReactions = msg.reactions || [];
-        const existingReaction = currentReactions.find(r => r.emoji === data.emoji);
-
-        let newReactions;
-        if (existingReaction) {
-          const userIndex = existingReaction.users.indexOf(data.username);
-          let newUsers = [...existingReaction.users];
-          if (userIndex >= 0) {
-            newUsers.splice(userIndex, 1);
-          } else {
-            newUsers.push(data.username);
-          }
-
-          if (newUsers.length === 0) {
-            newReactions = currentReactions.filter(r => r.emoji !== data.emoji);
-          } else {
-            newReactions = currentReactions.map(r => r.emoji === data.emoji ? { ...r, users: newUsers, count: newUsers.length } : r);
-          }
-        } else {
-          newReactions = [...currentReactions, { emoji: data.emoji, count: 1, users: [data.username] }];
-        }
-
-        return { ...msg, reactions: newReactions };
-      }));
-    });
-
-
-    socketInstance.on('chatError', (errText: string) => {
-      setErrorMsg(errText);
-      setTimeout(() => setErrorMsg(null), 5000);
-    });
-
-    socketInstance.on('disconnect', () => {
-      console.log('[Chat WebSockets] Déconnecté du serveur');
-      setMessages(prev => [
-        ...prev,
-        {
-          id: 'disc-' + Date.now(),
-          sender: 'NEXUS SYSTEM',
-          role: 'SYSTEM',
-          content: 'Liaison Comm-Link interrompue. Tentative de reconnexion...',
-          timestamp: new Date()
-        }
-      ]);
-    });
-
-    setSocket(socketInstance);
-
-    // Global keyboard listener to toggle / focus chat
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Enter' || e.key === '/') && document.activeElement !== inputRef.current) {
         const activeEl = document.activeElement;
@@ -410,15 +158,12 @@ export default function ChatPanel({
         }
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
-
     return () => {
-      socketInstance.disconnect();
       window.removeEventListener('keydown', handleKeyDown);
-      onOnlineUsersChange?.(new Set());
     };
-  }, [savedAuth, onOnlineUsersChange]);
+  }, []);
+
 
   // Clear unreads when tab changes or chat opens
   useEffect(() => {
@@ -514,45 +259,7 @@ export default function ChatPanel({
     inputRef.current?.focus();
   };
 
-  const handleSaveEdit = (messageId: string) => {
-    if (!editInputText.trim()) return;
-    socket?.emit('editMessage', { messageId, text: editInputText });
-    setEditingMessageId(null);
-    setEditInputText('');
-  };
 
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditInputText('');
-  };
-
-  const startEditing = (messageId: string, currentContent: string) => {
-    setEditingMessageId(messageId);
-    setEditInputText(currentContent);
-  };
-
-  const handleSendReply = (e: React.FormEvent, parentId: string) => {
-    e.preventDefault();
-    const replyText = replyInputTexts[parentId]?.trim();
-    if (!socket || !replyText) return;
-
-    if (activeTab === 'global') {
-      socket.emit('sendGlobal', { text: replyText, parentId });
-    } else if (activeTab === 'team') {
-      socket.emit('sendTeam', { text: replyText, parentId });
-    } else if (activeTab.startsWith('mp:')) {
-      const target = activeTab.split(':')[1];
-      socket.emit('sendGlobal', { text: `/${target} ${replyText}`, parentId });
-    } else if (activeTab.startsWith('team:')) {
-      const target = activeTab.split(':')[1];
-      socket.emit('sendGlobal', { text: `/${target} ${replyText}`, parentId });
-    }
-
-    setReplyInputTexts(prev => ({
-      ...prev,
-      [parentId]: ''
-    }));
-  };
 
   // Handle auto-completion input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -702,20 +409,7 @@ export default function ChatPanel({
 
   const filteredMessages = getFilteredMessages();
 
-  const getRoleBadgeColor = (msg: ChatMessage) => {
-    if (msg.role === 'SYSTEM') return '#ff3b3b';
-    if (msg.role === 'ADMIN') return '#a855f7';
-    if (msg.isPrivate) return '#e0f2fe';
-    return '#00ffcc';
-  };
 
-  const getRoleLabel = (msg: ChatMessage) => {
-    if (msg.role === 'SYSTEM') return 'SYS';
-    if (msg.role === 'ADMIN') return 'HQ';
-    if (msg.targetPseudo) return 'MP';
-    if (msg.targetTeamName) return `VERS ${msg.targetTeamName.toUpperCase()}`;
-    return msg.teamName || 'AGENT';
-  };
 
   const totalUnreadMp = Object.values(unreadMps).reduce((a, b) => a + b, 0);
   const totalUnreadTeamMps = Object.values(unreadTeams).reduce((a, b) => a + b, 0);
@@ -816,159 +510,11 @@ export default function ChatPanel({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         />
-
-        <style>{`
-          .chat-sidebar-container {
-            position: absolute;
-            top: 0;
-            right: 0;
-            height: 100%;
-            width: 400px;
-            max-width: 100%;
-            z-index: 9999;
-            background: rgba(5, 8, 16, 0.94);
-            border-left: 1px solid rgba(0, 255, 204, 0.25);
-            backdrop-filter: blur(16px);
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
-            display: none;
-            flex-direction: column;
-            color: #fff;
-            font-family: ui-sans-serif, system-ui, sans-serif;
-            overflow: hidden;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s ease;
-          }
-          .chat-sidebar-container.open {
-            display: flex;
-          }
-          .chat-sidebar-container.expanded {
-            width: 600px;
-          }
-          .chat-drag-handle {
-            display: none;
-          }
-          
-          /* Handle mobile bottom sheet view */
-          @media (max-width: 768px) {
-            .chat-sidebar-container {
-              position: fixed;
-              top: auto;
-              bottom: 0;
-              left: 0;
-              right: 0;
-              height: 75vh;
-              width: 100% !important;
-              border-left: none;
-              border-top: 1px solid rgba(0, 255, 204, 0.3);
-              border-radius: 20px 20px 0 0;
-              box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
-              transform: translateY(0);
-            }
-            .chat-drag-handle {
-              display: block;
-              width: 40px;
-              height: 5px;
-              background: rgba(255, 255, 255, 0.2);
-              border-radius: 10px;
-              margin: 8px auto 4px auto;
-              flex-shrink: 0;
-              cursor: grab;
-            }
-          }
-
-          .chat-drawer-overlay {
-            position: absolute;
-
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 10;
-            opacity: ${isDrawerOpen ? 1 : 0};
-            pointer-events: ${isDrawerOpen ? 'auto' : 'none'};
-            transition: opacity 0.3s ease;
-          }
-
-          .chat-drawer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 260px;
-            max-width: 85%;
-            height: 100%;
-            background: rgba(10, 15, 30, 0.98);
-            border-right: 1px solid rgba(0, 255, 204, 0.3);
-            z-index: 11;
-            transform: ${isDrawerOpen ? 'translateX(0)' : 'translateX(-100%)'};
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            flex-direction: column;
-            box-shadow: 5px 0 20px rgba(0,0,0,0.5);
-          }
-
-          .channel-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            transition: all 0.2s;
-            color: rgba(255,255,255,0.7);
-            border-radius: 6px;
-            margin: 2px 8px;
-          }
-          .channel-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-          }
-          .channel-item.active {
-            background: rgba(0, 255, 204, 0.15);
-            color: #00ffcc;
-            font-weight: bold;
-          }
-          .channel-badge {
-            background: #ff3b3b;
-            color: #fff;
-            border-radius: 9999px;
-            min-width: 16px;
-            height: 16px;
-            padding: 0 4px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65rem;
-            font-weight: bold;
-          }
-          .chat-message-item {
-            transition: background-color 0.15s ease;
-          }
-          .chat-message-item:hover {
-            background-color: rgba(255, 255, 255, 0.02) !important;
-          }
-          .drawer-toggle-btn {
-            background: transparent;
-            border: none;
-            color: #00ffcc;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 6px;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-          }
-          .drawer-toggle-btn:hover {
-            background: rgba(0, 255, 204, 0.15);
-          }
-        `}</style>
-
         {/* --- DRAWER OVERLAY & MENU --- */}
-        <div className="chat-drawer-overlay" onClick={() => setIsDrawerOpen(false)} />
+        <div className={`chat-drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
         
-        <div className="chat-drawer">
+        <div className={`chat-drawer ${isDrawerOpen ? 'open' : ''}`}>
+
           {/* Header */}
           <div style={{ padding: '16px', borderBottom: '1px solid rgba(0, 255, 204, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1193,616 +739,52 @@ export default function ChatPanel({
             </div>
           ) : (
             filteredMessages.map((msg) => {
-              const isMentioned = msg.content.toLowerCase().includes(`@${myPseudo.toLowerCase()}`) || 
-                                  (myTeamName && msg.content.toLowerCase().includes(`@${myTeamName.toLowerCase()}`));
-              const isWhisperToMe = msg.targetPseudo === myPseudo;
-              const isWhisperFromMe = msg.sender === myPseudo && msg.targetPseudo;
-              
-              let borderLeftColor = 'transparent';
-              let itemBg = 'transparent';
-              
-              if (msg.role === 'SYSTEM') {
-                itemBg = 'rgba(255, 59, 59, 0.03)';
-                borderLeftColor = 'rgba(255, 59, 59, 0.4)';
-              } else if (msg.isPrivate) {
-                itemBg = 'rgba(168, 85, 247, 0.04)';
-                borderLeftColor = 'rgba(168, 85, 247, 0.5)';
-              } else if (isMentioned) {
-                itemBg = 'rgba(255, 215, 0, 0.03)';
-                borderLeftColor = 'rgba(255, 215, 0, 0.5)';
-              }
-
               const msgReplies = messages.filter(m => m.parentId === msg.id);
-              const hasReplies = msgReplies.length > 0;
-              const isThreadExpanded = !!expandedThreads[msg.id];
-              const avatarUrl = getAvatarUrl(msg);
-
               return (
-                <div key={msg.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                  {/* Root Message Box */}
-                  <div 
-                    className="chat-message-item"
-                    onMouseEnter={() => setHoveredMessageId(msg.id)}
-                    onMouseLeave={() => {
-                      setHoveredMessageId(null);
-                      setActiveEmojiPickerId(null);
-                    }}
-                    style={{ 
-                      background: itemBg,
-                      borderLeft: `2.5px solid ${borderLeftColor}`,
-                      padding: '6px 12px',
-                      fontSize: '0.85rem',
-                      lineHeight: '1.4',
-                      display: 'flex',
-                      gap: '10px',
-                      alignItems: 'flex-start',
-                      position: 'relative'
-                    }}
-                  >
-                    {/* Left Column: Avatar */}
-                    <div style={{ flexShrink: 0, position: 'relative' }}>
-                      {msg.role === 'SYSTEM' ? (
-                        <div
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            background: 'rgba(255, 59, 59, 0.1)',
-                            border: '1.5px solid rgba(255, 59, 59, 0.4)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ff3b3b'
-                          }}
-                        >
-                          <Terminal size={16} />
-                        </div>
-                      ) : (
-                        <div style={{ position: 'relative', width: '32px', height: '32px' }}>
-                          <img
-                            src={avatarUrl || ''}
-                            alt={msg.sender}
-                            onError={(e) => {
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                e.currentTarget.remove();
-                                const fallback = document.createElement('div');
-                                fallback.style.width = '32px';
-                                fallback.style.height = '32px';
-                                fallback.style.borderRadius = '50%';
-                                fallback.style.background = 'rgba(255,255,255,0.05)';
-                                fallback.style.border = '1px solid rgba(255,255,255,0.15)';
-                                fallback.style.display = 'flex';
-                                fallback.style.alignItems = 'center';
-                                fallback.style.justifyContent = 'center';
-                                fallback.style.color = getRoleBadgeColor(msg);
-                                fallback.style.fontWeight = 'bold';
-                                fallback.style.fontSize = '0.75rem';
-                                fallback.innerText = msg.sender.substring(0, 2).toUpperCase();
-                                parent.appendChild(fallback);
-                              }
-                            }}
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              objectFit: 'cover',
-                              border: `1px solid ${getRoleBadgeColor(msg)}44`,
-                              background: 'rgba(0,0,0,0.2)'
-                            }}
-                          />
-                          {/* Green dot on avatar in chat */}
-                          {onlineUsers.has(msg.sender.toLowerCase()) && (
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '0px',
-                              right: '0px',
-                              width: '10px',
-                              height: '10px',
-                              borderRadius: '50%',
-                              background: '#00ffcc',
-                              border: '2px solid rgba(5, 8, 16, 0.94)',
-                              boxShadow: '0 0 4px #00ffcc',
-                              zIndex: 10
-                            }} />
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right Content Column */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Header: Sender Name, Badges, Timestamp */}
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px', opacity: 0.85 }}>
-                        <span style={{ fontWeight: 'bold', color: getRoleBadgeColor(msg), textShadow: `0 0 6px ${getRoleBadgeColor(msg)}22`, fontSize: '0.8rem' }}>
-                          @{msg.sender}
-                        </span>
-                        
-                        <span style={{ fontSize: '0.58rem', padding: '0px 3px', borderRadius: '2px', background: `${getRoleBadgeColor(msg)}15`, color: getRoleBadgeColor(msg), fontWeight: 'bold', border: `0.5px solid ${getRoleBadgeColor(msg)}22`, textTransform: 'uppercase' }}>
-                          {getRoleLabel(msg)}
-                        </span>
-                        
-                        {isWhisperToMe && (
-                          <span style={{ fontSize: '0.65rem', color: '#a855f7', fontWeight: 'bold' }}>➔ (Pour vous)</span>
-                        )}
-                        {isWhisperFromMe && (
-                          <span style={{ fontSize: '0.65rem', color: '#a855f7', fontWeight: 'bold' }}>➔ (À @{msg.targetPseudo})</span>
-                        )}
-
-                        <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', marginLeft: '4px' }}>
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {msg.isEdited && <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', marginLeft: '4px', fontStyle: 'italic' }}>(modifié)</span>}
-                        </span>
-                      </div>
-
-                      {/* Content text / Edit Editor */}
-                      {editingMessageId === msg.id ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', maxWidth: '100%' }}>
-                          <input
-                            type="text"
-                            value={editInputText}
-                            onChange={(e) => setEditInputText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveEdit(msg.id);
-                              if (e.key === 'Escape') handleCancelEdit();
-                            }}
-                            style={{
-                              width: '100%',
-                              background: 'rgba(0,0,0,0.6)',
-                              border: '1px solid #00ffcc',
-                              borderRadius: '4px',
-                              padding: '6px 8px',
-                              color: '#fff',
-                              fontSize: '0.8rem',
-                              outline: 'none'
-                            }}
-                            autoFocus
-                          />
-                          <div style={{ display: 'flex', gap: '8px', fontSize: '0.65rem' }}>
-                            <button 
-                              type="button" 
-                              onClick={() => handleSaveEdit(msg.id)} 
-                              style={{ background: '#00ffcc', color: '#000', border: 'none', borderRadius: '3px', padding: '2px 8px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                              Enregistrer
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={handleCancelEdit} 
-                              style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '3px', padding: '2px 8px', cursor: 'pointer' }}
-                            >
-                              Annuler
-                            </button>
-                            <span style={{ color: 'rgba(255,255,255,0.4)', alignSelf: 'center' }}>
-                              (Entrée pour enregistrer, Échap pour annuler)
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ color: msg.role === 'SYSTEM' ? '#ff8888' : '#e2e8f0', wordBreak: 'break-word', whiteSpace: 'pre-wrap', fontSize: '0.8rem', marginTop: '1px' }}>
-                          {msg.role === 'SYSTEM' ? decodeHtmlEntities(msg.content) : formatMentions(decodeHtmlEntities(msg.content))}
-                        </div>
-                      )}
-
-                      {/* Emoji Reactions List */}
-                      {msg.reactions && msg.reactions.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                          {msg.reactions.map((reaction) => {
-                            const hasMyReaction = reaction.users.includes(myPseudo);
-                            return (
-                              <button
-                                key={reaction.emoji}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (socket) {
-                                    socket.emit('addReaction', { messageId: msg.id, emoji: reaction.emoji });
-                                  }
-                                }}
-                                title={`Réactions de : ${reaction.users.join(', ')}`}
-                                style={{
-                                  background: hasMyReaction ? 'rgba(0, 255, 204, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                                  border: `1.5px solid ${hasMyReaction ? '#00ffcc' : 'rgba(255, 255, 255, 0.1)'}`,
-                                  borderRadius: '6px',
-                                  padding: '2px 6px',
-                                  color: hasMyReaction ? '#00ffcc' : 'rgba(255, 255, 255, 0.7)',
-                                  fontSize: '0.7rem',
-                                  cursor: 'pointer',
-                                  fontFamily: 'inherit',
-                                  transition: 'all 0.15s ease',
-                                }}
-                              >
-                                <span>{reaction.emoji}</span>
-                                <span style={{ fontWeight: 'bold' }}>{reaction.count}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Inline Thread Action Toggle Button */}
-                      {hasReplies && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExpandedThreads(prev => ({
-                              ...prev,
-                              [msg.id]: !prev[msg.id]
-                            }));
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#00ffcc',
-                            cursor: 'pointer',
-                            fontSize: '0.7rem',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            marginTop: '6px',
-                            padding: '2px 0'
-                          }}
-                        >
-                          <MessageSquare size={12} />
-                          {isThreadExpanded 
-                            ? `Masquer les réponses (${msgReplies.length})` 
-                            : `Afficher les réponses (${msgReplies.length})`}
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Floating Action Toolbar on Hover */}
-                    {hoveredMessageId === msg.id && msg.role !== 'SYSTEM' && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '4px',
-                          right: '8px',
-                          zIndex: 100,
-                          display: 'flex',
-                          alignItems: 'center',
-                          background: 'rgba(10, 15, 30, 0.95)',
-                          border: '1px solid rgba(0, 255, 204, 0.4)',
-                          borderRadius: '6px',
-                          padding: '2px 4px',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
-                          backdropFilter: 'blur(4px)',
-                          gap: '2px'
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveEmojiPickerId(activeEmojiPickerId === msg.id ? null : msg.id);
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#00ffcc',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem',
-                            padding: '2px 6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '4px',
-                            transition: 'background-color 0.15s'
-                          }}
-                          title="Ajouter une réaction"
-                        >
-                          😊+
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedThreads(prev => ({
-                              ...prev,
-                              [msg.id]: true
-                            }));
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#00ffcc',
-                            cursor: 'pointer',
-                            padding: '2px 6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: '4px',
-                            transition: 'background-color 0.15s'
-                          }}
-                          title="Répondre dans le fil"
-                        >
-                          <MessageSquare size={14} />
-                        </button>
-
-                        {(msg.sender === myPseudo || (user as any)?.role === 'ADMIN') && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditing(msg.id, msg.content);
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#00ffcc',
-                                cursor: 'pointer',
-                                padding: '2px 6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '4px',
-                                transition: 'background-color 0.15s'
-                              }}
-                              title="Modifier le message"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm("Voulez-vous vraiment supprimer ce message ?")) {
-                                  socket?.emit('deleteMessage', { messageId: msg.id });
-                                }
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#ff3b3b',
-                                cursor: 'pointer',
-                                padding: '2px 6px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '4px',
-                                transition: 'background-color 0.15s'
-                              }}
-                              title="Supprimer le message"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
-                        )}
-
-                        {activeEmojiPickerId === msg.id && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '-3px',
-                              right: '100%',
-                              marginRight: '6px',
-                              background: 'rgba(10, 15, 30, 0.98)',
-                              border: '1px solid rgba(0, 255, 204, 0.4)',
-                              borderRadius: '6px',
-                              padding: '4px 6px',
-                              display: 'flex',
-                              gap: '6px',
-                              boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
-                              zIndex: 110,
-                            }}
-                          >
-                            {['👍', '❤️', '😂', '🔥', '🚀'].map((emoji) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (socket) {
-                                    socket.emit('addReaction', { messageId: msg.id, emoji });
-                                  }
-                                  setActiveEmojiPickerId(null);
-                                }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  fontSize: '1.05rem',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px',
-                                  transition: 'transform 0.1s ease, background-color 0.1s'
-                                }}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Collapsible Thread Replies Block */}
-                  {isThreadExpanded && (
-                    <div
-                      style={{
-                        marginLeft: '38px',
-                        paddingLeft: '14px',
-                        borderLeft: '2px solid rgba(0, 255, 204, 0.15)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        marginTop: '2px',
-                        marginBottom: '10px'
-                      }}
-                    >
-                      {/* Replies List */}
-                      {msgReplies.map((reply) => {
-                        const isReplyMentioned = reply.content.toLowerCase().includes(`@${myPseudo.toLowerCase()}`) || 
-                                                (myTeamName && reply.content.toLowerCase().includes(`@${myTeamName.toLowerCase()}`));
-                        const replyAvatar = getAvatarUrl(reply);
-                        const isReplyWhisperToMe = reply.targetPseudo === myPseudo;
-                        const isReplyWhisperFromMe = reply.targetPseudo && reply.sender === myPseudo;
-
-                        return (
-                          <div
-                            key={reply.id}
-                            style={{
-                              background: isReplyMentioned ? 'rgba(255, 215, 0, 0.03)' : 'transparent',
-                              padding: '6px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.78rem',
-                              display: 'flex',
-                              gap: '8px',
-                              alignItems: 'flex-start',
-                              position: 'relative'
-                            }}
-                          >
-                            {/* Reply Avatar */}
-                            <div style={{ flexShrink: 0, width: '24px', height: '24px' }}>
-                              <img 
-                                src={replyAvatar || ''} 
-                                alt={reply.sender}
-                                style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: `1px solid ${getRoleBadgeColor(reply)}33` }}
-                              />
-                            </div>
-                            
-                            {/* Reply Content Column */}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', opacity: 0.85 }}>
-                                <span style={{ fontWeight: 'bold', color: getRoleBadgeColor(reply), fontSize: '0.75rem' }}>
-                                  @{reply.sender}
-                                </span>
-                                <span style={{ fontSize: '0.55rem', padding: '0px 2px', borderRadius: '2px', background: `${getRoleBadgeColor(reply)}15`, color: getRoleBadgeColor(reply), fontWeight: 'bold', textTransform: 'uppercase' }}>
-                                  {getRoleLabel(reply)}
-                                </span>
-                                {isReplyWhisperToMe && (
-                                  <span style={{ fontSize: '0.6rem', color: '#a855f7', fontWeight: 'bold' }}>➔ (Pour vous)</span>
-                                )}
-                                {isReplyWhisperFromMe && (
-                                  <span style={{ fontSize: '0.6rem', color: '#a855f7', fontWeight: 'bold' }}>➔ (À @{reply.targetPseudo})</span>
-                                )}
-                                <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)' }}>
-                                  {new Date(reply.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  {reply.isEdited && <span style={{ fontSize: '0.5rem', marginLeft: '4px', fontStyle: 'italic' }}>(modifié)</span>}
-                                </span>
-                              </div>
-
-                              {/* Reply Text Content or Edit Input */}
-                              {editingMessageId === reply.id ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '3px' }}>
-                                  <input
-                                    type="text"
-                                    value={editInputText}
-                                    onChange={(e) => setEditInputText(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') handleSaveEdit(reply.id);
-                                      if (e.key === 'Escape') handleCancelEdit();
-                                    }}
-                                    style={{
-                                      width: '100%',
-                                      background: 'rgba(0,0,0,0.6)',
-                                      border: '1px solid #00ffcc',
-                                      borderRadius: '4px',
-                                      padding: '4px 6px',
-                                      color: '#fff',
-                                      fontSize: '0.75rem',
-                                      outline: 'none'
-                                    }}
-                                    autoFocus
-                                  />
-                                  <div style={{ display: 'flex', gap: '6px', fontSize: '0.6rem' }}>
-                                    <button type="button" onClick={() => handleSaveEdit(reply.id)} style={{ background: '#00ffcc', color: '#000', border: 'none', borderRadius: '2px', padding: '1px 6px', cursor: 'pointer', fontWeight: 'bold' }}>Enregistrer</button>
-                                    <button type="button" onClick={handleCancelEdit} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: '2px', padding: '1px 6px', cursor: 'pointer' }}>Annuler</button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div style={{ color: '#e2e8f0', wordBreak: 'break-word', whiteSpace: 'pre-wrap', marginTop: '1px' }}>
-                                  {formatMentions(decodeHtmlEntities(reply.content))}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Reply Action Toolbar */}
-                            <div style={{ display: 'flex', gap: '4px', opacity: 0.7, alignSelf: 'center' }}>
-                              {(reply.sender === myPseudo || (user as any)?.role === 'ADMIN') && (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => startEditing(reply.id, reply.content)}
-                                    style={{ background: 'transparent', border: 'none', color: '#00ffcc', cursor: 'pointer', padding: '2px' }}
-                                    title="Modifier la réponse"
-                                  >
-                                    <Edit2 size={12} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (window.confirm("Voulez-vous vraiment supprimer cette réponse ?")) {
-                                        socket?.emit('deleteMessage', { messageId: reply.id });
-                                      }
-                                    }}
-                                    style={{ background: 'transparent', border: 'none', color: '#ff3b3b', cursor: 'pointer', padding: '2px' }}
-                                    title="Supprimer la réponse"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Reply Input Form */}
-                      <form
-                        onSubmit={(e) => handleSendReply(e, msg.id)}
-                        style={{
-                          display: 'flex',
-                          gap: '8px',
-                          marginTop: '6px',
-                          paddingRight: '12px'
-                        }}
-                      >
-                        <input
-                          type="text"
-                          value={replyInputTexts[msg.id] || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setReplyInputTexts(prev => ({
-                              ...prev,
-                              [msg.id]: val
-                            }));
-                          }}
-                          placeholder="Répondre à ce fil..."
-                          style={{
-                            flex: 1,
-                            background: 'rgba(0, 0, 0, 0.4)',
-                            border: '1px solid rgba(0, 255, 204, 0.2)',
-                            borderRadius: '4px',
-                            padding: '6px 10px',
-                            color: '#fff',
-                            fontSize: '0.75rem',
-                            outline: 'none'
-                          }}
-                        />
-                        <button
-                          type="submit"
-                          style={{
-                            background: 'rgba(0, 255, 204, 0.15)',
-                            border: '1px solid #00ffcc',
-                            borderRadius: '4px',
-                            padding: '4px 10px',
-                            color: '#00ffcc',
-                            fontSize: '0.75rem',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          Répondre
-                        </button>
-                      </form>
-                    </div>
-                  )}
-                </div>
+                <ChatMessageItem
+                  key={msg.id}
+                  msg={msg}
+                  msgReplies={msgReplies}
+                  onlineUsers={onlineUsers || new Set()}
+                  myPseudo={myPseudo}
+                  myTeamName={myTeamName}
+                  userRole={(user as any)?.role}
+                  players={players || []}
+                  hoveredMessageId={hoveredMessageId}
+                  setHoveredMessageId={setHoveredMessageId}
+                  activeEmojiPickerId={activeEmojiPickerId}
+                  setActiveEmojiPickerId={setActiveEmojiPickerId}
+                  editingMessageId={editingMessageId}
+                  setEditingMessageId={setEditingMessageId}
+                  editInputText={editInputText}
+                  setEditInputText={setEditInputText}
+                  expandedThreads={expandedThreads}
+                  setExpandedThreads={setExpandedThreads}
+                  replyInputTexts={replyInputTexts}
+                  setReplyInputTexts={setReplyInputTexts}
+                  onSendReply={(parentId, text) => {
+                    if (activeTab === 'global') {
+                      socket?.emit('sendGlobal', { text, parentId });
+                    } else if (activeTab === 'team') {
+                      socket?.emit('sendTeam', { text, parentId });
+                    } else if (activeTab.startsWith('mp:')) {
+                      const target = activeTab.substring(3);
+                      socket?.emit('sendGlobal', { text: `/${target} ${text}`, parentId });
+                    } else if (activeTab.startsWith('team:')) {
+                      const target = activeTab.substring(5);
+                      socket?.emit('sendGlobal', { text: `/${target} ${text}`, parentId });
+                    }
+                  }}
+                  onAddReaction={(messageId, emoji) => {
+                    socket?.emit('addReaction', { messageId, emoji });
+                  }}
+                  onEditMessage={(messageId, text) => {
+                    socket?.emit('editMessage', { messageId, text });
+                  }}
+                  onDeleteMessage={(messageId) => {
+                    socket?.emit('deleteMessage', { messageId });
+                  }}
+                />
               );
             })
           )}
