@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, Monitor, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail, RotateCcw } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, Eye, EyeOff, Camera, Upload, Save, X, Trophy, Mail, RotateCcw, Compass, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -656,6 +656,47 @@ function MainApp() {
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
+  // Swipe gesture detection to toggle Era (2026 <-> 2070)
+  const swipeStartX = useRef(0);
+  const swipeEndX = useRef(0);
+
+  const handleTouchStartApp = (e: React.TouchEvent) => {
+    // Avoid triggering if touch is on active input, button or interactive panels
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('select') || target.closest('.codex-panel') || target.closest('.chat-sidebar-container') || target.closest('.agent-profile-modal') || target.closest('.mobile-bottom-nav')) {
+      return;
+    }
+
+    const startX = e.touches[0].clientX;
+    const width = window.innerWidth;
+    
+    // Ignore edge swipes (outer 10% on left and right) to avoid conflicting with system Back gestures
+    if (startX < width * 0.1 || startX > width * 0.9) {
+      return;
+    }
+    
+    swipeStartX.current = startX;
+    swipeEndX.current = startX;
+  };
+
+  const handleTouchMoveApp = (e: React.TouchEvent) => {
+    swipeEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEndApp = () => {
+    if (!swipeStartX.current) return;
+    
+    const diffX = swipeEndX.current - swipeStartX.current;
+    
+    // Swipe left (diffX < -100px) or right (diffX > 100px) to switch Era
+    if (Math.abs(diffX) > 100) {
+      handleSwitchEra();
+    }
+    
+    swipeStartX.current = 0;
+    swipeEndX.current = 0;
+  };
+
   // --- Gestion de l'orientation mobile ---
   const [allowPortrait, setAllowPortrait] = useState<boolean>(() =>
     localStorage.getItem('evoe_allow_portrait') === 'true'
@@ -1052,7 +1093,12 @@ function MainApp() {
   };
 
   return (
-    <div className="app-container">
+    <div 
+      className="app-container"
+      onTouchStart={handleTouchStartApp}
+      onTouchMove={handleTouchMoveApp}
+      onTouchEnd={handleTouchEndApp}
+    >
 
       {/* Overlay Portrait — affiché quand le mode paysage est requis et l'appareil est en portrait */}
       {showPortraitOverlay && (
@@ -1230,7 +1276,7 @@ function MainApp() {
 
             {/* Toggle Portrait / Paysage */}
             <button
-              className="switch-btn"
+              className="switch-btn desktop-only"
               onClick={() => {
                 const next = !allowPortrait;
                 setAllowPortrait(next);
@@ -1248,11 +1294,11 @@ function MainApp() {
                 transition: 'all 0.2s'
               }}
             >
-              {allowPortrait ? <Smartphone size={18} /> : <Monitor size={18} />}
+              <Smartphone size={18} />
             </button>
 
             <button
-              className="switch-btn" 
+              className="switch-btn desktop-only" 
               onClick={handleSwitchEra} 
               disabled={isTransitioning}
               title={era === '2026' ? 'Ouvrir le Radar 2070' : 'Retour au QG 2026'}
@@ -1275,7 +1321,7 @@ function MainApp() {
               {era === '2026' ? <Scan size={18} /> : <Radio size={18} />}
             </button>
             <button 
-              className="switch-btn" 
+              className="switch-btn desktop-only" 
               onClick={() => setShowLeaderboardModal(true)}
               title="Classement - Top 10"
               style={{
@@ -1297,11 +1343,12 @@ function MainApp() {
               <Trophy size={18} />
             </button>
             <button 
-              className="switch-btn" 
+              className="switch-btn desktop-only" 
               onClick={logoutUser} 
               title="Quitter la simulation"
               style={{ 
                 width: '40px',
+
                 height: '40px',
                 borderRadius: '50%',
                 padding: '0',
@@ -2507,7 +2554,103 @@ function MainApp() {
         onClose={() => setChatOpen(false)}
         onTabChange={(tab) => setChatActiveTab(tab)}
       />
+
+      {/* Mobile Bottom Navbar (Axe 3) */}
+      <nav className="mobile-bottom-nav">
+        <button 
+          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'missions' && !selectedProfileId && !showLeaderboardModal ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedProfileId(null);
+            setShowLeaderboardModal(false);
+            setChatOpen(false);
+            setCodexTab('missions');
+            setIsCodexCollapsed(false); // Force expand the Codex panel
+            if (era !== '2026') {
+              handleSwitchEra();
+            }
+            // Dynamically select the first available category in database
+            const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+            if (cats.length > 0) {
+              setSelectedSector(cats[0]);
+            } else {
+              setSelectedSector('Secteur Énergétique & Plasma');
+            }
+          }}
+        >
+          <Compass size={20} />
+          <span>Missions</span>
+        </button>
+
+        <button 
+          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'challenges' && !selectedProfileId && !showLeaderboardModal ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedProfileId(null);
+            setShowLeaderboardModal(false);
+            setChatOpen(false);
+            setCodexTab('challenges');
+            setIsCodexCollapsed(false); // Force expand the Codex panel
+            if (era !== '2026') {
+              handleSwitchEra();
+            }
+            if (!selectedSector) {
+              const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+              if (cats.length > 0) {
+                setSelectedSector(cats[0]);
+              } else {
+                setSelectedSector('Secteur Énergétique & Plasma');
+              }
+            }
+          }}
+        >
+          <Radio size={20} />
+          <span>Défis</span>
+        </button>
+
+
+        {/* Central Floating Action Button (FAB) for Era Switch */}
+        <div className="fab-container">
+          <button 
+            className="fab-button"
+            onClick={handleSwitchEra}
+            disabled={isTransitioning}
+            title={era === '2026' ? 'Voyager vers 2070' : 'Retourner en 2026'}
+          >
+            <Hexagon size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
+          </button>
+        </div>
+
+        <button 
+          className={`nav-item ${showLeaderboardModal ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedProfileId(null);
+            setChatOpen(false);
+            setShowLeaderboardModal(true);
+          }}
+        >
+          <Trophy size={20} />
+          <span>Scores</span>
+        </button>
+
+        <button 
+          className={`nav-item ${chatOpen ? 'active' : ''}`}
+          onClick={() => {
+            setSelectedProfileId(null);
+            setShowLeaderboardModal(false);
+            setChatOpen(!chatOpen);
+          }}
+        >
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageSquare size={20} />
+            {unreadChat.total > 0 && (
+              <span className="nav-badge">{unreadChat.total}</span>
+            )}
+          </div>
+          <span>Chat</span>
+        </button>
+      </nav>
     </div>
+
+
   );
 }
 

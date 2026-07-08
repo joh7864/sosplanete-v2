@@ -71,6 +71,27 @@ export default function ChatPanel({
     setActiveTab(tab);
     onTabChange?.(tab);
   };
+
+  // Touch gestures to close Bottom Sheet on mobile (Swipe Down)
+  const touchStartY = useRef(0);
+  const touchEndY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchEndY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    const diffY = touchEndY.current - touchStartY.current;
+    if (diffY > 80) {
+      changeIsOpen(false);
+    }
+  };
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -786,29 +807,77 @@ export default function ChatPanel({
 
       {/* Main Container */}
       <div
-        className={`chat-sidebar-container ${isOpen ? 'open' : ''}`}
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          height: '100%',
-          width: isExpanded ? '600px' : '400px',
-          maxWidth: '100%',
-          zIndex: 9999,
-          background: 'rgba(5, 8, 16, 0.94)',
-          borderLeft: '1px solid rgba(0, 255, 204, 0.25)',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.7)',
-          display: isOpen ? 'flex' : 'none',
-          flexDirection: 'column',
-          color: '#fff',
-          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-          overflow: 'hidden'
-        }}
+        className={`chat-sidebar-container ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}
       >
+        {/* Drag handle for mobile Bottom Sheet */}
+        <div 
+          className="chat-drag-handle"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        />
+
         <style>{`
+          .chat-sidebar-container {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 400px;
+            max-width: 100%;
+            z-index: 9999;
+            background: rgba(5, 8, 16, 0.94);
+            border-left: 1px solid rgba(0, 255, 204, 0.25);
+            backdrop-filter: blur(16px);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            color: #fff;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            overflow: hidden;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s ease;
+          }
+          .chat-sidebar-container.open {
+            display: flex;
+          }
+          .chat-sidebar-container.expanded {
+            width: 600px;
+          }
+          .chat-drag-handle {
+            display: none;
+          }
+          
+          /* Handle mobile bottom sheet view */
+          @media (max-width: 768px) {
+            .chat-sidebar-container {
+              position: fixed;
+              top: auto;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 75vh;
+              width: 100% !important;
+              border-left: none;
+              border-top: 1px solid rgba(0, 255, 204, 0.3);
+              border-radius: 20px 20px 0 0;
+              box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+              transform: translateY(0);
+            }
+            .chat-drag-handle {
+              display: block;
+              width: 40px;
+              height: 5px;
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 10px;
+              margin: 8px auto 4px auto;
+              flex-shrink: 0;
+              cursor: grab;
+            }
+          }
+
           .chat-drawer-overlay {
             position: absolute;
+
             top: 0;
             left: 0;
             width: 100%;
