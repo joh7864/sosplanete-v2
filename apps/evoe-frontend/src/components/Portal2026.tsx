@@ -139,6 +139,7 @@ export default function Portal2026({
   onlineUsers = new Set(),
   unreadTeam = 0,
   unreadMps = {},
+  isMobile = false,
 }: { 
   categories?: string[];
   onSelectSector?: (c: string) => void;
@@ -146,6 +147,7 @@ export default function Portal2026({
   onlineUsers?: Set<string>;
   unreadTeam?: number;
   unreadMps?: Record<string, number>;
+  isMobile?: boolean;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
   const { players } = useAuth();
@@ -208,7 +210,7 @@ export default function Portal2026({
       
       {/* Portail Central 2026 - Terre texturée */}
       <mesh ref={portalRef}>
-        <sphereGeometry args={[2, 64, 64]} />
+        <sphereGeometry args={[2, isMobile ? 16 : 64, isMobile ? 16 : 64]} />
         {/* La clé UUID force R3F à recréer le matériau quand la texture arrive */}
         <meshStandardMaterial
           key={earthTexture?.uuid || 'no-tex'}

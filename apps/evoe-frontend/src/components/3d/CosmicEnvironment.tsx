@@ -4,8 +4,8 @@ import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Composant pour l'effet d'hyperespace/tunnel de vitesse (particules scintillantes)
-export function SpeedParticles() {
-  const count = 100;
+export function SpeedParticles({ isMobile = false }: { isMobile?: boolean }) {
+  const count = isMobile ? 35 : 100;
   const pointsRef = useRef<THREE.Points>(null);
   
   const [positions, colors] = useMemo(() => {
@@ -22,7 +22,7 @@ export function SpeedParticles() {
       cols[i * 3 + 2] = 1;
     }
     return [pos, cols];
-  }, []);
+  }, [count]);
 
   useFrame(() => {
     if (pointsRef.current) {
@@ -43,7 +43,7 @@ export function SpeedParticles() {
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} key={count}>
       <bufferGeometry>
         <bufferAttribute 
           attach="attributes-position"
