@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Hexagon, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import pkg from '../../package.json';
 import './Login.css';
 
 export default function Login() {
@@ -40,7 +41,12 @@ export default function Login() {
       <div className="login-panel">
         <div className="login-header">
           <Hexagon className="icon-neon" size={48} />
-          <h1>EVOE 2026</h1>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h1 style={{ margin: 0 }}>EVOE 2026</h1>
+            <span style={{ fontSize: '0.75rem', color: '#00ffcc', opacity: 0.8, fontFamily: 'monospace', marginTop: '2px', letterSpacing: '0.05em' }}>
+              v{pkg.version}
+            </span>
+          </div>
         </div>
 
         <div className="login-body">
