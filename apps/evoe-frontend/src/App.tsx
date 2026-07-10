@@ -158,19 +158,9 @@ function MainApp() {
     };
   }, []);
 
-  // Verrouillage natif (Chrome Android uniquement, silencieux sinon)
-  useEffect(() => {
-    const tryLock = async () => {
-      try {
-        if (!allowPortrait) {
-          await (screen.orientation as any).lock('landscape');
-        } else {
-          screen.orientation.unlock();
-        }
-      } catch { /* non supporté sur iOS, silencieux */ }
-    };
-    tryLock();
-  }, [allowPortrait]);
+  // Verrouillage natif désactivé : l'orientation est gérée par le manifest PWA ("any")
+  // et par le bouton dédié dans le header. screen.orientation.lock() était redondant
+  // et empêchait le portrait sur les appareils qui le supportent.
 
   const showPortraitOverlay = !allowPortrait && isPhysicalPortrait;
   // ---------------------------------------
