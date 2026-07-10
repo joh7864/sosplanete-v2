@@ -7,7 +7,15 @@ import Vessel2070 from './Vessel2070';
 import Arch2070 from './Arch2070';
 import { SpeedParticles, CosmicScale, TemporalEchoPulse } from './3d/CosmicEnvironment';
 
-export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboardStatus: any; onEarthClick?: (level: number) => void }) {
+export default function Portal2070({ 
+  dashboardStatus, 
+  onEarthClick,
+  isMobile = false
+}: { 
+  dashboardStatus: any; 
+  onEarthClick?: (level: number) => void;
+  isMobile?: boolean;
+}) {
   const orbitRef = useRef<THREE.Group>(null);
   const planetMeshRef = useRef<THREE.Mesh>(null);
   const planetMaterialRef = useRef<THREE.ShaderMaterial>(null);
@@ -251,10 +259,10 @@ export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboar
       <pointLight position={[0, 4, 15]} intensity={1.2} color="#ffffff" distance={15} />
       
       {/* Effet d'tunnel d'étoiles (hyperespace) */}
-      <SpeedParticles />
+      <SpeedParticles isMobile={isMobile} />
 
       {/* Ciel Spatial sombre */}
-      <Sphere args={[50, 32, 32]}>
+      <Sphere args={[50, isMobile ? 12 : 32, isMobile ? 12 : 32]}>
         <meshBasicMaterial color="#010108" side={THREE.BackSide} />
       </Sphere>
 
@@ -277,7 +285,7 @@ export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboar
       {/* Chrono-Planète Évolutive "Aeon-9" (Z = -10) */}
       <group position={[0, 0.4, -10.2]}>
         <mesh ref={planetMeshRef} onClick={handlePlanetClick}>
-          <sphereGeometry args={[2.8, 32, 32]} />
+          <sphereGeometry args={[2.8, isMobile ? 16 : 32, isMobile ? 16 : 32]} />
           <shaderMaterial key={earthTexture?.uuid || 'planet'} ref={planetMaterialRef} attach="material" args={[planetShaderArgs]} />
         </mesh>
 
@@ -290,7 +298,7 @@ export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboar
               quaternion={spike.quaternion}
               scale={[spike.scale, spike.scale * 3.2, spike.scale]}
             >
-              <coneGeometry args={[0.3, 1.0, 4]} />
+              <coneGeometry args={[0.3, 1.0, isMobile ? 3 : 4]} />
               <meshStandardMaterial color="#1f1818" roughness={0.9} metalness={0.1} />
             </mesh>
           ))}
@@ -299,10 +307,12 @@ export default function Portal2070({ dashboardStatus, onEarthClick }: { dashboar
       </group>
       {/* L'orbite des avatars a été retirée pour laisser la vedette absolue aux vaisseaux et épurer la scène spatiale. */}
 
-      {/* Post-processing pour l'effet Bloom haute qualité (Copie écran 2) */}
-      <EffectComposer>
-        <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.5} mipmapBlur />
-      </EffectComposer>
+      {/* Post-processing pour l'effet Bloom haute qualité (uniquement sur desktop) */}
+      {!isMobile && (
+        <EffectComposer>
+          <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.5} mipmapBlur />
+        </EffectComposer>
+      )}
     </group>
   );
 }

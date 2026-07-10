@@ -17,6 +17,7 @@ import { AgentProfileModal } from './components/ui/AgentProfileModal';
 import { LeaderboardModal } from './components/ui/LeaderboardModal';
 import { ChallengeModal } from './components/ui/ChallengeModal';
 import { ConfirmCancelModal } from './components/ui/ConfirmCancelModal';
+import MobileContextCarousel from './components/ui/MobileContextCarousel';
 
 import './App.css';
 
@@ -143,6 +144,17 @@ function MainApp() {
   const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
   );
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const onOrientationChange = () => {
@@ -450,9 +462,14 @@ function MainApp() {
               onlineUsers={onlineUsers}
               unreadTeam={unreadChat.team}
               unreadMps={unreadChat.unreadMps}
+              isMobile={isMobile}
             />
           ) : (
-            <Portal2070 dashboardStatus={dashboardStatus} onEarthClick={handleEarthClick} />
+            <Portal2070 
+              dashboardStatus={dashboardStatus} 
+              onEarthClick={handleEarthClick} 
+              isMobile={isMobile}
+            />
           )}
         </Canvas>
       </div>
@@ -1262,21 +1279,33 @@ function MainApp() {
               </aside>
             </div>
 
-            {/* Dock de contrôle mobile au bas de l'écran */}
-            <div className="evoe-mobile-dock">
-              <button 
-                className={`dock-btn ${showExtrapolation ? 'active' : ''}`}
-                onClick={() => setShowExtrapolation(v => !v)}
-              >
-                📊 Extrapolation 2070
-              </button>
-              <button 
-                className={`dock-btn ${showRadar ? 'active' : ''}`}
-                onClick={() => setShowRadar(v => !v)}
-              >
-                📡 Radar Temporel
-              </button>
-            </div>
+            {/* Carrousel de contrôle mobile en 2070 */}
+            {isMobile && !selectedSector && !chatOpen && !selectedProfileId && !showLeaderboardModal && !showExtrapolation && !showRadar && (
+              <MobileContextCarousel
+                extrapolation={extrapolation}
+                dashboardStatus={dashboardStatus}
+                setShowExtrapolation={setShowExtrapolation}
+                setShowRadar={setShowRadar}
+              />
+            )}
+
+            {/* Dock de contrôle mobile au bas de l'écran (affiché uniquement sur desktop/tablette paysage) */}
+            {!isMobile && (
+              <div className="evoe-mobile-dock">
+                <button 
+                  className={`dock-btn ${showExtrapolation ? 'active' : ''}`}
+                  onClick={() => setShowExtrapolation(v => !v)}
+                >
+                  📊 Extrapolation 2070
+                </button>
+                <button 
+                  className={`dock-btn ${showRadar ? 'active' : ''}`}
+                  onClick={() => setShowRadar(v => !v)}
+                >
+                  📡 Radar Temporel
+                </button>
+              </div>
+            )}
 
             {/* Overlay d'arrière-plan pour fermer au clic en dehors */}
             {(showExtrapolation || showRadar) && (
