@@ -602,6 +602,12 @@ body {
   pointer-events: auto;
 }
 
+@media (max-width: 768px) {
+  .evoe-mobile-dock {
+    bottom: 85px;
+  }
+}
+
 .dock-btn {
   background: transparent;
   border: 1px solid transparent;
