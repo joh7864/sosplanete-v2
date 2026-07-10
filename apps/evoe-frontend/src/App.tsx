@@ -95,6 +95,7 @@ function MainApp() {
   const swipeEndX = useRef(0);
 
   const handleTouchStartApp = (e: React.TouchEvent) => {
+    if (era === '2070') return; // Geste désactivé en 2070 pour éviter de retourner accidentellement en 2026
     // Avoid triggering if touch is on active input, button or interactive panels
     const target = e.target as HTMLElement;
     if (
