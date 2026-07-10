@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe } from 'lucide-react';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
@@ -1484,8 +1484,20 @@ function MainApp() {
             onClick={handleSwitchEra}
             disabled={isTransitioning}
             title={era === '2026' ? 'Voyager vers 2070' : 'Retourner en 2026'}
+            style={{
+              background: era === '2026' 
+                ? 'linear-gradient(135deg, #00b3ff, #0055ff)' 
+                : 'linear-gradient(135deg, #00ffcc, #00aa66)',
+              boxShadow: era === '2026'
+                ? '0 4px 15px rgba(0, 179, 255, 0.4), 0 0 0 4px rgba(0, 179, 255, 0.05)'
+                : '0 4px 15px rgba(0, 255, 204, 0.4), 0 0 0 4px rgba(0, 255, 204, 0.05)'
+            }}
           >
-            <Hexagon size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
+            {era === '2026' ? (
+              <Radio size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
+            ) : (
+              <Globe size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
+            )}
           </button>
         </div>
 
