@@ -570,15 +570,21 @@ function MainApp() {
               style={{
                 width: '40px', height: '40px', borderRadius: '50%', padding: '0',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: allowPortrait ? 'rgba(255,255,255,0.05)' : 'rgba(0,255,204,0.15)',
-                border: allowPortrait ? '1.5px solid rgba(255,255,255,0.2)' : '1.5px solid #00ffcc',
-                color: allowPortrait ? '#a0aec0' : '#00ffcc',
-                boxShadow: allowPortrait ? 'none' : '0 0 10px rgba(0,255,204,0.2)',
+                background: allowPortrait ? 'rgba(0,255,204,0.15)' : 'rgba(0,179,255,0.15)',
+                border: allowPortrait ? '1.5px solid #00ffcc' : '1.5px solid #00b3ff',
+                color: allowPortrait ? '#00ffcc' : '#00b3ff',
+                boxShadow: allowPortrait ? '0 0 10px rgba(0,255,204,0.2)' : '0 0 10px rgba(0,179,255,0.2)',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
             >
-              <Smartphone size={18} />
+              <Smartphone 
+                size={18} 
+                style={{ 
+                  transform: allowPortrait ? 'rotate(0deg)' : 'rotate(90deg)', 
+                  transition: 'transform 0.3s ease' 
+                }} 
+              />
             </button>
 
             <button
