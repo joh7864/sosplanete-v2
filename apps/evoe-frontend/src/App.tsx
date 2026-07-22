@@ -14,7 +14,7 @@ import ChatPanel from './components/ChatPanel';
 import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 import { AgentProfileModal } from './components/ui/AgentProfileModal';
-import { LeaderboardModal } from './components/ui/LeaderboardModal';
+
 import { ChallengeModal } from './components/ui/ChallengeModal';
 import { ConfirmCancelModal } from './components/ui/ConfirmCancelModal';
 import MobileContextCarousel from './components/ui/MobileContextCarousel';
@@ -88,6 +88,8 @@ function MainApp() {
     handleSendChallenge, handleRespondChallenge,
     handleResetPropulsion
   } = useEvoeData();
+
+  const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
 
 
   // Swipe gesture detection to toggle Era (2026 <-> 2070)
@@ -464,6 +466,9 @@ function MainApp() {
               unreadTeam={unreadChat.team}
               unreadMps={unreadChat.unreadMps}
               isMobile={isMobile}
+              view={view2026}
+              dashboardStatus={dashboardStatus}
+              onCloseLeaderboard={() => setView2026('codex')}
             />
           ) : (
             <Portal2070 
@@ -629,9 +634,9 @@ function MainApp() {
               {era === '2026' ? <Scan size={18} /> : <Radio size={18} />}
             </button>
             <button 
-              className="switch-btn desktop-only" 
-              onClick={() => setShowLeaderboardModal(true)}
-              title="Classement - Top 10"
+              className={`switch-btn desktop-only ${view2026 === 'leaderboard' ? 'active' : ''}`}
+              onClick={() => setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard')}
+              title={view2026 === 'leaderboard' ? "Retour au QG Codex" : "Afficher le Classement"}
               style={{
                 width: '40px',
                 height: '40px',
@@ -1389,15 +1394,6 @@ function MainApp() {
         handleCancelMission={handleCancelMission}
       />
 
-      {/* Modal du Top 10 (Classement) */}
-      <LeaderboardModal
-        showLeaderboardModal={showLeaderboardModal}
-        setShowLeaderboardModal={setShowLeaderboardModal}
-        dashboardStatus={dashboardStatus}
-        childInfos={childInfos}
-        setSelectedProfileId={setSelectedProfileId}
-      />
-
       {/* Modal du Profil Agent */}
       <AnimatePresence>
         {selectedProfileId !== null && (
@@ -1502,11 +1498,11 @@ function MainApp() {
         </div>
 
         <button 
-          className={`nav-item ${showLeaderboardModal ? 'active' : ''}`}
+          className={`nav-item ${view2026 === 'leaderboard' ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
             setChatOpen(false);
-            setShowLeaderboardModal(true);
+            setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
           }}
         >
           <Trophy size={20} />

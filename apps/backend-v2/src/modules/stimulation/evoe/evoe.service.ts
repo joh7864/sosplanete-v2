@@ -351,6 +351,21 @@ export class EvoeService {
       activePeriodId,
       allChildrenList,
     );
+    const childImpacts = await this.prisma.actionDone.groupBy({
+      by: ['childId'],
+      _count: { id: true },
+      _sum: { savedCo2: true },
+      where: {
+        period: { instanceYear: { instanceId, schoolYear } }
+      }
+    });
+    const childImpactMap = new Map<number, { count: number; co2: number }>();
+    childImpacts.forEach((ci) => {
+      childImpactMap.set(ci.childId, {
+        count: ci._count.id || 0,
+        co2: ci._sum.savedCo2 || 0,
+      });
+    });
 
     for (const team of teams) {
       // 1. Calculer le score total d'impact de l'équipe (CO2 + eau + déchets)
@@ -470,6 +485,7 @@ export class EvoeService {
       const teamPlayersHealth = [];
       for (const child of children) {
         const health = healthMap.get(child.id) ?? 0;
+        const impact = childImpactMap.get(child.id) || { count: 0, co2: 0 };
         const ph = {
           id: child.id,
           childId: child.id,
@@ -480,6 +496,9 @@ export class EvoeService {
           color: team.color,
           teamName: team.name,
           health,
+          actionsCount: impact.count,
+          co2: impact.co2,
+          score: impact.count * 10 + impact.co2,
         };
         teamPlayersHealth.push(ph);
         allPlayersHealth.push(ph);
@@ -523,7 +542,12 @@ export class EvoeService {
         : 0;
 
     const topPlayers = [...allPlayersHealth]
-      .sort((a, b) => b.health - a.health)
+      .sort((a, b) => {
+        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0)) return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
+        if ((b.health ?? 0) !== (a.health ?? 0)) return (b.health ?? 0) - (a.health ?? 0);
+        return (a.pseudo || '').localeCompare(b.pseudo || '');
+      })
       .slice(0, 10);
 
     return {
@@ -699,6 +723,22 @@ export class EvoeService {
       childrenList,
     );
 
+    const childImpacts = await this.prisma.actionDone.groupBy({
+      by: ['childId'],
+      _count: { id: true },
+      _sum: { savedCo2: true },
+      where: {
+        period: { instanceYear: { instanceId, schoolYear } }
+      }
+    });
+    const childImpactMap = new Map<number, { count: number; co2: number }>();
+    childImpacts.forEach((ci) => {
+      childImpactMap.set(ci.childId, {
+        count: ci._count.id || 0,
+        co2: ci._sum.savedCo2 || 0,
+      });
+    });
+
     let teamCount = 0;
     const players: any[] = [];
 
@@ -707,6 +747,7 @@ export class EvoeService {
         teamCount += g.children.length;
         g.children.forEach((c) => {
           const health = healthMap.get(c.id) ?? 0;
+          const impact = childImpactMap.get(c.id) || { count: 0, co2: 0 };
 
           players.push({
             id: c.id,
@@ -721,6 +762,9 @@ export class EvoeService {
             gender: c.gender,
             birthDate: c.birthDate,
             health,
+            actionsCount: impact.count,
+            co2: impact.co2,
+            score: impact.count * 10 + impact.co2,
           });
         });
       });
@@ -758,7 +802,12 @@ export class EvoeService {
     });
 
     const topPlayers = [...players]
-      .sort((a, b) => b.health - a.health)
+      .sort((a, b) => {
+        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
+        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0)) return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
+        if ((b.health ?? 0) !== (a.health ?? 0)) return (b.health ?? 0) - (a.health ?? 0);
+        return (a.pseudo || '').localeCompare(b.pseudo || '');
+      })
       .slice(0, 10);
 
     // 4. Récupérer la configuration système (pour l'URL YouTube du briefing)

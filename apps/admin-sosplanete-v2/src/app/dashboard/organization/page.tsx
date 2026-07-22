@@ -8,6 +8,8 @@ import { TeamEditModal } from '@/components/organization/TeamEditModal';
 import { CsvImportModal } from '@/components/organization/CsvImportModal';
 import { EditGroupModal } from '@/components/organization/EditGroupModal';
 import { EditPlayerModal } from '@/components/organization/EditPlayerModal';
+import { PlayerSearchModal, PlayerSearchItem } from '@/components/organization/PlayerSearchModal';
+import { Search } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { TopBar } from '@/components/layout/TopBar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -239,6 +241,38 @@ function OrganizationContent() {
   const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [isNewPlayer, setIsNewPlayer] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null);
+
+  const [showSearchModal, setShowSearchModal] = useState(false);
+
+  const allPlayersList: PlayerSearchItem[] = React.useMemo(() => {
+    const list: PlayerSearchItem[] = [];
+    teams.forEach((t: any) => {
+      t.groups?.forEach((g: any) => {
+        g.children?.forEach((c: any) => {
+          list.push({
+            player: c,
+            teamName: t.name,
+            groupName: g.name,
+            teamColor: t.color,
+          });
+        });
+      });
+    });
+    return list;
+  }, [teams]);
+
+  const findTeamAndGroupForPlayer = (player: any) => {
+    if (!player) return { teamName: '', groupName: '' };
+    if (player.teamName && player.groupName) return { teamName: player.teamName, groupName: player.groupName };
+    for (const team of teams) {
+      for (const group of team.groups || []) {
+        if (group.children?.some((c: any) => c.id === player.id || (c.pseudo && player.pseudo && c.pseudo.toLowerCase() === player.pseudo.toLowerCase()))) {
+          return { teamName: team.name, groupName: group.name };
+        }
+      }
+    }
+    return { teamName: player.teamName || '', groupName: player.groupName || '' };
+  };
 
   const [confirmData, setConfirmData] = useState<{title: string, description: string, onConfirm: () => Promise<void>} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -718,6 +752,13 @@ function OrganizationContent() {
 
                    <div className="flex items-center gap-2">
                       <button 
+                         onClick={() => setShowSearchModal(true)}
+                         title="Rechercher un joueur"
+                         className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 flex items-center justify-center transition-all shadow-sm border border-slate-100"
+                      >
+                         <Search size={18} />
+                      </button>
+                      <button 
                         onClick={() => setSelectionMode(!isSelectionMode)}
                         title={isSelectionMode ? "Désactiver la sélection" : "Activer la sélection"}
                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isSelectionMode ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
@@ -891,13 +932,17 @@ function OrganizationContent() {
             isOpen={showPlayerModal}
             onClose={() => setShowPlayerModal(false)}
             isNew={isNewPlayer}
+            teamName={selectedPlayer?.teamName || findTeamAndGroupForPlayer(selectedPlayer).teamName}
+            groupName={selectedPlayer?.groupName || findTeamAndGroupForPlayer(selectedPlayer).groupName}
             initialData={selectedPlayer ? { 
               pseudo: selectedPlayer.pseudo, 
               password: selectedPlayer.password || '', 
               isDelegate: selectedPlayer.isDelegate ?? false,
               gender: selectedPlayer.gender ?? null,
               birthDate: selectedPlayer.birthDate ?? null,
-              avatar: selectedPlayer.avatar ?? null
+              avatar: selectedPlayer.avatar ?? null,
+              teamName: selectedPlayer?.teamName || findTeamAndGroupForPlayer(selectedPlayer).teamName,
+              groupName: selectedPlayer?.groupName || findTeamAndGroupForPlayer(selectedPlayer).groupName,
             } : undefined}
             onSave={handleSavePlayer}
             onDelete={!isNewPlayer ? async () => {
@@ -910,6 +955,23 @@ function OrganizationContent() {
                 onConfirm: () => handleBulkDelete('children', [selectedPlayer!.id])
               });
             } : undefined}
+          />
+        )}
+
+        {showSearchModal && (
+          <PlayerSearchModal
+            isOpen={showSearchModal}
+            onClose={() => setShowSearchModal(false)}
+            allPlayers={allPlayersList}
+            onSelectPlayer={(player, teamName, groupName) => {
+              setSelectedPlayer({
+                ...player,
+                teamName,
+                groupName,
+              });
+              setIsNewPlayer(false);
+              setShowPlayerModal(true);
+            }}
           />
         )}
 

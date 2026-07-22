@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Key, Trash2, Save, Eye, EyeOff, Upload, Loader2 } from 'lucide-react';
+import { X, User, Key, Trash2, Save, Eye, EyeOff, Upload, Loader2, Users } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { getAuthData } from '@/utils/storage';
 
@@ -23,8 +23,12 @@ interface EditPlayerModalProps {
     gender?: string | null;
     birthDate?: string | null;
     avatar?: string | null;
+    teamName?: string;
+    groupName?: string;
   };
   isNew?: boolean;
+  teamName?: string;
+  groupName?: string;
 }
 
 export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
@@ -33,7 +37,9 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   onSave,
   onDelete,
   initialData,
-  isNew = false
+  isNew = false,
+  teamName,
+  groupName,
 }) => {
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
@@ -211,6 +217,24 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 </div>
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Cliquez pour choisir un avatar</span>
               </div>
+
+              {/* Display Team and Group Badges */}
+              {((teamName || initialData?.teamName) || (groupName || initialData?.groupName)) && (
+                <div className="flex flex-wrap items-center justify-center gap-2.5 py-2 px-3 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  {(teamName || initialData?.teamName) && (
+                    <div className="px-3 py-1 bg-white rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200/60 shadow-sm">
+                      <Users size={13} className="text-slate-400" />
+                      <span>Équipe : <strong className="text-slate-900">{teamName || initialData?.teamName}</strong></span>
+                    </div>
+                  )}
+                  {(groupName || initialData?.groupName) && (
+                    <div className="px-3 py-1 bg-emerald-50 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-1.5 border border-emerald-100 shadow-sm">
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Groupe</span>
+                      <span>: <strong className="text-emerald-950">{groupName || initialData?.groupName}</strong></span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Avatar Picker Section */}
               <AnimatePresence>

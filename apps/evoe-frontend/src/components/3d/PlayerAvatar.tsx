@@ -152,6 +152,9 @@ interface PlayerAvatarProps {
   onSelectPlayer?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  showHealth?: boolean;
+  showChatIcon?: boolean;
+  rankTag?: string;
 }
 
 export function PlayerAvatar({ 
@@ -160,7 +163,10 @@ export function PlayerAvatar({
   avatarScale = 1, 
   onSelectPlayer, 
   isOnline = false,
-  hasUnread = false
+  hasUnread = false,
+  showHealth = true,
+  showChatIcon = true,
+  rankTag
 }: PlayerAvatarProps) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
@@ -339,7 +345,7 @@ export function PlayerAvatar({
           </mesh>
         )}
 
-        {hasUnread && (
+        {showChatIcon && hasUnread && (
           <mesh position={[-avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.02]}>
             <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
             <meshBasicMaterial 
@@ -351,71 +357,92 @@ export function PlayerAvatar({
         )}
       </Billboard>
 
-      <Billboard follow={true}>
-        <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
-          <mesh renderOrder={998}>
-            <planeGeometry args={[0.5 * avatarScale, 0.065]} />
-            <meshBasicMaterial 
-              color="#ffffff" 
-              transparent 
-              opacity={0.25} 
-              toneMapped={false} 
-              depthWrite={false} 
-              depthTest={false} 
-            />
-          </mesh>
-          {player.health !== undefined && player.health > 0 && (
-            <mesh 
-              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}
-              renderOrder={999}
-            >
-              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.052]} />
+      {showHealth ? (
+        <Billboard follow={true}>
+          <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
+            <mesh renderOrder={998}>
+              <planeGeometry args={[0.5 * avatarScale, 0.065]} />
               <meshBasicMaterial 
-                color={
-                  player.health < 35 ? '#ff0055' 
-                  : player.health < 70 ? '#ff7700' 
-                  : '#00ff66'
-                }
-                transparent={true}
-                toneMapped={false}
-                depthWrite={false}
-                depthTest={false}
+                color="#ffffff" 
+                transparent 
+                opacity={0.25} 
+                toneMapped={false} 
+                depthWrite={false} 
+                depthTest={false} 
               />
             </mesh>
-          )}
-          {player.health !== undefined && player.health > 0 && (
-            <mesh 
-              position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.027, 0.002]}
-              renderOrder={1000}
-            >
-              <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.006]} />
-              <meshBasicMaterial 
-                color="#ffffff"
-                transparent
-                opacity={0.8}
-                toneMapped={false}
-                depthWrite={false}
-                depthTest={false}
-              />
-            </mesh>
-          )}
-          {player.health !== undefined && (
+            {player.health !== undefined && player.health > 0 && (
+              <mesh 
+                position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}
+                renderOrder={999}
+              >
+                <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.052]} />
+                <meshBasicMaterial 
+                  color={
+                    player.health < 35 ? '#ff0055' 
+                    : player.health < 70 ? '#ff7700' 
+                    : '#00ff66'
+                  }
+                  transparent={true}
+                  toneMapped={false}
+                  depthWrite={false}
+                  depthTest={false}
+                />
+              </mesh>
+            )}
+            {player.health !== undefined && player.health > 0 && (
+              <mesh 
+                position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.027, 0.002]}
+                renderOrder={1000}
+              >
+                <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.006]} />
+                <meshBasicMaterial 
+                  color="#ffffff"
+                  transparent
+                  opacity={0.8}
+                  toneMapped={false}
+                  depthWrite={false}
+                  depthTest={false}
+                />
+              </mesh>
+            )}
+            {player.health !== undefined && (
+              <Text
+                position={[0, 0, 0.003]}
+                fontSize={0.042}
+                fontWeight="bold"
+                color="#050a15"
+                anchorX="center"
+                anchorY="middle"
+                material-depthTest={false}
+                material-depthWrite={false}
+                renderOrder={1001}
+              >
+                {`${player.health} HP`}
+              </Text>
+            )}
+          </group>
+        </Billboard>
+      ) : (
+        rankTag && (
+          <Billboard follow={true}>
             <Text
-              position={[0, 0, 0.003]}
-              fontSize={0.042}
-              fontWeight="bold"
-              color="#050a15"
+              position={[0, -(haloScale * 0.5 + 0.08), 0.01]}
+              fontSize={fontSize * 1.1}
+              fontWeight="900"
+              color={color}
               anchorX="center"
               anchorY="middle"
-              material-depthTest={false}
+              outlineWidth={0.02}
+              outlineColor="#000000"
               material-depthWrite={false}
-              renderOrder={1001}
+              frustumCulled={false}
             >
-              {`${player.health} HP`}
+              {rankTag}
             </Text>
-          )}
-        </group>
-      </Billboard>
+          </Billboard>
+        )
+      )}
 
       <Billboard follow={true}>
         <Text
