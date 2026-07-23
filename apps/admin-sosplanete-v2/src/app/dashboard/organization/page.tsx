@@ -679,58 +679,58 @@ function OrganizationContent() {
                 totalWaste += vit.waste;
               }));
 
-          return (
-            <GlassCard className="mb-2 border-none shadow-xl overflow-hidden py-4 px-8 bg-white/80">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-6 lg:gap-10 flex-wrap">
+              return (
+            <GlassCard className="mb-4 border-none shadow-xl py-4 px-4 sm:px-8 bg-white/80">
+              <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 sm:gap-6">
+                <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-8 flex-wrap">
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black text-slate-800 leading-none">{teams.length}</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-800 leading-none">{teams.length}</span>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Équipes</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200 hidden sm:block" />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black text-slate-800 leading-none">{totalGroups}</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-800 leading-none">{totalGroups}</span>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Groupes</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200 hidden sm:block" />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black text-slate-800 leading-none">{totalPlayers}</span>
+                    <span className="text-xl sm:text-2xl font-black text-slate-800 leading-none">{totalPlayers}</span>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Joueurs</span>
                   </div>
                   <div className="w-px h-8 bg-slate-200 hidden sm:block" />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-black text-emerald-600 leading-none">{totalActions}</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-600 leading-none">{totalActions}</span>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Actions</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6 lg:gap-8 ml-auto">
-                    <div className="flex items-center gap-4 border-r border-slate-100 pr-6 mr-2">
-                        <div className="flex items-center gap-2">
-                           <Leaf size={18} className="text-emerald-500" />
+                <div className="flex items-center justify-between xl:justify-end gap-4 sm:gap-6 flex-wrap xl:ml-auto pt-3 xl:pt-0 border-t xl:border-t-0 border-slate-100">
+                    <div className="flex items-center gap-3 sm:gap-4 border-r-0 sm:border-r border-slate-100 sm:pr-4">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                           <Leaf size={16} className="text-emerald-500 shrink-0" />
                            <div className="flex flex-col items-end">
-                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalCo2, 'co2')}</span>
+                             <span className="text-sm sm:text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalCo2, 'co2')}</span>
                              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">CO2e</span>
                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                           <Droplets size={18} className="text-blue-500" />
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                           <Droplets size={16} className="text-blue-500 shrink-0" />
                            <div className="flex flex-col items-end">
-                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWater, 'water')}</span>
+                             <span className="text-sm sm:text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWater, 'water')}</span>
                              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Eau</span>
                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                           <Trash2 size={18} className="text-amber-500" />
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                           <Trash2 size={16} className="text-amber-500 shrink-0" />
                            <div className="flex flex-col items-end">
-                             <span className="text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWaste, 'waste')}</span>
+                             <span className="text-sm sm:text-lg font-black text-slate-800 leading-none">{formatEcoImpact(totalWaste, 'waste')}</span>
                              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Déchets</span>
                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 border-r border-slate-100 pr-6 mr-2">
-                      <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="hidden md:flex flex-col items-end">
                         <span className="text-xs font-black text-slate-800 leading-none">Mission Planète</span>
                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Accès global</span>
                       </div>
@@ -744,37 +744,38 @@ function OrganizationContent() {
                           });
                           updateManagedInstances();
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${currentInstance?.allowAllDelegate ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${currentInstance?.allowAllDelegate ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        title="Mission Planète : Accès global"
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${currentInstance?.allowAllDelegate ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
 
-                   <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
                       <button 
                          onClick={() => setShowSearchModal(true)}
                          title="Rechercher un joueur"
-                         className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 flex items-center justify-center transition-all shadow-sm border border-slate-100"
+                         className="w-10 h-10 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 active:scale-95"
                       >
                          <Search size={18} />
                       </button>
                       <button 
                         onClick={() => setSelectionMode(!isSelectionMode)}
                         title={isSelectionMode ? "Désactiver la sélection" : "Activer la sélection"}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isSelectionMode ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${isSelectionMode ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}
                       >
                          <CheckSquare size={18} />
                       </button>
                       <button 
                          onClick={() => setShowImportModal(true)}
                          title="Importer des données (CSV)"
-                         className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                         className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-all shadow-sm active:scale-95"
                       >
                          <Upload size={18} />
                       </button>
                    </div>
                 </div>
-             </div>
+              </div>
             </GlassCard>
           );
         })()}
