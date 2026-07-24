@@ -263,6 +263,7 @@ export class TeamController {
     @Param('id', ParseIntPipe) id: number,
     @Body()
     body: {
+      groupId?: number;
       pseudo?: string;
       password?: string;
       isDelegate?: boolean;

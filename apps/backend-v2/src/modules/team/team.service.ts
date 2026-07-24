@@ -395,6 +395,7 @@ export class TeamService {
   async updateChild(
     id: number,
     data: {
+      groupId?: number;
       pseudo?: string;
       password?: string;
       isDelegate?: boolean;
@@ -404,6 +405,7 @@ export class TeamService {
     },
   ) {
     const updateData: any = {};
+    if (data.groupId !== undefined && data.groupId !== null) updateData.groupId = Number(data.groupId);
     if (data.pseudo !== undefined) updateData.pseudo = data.pseudo;
     if (data.password && data.password.trim() !== '') {
       updateData.password = await bcrypt.hash(data.password, 10);

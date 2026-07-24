@@ -358,11 +358,15 @@ function OrganizationContent() {
     gender?: string | null;
     birthDate?: string | null;
     avatar?: string | null;
+    groupId?: number;
   }) => {
     try {
       const url = isNewPlayer ? `${process.env.NEXT_PUBLIC_API_URL}/teams/children` : `${process.env.NEXT_PUBLIC_API_URL}/teams/children/${selectedPlayer?.id}`;
       const method = isNewPlayer ? 'POST' : 'PATCH';
-      const body = isNewPlayer ? { groupId: selectedGroup?.id, ...data } : data;
+      const body = { 
+        groupId: data.groupId || selectedGroup?.id, 
+        ...data 
+      };
 
       await fetch(url, {
         method,
@@ -932,10 +936,13 @@ function OrganizationContent() {
           <EditPlayerModal 
             isOpen={showPlayerModal}
             onClose={() => setShowPlayerModal(false)}
+            teams={teams}
             isNew={isNewPlayer}
             teamName={selectedPlayer?.teamName || findTeamAndGroupForPlayer(selectedPlayer).teamName}
             groupName={selectedPlayer?.groupName || findTeamAndGroupForPlayer(selectedPlayer).groupName}
             initialData={selectedPlayer ? { 
+              id: selectedPlayer.id,
+              groupId: selectedPlayer.groupId || selectedPlayer.group?.id,
               pseudo: selectedPlayer.pseudo, 
               password: selectedPlayer.password || '', 
               isDelegate: selectedPlayer.isDelegate ?? false,

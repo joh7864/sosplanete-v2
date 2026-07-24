@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Key, Trash2, Save, Eye, EyeOff, Upload, Loader2, Users } from 'lucide-react';
+import { X, User, Key, Trash2, Save, Eye, EyeOff, Upload, Loader2, Users, Layers } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { getAuthData } from '@/utils/storage';
 
@@ -14,9 +14,12 @@ interface EditPlayerModalProps {
     gender?: string | null;
     birthDate?: string | null;
     avatar?: string | null;
+    groupId?: number;
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
   initialData?: { 
+    id?: number;
+    groupId?: number;
     pseudo: string; 
     password?: string; 
     isDelegate?: boolean;
@@ -29,6 +32,7 @@ interface EditPlayerModalProps {
   isNew?: boolean;
   teamName?: string;
   groupName?: string;
+  teams?: any[];
 }
 
 export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
@@ -40,6 +44,7 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   isNew = false,
   teamName,
   groupName,
+  teams = [],
 }) => {
   const [pseudo, setPseudo] = useState('');
   const [password, setPassword] = useState('');
@@ -55,6 +60,10 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gestion du changement d'équipe et de groupe
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
   const getAvatarList = () => {
     const list: string[] = [];
@@ -117,8 +126,40 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       setBirthDate(rawBirth ? rawBirth.substring(0, 10) : '');
       setAvatar(initialData?.avatar || null);
       setShowAvatarPicker(false);
+
+      // Initialiser l'équipe et le groupe sélectionnés
+      const effectiveTeamName = teamName || initialData?.teamName;
+      const effectiveGroupName = groupName || initialData?.groupName;
+      let matchedTeam = teams.find(t => t.name === effectiveTeamName);
+      if (!matchedTeam && initialData?.groupId) {
+        matchedTeam = teams.find(t => t.groups?.some((g: any) => g.id === initialData.groupId));
+      }
+      if (matchedTeam) {
+        setSelectedTeamId(matchedTeam.id);
+        let matchedGroup = matchedTeam.groups?.find((g: any) => g.name === effectiveGroupName || g.id === initialData?.groupId);
+        if (!matchedGroup && matchedTeam.groups?.length > 0) {
+          matchedGroup = matchedTeam.groups[0];
+        }
+        setSelectedGroupId(matchedGroup ? matchedGroup.id : null);
+      } else if (teams.length > 0) {
+        setSelectedTeamId(teams[0].id);
+        setSelectedGroupId(teams[0].groups?.[0]?.id || null);
+      } else {
+        setSelectedTeamId(null);
+        setSelectedGroupId(null);
+      }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, teamName, groupName, teams]);
+
+  const handleTeamChange = (newTeamId: number) => {
+    setSelectedTeamId(newTeamId);
+    const targetTeam = teams.find(t => t.id === newTeamId);
+    if (targetTeam && targetTeam.groups && targetTeam.groups.length > 0) {
+      setSelectedGroupId(targetTeam.groups[0].id);
+    } else {
+      setSelectedGroupId(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,13 +172,17 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
         gender: string | null;
         birthDate: string | null;
         avatar: string | null;
+        groupId?: number;
       } = { 
         pseudo, 
         isDelegate,
         gender: gender || null,
         birthDate: birthDate || null,
-        avatar: avatar || null
+        avatar: avatar || null,
       };
+      if (selectedGroupId) {
+        payload.groupId = selectedGroupId;
+      }
       if (password && password.trim() !== '') {
         payload.password = password;
       }
@@ -218,8 +263,47 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Cliquez pour choisir un avatar</span>
               </div>
 
-              {/* Display Team and Group Badges */}
-              {((teamName || initialData?.teamName) || (groupName || initialData?.groupName)) && (
+              {/* Écurie/Équipe et Groupe Selectors */}
+              {teams && teams.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50/80 rounded-2xl border border-slate-100">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      <Users size={11} className="text-slate-500" /> Écurie / Équipe
+                    </label>
+                    <select
+                      value={selectedTeamId || ''}
+                      onChange={(e) => handleTeamChange(Number(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                    >
+                      {teams.map((t: any) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      <Layers size={11} className="text-emerald-500" /> Groupe
+                    </label>
+                    <select
+                      value={selectedGroupId || ''}
+                      onChange={(e) => setSelectedGroupId(Number(e.target.value))}
+                      className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none"
+                    >
+                      {(() => {
+                        const currentTeam = teams.find((t: any) => t.id === selectedTeamId);
+                        const groups = currentTeam?.groups || [];
+                        if (groups.length === 0) {
+                          return <option value="">Aucun groupe</option>;
+                        }
+                        return groups.map((g: any) => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                        ));
+                      })()}
+                    </select>
+                  </div>
+                </div>
+              ) : ((teamName || initialData?.teamName) || (groupName || initialData?.groupName)) && (
                 <div className="flex flex-wrap items-center justify-center gap-2.5 py-2 px-3 bg-slate-50/80 rounded-2xl border border-slate-100">
                   {(teamName || initialData?.teamName) && (
                     <div className="px-3 py-1 bg-white rounded-xl text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200/60 shadow-sm">
