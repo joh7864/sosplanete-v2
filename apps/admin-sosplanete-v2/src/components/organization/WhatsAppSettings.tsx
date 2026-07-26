@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Save, Smartphone, ShieldCheck, Link, Globe, Users, CheckCircle2, AlertCircle, RefreshCw, Send } from 'lucide-react';
+import { MessageSquare, Save, Smartphone, ShieldCheck, Link, Globe, Users, CheckCircle2, AlertCircle, RefreshCw, Send, HelpCircle, BookOpen } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { getAuthData } from '@/utils/storage';
 import { WhatsAppTestModal } from './WhatsAppTestModal';
+import { WhatsAppHelpDrawer } from './WhatsAppHelpDrawer';
 
 interface WhatsAppSettingsProps {
   schoolYear: string;
@@ -32,6 +33,9 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
 
   // Simulator Modal State
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+
+  // Help Drawer State
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
 
   useEffect(() => {
     fetchSystemConfig();
@@ -156,6 +160,14 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
           </div>
 
           <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsHelpDrawerOpen(true)}
+              className="h-11 px-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-2"
+            >
+              <HelpCircle size={16} className="text-emerald-400" /> Guide & Aide
+            </Button>
             <Button
               type="button"
               variant="ghost"
@@ -353,6 +365,12 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
         gatewayUrl={whatsappGeneralUrl}
         chatId={whatsappGeneralId}
         schoolYear={schoolYear}
+      />
+
+      {/* WhatsApp Help Drawer Panel */}
+      <WhatsAppHelpDrawer
+        isOpen={isHelpDrawerOpen}
+        onClose={() => setIsHelpDrawerOpen(false)}
       />
     </div>
   );
