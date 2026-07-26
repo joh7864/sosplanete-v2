@@ -230,6 +230,8 @@ model SystemConfig {
   populationReference    Int     @default(68000000)
   schoolYear             String  @unique @default("2024-2025")
   youtubeBriefingUrl     String?
+  whatsappCommunityName  String?
+  whatsappCommunityUrl   String?
   whatsappGeneralUrl     String?
   whatsappGeneralId      String?
 }

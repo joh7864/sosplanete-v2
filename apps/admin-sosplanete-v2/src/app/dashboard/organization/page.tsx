@@ -19,6 +19,7 @@ import { PeriodSettings } from '@/components/organization/PeriodSettings';
 import { CategorySettings } from '@/components/organization/CategorySettings';
 import { TeamCard } from '@/components/organization/TeamHierarchy';
 import { TrackingView } from '@/components/tracking/TrackingView';
+import { WhatsAppSettings } from '@/components/organization/WhatsAppSettings';
 import { 
   Plus, 
   Users, 
@@ -41,7 +42,8 @@ import {
   Box,
   BarChart2,
   Calendar,
-  BookOpen
+  BookOpen,
+  MessageSquare
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
@@ -66,7 +68,7 @@ function OrganizationContent() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false); // false par défaut : rien à charger sans instanceId
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'tracking' | 'general' | 'periods' | 'teams' | 'catalog' | 'categories'>(
+  const [activeTab, setActiveTab] = useState<'tracking' | 'general' | 'periods' | 'teams' | 'catalog' | 'categories' | 'whatsapp'>(
     searchParams.get('tab') as any || 'tracking'
   );
 
@@ -547,6 +549,15 @@ function OrganizationContent() {
                      <Droplets size={18} /> Configuration des catégories
                      {activeTab === 'categories' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
                   </button>
+                  <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+                  <button
+                     onClick={() => setActiveTab('whatsapp')}
+                     className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === 'whatsapp' ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  >
+                     <MessageSquare size={18} /> Canaux WhatsApp
+                     {activeTab === 'whatsapp' && <motion.div layoutId="activeOrganizationTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />}
+                  </button>
               </>
             ) : undefined
           }
@@ -663,6 +674,8 @@ function OrganizationContent() {
           <PeriodSettings instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
         ) : activeTab === 'categories' ? (
           <CategorySettings instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
+        ) : activeTab === 'whatsapp' ? (
+          <WhatsAppSettings schoolYear={schoolYear} teams={teams} onRefreshTeams={fetchTeams} />
         ) : activeTab === 'catalog' ? (
           <CatalogMapping instanceId={instanceId!} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
         ) : activeTab === 'teams' ? (

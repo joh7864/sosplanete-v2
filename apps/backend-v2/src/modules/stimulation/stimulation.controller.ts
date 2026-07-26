@@ -45,6 +45,20 @@ export class StimulationController {
     return this.whatsAppService.sendReport(schoolYear);
   }
 
+  @Post('whatsapp/send-test')
+  @ApiOperation({ summary: 'Envoyer ou simuler un message de test WhatsApp' })
+  sendWhatsAppTest(
+    @Query('schoolYear') schoolYear: string,
+    @Body() body: { gatewayUrl?: string; chatId?: string; message?: string },
+  ) {
+    return this.whatsAppService.sendTestMessage(
+      schoolYear,
+      body.gatewayUrl,
+      body.chatId,
+      body.message,
+    );
+  }
+
   @Get('system-config')
   getSystemConfig(@Query('schoolYear') schoolYear: string) {
     return this.stimulationService.getSystemConfig(schoolYear);

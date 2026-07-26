@@ -185,6 +185,51 @@ export class WhatsAppService {
   }
 
   /**
+   * Envoi d'un message de test manuel depuis l'Admin (avec fallback simulateur).
+   */
+  async sendTestMessage(
+    schoolYear: string,
+    customGatewayUrl?: string,
+    customChatId?: string,
+    customMessage?: string,
+  ) {
+    const sy = schoolYear || '2024-2025';
+    const systemConfig = await this.prisma.systemConfig.findFirst({
+      where: { schoolYear: sy },
+    });
+
+    const gatewayUrl = customGatewayUrl || systemConfig?.whatsappGeneralUrl;
+    const chatId = customChatId || systemConfig?.whatsappGeneralId;
+    const communityName = systemConfig?.whatsappCommunityName || 'Communauté SOS Planète';
+
+    const testMsg =
+      customMessage ||
+      `🧪 *TEST DU CANAL TEMPOREL — ${communityName.toUpperCase()}*\n` +
+      `─────────────────────────\n\n` +
+      `✅ Connexion établie avec succès entre le serveur EVOE et ce canal WhatsApp.\n` +
+      `📢 Les alertes de jeu, duels et bilans hebdo seront transmis ici.\n\n` +
+      `🚀 _Transmission test réussie !_`;
+
+    if (!gatewayUrl || !chatId) {
+      return {
+        success: false,
+        simulated: true,
+        message: 'URL de passerelle ou Identifiant de canal non configuré. Mode simulation actif.',
+        previewText: testMsg,
+      };
+    }
+
+    const result = await this.sendMessageToGateway(gatewayUrl, chatId, testMsg);
+    return {
+      success: true,
+      simulated: false,
+      message: 'Message de test transmis à la passerelle WhatsApp.',
+      previewText: testMsg,
+      result,
+    };
+  }
+
+  /**
    * Envoi de message HTTP POST vers l'API / passerelle WhatsApp configurée.
    */
   private async sendMessageToGateway(gatewayUrl: string, chatId: string, message: string) {
@@ -202,11 +247,14 @@ export class WhatsAppService {
 
       if (!response.ok) {
         this.logger.warn(`[WhatsApp API] Échec de l'envoi du message à ${chatId}. Code: ${response.status}`);
+        return { ok: false, status: response.status };
       } else {
         this.logger.log(`[WhatsApp API] Message envoyé avec succès à ${chatId}.`);
+        return { ok: true, status: response.status };
       }
     } catch (error) {
       this.logger.error(`[WhatsApp API] Erreur d'appel de passerelle pour ${chatId} :`, error);
+      return { ok: false, error: error.message };
     }
   }
 }
