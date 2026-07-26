@@ -149,9 +149,6 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
             <div>
               <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
                 Communauté & Notifications WhatsApp
-                <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-widest">
-                  Evoe Sync
-                </span>
               </h2>
               <p className="text-xs text-slate-300 font-medium mt-1 max-w-2xl">
                 Configurez le canal d'Annonces Global et les sous-groupes d'équipes pour diffuser les alertes de jeu, duels et bilans hebdomadaires.
@@ -160,29 +157,60 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
           </div>
 
           <div className="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsHelpDrawerOpen(true)}
-              className="h-11 px-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-2"
-            >
-              <HelpCircle size={16} className="text-emerald-400" /> Guide & Aide
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsTestModalOpen(true)}
-              className="h-11 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-bold flex items-center gap-2"
-            >
-              <Smartphone size={16} /> Aperçu & Test Virtuel
-            </Button>
-            <Button
-              onClick={handleSaveAll}
-              isLoading={saving}
-              className="h-11 px-6 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20"
-            >
-              <Save size={14} className="mr-2" /> Enregistrer
-            </Button>
+            {/* Button 1: Guide & Aide */}
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => setIsHelpDrawerOpen(true)}
+                className="w-11 h-11 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 flex items-center justify-center transition-all shadow-sm active:scale-95"
+                aria-label="Guide & Aide"
+              >
+                <HelpCircle size={20} className="text-emerald-400" />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none">
+                <span className="bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl border border-slate-700 whitespace-nowrap">
+                  Guide & Aide pas à pas
+                </span>
+                <span className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+              </div>
+            </div>
+
+            {/* Button 2: Aperçu & Test Virtuel (Simulateur) */}
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={() => setIsTestModalOpen(true)}
+                className="w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/15 flex items-center justify-center transition-all shadow-sm active:scale-95"
+                aria-label="Aperçu & Test Virtuel"
+              >
+                <Smartphone size={20} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none">
+                <span className="bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl border border-slate-700 whitespace-nowrap">
+                  Aperçu Smartphone & Test Virtuel
+                </span>
+                <span className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+              </div>
+            </div>
+
+            {/* Button 3: Enregistrer */}
+            <div className="relative group">
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={saving}
+                className="w-11 h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center justify-center transition-all shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
+                aria-label="Enregistrer"
+              >
+                <Save size={20} />
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 pointer-events-none">
+                <span className="bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl border border-slate-700 whitespace-nowrap">
+                  Enregistrer les modifications
+                </span>
+                <span className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700" />
+              </div>
+            </div>
           </div>
         </div>
       </GlassCard>
