@@ -13,7 +13,7 @@ docker compose up -d --build
 ```
 
 Docker va automatiquement :
-1. Télécharger l'image officielle `evolutionapi/evolution-api:v2.1.1`.
+1. Télécharger l'image officielle `evoapicloud/evolution-api:v2.2.3`.
 2. Démarrer le conteneur `sos_evolution_api` sur le réseau interne sécurisé (`sos_internal`).
 3. Créer le volume persistant `evolution_instances` pour conserver la session WhatsApp active même en cas de redémarrage du VPS.
 
