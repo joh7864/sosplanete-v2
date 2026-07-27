@@ -100,6 +100,21 @@ services:
       - "traefik.http.routers.sos-evoe.tls.certresolver=myresolver"
       - "traefik.http.services.sos-evoe.loadbalancer.server.port=5174"
 
+  evolution-api:
+    image: atendai/evolution-api:v2.1.1
+    container_name: sos_evolution_api
+    restart: always
+    environment:
+      - SERVER_URL=http://evolution-api:8080
+      - DOCKER_ENV=true
+      - LOG_LEVEL=ERROR
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-EVOE_SECRET_WHATSAPP_KEY_2026}
+      - DATABASE_ENABLED=false
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - sos_internal
 
 networks:
   sos_internal:
@@ -108,3 +123,4 @@ networks:
 
 volumes:
   sos_db_data_v2:
+  evolution_instances:
