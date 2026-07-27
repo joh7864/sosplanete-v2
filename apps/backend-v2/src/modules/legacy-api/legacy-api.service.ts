@@ -86,13 +86,15 @@ export class LegacyApiService {
       throw new UnauthorizedException('Mot de passe incorrect');
 
     const currentSchoolYear = getCurrentSchoolYear();
-    const currentYearChildren = validChildren.filter(
+    let currentYearChildren = validChildren.filter(
       (c) => c.group.team.instanceYear.schoolYear === currentSchoolYear,
     );
 
     if (currentYearChildren.length === 0) {
-      throw new UnauthorizedException(
-        "Aucun compte trouvé pour l'année scolaire en cours. Veuillez contacter l'administrateur de votre établissement.",
+      // Fallback : Si l'année courante n'est pas encore enregistrée en DB,
+      // retenir la dernière année scolaire active où l'élève est inscrit.
+      currentYearChildren = [...validChildren].sort(
+        (a, b) => b.group.team.instanceYearId - a.group.team.instanceYearId,
       );
     }
 
