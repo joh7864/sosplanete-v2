@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Smartphone, Sparkles, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Button } from '../ui/Button';
 
+import { getAuthData } from '@/utils/storage';
+
 interface WhatsAppTestModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -79,7 +81,7 @@ export const WhatsAppTestModal: React.FC<WhatsAppTestModalProps> = ({
     setIsSending(true);
     setTestResult(null);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthData('access_token');
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/whatsapp/send-test?schoolYear=${schoolYear}`, {
         method: 'POST',
         headers: {
