@@ -101,7 +101,7 @@ services:
       - "traefik.http.services.sos-evoe.loadbalancer.server.port=5174"
 
   evolution-api:
-    image: atendai/evolution-api:v2.1.1
+    image: evolutionapi/evolution-api:v2.1.1
     container_name: sos_evolution_api
     restart: always
     environment:
