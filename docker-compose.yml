@@ -115,6 +115,14 @@ services:
       - evolution_instances:/evolution/instances
     networks:
       - sos_internal
+      - wagmoo_wagmoo_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=wagmoo_wagmoo_net"
+      - "traefik.http.routers.sos-whatsapp.rule=Host(`whatsapp.nnauru.net`)"
+      - "traefik.http.routers.sos-whatsapp.entrypoints=websecure"
+      - "traefik.http.routers.sos-whatsapp.tls.certresolver=myresolver"
+      - "traefik.http.services.sos-whatsapp.loadbalancer.server.port=8080"
 
 networks:
   sos_internal:
