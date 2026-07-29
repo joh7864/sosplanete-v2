@@ -186,9 +186,57 @@ export const WhatsAppHelpDrawer: React.FC<WhatsAppHelpDrawerProps> = ({ isOpen, 
                 </strong>
                 <ol className="list-decimal list-inside space-y-1.5 text-slate-700 text-[11px]">
                   <li>Allez sur le groupe WhatsApp de l'équipe (ex: <em>Équipe Air</em>).</li>
-                  <li>Appuyez sur le nom du groupe $\rightarrow$ <strong>Inviter via un lien</strong> $\rightarrow$ <strong>Copier le lien</strong>.</li>
+                  <li>Appuyez sur le nom du groupe → <strong>Inviter via un lien</strong> → <strong>Copier le lien</strong>.</li>
                   <li>Collez le lien et le Group ID en face de l'équipe correspondante dans le tableau.</li>
                 </ol>
+              </div>
+            </div>
+
+            {/* Section 6 : Comment les élèves rejoignent la Communauté & leur Groupe */}
+            <div className="p-5 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 space-y-4">
+              <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
+                <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+                  6
+                </div>
+                👥 Comment vos élèves rejoignent la Communauté & leur Groupe ?
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Le parcours d'intégration des élèves est conçu pour être rapide, fluide et sécurisé sur smartphone ou ordinateur.
+              </p>
+
+              <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
+                <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
+                  🚀 Le parcours en 3 étapes :
+                </strong>
+                <ol className="list-decimal list-inside space-y-2 text-slate-700 text-[11px] leading-relaxed">
+                  <li>
+                    <strong>Diffusion du lien / QR Code</strong> : Partagez le lien d'invitation parent (ou projetez son QR Code généré dans l'Admin) aux élèves en classe ou via l'ENT.
+                  </li>
+                  <li>
+                    <strong>Adhésion à la Communauté</strong> : En cliquant sur le lien ou en scannant le QR Code, l'élève valide <em>« Rejoindre la communauté »</em> sur WhatsApp.
+                  </li>
+                  <li>
+                    <strong>Accès automatique</strong> : L'élève est instantanément ajouté au <strong>Fil d'Annonces Global 📢</strong> et peut directement rejoindre le <strong>sous-groupe de son Équipe 🚀</strong> (ex: <em>Équipe Air</em>).
+                  </li>
+                </ol>
+              </div>
+
+              <div className="p-4 bg-emerald-950 text-emerald-100 rounded-xl space-y-2 text-xs border border-emerald-800/50">
+                <div className="flex items-center gap-2 font-bold text-emerald-300">
+                  <ShieldCheck size={16} /> Protection Maximale (Conformité Éducation / RGPD)
+                </div>
+                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                  Dans le Fil d'Annonces de la Communauté, aucun élève ne voit le numéro de téléphone des autres membres. WhatsApp masque automatiquement tous les participants.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-relaxed flex items-start gap-2.5">
+                <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Changement d'équipe en cours de jeu ?</strong>
+                  <br />
+                  Si un élève change d'équipe dans EVOE, l'enseignant le retire simplement de l'ancien sous-groupe d'équipe dans WhatsApp et lui fournit le lien du sous-groupe de sa nouvelle équipe.
+                </div>
               </div>
             </div>
           </div>

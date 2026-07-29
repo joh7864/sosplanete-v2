@@ -109,6 +109,15 @@ export function useEvoeData() {
     }
   };
 
+  // Chargement automatique au montage dès que l'instanceId est disponible
+  useEffect(() => {
+    if (instanceId) {
+      fetchEvoeData();
+      fetchChallenges();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId]);
+
   const handleImpulseMission = async (missionId: number) => {
     if (!childInfos?.id) return;
     try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -262,6 +263,35 @@ export function AgentProfileModal({
 
             <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
             <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
+
+            {profileData.profile?.whatsappInviteUrl && (
+              <a
+                href={profileData.profile.whatsappInviteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Rejoindre le WhatsApp de l'Équipe"
+                className="agent-whatsapp-link"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '36px',
+                  height: '36px',
+                  marginTop: '4px',
+                  marginBottom: '12px',
+                  borderRadius: '50%',
+                  background: 'rgba(37, 211, 102, 0.2)',
+                  border: '1.5px solid #25D366',
+                  color: '#25D366',
+                  textDecoration: 'none',
+                  boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                }}
+              >
+                <FaWhatsapp size={20} />
+              </a>
+            )}
 
             {/* Barre de Vitalité */}
             <div className="agent-vitality-container">

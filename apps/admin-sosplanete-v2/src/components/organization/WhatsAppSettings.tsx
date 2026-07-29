@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Save, Smartphone, ShieldCheck, Link, Globe, Users, CheckCircle2, AlertCircle, RefreshCw, Send, HelpCircle, BookOpen } from 'lucide-react';
+import { MessageSquare, Save, Smartphone, ShieldCheck, Link, Globe, Users, CheckCircle2, AlertCircle, RefreshCw, Send, HelpCircle, BookOpen, QrCode, Copy } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { GlassCard } from '../ui/GlassCard';
 import { getAuthData } from '@/utils/storage';
 import { WhatsAppTestModal } from './WhatsAppTestModal';
 import { WhatsAppHelpDrawer } from './WhatsAppHelpDrawer';
+import { WhatsAppQrModal } from './WhatsAppQrModal';
 
 interface WhatsAppSettingsProps {
   schoolYear: string;
@@ -36,6 +37,18 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
 
   // Help Drawer State
   const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false);
+
+  // QR Modal State
+  const [qrModalData, setQrModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    url: string;
+    communityName?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    url: '',
+  });
 
   useEffect(() => {
     fetchSystemConfig();
@@ -267,13 +280,30 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
               Lien d'Invitation à la Communauté (Parent)
             </label>
-            <input
-              type="text"
-              value={whatsappCommunityUrl}
-              onChange={(e) => setWhatsappCommunityUrl(e.target.value)}
-              placeholder="https://chat.whatsapp.com/..."
-              className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={whatsappCommunityUrl}
+                onChange={(e) => setWhatsappCommunityUrl(e.target.value)}
+                placeholder="https://chat.whatsapp.com/..."
+                className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setQrModalData({
+                    isOpen: true,
+                    title: "Communauté WhatsApp Établissement",
+                    url: whatsappCommunityUrl,
+                    communityName: whatsappCommunityName,
+                  })
+                }
+                title="Générer le QR Code & l'Affiche d'invitation"
+                className="p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm group relative"
+              >
+                <QrCode size={18} />
+              </button>
+            </div>
             <span className="text-[9px] text-slate-400 font-medium italic block">
               Lien d'adhésion unique fourni aux élèves pour rejoindre la communauté en 1 clic.
             </span>
@@ -356,13 +386,30 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
                         Lien d'Invitation Sous-Groupe Équipe
                       </label>
-                      <input
-                        type="text"
-                        value={cfg.inviteUrl}
-                        onChange={(e) => handleTeamConfigChange(team.id, 'inviteUrl', e.target.value)}
-                        placeholder="https://chat.whatsapp.com/..."
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={cfg.inviteUrl}
+                          onChange={(e) => handleTeamConfigChange(team.id, 'inviteUrl', e.target.value)}
+                          placeholder="https://chat.whatsapp.com/..."
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQrModalData({
+                              isOpen: true,
+                              title: `Groupe Équipe ${team.name}`,
+                              url: cfg.inviteUrl,
+                              communityName: whatsappCommunityName,
+                            })
+                          }
+                          title="Générer QR Code pour ce groupe d'équipe"
+                          className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm"
+                        >
+                          <QrCode size={16} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -400,6 +447,16 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
         isOpen={isHelpDrawerOpen}
         onClose={() => setIsHelpDrawerOpen(false)}
       />
+
+      {/* WhatsApp QR Code Generator & Printable Poster Modal */}
+      <WhatsAppQrModal
+        isOpen={qrModalData.isOpen}
+        onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
+        title={qrModalData.title}
+        url={qrModalData.url}
+        communityName={qrModalData.communityName}
+      />
     </div>
   );
 };
+

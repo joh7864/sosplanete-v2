@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
@@ -276,6 +277,15 @@ function MainApp() {
   const receivedChallenges = challenges.filter(c => c.targetTeamId === myTeamId);
   const sentChallenges = challenges.filter(c => c.challengerTeamId === myTeamId);
   const otherTeams = dashboardStatus?.teams?.filter((t: any) => t.id !== myTeamId) || [];
+  const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId) || childInfos?.group?.team;
+  const whatsappInviteUrl = childInfos?.group?.team?.whatsappInviteUrl || myTeam?.whatsappInviteUrl || childInfos?.whatsappInviteUrl || childInfos?.whatsappCommunityUrl || dashboardStatus?.whatsappCommunityUrl;
+  
+  console.log("=== WHATSAPP DEBUG ===");
+  console.log("childInfos.group.team.url:", childInfos?.group?.team?.whatsappInviteUrl);
+  console.log("myTeam.url:", myTeam?.whatsappInviteUrl);
+  console.log("dashboard.communityUrl:", dashboardStatus?.whatsappCommunityUrl);
+  console.log("final whatsappInviteUrl:", whatsappInviteUrl);
+  
   const availableMissionsForChallenge = missions || [];
 
   const getAvatarUrl = () => {
@@ -574,12 +584,50 @@ function MainApp() {
                       </div>
                     )}
                   </div>
-                  <span>Agent Temporel {childInfos.pseudo}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+                    <span>Agent Temporel {childInfos.pseudo}</span>
+                    {childInfos.schoolYear && (
+                      <span style={{ fontSize: '0.65rem', color: 'rgba(0, 255, 204, 0.7)' }}>
+                        (Année active : {childInfos.schoolYear})
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', pointerEvents: 'auto' }}>
+
+            {/* Bouton direct WhatsApp Équipe / Communauté */}
+            {whatsappInviteUrl && (
+              <a
+                href={whatsappInviteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Rejoindre le WhatsApp de mon Équipe"
+                className="switch-btn"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  padding: '0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(37, 211, 102, 0.2)',
+                  border: '1.5px solid #25D366',
+                  color: '#25D366',
+                  boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s',
+                  pointerEvents: 'auto',
+                  zIndex: 20
+                }}
+              >
+                  <FaWhatsapp size={20} />
+              </a>
+            )}
 
             {/* Toggle Portrait / Paysage */}
             <button

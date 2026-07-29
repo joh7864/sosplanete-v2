@@ -28,18 +28,15 @@ export class EvoeController {
   })
   getDashboardStatus(
     @Param('instanceId') instanceId: string,
-    @Query('schoolYear') schoolYear: string,
-    @Headers('authorization') auth?: string,
+    @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
-    if (!schoolYear && auth) {
-      return this.evoeService.getDashboardStatusAuth(
-        auth,
-        instanceIdStr || instanceId,
-      );
-    }
-    const sy = schoolYear || '2024-2025';
-    return this.evoeService.getDashboardStatus(+instanceId, sy);
+    // Toujours résoudre le schoolYear depuis le token du joueur authentifié.
+    // Le frontend envoie systématiquement le token — plus de fallback codé en dur.
+    return this.evoeService.getDashboardStatusAuth(
+      auth,
+      instanceIdStr || instanceId,
+    );
   }
 
   @Get('extrapolation/metrics')

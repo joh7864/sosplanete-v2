@@ -233,7 +233,7 @@ export class EvoeService {
     return this.getDashboardStatus(instanceId, schoolYear);
   }
 
-  async getDashboardStatus(instanceId: number, schoolYear: string) {
+  private async getDashboardStatus(instanceId: number, schoolYear: string) {
     const teams = await this.prisma.team.findMany({
       where: {
         instanceYear: {
@@ -512,11 +512,17 @@ export class EvoeService {
             )
           : 100;
 
+      const systemConfig = await this.prisma.systemConfig.findFirst({
+        where: { schoolYear },
+      });
+
       formattedTeams.push({
         id: team.id,
         name: team.name,
         color: team.color,
         icon: team.icon,
+        whatsappInviteUrl: team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+        whatsappGroupId: team.whatsappGroupId || null,
         level: currentMaxLevel,
         propulsionType: propTech.name,
         propulsionDesc: propTech.description,
@@ -550,8 +556,14 @@ export class EvoeService {
       })
       .slice(0, 10);
 
+    const systemConfig = await this.prisma.systemConfig.findFirst({
+      where: { schoolYear },
+    });
+
     return {
       schoolYear,
+      whatsappCommunityName: systemConfig?.whatsappCommunityName || null,
+      whatsappCommunityUrl: systemConfig?.whatsappCommunityUrl || null,
       teams: formattedTeams,
       playersHealth: allPlayersHealth,
       topPlayers,
@@ -821,7 +833,19 @@ export class EvoeService {
         id: child.id,
         pseudo: child.pseudo,
         teamCount,
+        schoolYear,
         youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
+        whatsappCommunityName: systemConfig?.whatsappCommunityName ?? null,
+        whatsappCommunityUrl: systemConfig?.whatsappCommunityUrl ?? null,
+        whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+        group: {
+          team: {
+            id: child.group.team.id,
+            name: child.group.team.name,
+            color: child.group.team.color,
+            whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+          },
+        },
       },
       players,
       topPlayers,
@@ -1130,6 +1154,12 @@ export class EvoeService {
     const instanceId = team.instanceYear.instanceId;
     const schoolYear = team.instanceYear.schoolYear;
 
+    const systemConfig = await this.prisma.systemConfig.findFirst({
+      where: { schoolYear },
+    });
+    const whatsappCommunityUrl = systemConfig?.whatsappCommunityUrl || null;
+    const whatsappInviteUrl = team.whatsappInviteUrl || whatsappCommunityUrl;
+
     // 1. Trouver la période active
     const activePeriod = await this.prisma.period.findFirst({
       where: { instanceYearId, isOpen: true },
@@ -1290,6 +1320,8 @@ export class EvoeService {
         birthDate: child.birthDate,
         teamName: team.name,
         teamColor: team.color,
+        whatsappInviteUrl,
+        whatsappCommunityUrl,
       },
       health,
       personalMetrics,
