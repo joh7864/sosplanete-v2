@@ -105,13 +105,21 @@ services:
     container_name: sos_evolution_api
     restart: always
     environment:
-      - SERVER_URL=http://evolution-api:8080
+      - SERVER_URL=https://whatsapp.nnauru.net
       - DOCKER_ENV=true
       - LOG_LEVEL=ERROR
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-EVOE_SECRET_WHATSAPP_KEY_2026}
+      - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_ENABLED=false
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER:-nnauru}:${POSTGRES_PASSWORD:-me4nnauru}@db:5432/${POSTGRES_DB:-nnauru}?schema=evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=false
+      - DATABASE_SAVE_MESSAGE_UPDATE=false
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_CHATS=false
+      - DATABASE_SAVE_DATA_LABELS=false
+      - DATABASE_SAVE_DATA_HISTORIC=false
     volumes:
       - evolution_instances:/evolution/instances
     networks:
