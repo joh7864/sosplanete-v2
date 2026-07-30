@@ -110,7 +110,7 @@ services:
       - LOG_LEVEL=ERROR
       - AUTHENTICATION_TYPE=apikey
       - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-EVOE_SECRET_WHATSAPP_KEY_2026}
-      - DATABASE_PROVIDER=local
+      - DATABASE_PROVIDER=postgresql
       - DATABASE_ENABLED=false
     volumes:
       - evolution_instances:/evolution/instances
