@@ -234,12 +234,16 @@ export class WhatsAppService {
    */
   private async sendMessageToGateway(gatewayUrl: string, chatId: string, message: string) {
     try {
+      const apiKey = process.env.EVOLUTION_API_KEY || 'evoe4=SecretWhatsappAPI07!';
       const response = await fetch(gatewayUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': apiKey,
         },
         body: JSON.stringify({
+          number: chatId,
+          text: message,
           chatId,
           message,
         }),
