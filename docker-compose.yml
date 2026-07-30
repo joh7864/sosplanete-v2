@@ -101,23 +101,13 @@ services:
       - "traefik.http.services.sos-evoe.loadbalancer.server.port=5174"
 
   evolution-api:
-    image: atendai/evolution-api:v1.8.2
+    image: evoapicloud/evolution-api:v2.2.3
     container_name: sos_evolution_api
     restart: always
-    environment:
-      - SERVER_URL=https://whatsapp.nnauru.net
-      - AUTHENTICATION_TYPE=apikey
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-EVOE_SECRET_WHATSAPP_KEY_2026}
-      - DATABASE_ENABLED=false
-      - STORE_MESSAGES=false
-      - STORE_MESSAGE_UP=false
-      - STORE_CONTACTS=false
-      - STORE_CHATS=false
-      - DEL_INSTANCE=false
-      - LOG_LEVEL=ERROR
-      - LOG_COLOR=false
-      - QRCODE_LIMIT=10
+    env_file:
+      - evolution-api.env
     volumes:
+      - ./evolution-api.env:/evolution/.env
       - evolution_instances:/evolution/instances
     networks:
       - sos_internal
