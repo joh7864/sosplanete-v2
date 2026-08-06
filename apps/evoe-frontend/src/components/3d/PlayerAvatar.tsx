@@ -5,6 +5,21 @@ import * as THREE from 'three';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
+const globalTexturePromiseCache = new Map<string, Promise<THREE.Texture>>();
+
+function getTexture(url: string): Promise<THREE.Texture> {
+  if (globalTexturePromiseCache.has(url)) {
+    return globalTexturePromiseCache.get(url)!;
+  }
+  const promise = new Promise<THREE.Texture>((resolve, reject) => {
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    loader.load(url, resolve, undefined, reject);
+  });
+  globalTexturePromiseCache.set(url, promise);
+  return promise;
+}
+
 // Texture de halo blanc partagée par tous les avatars pour dessiner le cercle d'équipe
 const haloTexture = (() => {
   const size = 64;
@@ -177,6 +192,8 @@ export function PlayerAvatar({
   const bracketsRef = useRef<THREE.Mesh>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadStatic3DAvatar = () => {
       const pseudo = player.pseudo || 'default';
       
@@ -228,28 +245,20 @@ export function PlayerAvatar({
       
       const avatarUrl = `${EVOE_IMG_URL}avatars_3D/${file}`;
       
-      const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
-        avatarUrl,
-        (tex) => setTexture(tex),
-        undefined,
-        () => setTexture(null)
-      );
+      getTexture(avatarUrl)
+        .then((tex) => { if (isMounted) setTexture(tex); })
+        .catch(() => { if (isMounted) setTexture(null); });
     };
 
     if (player.avatar && player.avatar !== 'avatars/default.png') {
-      const loader = new THREE.TextureLoader();
-      loader.setCrossOrigin('anonymous');
-      loader.load(
-        `${EVOE_IMG_URL}${player.avatar}`,
-        (tex) => setTexture(tex),
-        undefined,
-        () => loadStatic3DAvatar()
-      );
+      getTexture(`${EVOE_IMG_URL}${player.avatar}`)
+        .then((tex) => { if (isMounted) setTexture(tex); })
+        .catch(() => { if (isMounted) loadStatic3DAvatar(); });
     } else {
       loadStatic3DAvatar();
     }
+
+    return () => { isMounted = false; };
   }, [player.avatar, player.pseudo]);
 
   const haloScale = 0.7 * avatarScale;
