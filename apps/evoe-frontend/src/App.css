@@ -1090,10 +1090,44 @@ body {
   }
 }
 
+.agent-profile-identity-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.agent-profile-identity-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-profile-identity-info .agent-profile-pseudo {
+  margin: 0 0 2px 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-align: left;
+}
+
+.agent-profile-identity-info .agent-profile-team {
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
 .agent-profile-avatar-wrapper {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
   border: 3px solid #00ffcc;
   padding: 5px;
@@ -1102,6 +1136,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .agent-profile-avatar {
@@ -1383,8 +1418,41 @@ body {
 
 @media (max-width: 768px) {
   .agent-profile-content {
-    padding: 20px;
+    padding: 15px;
+    gap: 15px;
     overflow-y: visible;
+  }
+  .profile-metrics-grid {
+    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .profile-metric-card {
+    padding: 8px 6px;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .profile-metric-card .metric-icon {
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    flex-shrink: 0;
+  }
+  .profile-metric-card .metric-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .profile-metric-card .metric-info .label {
+    font-size: 0.62rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-metric-card .metric-info .value {
+    font-size: 0.8rem;
+    white-space: nowrap;
   }
 }
 
@@ -1402,6 +1470,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .profile-metric-card .metric-icon {

@@ -203,21 +203,60 @@ export function AgentProfileModal({
         <div className="agent-profile-container">
           {/* Section Identité & Vitalité */}
           <div className="agent-profile-sidebar">
-            <div className="agent-profile-avatar-wrapper" style={{ borderColor: teamColor }}>
-              <img 
-                src={renderAvatar(currentAvatar, currentGender, currentPseudo)} 
-                alt="" 
-                className="agent-profile-avatar" 
-              />
-              {isOwner && (
-                <button 
-                  className="agent-profile-avatar-edit-btn" 
-                  onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-                  title="Changer d'avatar"
-                >
-                  <Camera size={14} />
-                </button>
-              )}
+            <div className="agent-profile-identity-header">
+              <div className="agent-profile-avatar-wrapper" style={{ borderColor: teamColor }}>
+                <img 
+                  src={renderAvatar(currentAvatar, currentGender, currentPseudo)} 
+                  alt="" 
+                  className="agent-profile-avatar" 
+                />
+                {isOwner && (
+                  <button 
+                    className="agent-profile-avatar-edit-btn" 
+                    onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                    title="Changer d'avatar"
+                  >
+                    <Camera size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="agent-profile-identity-info">
+                <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
+                <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
+
+                {isOwner && profileData.profile?.whatsappInviteUrl && (
+                  <a
+                    href={profileData.profile.whatsappInviteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Rejoindre le WhatsApp de l'Équipe"
+                    className="agent-whatsapp-link"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '34px',
+                      height: '34px',
+                      minWidth: '34px',
+                      minHeight: '34px',
+                      flexShrink: 0,
+                      aspectRatio: '1 / 1',
+                      borderRadius: '50%',
+                      background: 'rgba(37, 211, 102, 0.2)',
+                      border: '1.5px solid #25D366',
+                      color: '#25D366',
+                      textDecoration: 'none',
+                      boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <FaWhatsapp size={18} />
+                  </a>
+                )}
+              </div>
             </div>
 
             {showAvatarPicker && isOwner && (
@@ -259,42 +298,6 @@ export function AgentProfileModal({
                   ))}
                 </div>
               </div>
-            )}
-
-            <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
-            <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
-
-            {profileData.profile?.whatsappInviteUrl && (
-              <a
-                href={profileData.profile.whatsappInviteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Rejoindre le WhatsApp de l'Équipe"
-                className="agent-whatsapp-link"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '36px',
-                  height: '36px',
-                  minWidth: '36px',
-                  minHeight: '36px',
-                  flexShrink: 0,
-                  aspectRatio: '1 / 1',
-                  marginTop: '4px',
-                  marginBottom: '12px',
-                  borderRadius: '50%',
-                  background: 'rgba(37, 211, 102, 0.2)',
-                  border: '1.5px solid #25D366',
-                  color: '#25D366',
-                  textDecoration: 'none',
-                  boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                }}
-              >
-                <FaWhatsapp size={20} />
-              </a>
             )}
 
             {/* Barre de Vitalité */}
