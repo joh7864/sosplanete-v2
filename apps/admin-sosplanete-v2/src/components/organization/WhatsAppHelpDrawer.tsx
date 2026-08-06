@@ -63,38 +63,38 @@ export const WhatsAppHelpDrawer: React.FC<WhatsAppHelpDrawerProps> = ({ isOpen, 
               <Sparkles size={18} className="text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <strong className="font-black block text-emerald-950 mb-1">
-                  Architecture en Communauté Scolaire
+                  Architecture Simplifiée : Groupe WhatsApp Unique
                 </strong>
-                Structurer votre établissement en Communauté WhatsApp garantit le **masquage des numéros de téléphone des élèves** sur le fil d'Annonces Global tout en maintenant l'engagement de jeu en 1 clic.
+                Tous les membres de l'établissement rejoignent un **groupe WhatsApp général unique**. Les discussions d'équipes et défis se déroulent dans le chat intégré **Com-Link** de l'application EVOE.
               </div>
             </div>
 
-            {/* Section 1 : Nom de la Communauté */}
+            {/* Section 1 : Nom du Groupe */}
             <div className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3">
               <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
                 <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
                   1
                 </div>
-                🌐 Nom de la Communauté WhatsApp
+                🌐 Nom du Groupe WhatsApp EVOE
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Il s'agit du nom officiel de votre établissement (ex: <strong className="text-slate-800">"Communauté SOS Planète - Collège St-Exupéry"</strong>).
+                Il s'agit du nom officiel de votre groupe (ex: <strong className="text-slate-800">"Groupe EVOE - Collège St-Exupéry"</strong>).
               </p>
               <div className="p-3 bg-white rounded-xl border border-slate-200/60 text-[11px] text-slate-500 font-medium italic">
                 💡 Ce nom est automatiquement réutilisé en en-tête et signature de tous les bulletins hebdomadaires et alertes diffusés par le Bot EVOE.
               </div>
             </div>
 
-            {/* Section 2 : Lien d'Invitation à la Communauté */}
+            {/* Section 2 : Lien d'Invitation */}
             <div className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3">
               <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
                 <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
                   2
                 </div>
-                🔗 Lien d'Invitation Parent à la Communauté
+                🔗 Lien d'Invitation au Groupe WhatsApp
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Le lien unique fourni aux élèves pour rejoindre la Communauté WhatsApp en 1 clic depuis leur smartphone.
+                Le lien d'invitation unique fourni aux élèves pour rejoindre le groupe WhatsApp EVOE en 1 clic.
               </p>
 
               <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
@@ -102,43 +102,34 @@ export const WhatsAppHelpDrawer: React.FC<WhatsAppHelpDrawerProps> = ({ isOpen, 
                   📱 Comment récupérer ce lien sur votre Smartphone ?
                 </strong>
                 <ol className="list-decimal list-inside space-y-1.5 text-slate-700 text-[11px] leading-relaxed">
-                  <li>Ouvrez WhatsApp sur votre smartphone et allez sur l'onglet <strong>Communautés</strong>.</li>
-                  <li>Appuyez sur le nom de votre Communauté d'établissement.</li>
-                  <li>Appuyez sur <strong>Inviter des membres</strong> ou <strong>Lien d'invitation</strong>.</li>
+                  <li>Ouvrez WhatsApp sur votre smartphone et allez sur la fiche de votre groupe EVOE.</li>
+                  <li>Appuyez sur le nom du groupe en haut pour ouvrir les infos.</li>
+                  <li>Appuyez sur <strong>Lien d'invitation au groupe</strong>.</li>
                   <li>Sélectionnez <strong>Copier le lien</strong>.</li>
                   <li>Collez ce lien dans le champ de l'interface Admin.</li>
                 </ol>
               </div>
             </div>
 
-            {/* Section 3 : Identifiant du Fil d'Annonces Global (Group ID) */}
+            {/* Section 3 : Identifiant du Groupe (Group ID) */}
             <div className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3">
               <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
                 <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
                   3
                 </div>
-                📢 Identifiant du Fil d'Annonces Global (Group ID)
+                📢 Identifiant du Groupe WhatsApp (Group ID)
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                C'est l'identifiant technique du canal d'Annonces général (ex: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-[11px] font-mono">120363048912345678@g.us</code>).
+                C'est l'identifiant technique du groupe WhatsApp (ex: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-[11px] font-mono">120363048912345678@g.us</code>).
               </p>
-
-              <div className="p-4 bg-emerald-950 text-emerald-100 rounded-xl space-y-2 text-xs border border-emerald-800/50">
-                <div className="flex items-center gap-2 font-bold text-emerald-300">
-                  <ShieldCheck size={16} /> Confidentialité & Protection des Élèves (RGPD)
-                </div>
-                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
-                  Dans ce canal d'annonces, WhatsApp <strong>masque automatiquement les numéros de téléphone</strong> de tous les participants entre eux. Seuls les administrateurs et le Bot EVOE écrivent.
-                </p>
-              </div>
 
               <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
                 <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
-                  🔍 Comment obtenir le Group ID du Canal d'Annonces ?
+                  🔍 Comment obtenir le Group ID ?
                 </strong>
                 <ul className="list-disc list-inside space-y-1.5 text-slate-700 text-[11px] leading-relaxed">
-                  <li><strong>Option A (WhatsApp Web)</strong> : Ouvrez le canal dans WhatsApp Web sur PC. L'ID apparaît dans l'URL du navigateur juste après le signe <code className="bg-slate-100 px-1 py-0.5 rounded">/g/</code>.</li>
-                  <li><strong>Option B (Passerelle API)</strong> : Si vous utilisez Evolution API ou GreenAPI, scannez le QR Code dans l'Admin. L'ID du canal est détecté automatiquement.</li>
+                  <li><strong>Option A (WhatsApp Web)</strong> : Ouvrez le groupe dans WhatsApp Web sur PC. L'ID apparaît dans l'URL du navigateur juste après le signe <code className="bg-slate-100 px-1 py-0.5 rounded">/g/</code>.</li>
+                  <li><strong>Option B (Passerelle API)</strong> : Si vous utilisez Evolution API ou GreenAPI, scannez le QR Code dans l'Admin. L'ID du groupe est détecté automatiquement.</li>
                 </ul>
               </div>
             </div>
@@ -152,91 +143,33 @@ export const WhatsAppHelpDrawer: React.FC<WhatsAppHelpDrawerProps> = ({ isOpen, 
                 ⚙️ URL de la Passerelle API WhatsApp (Webhook HTTP)
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                C'est l'adresse du serveur de messagerie qui expédie les notifications vers WhatsApp.
+                C'est l'adresse du serveur de messagerie qui expédie les notifications vers WhatsApp (ex: <code className="bg-slate-200 px-1.5 py-0.5 rounded text-[11px] font-mono">http://evolution-api:8080/message/sendText/evoe</code>).
               </p>
-              <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
-                <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
-                  💡 Passerelles compatibles :
-                </strong>
-                <ul className="list-disc list-inside space-y-1 text-slate-700 text-[11px]">
-                  <li><strong>Evolution API</strong> (Gratuite & Auto-hébergée via Docker)</li>
-                  <li><strong>Twilio WhatsApp Sandbox</strong> (Gratuit pour tests)</li>
-                  <li><strong>GreenAPI / Whapi.cloud</strong></li>
-                </ul>
-                <p className="text-[10px] text-slate-400 italic pt-1 border-t border-slate-100">
-                  * Si vous laissez ce champ vide, le mode <strong>Simulateur Virtuel</strong> reste 100% opérationnel dans l'Admin sans aucun frais.
-                </p>
-              </div>
             </div>
-
-            {/* Section 5 : Liens des Sous-Groupes d'Équipes */}
-            <div className="p-5 rounded-2xl border border-slate-200/80 bg-slate-50/50 space-y-3">
-              <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
-                <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
-                  5
-                </div>
-                🚀 Sous-Groupes WhatsApp par Équipe
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Chaque équipe (Air, Terre, Feu, Eau...) dispose de son sous-groupe restreint où les équipiers échangent leurs stratégies.
-              </p>
-              <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
-                <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
-                  📋 Procédure pour chaque équipe :
-                </strong>
-                <ol className="list-decimal list-inside space-y-1.5 text-slate-700 text-[11px]">
-                  <li>Allez sur le groupe WhatsApp de l'équipe (ex: <em>Équipe Air</em>).</li>
-                  <li>Appuyez sur le nom du groupe → <strong>Inviter via un lien</strong> → <strong>Copier le lien</strong>.</li>
-                  <li>Collez le lien et le Group ID en face de l'équipe correspondante dans le tableau.</li>
-                </ol>
-              </div>
-            </div>
-
-            {/* Section 6 : Comment les élèves rejoignent la Communauté & leur Groupe */}
+            {/* Section 5 : Comment les élèves rejoignent le Groupe WhatsApp */}
             <div className="p-5 rounded-2xl border border-emerald-200/80 bg-emerald-50/30 space-y-4">
               <div className="flex items-center gap-2 font-black text-slate-800 text-xs uppercase tracking-wider">
                 <div className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
-                  6
+                  5
                 </div>
-                👥 Comment vos élèves rejoignent la Communauté & leur Groupe ?
+                👥 Comment vos élèves rejoignent le Groupe WhatsApp EVOE ?
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Le parcours d'intégration des élèves est conçu pour être rapide, fluide et sécurisé sur smartphone ou ordinateur.
+                Le parcours d'intégration des élèves est conçu pour être rapide et fluide.
               </p>
 
               <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
                 <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
-                  🚀 Le parcours en 3 étapes :
+                  🚀 Le parcours en 2 étapes :
                 </strong>
                 <ol className="list-decimal list-inside space-y-2 text-slate-700 text-[11px] leading-relaxed">
                   <li>
-                    <strong>Diffusion du lien / QR Code</strong> : Partagez le lien d'invitation parent (ou projetez son QR Code généré dans l'Admin) aux élèves en classe ou via l'ENT.
+                    <strong>Diffusion du lien / QR Code</strong> : Partagez le lien d'invitation au groupe (ou projetez son QR Code généré dans l'Admin) aux élèves en classe ou via l'ENT.
                   </li>
                   <li>
-                    <strong>Adhésion à la Communauté</strong> : En cliquant sur le lien ou en scannant le QR Code, l'élève valide <em>« Rejoindre la communauté »</em> sur WhatsApp.
-                  </li>
-                  <li>
-                    <strong>Accès automatique</strong> : L'élève est instantanément ajouté au <strong>Fil d'Annonces Global 📢</strong> et peut directement rejoindre le <strong>sous-groupe de son Équipe 🚀</strong> (ex: <em>Équipe Air</em>).
+                    <strong>Adhésion au Groupe</strong> : En cliquant sur le lien ou en scannant le QR Code, l'élève valide <em>« Rejoindre le groupe »</em> sur WhatsApp.
                   </li>
                 </ol>
-              </div>
-
-              <div className="p-4 bg-emerald-950 text-emerald-100 rounded-xl space-y-2 text-xs border border-emerald-800/50">
-                <div className="flex items-center gap-2 font-bold text-emerald-300">
-                  <ShieldCheck size={16} /> Protection Maximale (Conformité Éducation / RGPD)
-                </div>
-                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
-                  Dans le Fil d'Annonces de la Communauté, aucun élève ne voit le numéro de téléphone des autres membres. WhatsApp masque automatiquement tous les participants.
-                </p>
-              </div>
-
-              <div className="p-3 bg-white rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-relaxed flex items-start gap-2.5">
-                <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Changement d'équipe en cours de jeu ?</strong>
-                  <br />
-                  Si un élève change d'équipe dans EVOE, l'enseignant le retire simplement de l'ancien sous-groupe d'équipe dans WhatsApp et lui fournit le lien du sous-groupe de sa nouvelle équipe.
-                </div>
               </div>
             </div>
           </div>

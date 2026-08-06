@@ -77,8 +77,6 @@ export class TeamService {
         color: data.color,
         icon: data.icon,
         instanceYearId,
-        whatsappInviteUrl: data.whatsappInviteUrl,
-        whatsappGroupId: data.whatsappGroupId,
       },
     });
   }
@@ -129,10 +127,10 @@ export class TeamService {
     }
 
     // On extrait uniquement les champs appartenant au modèle Team
-    const { name, color, icon, whatsappInviteUrl, whatsappGroupId } = data;
+    const { name, color, icon } = data;
     return this.prisma.team.update({
       where: { id },
-      data: { name, color, icon, whatsappInviteUrl, whatsappGroupId },
+      data: { name, color, icon },
     });
   }
 

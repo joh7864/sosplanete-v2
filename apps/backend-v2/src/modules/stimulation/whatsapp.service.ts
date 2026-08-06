@@ -105,7 +105,6 @@ export class WhatsAppService {
           id: team.id,
           name: team.name,
           co2: teamCo2,
-          whatsappGroupId: team.whatsappGroupId,
         });
 
         if (teamGlitchPseudos.length > 0) {
@@ -158,24 +157,10 @@ export class WhatsAppService {
         globalMessage += `✨ Aucun paradoxe temporel détecté. Tous les descendants d'équipage sont physiquement complets ! 🧬\n\n`;
       }
 
-      globalMessage += `🔗 _Consultez vos missions et propulsez votre vaisseau sur Evoe !_`;;
+      globalMessage += `🔗 _Consultez vos missions et propulsez votre vaisseau sur Evoe !_`;
 
-      // Envoyer le message au groupe général
+      // Envoyer le message unique au groupe WhatsApp EVOE
       await this.sendMessageToGateway(systemConfig.whatsappGeneralUrl, systemConfig.whatsappGeneralId, globalMessage);
-
-      // 6. Envoyer les alertes ciblées par équipe
-      for (const team of teamScores) {
-        const teamGlitchPseudos = glitchingPlayersByTeam.get(team.id);
-        if (teamGlitchPseudos && teamGlitchPseudos.length > 0 && team.whatsappGroupId) {
-          let teamMessage = `🧬 *ALERTES DE PARADOXE TEMPOREL — VAISSEAU ${team.name.toUpperCase()}*\n`;
-          teamMessage += `─────────────────────────\n\n`;
-          teamMessage += `⚠️ Attention équipage, certains membres créent un paradoxe temporel car ils n'ont validé aucune action cette semaine :\n`;
-          teamMessage += teamGlitchPseudos.map((p) => `• @${p} (Son descendant s'efface... 🔌)`).join('\n') + `\n\n`;
-          teamMessage += `Faites vos rapports de mission au Codex pour propulser vos moteurs ! 🚀`;
-
-          await this.sendMessageToGateway(systemConfig.whatsappGeneralUrl, team.whatsappGroupId, teamMessage);
-        }
-      }
 
       return { success: true, stability, leadingTeam, glitchCount: allGlitchPseudos.length };
     } catch (e) {

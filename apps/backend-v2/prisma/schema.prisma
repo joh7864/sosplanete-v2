@@ -123,8 +123,6 @@ model Team {
   evoeTechnology     EvoeTeamTechnology?
   challengesSent     EvoeChallenge[]     @relation("ChallengerTeam")
   challengesReceived EvoeChallenge[]     @relation("TargetTeam")
-  whatsappInviteUrl  String?
-  whatsappGroupId    String?
 }
 
 model Group {

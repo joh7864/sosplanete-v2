@@ -27,7 +27,7 @@ export const WhatsAppTestModal: React.FC<WhatsAppTestModalProps> = ({
   const [testResult, setTestResult] = useState<any>(null);
 
   const getTemplateMessage = (type: string) => {
-    const name = communityName || 'Communauté SOS Planète';
+    const name = communityName || 'Groupe EVOE';
     switch (type) {
       case 'podium':
         return (

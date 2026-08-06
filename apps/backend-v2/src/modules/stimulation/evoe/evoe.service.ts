@@ -521,8 +521,8 @@ export class EvoeService {
         name: team.name,
         color: team.color,
         icon: team.icon,
-        whatsappInviteUrl: team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
-        whatsappGroupId: team.whatsappGroupId || null,
+        whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
+        whatsappGroupId: null,
         level: currentMaxLevel,
         propulsionType: propTech.name,
         propulsionDesc: propTech.description,
@@ -837,13 +837,13 @@ export class EvoeService {
         youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
         whatsappCommunityName: systemConfig?.whatsappCommunityName ?? null,
         whatsappCommunityUrl: systemConfig?.whatsappCommunityUrl ?? null,
-        whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+        whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
         group: {
           team: {
             id: child.group.team.id,
             name: child.group.team.name,
             color: child.group.team.color,
-            whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+            whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
           },
         },
       },
@@ -1158,7 +1158,7 @@ export class EvoeService {
       where: { schoolYear },
     });
     const whatsappCommunityUrl = systemConfig?.whatsappCommunityUrl || null;
-    const whatsappInviteUrl = team.whatsappInviteUrl || whatsappCommunityUrl;
+    const whatsappInviteUrl = whatsappCommunityUrl;
 
     // 1. Trouver la période active
     const activePeriod = await this.prisma.period.findFirst({

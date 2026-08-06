@@ -94,7 +94,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
     try {
       const token = getAuthData('access_token');
 
-      // 1. Sauvegarder la configuration globale de l'instance/système
+      // Sauvegarder la configuration globale WhatsApp (groupe unique)
       const sysResp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/system-config?schoolYear=${schoolYear}`, {
         method: 'PUT',
         headers: {
@@ -109,45 +109,17 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
         }),
       });
 
-      // 2. Sauvegarder les configurations par équipe
-      for (const team of teams) {
-        const cfg = teamConfigs[team.id];
-        if (cfg) {
-          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/teams/${team.id}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              whatsappInviteUrl: cfg.inviteUrl,
-              whatsappGroupId: cfg.groupId,
-            }),
-          });
-        }
-      }
-
       if (sysResp.ok) {
-        setStatusMessage({ type: 'success', text: 'Paramètres de la Communauté WhatsApp enregistrés avec succès !' });
+        setStatusMessage({ type: 'success', text: 'Paramètres du Groupe WhatsApp enregistrés avec succès !' });
         onRefreshTeams();
       } else {
-        setStatusMessage({ type: 'error', text: 'Erreur lors de la sauvegarde de la configuration générale.' });
+        setStatusMessage({ type: 'error', text: 'Erreur lors de la sauvegarde de la configuration.' });
       }
     } catch (e: any) {
       setStatusMessage({ type: 'error', text: e.message || 'Erreur réseau.' });
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleTeamConfigChange = (teamId: number, field: 'inviteUrl' | 'groupId', value: string) => {
-    setTeamConfigs((prev) => ({
-      ...prev,
-      [teamId]: {
-        ...prev[teamId],
-        [field]: value,
-      },
-    }));
   };
 
   return (
@@ -161,10 +133,10 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-                Communauté & Notifications WhatsApp
+                Groupe & Notifications WhatsApp EVOE
               </h2>
               <p className="text-xs text-slate-300 font-medium mt-1 max-w-2xl">
-                Configurez le canal d'Annonces Global et les sous-groupes d'équipes pour diffuser les alertes de jeu, duels et bilans hebdomadaires.
+                Configurez le groupe WhatsApp général de l'établissement pour diffuser les alertes de jeu, duels et bilans hebdomadaires.
               </p>
             </div>
           </div>
@@ -251,10 +223,10 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-              1. Canaux de la Communauté Établissement (Fil Global)
+              Groupe WhatsApp EVOE (Groupe Unique)
             </h3>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Paramétrage du canal principal d'annonces
+              Paramétrage du groupe WhatsApp général de l'établissement
             </p>
           </div>
         </div>
@@ -262,13 +234,13 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-              Nom de la Communauté WhatsApp
+              Nom du Groupe WhatsApp EVOE
             </label>
             <input
               type="text"
               value={whatsappCommunityName}
               onChange={(e) => setWhatsappCommunityName(e.target.value)}
-              placeholder="ex: Communauté SOS Planète - Collège St-Exupéry"
+              placeholder="ex: Groupe EVOE - Collège St-Exupéry"
               className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
             />
             <span className="text-[9px] text-slate-400 font-medium italic block">
@@ -278,7 +250,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-              Lien d'Invitation à la Communauté (Parent)
+              Lien d'Invitation au Groupe WhatsApp
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -293,7 +265,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
                 onClick={() =>
                   setQrModalData({
                     isOpen: true,
-                    title: "Communauté WhatsApp Établissement",
+                    title: "Groupe WhatsApp EVOE",
                     url: whatsappCommunityUrl,
                     communityName: whatsappCommunityName,
                   })
@@ -305,13 +277,13 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
               </button>
             </div>
             <span className="text-[9px] text-slate-400 font-medium italic block">
-              Lien d'adhésion unique fourni aux élèves pour rejoindre la communauté en 1 clic.
+              Lien d'adhésion unique fourni aux élèves pour rejoindre le groupe EVOE en 1 clic.
             </span>
           </div>
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-              Identifiant du Fil d'Annonces Global (Group ID)
+              Identifiant du Groupe WhatsApp (Group ID)
             </label>
             <input
               type="text"
@@ -321,7 +293,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
               className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
             />
             <span className="text-[9px] text-slate-400 font-medium italic block">
-              Identifiant technique du canal d'annonces où les numéros d'élèves sont masqués.
+              Identifiant technique du groupe WhatsApp où les messages de jeu seront envoyés.
             </span>
           </div>
 
@@ -333,7 +305,7 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
               type="text"
               value={whatsappGeneralUrl}
               onChange={(e) => setWhatsappGeneralUrl(e.target.value)}
-              placeholder="https://api.evolution-api.com/message/sendText/..."
+              placeholder="http://evolution-api:8080/message/sendText/evoe"
               className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
             />
             <span className="text-[9px] text-slate-400 font-medium italic block">
@@ -341,95 +313,6 @@ export const WhatsAppSettings: React.FC<WhatsAppSettingsProps> = ({
             </span>
           </div>
         </div>
-      </GlassCard>
-
-      {/* Per-Team WhatsApp Channels */}
-      <GlassCard className="p-8 bg-white border border-slate-100 shadow-xl space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <Users size={18} />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-                2. Sous-Groupes WhatsApp par Équipe
-              </h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                Configuration des fils de discussion d'équipes
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {teams.length === 0 ? (
-          <div className="p-8 text-center text-xs font-bold text-slate-400 italic">
-            Aucune équipe enregistrée pour cet établissement.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {teams.map((team) => {
-              const cfg = teamConfigs[team.id] || { inviteUrl: '', groupId: '' };
-              return (
-                <div key={team.id} className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-4 h-4 rounded-full border border-white shadow-sm shrink-0"
-                      style={{ backgroundColor: team.color || '#10b981' }}
-                    />
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                      Équipe {team.name}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
-                        Lien d'Invitation Sous-Groupe Équipe
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={cfg.inviteUrl}
-                          onChange={(e) => handleTeamConfigChange(team.id, 'inviteUrl', e.target.value)}
-                          placeholder="https://chat.whatsapp.com/..."
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setQrModalData({
-                              isOpen: true,
-                              title: `Groupe Équipe ${team.name}`,
-                              url: cfg.inviteUrl,
-                              communityName: whatsappCommunityName,
-                            })
-                          }
-                          title="Générer QR Code pour ce groupe d'équipe"
-                          className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition-all shrink-0 active:scale-95 shadow-sm"
-                        >
-                          <QrCode size={16} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
-                        Identifiant du Sous-Groupe Équipe (Group ID)
-                      </label>
-                      <input
-                        type="text"
-                        value={cfg.groupId}
-                        onChange={(e) => handleTeamConfigChange(team.id, 'groupId', e.target.value)}
-                        placeholder="ex: 120363048999999999@g.us"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </GlassCard>
 
       {/* WhatsApp Test Modal Simulator */}
