@@ -196,6 +196,9 @@ model ActionDone {
   child         Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
   localAction   LocalAction @relation(fields: [localActionId], references: [id])
   period        Period      @relation(fields: [periodId], references: [id])
+
+  @@index([childId, periodId])
+  @@index([localActionId])
 }
 
 model AnimalRelease {

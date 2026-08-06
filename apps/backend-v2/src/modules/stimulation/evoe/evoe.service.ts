@@ -3,6 +3,21 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
 import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const UPLOADS_DIR = (process.env.NODE_ENV === 'production' && process.env.UPLOADS_DIR)
+  ? process.env.UPLOADS_DIR
+  : path.join(process.cwd(), '..', '..', 'uploads');
+
+function getAvatarUrl(avatarPath: string | null): string | null {
+  if (!avatarPath || avatarPath === 'avatars/default.png') return null;
+  const fullPath = path.join(UPLOADS_DIR, avatarPath);
+  try {
+    if (fs.existsSync(fullPath)) return avatarPath;
+  } catch(e) {}
+  return null;
+}
 
 const CATEGORY_SF_MAP: Record<string, string> = {
   // Pôle Ressources Vitales
@@ -490,7 +505,7 @@ export class EvoeService {
           id: child.id,
           childId: child.id,
           pseudo: child.pseudo,
-          avatar: child.avatar,
+          avatar: getAvatarUrl(child.avatar),
           gender: child.gender,
           birthDate: child.birthDate,
           color: team.color,
@@ -765,7 +780,7 @@ export class EvoeService {
             id: c.id,
             childId: c.id,
             pseudo: c.pseudo,
-            avatar: c.avatar,
+            avatar: getAvatarUrl(c.avatar),
             color: t.color || '#40916C',
             isCurrent: c.id === child.id,
             groupId: g.id,
@@ -1315,7 +1330,7 @@ export class EvoeService {
       profile: {
         id: child.id,
         pseudo: child.pseudo,
-        avatar: child.avatar,
+        avatar: getAvatarUrl(child.avatar),
         gender: child.gender,
         birthDate: child.birthDate,
         teamName: team.name,

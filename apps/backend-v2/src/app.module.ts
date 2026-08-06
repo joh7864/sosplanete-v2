@@ -59,6 +59,10 @@ import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
             ? process.env.UPLOADS_DIR
             : join(__dirname, '..', '..', '..', 'uploads'),
         serveRoot: '/static',
+        serveStaticOptions: {
+          cacheControl: true,
+          maxAge: '1y',
+        },
       },
       {
         rootPath: (process.env.NODE_ENV === 'production' && process.env.UPLOADS_DIR)

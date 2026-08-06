@@ -225,7 +225,7 @@ export default function Portal2026({
   useEffect(() => {
     const loader = new THREE.TextureLoader();
     loader.load(
-      '/earth.jpg',
+      '/earth.webp',
       (tex) => setEarthTexture(tex)
     );
   }, []);

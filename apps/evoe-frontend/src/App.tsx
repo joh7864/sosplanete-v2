@@ -14,11 +14,13 @@ import ChatPanel from './components/ChatPanel';
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
-import { AgentProfileModal } from './components/ui/AgentProfileModal';
 
-import { ChallengeModal } from './components/ui/ChallengeModal';
-import { ConfirmCancelModal } from './components/ui/ConfirmCancelModal';
-import MobileContextCarousel from './components/ui/MobileContextCarousel';
+import { lazy, Suspense } from 'react';
+const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
+const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
+const ConfirmCancelModal = lazy(() => import('./components/ui/ConfirmCancelModal').then(m => ({ default: m.ConfirmCancelModal })));
+const LeaderboardModal = lazy(() => import('./components/ui/LeaderboardModal').then(m => ({ default: m.LeaderboardModal })));
+const MobileContextCarousel = lazy(() => import('./components/ui/MobileContextCarousel'));
 
 import './App.css';
 
@@ -1419,41 +1421,59 @@ function MainApp() {
       </div>
 
       {/* Modal de Création de Défi PvP */}
-      <ChallengeModal
-        showChallengeModal={showChallengeModal}
-        setShowChallengeModal={setShowChallengeModal}
-        challengeTargetTeamId={challengeTargetTeamId}
-        setChallengeTargetTeamId={setChallengeTargetTeamId}
-        challengeLocalActionId={challengeLocalActionId}
-        setChallengeLocalActionId={setChallengeLocalActionId}
-        challengePledge={challengePledge}
-        setChallengePledge={setChallengePledge}
-        challengeError={challengeError}
-        isSubmittingChallenge={isSubmittingChallenge}
-        handleSendChallenge={handleSendChallenge}
-        otherTeams={otherTeams}
-        availableMissionsForChallenge={availableMissionsForChallenge}
-      />
+      <Suspense fallback={null}>
+        {showChallengeModal && (
+          <ChallengeModal
+            showChallengeModal={showChallengeModal}
+            setShowChallengeModal={setShowChallengeModal}
+            challengeTargetTeamId={challengeTargetTeamId}
+            setChallengeTargetTeamId={setChallengeTargetTeamId}
+            challengeLocalActionId={challengeLocalActionId}
+            setChallengeLocalActionId={setChallengeLocalActionId}
+            challengePledge={challengePledge}
+            setChallengePledge={setChallengePledge}
+            challengeError={challengeError}
+            isSubmittingChallenge={isSubmittingChallenge}
+            handleSendChallenge={handleSendChallenge}
+            otherTeams={otherTeams}
+            availableMissionsForChallenge={availableMissionsForChallenge}
+          />
+        )}
+      </Suspense>
 
       {/* Modal de Confirmation d'Annulation de Mission */}
-      <ConfirmCancelModal
-        cancelMissionConfirm={cancelMissionConfirm}
-        setCancelMissionConfirm={setCancelMissionConfirm}
-        handleCancelMission={handleCancelMission}
-      />
+      <Suspense fallback={null}>
+        <ConfirmCancelModal
+          cancelMissionConfirm={cancelMissionConfirm}
+          setCancelMissionConfirm={setCancelMissionConfirm}
+          handleCancelMission={handleCancelMission}
+        />
+      </Suspense>
 
       {/* Modal du Profil Agent */}
       <AnimatePresence>
         {selectedProfileId !== null && (
-          <AgentProfileModal
-            profileId={selectedProfileId}
-            onClose={() => setSelectedProfileId(null)}
-            isOwner={selectedProfileId === childInfos?.id}
-            refreshData={fetchEvoeData}
-          />
+          <Suspense fallback={null}>
+            <AgentProfileModal
+              profileId={selectedProfileId}
+              onClose={() => setSelectedProfileId(null)}
+              isOwner={selectedProfileId === childInfos?.id}
+              refreshData={fetchEvoeData}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
+      {/* Modal du Leaderboard 2070 */}
+      <Suspense fallback={null}>
+        <LeaderboardModal
+          showLeaderboardModal={showLeaderboardModal}
+          setShowLeaderboardModal={setShowLeaderboardModal}
+          dashboardStatus={dashboardStatus}
+          childInfos={childInfos}
+          setSelectedProfileId={setSelectedProfileId}
+        />
+      </Suspense>
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 
@@ -1546,11 +1566,15 @@ function MainApp() {
         </div>
 
         <button 
-          className={`nav-item ${view2026 === 'leaderboard' ? 'active' : ''}`}
+          className={`nav-item ${view2026 === 'leaderboard' || showLeaderboardModal ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
             setChatOpen(false);
-            setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
+            if (era === '2070') {
+              setShowLeaderboardModal(true);
+            } else {
+              setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
+            }
           }}
         >
           <Trophy size={20} />

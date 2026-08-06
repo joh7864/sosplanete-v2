@@ -14,6 +14,8 @@ import { json, urlencoded } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
+import * as compression from 'compression';
+
 async function bootstrap() {
   // SEC-01 — Bloquer le démarrage si JWT_SECRET n'est pas défini
   if (!process.env.JWT_SECRET) {
@@ -30,6 +32,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule);
 
+  app.use(compression());
   app.use(cookieParser());
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
