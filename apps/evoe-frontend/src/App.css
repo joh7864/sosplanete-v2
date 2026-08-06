@@ -1056,34 +1056,37 @@ body {
 }
 
 @media (max-width: 768px) {
-  .agent-profile-container {
-    flex-direction: column;
-    overflow-y: auto;
+  .agent-profile-backdrop {
+    padding: 10px 6px;
   }
   .agent-profile-modal {
     height: auto;
-    max-height: 90vh;
+    max-height: 94vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
-}
-
-.agent-profile-sidebar {
-  width: 300px;
-  background: rgba(0, 0, 0, 0.2);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 30px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
+  .agent-profile-container {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
   .agent-profile-sidebar {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 20px;
+    padding: 20px 15px 12px 15px;
+    overflow: visible;
+  }
+  .agent-profile-avatar-wrapper {
+    width: 90px;
+    height: 90px;
+  }
+  .agent-profile-pseudo {
+    margin: 10px 0 2px 0;
+    font-size: 1.15rem;
+  }
+  .agent-profile-team {
+    margin-bottom: 8px;
   }
 }
 

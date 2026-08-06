@@ -196,7 +196,7 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           z-index: 10;
         }
         .briefing-card {
-          width: 90%;
+          width: 95%;
           max-width: 900px;
           background: rgba(0, 20, 20, 0.85);
           border: 1px solid rgba(0, 255, 204, 0.3);
@@ -210,6 +210,7 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           backdrop-filter: blur(10px);
           animation: briefing-fadein 0.5s ease-out;
           box-sizing: border-box;
+          overflow: hidden;
         }
         .briefing-header {
           display: flex;
@@ -236,7 +237,8 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 15px;
+          gap: 10px;
+          flex-wrap: wrap;
         }
         .briefing-control-btn {
           background: transparent;
@@ -250,6 +252,7 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           align-items: center;
           cursor: pointer;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
         .briefing-control-btn:hover {
           background: rgba(0, 255, 204, 0.1);
@@ -266,6 +269,7 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           font-size: 0.85rem;
           color: #a0aec0;
           user-select: none;
+          white-space: nowrap;
         }
         .briefing-skip-btn {
           display: flex;
@@ -282,12 +286,33 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
           font-size: 0.85rem;
           box-shadow: 0 0 15px rgba(0,255,204,0.4);
           transition: all 0.2s;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
         .briefing-skip-btn:hover {
           transform: scale(1.05);
           background: #00e6b8;
         }
         
+        @media (max-width: 600px) {
+          .briefing-card {
+            padding: 12px;
+            gap: 10px;
+            width: 96vw;
+          }
+          .briefing-controls-row {
+            justify-content: center;
+            gap: 8px;
+          }
+          .briefing-checkbox-label {
+            font-size: 0.75rem;
+          }
+          .briefing-skip-btn {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+          }
+        }
+
         /* Responsive : Mobile landscape (small height) */
         @media (max-height: 550px) {
           .briefing-card {
