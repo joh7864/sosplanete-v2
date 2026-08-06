@@ -1,3 +1,10 @@
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+
+// Charger explicitement le .env du backend-v2 AVANT toute initialisation Prisma.
+// Cela évite que Prisma charge le .env racine du projet monorepo qui n'a pas DATABASE_URL.
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';

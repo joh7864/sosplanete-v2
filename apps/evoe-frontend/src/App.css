@@ -1055,6 +1055,18 @@ body {
   width: 100%;
 }
 
+/* Sidebar desktop — OBLIGATOIRE : sans ces styles la sidebar s'effondre */
+.agent-profile-sidebar {
+  flex: 0 0 280px;
+  padding: 25px 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 768px) {
   .agent-profile-backdrop {
     padding: 10px 6px;
@@ -1071,6 +1083,7 @@ body {
     overflow: visible;
   }
   .agent-profile-sidebar {
+    flex: none;
     width: 100%;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -1091,52 +1104,54 @@ body {
 }
 
 .agent-profile-identity-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  margin-bottom: 20px;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  width: 100% !important;
+  margin-bottom: 20px !important;
 }
 
 .agent-profile-identity-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  flex: 1;
-  min-width: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  flex: 1 !important;
+  min-width: 0 !important;
 }
 
 .agent-profile-identity-info .agent-profile-pseudo {
-  margin: 0 0 2px 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-align: left;
+  margin: 0 0 2px 0 !important;
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  text-align: left !important;
+  word-break: break-word;
 }
 
 .agent-profile-identity-info .agent-profile-team {
-  font-size: 0.8rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  text-align: left;
+  font-size: 0.75rem !important;
+  font-weight: bold !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+  text-align: left !important;
 }
 
 .agent-profile-avatar-wrapper {
   position: relative;
-  width: 95px;
-  height: 95px;
+  width: 80px !important;
+  height: 80px !important;
   border-radius: 50%;
   border: 3px solid #00ffcc;
-  padding: 5px;
+  padding: 4px;
   background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 25px rgba(0, 255, 204, 0.15);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
 }
 
 .agent-profile-avatar {
@@ -1150,8 +1165,8 @@ body {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #00ffcc;
   border: 2px solid #0a101e;
@@ -1160,7 +1175,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0,255,204,0.4);
+  box-shadow: 0 2px 8px rgba(0,255,204,0.4);
   transition: all 0.2s ease;
 }
 
@@ -1169,22 +1184,6 @@ body {
   background: #fff;
 }
 
-.agent-profile-pseudo {
-  margin: 15px 0 2px 0;
-  font-size: 1.3rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-align: center;
-}
-
-.agent-profile-team {
-  font-size: 0.8rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  text-align: center;
-}
 
 .agent-vitality-container {
   width: 100%;
@@ -1246,6 +1245,8 @@ body {
   color: #fff;
   font-size: 0.85rem;
   outline: none;
+  box-sizing: border-box;
+  width: 100%;
   transition: all 0.2s ease;
 }
 
@@ -1405,14 +1406,14 @@ body {
   box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
 }
 
-/* Right Content Area */
+/* Right Content Area — padding-top/right augmentés pour dégager le bouton fermer */
 .agent-profile-content {
   flex: 1;
-  padding: 30px;
+  padding: 55px 50px 25px 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 20px;
   overflow-y: auto;
 }
 
@@ -1459,29 +1460,33 @@ body {
 .profile-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .profile-metric-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 15px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .profile-metric-card .metric-icon {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 6px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .profile-metric-card .metric-icon.co2 {
@@ -1505,19 +1510,24 @@ body {
 .profile-metric-card .metric-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .profile-metric-card .label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #a0aec0;
   text-transform: uppercase;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-metric-card .value {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #fff;
+  white-space: nowrap;
 }
 
 /* Tabs Navigation */

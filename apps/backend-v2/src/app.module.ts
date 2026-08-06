@@ -55,12 +55,13 @@ import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
       {
         // Route /static/ → pointe directement vers le dossier uploads (pour le jeu v1)
         rootPath:
-          process.env.UPLOADS_DIR ||
-          join(__dirname, '..', '..', '..', 'uploads'),
+          (process.env.NODE_ENV === 'production' && process.env.UPLOADS_DIR)
+            ? process.env.UPLOADS_DIR
+            : join(__dirname, '..', '..', '..', 'uploads'),
         serveRoot: '/static',
       },
       {
-        rootPath: process.env.UPLOADS_DIR
+        rootPath: (process.env.NODE_ENV === 'production' && process.env.UPLOADS_DIR)
           ? join(process.env.UPLOADS_DIR, '..')
           : join(__dirname, '..', '..', '..'),
         serveRoot: '/',
