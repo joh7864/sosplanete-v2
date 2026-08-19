@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, FastForward, Rewind, SkipForward, AlertTriangle, ShieldCheck } from 'lucide-react';
 import YouTube from 'react-youtube';
+import { preloadEvoeAssets } from '../utils/preloadAssets';
 
 function getYoutubeId(url: string | null | undefined): string {
   if (!url || url.trim() === "") return "";
@@ -23,6 +24,9 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
   const videoId = getYoutubeId(youtubeUrl);
 
   useEffect(() => {
+    // Préchargement immédiat en arrière-plan des modules 3D et des textures
+    preloadEvoeAssets();
+
     // Phase 1 : Écran d'interception (durée 2.5 secondes)
     const timer = setTimeout(() => {
       setPhase('video');

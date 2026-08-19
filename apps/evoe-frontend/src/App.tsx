@@ -12,6 +12,8 @@ import TemporalBriefing from './components/TemporalBriefing';
 import ChatPanel from './components/ChatPanel';
 import { OnboardingGuide } from './components/ui/OnboardingGuide';
 
+import { preloadEvoeAssets } from './utils/preloadAssets';
+
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
@@ -96,6 +98,10 @@ function MainApp() {
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+
+  useEffect(() => {
+    preloadEvoeAssets();
+  }, []);
 
   // Callback pour basculer automatiquement les onglets pendant la visite guidée (11 étapes)
   const handleNavigateGuideStep = (stepIndex: number) => {
