@@ -25,7 +25,7 @@ interface OnboardingGuideProps {
 const STEPS: OnboardingStep[] = [
   {
     id: 1,
-    badge: 'Étape 1 / 8',
+    badge: 'Étape 1 / 11',
     title: '🚀 Bienvenue à bord, Agent !',
     targetId: 'hud-agent-profile',
     position: 'bottom',
@@ -33,7 +33,7 @@ const STEPS: OnboardingStep[] = [
   },
   {
     id: 2,
-    badge: 'Étape 2 / 8',
+    badge: 'Étape 2 / 11',
     title: '🌍 La Passerelle & Les Secteurs Écologiques',
     targetId: 'sector-orb-guide',
     position: 'bottom',
@@ -41,7 +41,7 @@ const STEPS: OnboardingStep[] = [
   },
   {
     id: 3,
-    badge: 'Étape 3 / 8',
+    badge: 'Étape 3 / 11',
     title: '⚡ Le Codex & Impulsion d\'une Mission',
     targetId: 'btn-impulser-mission',
     position: 'left',
@@ -403,11 +403,12 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
                 fontWeight: 'bold', 
                 letterSpacing: '0.5px' 
               }}>
-                {step.badge}
+                Étape {currentStepIndex + 1} / {STEPS.length}
               </span>
               <button
                 onClick={() => {
-                  localStorage.setItem('evoe_has_seen_onboarding_v1', 'true');
+                  const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
+                  localStorage.setItem(userKey, 'true');
                   onClose();
                 }}
                 title="Passer le tutoriel"
