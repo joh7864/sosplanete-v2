@@ -1903,6 +1903,27 @@ function MainApp() {
         teamName={childInfos?.group?.team?.name}
         userId={currentUserId}
       />
+
+      {/* Badge Discret de Version App en bas à gauche */}
+      <div 
+        className="app-version-badge"
+        style={{
+          position: 'fixed',
+          bottom: '12px',
+          left: '16px',
+          zIndex: 100,
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          letterSpacing: '0.8px',
+          color: era === '2026' ? 'rgba(0, 179, 255, 0.5)' : 'rgba(0, 255, 204, 0.5)',
+          fontFamily: 'monospace',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          textShadow: '0 1px 4px rgba(0, 0, 0, 0.9)'
+        }}
+      >
+        v5.2.0
+      </div>
     </div>
   );
 }
