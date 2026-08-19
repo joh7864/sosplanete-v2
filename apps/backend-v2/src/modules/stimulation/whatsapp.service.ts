@@ -206,9 +206,9 @@ export class WhatsAppService {
 
     const result = await this.sendMessageToGateway(gatewayUrl, chatId, testMsg);
     return {
-      success: true,
+      success: result.ok,
       simulated: false,
-      message: 'Message de test transmis à la passerelle WhatsApp.',
+      message: result.ok ? 'Message de test transmis à la passerelle WhatsApp.' : `Échec de la transmission (Erreur HTTP ${result.status || 'Interne'})`,
       previewText: testMsg,
       result,
     };
@@ -229,8 +229,6 @@ export class WhatsAppService {
         body: JSON.stringify({
           number: chatId,
           text: message,
-          chatId,
-          message,
         }),
       });
 
