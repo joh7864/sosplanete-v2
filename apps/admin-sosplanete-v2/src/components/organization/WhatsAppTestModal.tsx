@@ -38,7 +38,7 @@ export const WhatsAppTestModal: React.FC<WhatsAppTestModalProps> = ({
           `⚡ Vitalité Moteur : *98.4 HP*\n` +
           `🌱 Impact cumulé : *42.5 kg CO2e évités*\n\n` +
           `🚀 _Accédez au Podium 3D et reprenez la tête !_\n` +
-          `👉 https://evoe.app/launch?target=leaderboard`
+          `👉 https://evoe.nnauru.net/launch?target=leaderboard`
         );
       case 'challenge':
         return (
@@ -48,7 +48,7 @@ export const WhatsAppTestModal: React.FC<WhatsAppTestModalProps> = ({
           `🎯 Défi : *"Zéro Déchet au Déjeuner"*\n` +
           `⏳ Chrono Temporel : *48 heures restantes*\n\n` +
           `Relevez le défi pour débloquer les propulseurs de votre Vaisseau !\n\n` +
-          `👉 https://evoe.app/launch?target=challenge&id=42`
+          `👉 https://evoe.nnauru.net/launch?target=challenge&id=42`
         );
       case 'stase':
         return (
