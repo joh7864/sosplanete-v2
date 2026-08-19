@@ -125,12 +125,14 @@ export const WhatsAppHelpDrawer: React.FC<WhatsAppHelpDrawerProps> = ({ isOpen, 
 
               <div className="p-4 bg-white rounded-xl border border-slate-200/60 space-y-2 text-xs">
                 <strong className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider text-emerald-700">
-                  🔍 Comment obtenir le Group ID ?
+                  🔍 Comment obtenir le Group ID via Evolution API ?
                 </strong>
-                <ul className="list-disc list-inside space-y-1.5 text-slate-700 text-[11px] leading-relaxed">
-                  <li><strong>Option A (WhatsApp Web)</strong> : Ouvrez le groupe dans WhatsApp Web sur PC. L'ID apparaît dans l'URL du navigateur juste après le signe <code className="bg-slate-100 px-1 py-0.5 rounded">/g/</code>.</li>
-                  <li><strong>Option B (Passerelle API)</strong> : Si vous utilisez Evolution API ou GreenAPI, scannez le QR Code dans l'Admin. L'ID du groupe est détecté automatiquement.</li>
-                </ul>
+                <ol className="list-decimal list-inside space-y-2 text-slate-700 text-[11px] leading-relaxed">
+                  <li>Depuis Postman ou l'interface Swagger de votre Evolution API, faites une requête <strong>GET</strong> sur la route : <code className="bg-slate-100 px-1 py-0.5 rounded">/group/fetchAllGroups/NOM_DE_TON_INSTANCE</code></li>
+                  <li><em>N'oubliez pas d'inclure votre <strong>apikey</strong> dans les Headers de la requête.</em></li>
+                  <li>L'API va renvoyer un JSON contenant tous vos groupes. Recherchez le nom de votre groupe (ex: "Evoe") dans ce texte.</li>
+                  <li>Juste à côté du nom, vous trouverez son champ <code className="font-bold">id</code>. Copiez cette valeur (ex: <code className="bg-slate-100 px-1 py-0.5 rounded">120363048912345678@g.us</code>) et collez-la ici.</li>
+                </ol>
               </div>
             </div>
 
