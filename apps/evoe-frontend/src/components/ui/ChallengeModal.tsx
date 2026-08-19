@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronDown, Search } from 'lucide-react';
 
 interface ChallengeModalProps {
   showChallengeModal: boolean;
@@ -11,6 +11,8 @@ interface ChallengeModalProps {
   setChallengeLocalActionId: (id: number | '') => void;
   challengePledge: string;
   setChallengePledge: (pledge: string) => void;
+  challengeDurationHours: number | '';
+  setChallengeDurationHours: (hours: number | '') => void;
   challengeError: string | null;
   isSubmittingChallenge: boolean;
   handleSendChallenge: (e: React.FormEvent) => void;
@@ -27,12 +29,30 @@ export function ChallengeModal({
   setChallengeLocalActionId,
   challengePledge,
   setChallengePledge,
+  challengeDurationHours,
+  setChallengeDurationHours,
   challengeError,
   isSubmittingChallenge,
   handleSendChallenge,
   otherTeams,
   availableMissionsForChallenge
 }: ChallengeModalProps) {
+  const [hoveredMissionId, setHoveredMissionId] = useState<number | null>(null);
+  const [isMissionListOpen, setIsMissionListOpen] = useState(false);
+  const [missionSearch, setMissionSearch] = useState('');
+
+  const filteredMissions = availableMissionsForChallenge.filter((m: any) => {
+    const text = (m.evoeMission?.titreSF || m.label || '') + ' ' + (m.evoeMission?.descriptionSF || m.description || '');
+    return text.toLowerCase().includes(missionSearch.toLowerCase());
+  });
+
+  const selectedMission = availableMissionsForChallenge.find(
+    (m: any) => m.id === Number(challengeLocalActionId)
+  );
+  const activePreviewMission = hoveredMissionId 
+    ? availableMissionsForChallenge.find((m: any) => m.id === hoveredMissionId) 
+    : selectedMission;
+
   return (
     <AnimatePresence>
       {showChallengeModal && (
@@ -111,15 +131,172 @@ export function ChallengeModal({
                 </select>
               </div>
 
-              {/* Choix de l'éco-mission */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {/* Choix de l'éco-mission avec Custom Select et Preview Live */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                 <label style={{ fontSize: '0.8rem', color: '#00b3ff', textTransform: 'uppercase', fontWeight: 'bold' }}>
                   Éco-Mission Imposée
                 </label>
+                
+                {/* Bouton sélecteur personnalisé */}
+                <div
+                  onClick={() => setIsMissionListOpen(!isMissionListOpen)}
+                  style={{
+                    background: 'rgba(0,0,0,0.6)',
+                    border: isMissionListOpen ? '1px solid #00ffcc' : '1px solid rgba(0,255,204,0.3)',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    color: selectedMission ? '#fff' : '#a0aec0',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    boxShadow: isMissionListOpen ? '0 0 10px rgba(0,255,204,0.2)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedMission 
+                      ? `${selectedMission.evoeMission?.titreSF || selectedMission.label} (+${selectedMission.evoeMission?.amplitude || 10} AT)`
+                      : "-- Choisir une éco-mission --"
+                    }
+                  </span>
+                  <ChevronDown size={16} color="#00ffcc" style={{ transform: isMissionListOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </div>
+
+                {/* Menu déroulant custom intégré */}
+                {isMissionListOpen && (
+                  <div style={{
+                    background: 'rgba(10, 15, 30, 0.98)',
+                    border: '1px solid rgba(0,255,204,0.4)',
+                    borderRadius: '8px',
+                    marginTop: '2px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.8), 0 0 15px rgba(0,255,204,0.15)',
+                    maxHeight: '160px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    zIndex: 20
+                  }}>
+                    {/* Recherche rapide */}
+                    {availableMissionsForChallenge.length > 5 && (
+                      <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Search size={14} color="#00ffcc" />
+                        <input
+                          type="text"
+                          placeholder="Rechercher une mission..."
+                          value={missionSearch}
+                          onChange={(e) => setMissionSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            outline: 'none',
+                            color: '#fff',
+                            fontSize: '0.78rem',
+                            width: '100%'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {filteredMissions.length === 0 ? (
+                      <div style={{ padding: '12px', fontSize: '0.78rem', color: '#a0aec0', textAlign: 'center' }}>
+                        Aucune mission trouvée
+                      </div>
+                    ) : (
+                      filteredMissions.map((m: any) => {
+                        const isSelected = m.id === Number(challengeLocalActionId);
+                        const isHovered = m.id === hoveredMissionId;
+                        return (
+                          <div
+                            key={m.id}
+                            onMouseEnter={() => setHoveredMissionId(m.id)}
+                            onClick={() => {
+                              setChallengeLocalActionId(m.id);
+                              setHoveredMissionId(m.id);
+                              setIsMissionListOpen(false);
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              background: isHovered 
+                                ? 'rgba(0, 255, 204, 0.18)' 
+                                : isSelected 
+                                ? 'rgba(0, 255, 204, 0.08)' 
+                                : 'transparent',
+                              color: isHovered || isSelected ? '#00ffcc' : '#e2e8f0',
+                              borderBottom: '1px solid rgba(255,255,255,0.03)',
+                              transition: 'background 0.15s'
+                            }}
+                          >
+                            <span>{m.evoeMission?.titreSF || m.label}</span>
+                            <span style={{ fontSize: '0.7rem', color: '#ffd700', fontWeight: 'bold', marginLeft: '8px', whiteSpace: 'nowrap' }}>
+                              +{m.evoeMission?.amplitude || 10} AT
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+
+                {/* Champ Description TOUJOURS VISIBLE au premier plan avec hauteur fixe 3 lignes */}
+                <div style={{
+                  background: activePreviewMission ? 'rgba(0, 255, 204, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                  border: activePreviewMission ? '1px solid rgba(0, 255, 204, 0.35)' : '1px dashed rgba(255, 255, 255, 0.15)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  fontSize: '0.78rem',
+                  color: '#e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  minHeight: '82px',
+                  height: '82px',
+                  justifyContent: 'flex-start',
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', color: activePreviewMission ? '#00ffcc' : '#a0aec0' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📋 {activePreviewMission ? (activePreviewMission.evoeMission?.titreSF || activePreviewMission.label) : "Description de la Mission"}
+                    </span>
+                    {activePreviewMission && (
+                      <span style={{ background: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', whiteSpace: 'nowrap', marginLeft: '6px' }}>
+                        +{activePreviewMission.evoeMission?.amplitude || 10} AT
+                      </span>
+                    )}
+                  </div>
+                  <p style={{
+                    margin: 0,
+                    color: activePreviewMission ? '#cbd5e1' : '#718096',
+                    lineHeight: '1.35',
+                    fontSize: '0.76rem',
+                    fontStyle: activePreviewMission ? 'normal' : 'italic',
+                    minHeight: '4.05em',
+                    maxHeight: '4.05em',
+                    overflowY: 'auto'
+                  }}>
+                    {activePreviewMission 
+                      ? (activePreviewMission.evoeMission?.descriptionSF || activePreviewMission.description || "Mission d'éco-geste à accomplir pour valider le défi.")
+                      : "Sélectionnez ou survolez une mission ci-dessus pour afficher son descriptif complet et ses objectifs."
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Choix de la durée du défi */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#00b3ff', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                  ⏳ Chrono Temporel (Durée)
+                </label>
                 <select 
-                  value={challengeLocalActionId} 
-                  onChange={(e) => setChallengeLocalActionId(e.target.value === '' ? '' : Number(e.target.value))}
-                  required
+                  value={challengeDurationHours} 
+                  onChange={(e) => setChallengeDurationHours(e.target.value === '' ? '' : Number(e.target.value))}
                   style={{
                     background: 'rgba(0,0,0,0.5)',
                     border: '1px solid rgba(0,255,204,0.3)',
@@ -129,12 +306,10 @@ export function ChallengeModal({
                     fontSize: '0.85rem'
                   }}
                 >
-                  <option value="">-- Sélectionner une mission --</option>
-                  {availableMissionsForChallenge.map((m: any) => (
-                    <option key={m.id} value={m.id}>
-                      {m.evoeMission?.titreSF || m.label} (+{m.evoeMission?.amplitude || 10} AT)
-                    </option>
-                  ))}
+                  <option value={24}>⚡ 24 heures (1 jour express)</option>
+                  <option value={48}>⏳ 48 heures (2 jours standard)</option>
+                  <option value={72}>📅 72 heures (3 jours)</option>
+                  <option value="">⌛ Jusqu'à la fin de la période active</option>
                 </select>
               </div>
 

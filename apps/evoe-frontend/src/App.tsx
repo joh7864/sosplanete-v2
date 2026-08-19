@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe } from 'lucide-react';
+import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -76,6 +76,7 @@ function MainApp() {
     challengeTargetTeamId, setChallengeTargetTeamId,
     challengeLocalActionId, setChallengeLocalActionId,
     challengePledge, setChallengePledge,
+    challengeDurationHours, setChallengeDurationHours,
     challengeError, setChallengeError,
     isSubmittingChallenge,
     cancelMissionConfirm, setCancelMissionConfirm,
@@ -278,17 +279,28 @@ function MainApp() {
 
   const receivedChallenges = challenges.filter(c => c.targetTeamId === myTeamId);
   const sentChallenges = challenges.filter(c => c.challengerTeamId === myTeamId);
+  const hasPendingChallenges = receivedChallenges.some(c => c.status === 'PENDING');
   const otherTeams = dashboardStatus?.teams?.filter((t: any) => t.id !== myTeamId) || [];
   const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId) || childInfos?.group?.team;
   const whatsappInviteUrl = childInfos?.group?.team?.whatsappInviteUrl || myTeam?.whatsappInviteUrl || childInfos?.whatsappInviteUrl || childInfos?.whatsappCommunityUrl || dashboardStatus?.whatsappCommunityUrl;
   
-  console.log("=== WHATSAPP DEBUG ===");
-  console.log("childInfos.group.team.url:", childInfos?.group?.team?.whatsappInviteUrl);
-  console.log("myTeam.url:", myTeam?.whatsappInviteUrl);
-  console.log("dashboard.communityUrl:", dashboardStatus?.whatsappCommunityUrl);
-  console.log("final whatsappInviteUrl:", whatsappInviteUrl);
   
   const availableMissionsForChallenge = missions || [];
+
+  const formatRemainingTime = (expiresAtStr?: string | null) => {
+    if (!expiresAtStr) return null;
+    const diffMs = new Date(expiresAtStr).getTime() - Date.now();
+    if (diffMs <= 0) return 'Expiré';
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      const remHours = hours % 24;
+      return `${days}j ${remHours}h`;
+    }
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
 
   const getAvatarUrl = () => {
     if (currentPlayer?.avatar && currentPlayer.avatar !== 'avatars/default.png') {
@@ -474,12 +486,37 @@ function MainApp() {
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={setSelectedSector} 
               onSelectPlayer={handleSelectPlayer}
+              onSelectChallenges={() => {
+                setSelectedProfileId(null);
+                setShowLeaderboardModal(false);
+                setChatOpen(false);
+                setCodexTab('challenges');
+                setIsCodexCollapsed(false);
+                if (era !== '2026') handleSwitchEra();
+                if (!selectedSector) {
+                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                  if (cats.length > 0) setSelectedSector(cats[0]);
+                }
+              }}
+              onSelectChallengeBadge={() => {
+                setSelectedProfileId(null);
+                setShowLeaderboardModal(false);
+                setChatOpen(false);
+                setCodexTab('challenges');
+                setIsCodexCollapsed(false);
+                if (era !== '2026') handleSwitchEra();
+                if (!selectedSector) {
+                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                  if (cats.length > 0) setSelectedSector(cats[0]);
+                }
+              }}
               onlineUsers={onlineUsers}
               unreadTeam={unreadChat.team}
               unreadMps={unreadChat.unreadMps}
               isMobile={isMobile}
               view={view2026}
               dashboardStatus={dashboardStatus}
+              challenges={challenges}
               onCloseLeaderboard={() => setView2026('codex')}
             />
           ) : (
@@ -583,6 +620,40 @@ function MainApp() {
                         zIndex: 10
                       }}>
                         <Mail size={8} color="#fff" />
+                      </div>
+                    )}
+                    {hasPendingChallenges && (
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProfileId(null);
+                          setShowLeaderboardModal(false);
+                          setChatOpen(false);
+                          setCodexTab('challenges');
+                          setIsCodexCollapsed(false);
+                          if (era !== '2026') handleSwitchEra();
+                          if (!selectedSector) {
+                            const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                            if (cats.length > 0) setSelectedSector(cats[0]);
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          bottom: '-5px',
+                          left: '-5px',
+                          background: '#f59e0b',
+                          borderRadius: '50%',
+                          padding: '3px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1.5px solid rgba(5, 8, 16, 0.94)',
+                          boxShadow: '0 0 6px #f59e0b',
+                          zIndex: 10,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Swords size={9} color="#fff" />
                       </div>
                     )}
                   </div>
@@ -972,6 +1043,12 @@ function MainApp() {
                             <p style={{ fontSize: '0.75rem', color: '#ff9f43', margin: '4px 0', fontStyle: 'italic' }}>
                               Gage : {ch.pledge}
                             </p>
+                            {ch.expiresAt && (ch.status === 'PENDING' || ch.status === 'ACCEPTED') && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#ffd700', marginTop: '2px' }}>
+                                <span>⏳</span>
+                                <span>Temps restant : <strong>{formatRemainingTime(ch.expiresAt)}</strong></span>
+                              </div>
+                            )}
                             {ch.status === 'PENDING' && (
                               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                 <button 
@@ -1039,6 +1116,12 @@ function MainApp() {
                             <p style={{ fontSize: '0.75rem', color: '#ff9f43', margin: '4px 0', fontStyle: 'italic' }}>
                               Gage : {ch.pledge}
                             </p>
+                            {ch.expiresAt && (ch.status === 'PENDING' || ch.status === 'ACCEPTED') && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: '#ffd700', marginTop: '2px' }}>
+                                <span>⏳</span>
+                                <span>Temps restant : <strong>{formatRemainingTime(ch.expiresAt)}</strong></span>
+                              </div>
+                            )}
                             {ch.isRetroactive && ch.status === 'SUCCESS' && (
                               <p style={{color: '#10b981', fontSize: '0.75rem', marginTop: '8px', marginBottom: 0}}>
                                 💡 <em>Mission déjà accomplie d'avance !</em>
@@ -1432,6 +1515,8 @@ function MainApp() {
             setChallengeLocalActionId={setChallengeLocalActionId}
             challengePledge={challengePledge}
             setChallengePledge={setChallengePledge}
+            challengeDurationHours={challengeDurationHours}
+            setChallengeDurationHours={setChallengeDurationHours}
             challengeError={challengeError}
             isSubmittingChallenge={isSubmittingChallenge}
             handleSendChallenge={handleSendChallenge}

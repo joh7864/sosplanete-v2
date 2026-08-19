@@ -85,6 +85,202 @@ function ThematicSector({
   );
 }
 
+// Texture lunaire réaliste avec cratères
+let cachedMoonTexture: THREE.CanvasTexture | null = null;
+function getMoonTexture(): THREE.CanvasTexture {
+  if (cachedMoonTexture) return cachedMoonTexture;
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  // Teinte de base grise lunaire avec dégradé subtil
+  const bgGrad = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 2);
+  bgGrad.addColorStop(0, '#c2c6cd');
+  bgGrad.addColorStop(0.7, '#9aa0a8');
+  bgGrad.addColorStop(1, '#696e77');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, size, size);
+
+  // Mers lunaires (taches sombres basaltiques)
+  const maria = [
+    { x: 160, y: 180, r: 90 },
+    { x: 280, y: 150, r: 110 },
+    { x: 340, y: 270, r: 80 },
+    { x: 190, y: 320, r: 75 },
+    { x: 250, y: 220, r: 95 }
+  ];
+  maria.forEach(({ x, y, r }) => {
+    const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r);
+    g.addColorStop(0, 'rgba(45, 48, 55, 0.45)');
+    g.addColorStop(0.8, 'rgba(60, 65, 72, 0.25)');
+    g.addColorStop(1, 'rgba(120, 125, 135, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Cratères avec ombre & lumière (relief)
+  const craters = [
+    { x: 120, y: 120, r: 24 },
+    { x: 380, y: 130, r: 30 },
+    { x: 400, y: 380, r: 28 },
+    { x: 140, y: 400, r: 35 },
+    { x: 256, y: 410, r: 22 },
+    { x: 80, y: 260, r: 18 },
+    { x: 430, y: 240, r: 20 },
+    { x: 220, y: 100, r: 16 },
+    { x: 300, y: 340, r: 25 },
+  ];
+  craters.forEach(({ x, y, r }) => {
+    // Ombre intérieure
+    const cg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 1, x, y, r);
+    cg.addColorStop(0, 'rgba(25, 28, 33, 0.7)');
+    cg.addColorStop(0.7, 'rgba(50, 55, 62, 0.4)');
+    cg.addColorStop(1, 'rgba(210, 215, 225, 0.6)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bord lumineux
+    ctx.strokeStyle = 'rgba(235, 240, 250, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, Math.PI * 0.8, Math.PI * 1.8);
+    ctx.stroke();
+  });
+
+  // Grains de poussière / régolite
+  for (let i = 0; i < 180; i++) {
+    const rx = (Math.sin(i * 91.3) * 0.5 + 0.5) * size;
+    const ry = (Math.cos(i * 47.7) * 0.5 + 0.5) * size;
+    const rr = (Math.sin(i * 13.9) * 0.5 + 0.5) * 3 + 1;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(30, 35, 42, 0.35)' : 'rgba(240, 245, 255, 0.35)';
+    ctx.beginPath();
+    ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  cachedMoonTexture = new THREE.CanvasTexture(canvas);
+  return cachedMoonTexture;
+}
+
+function MoonChallengeArenaNode({ 
+  totalChallenges,
+  onSelect 
+}: { 
+  totalChallenges: number;
+  onSelect?: () => void 
+}) {
+  const [hovered, setHovered] = useState(false);
+  const groupRef = useRef<THREE.Group>(null);
+  const moonRef = useRef<THREE.Mesh>(null);
+  const haloRef = useRef<THREE.Mesh>(null);
+
+  const moonTexture = useMemo(() => getMoonTexture(), []);
+  const beaconColor = totalChallenges > 0 ? '#f59e0b' : '#38bdf8';
+
+  // Orbite lunaire autour de la Terre (surélevée au-dessus des catégories et plus large)
+  const radius = 4.4;
+  const orbitSpeed = 0.12;
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    const currentAngle = -Math.PI / 4 + t * orbitSpeed;
+
+    if (groupRef.current) {
+      groupRef.current.position.x = Math.cos(currentAngle) * radius;
+      groupRef.current.position.z = Math.sin(currentAngle) * radius;
+      groupRef.current.position.y = 1.6 + Math.sin(t * 0.6) * 0.25; // Orbite plus haute (y ~ 1.6)
+    }
+
+    // Rotation de la Lune sur elle-même
+    if (moonRef.current) {
+      moonRef.current.rotation.y = t * 0.15;
+    }
+
+    // Pulsation du halo d'arène
+    if (haloRef.current) {
+      const pulse = Math.sin(t * 3.5) * 0.5 + 0.5;
+      haloRef.current.scale.setScalar(1.1 + pulse * 0.35);
+      const mat = haloRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.2 + pulse * 0.25;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Sphère Lunaire réaliste texturée */}
+      <mesh 
+        ref={moonRef}
+        onClick={() => onSelect && onSelect()}
+        onPointerOver={() => {
+          setHovered(true);
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = 'auto';
+        }}
+        scale={hovered ? 1.3 : 1}
+      >
+        <sphereGeometry args={[0.42, 32, 32]} />
+        <meshStandardMaterial 
+          map={moonTexture}
+          color={hovered ? '#ffffff' : '#e2e8f0'} 
+          roughness={0.88}
+          metalness={0.08}
+        />
+      </mesh>
+
+      {/* Halo holographique atmosphérique de la base lunaire */}
+      <mesh ref={haloRef}>
+        <sphereGeometry args={[0.55, 32, 32]} />
+        <meshBasicMaterial 
+          color={beaconColor} 
+          transparent 
+          opacity={0.3} 
+          depthWrite={false} 
+          blending={THREE.AdditiveBlending} 
+        />
+      </mesh>
+
+      <pointLight color={beaconColor} intensity={hovered ? 2.5 : 1.2} distance={4} />
+      
+      {/* Symbole holographique des épées au centre de la Lune */}
+      <Billboard follow={true}>
+        <Text
+          position={[0, 0, 0.46]}
+          fontSize={0.26}
+          anchorX="center"
+          anchorY="middle"
+        >
+          ⚔️
+        </Text>
+      </Billboard>
+
+      {/* Label sous la Lune */}
+      <Billboard follow={true}>
+        <Text
+          position={[0, -0.65, 0]}
+          fontSize={0.19}
+          fontWeight="bold"
+          color={totalChallenges > 0 ? '#ffb703' : '#e2e8f0'}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="#000000"
+        >
+          {`Lune (Défis)${totalChallenges > 0 ? ` [ ${totalChallenges} ]` : ''}`}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
 function RadialShockwave({ pulseTime }: { pulseTime: number | null }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const lastPulse = useRef<number | null>(null);
@@ -127,8 +323,10 @@ function AnimatedAvatar({
   targetPosition, 
   avatarScale, 
   onSelectPlayer, 
+  onSelectChallengeBadge,
   isOnline, 
   hasUnread,
+  challengeCount,
   showHealth,
   showChatIcon,
   rankTag
@@ -137,8 +335,10 @@ function AnimatedAvatar({
   targetPosition: [number, number, number];
   avatarScale: number;
   onSelectPlayer?: (p: any) => void;
+  onSelectChallengeBadge?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  challengeCount?: number;
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
@@ -160,8 +360,10 @@ function AnimatedAvatar({
         position={[0, 0, 0]} 
         avatarScale={avatarScale} 
         onSelectPlayer={onSelectPlayer} 
+        onSelectChallengeBadge={onSelectChallengeBadge}
         isOnline={isOnline}
         hasUnread={hasUnread}
+        challengeCount={challengeCount}
         showHealth={showHealth}
         showChatIcon={showChatIcon}
         rankTag={rankTag}
@@ -174,23 +376,29 @@ export default function Portal2026({
   categories = [], 
   onSelectSector,
   onSelectPlayer,
+  onSelectChallenges,
+  onSelectChallengeBadge,
   onlineUsers = new Set(),
   unreadTeam = 0,
   unreadMps = {},
   isMobile = false,
   view = 'codex',
   dashboardStatus,
+  challenges = [],
   onCloseLeaderboard: _onCloseLeaderboard,
 }: { 
   categories?: string[];
   onSelectSector?: (c: string) => void;
   onSelectPlayer?: (player: any) => void;
+  onSelectChallenges?: () => void;
+  onSelectChallengeBadge?: (player: any) => void;
   onlineUsers?: Set<string>;
   unreadTeam?: number;
   unreadMps?: Record<string, number>;
   isMobile?: boolean;
   view?: 'codex' | 'leaderboard';
   dashboardStatus?: any;
+  challenges?: any[];
   onCloseLeaderboard?: () => void;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
@@ -205,6 +413,17 @@ export default function Portal2026({
   const me = teamList.find(p => p.isCurrent);
   const lastHealth = useRef<number | null>(null);
   const [pulseTime, setPulseTime] = useState<number | null>(null);
+
+  const teamPendingChallengesMap = useMemo(() => {
+    const map: Record<number, number> = {};
+    if (!challenges) return map;
+    challenges.forEach((c: any) => {
+      if (c.status === 'PENDING' && c.targetTeamId) {
+        map[c.targetTeamId] = (map[c.targetTeamId] || 0) + 1;
+      }
+    });
+    return map;
+  }, [challenges]);
 
   useEffect(() => {
     if (me && lastHealth.current !== null && me.health > lastHealth.current) {
@@ -357,7 +576,7 @@ export default function Portal2026({
         />
       </group>
 
-      {/* Secteurs Thématiques (Codex) */}
+      {/* Secteurs Thématiques (Codex) & Arène Défis */}
       <group ref={sectorsGroupRef}>
         {categories.map((cat, i) => (
           <ThematicSector 
@@ -368,6 +587,10 @@ export default function Portal2026({
             onSelect={onSelectSector} 
           />
         ))}
+        <MoonChallengeArenaNode 
+          totalChallenges={challenges?.filter(c => c.status === 'PENDING' || c.status === 'ACCEPTED').length || 0}
+          onSelect={onSelectChallenges}
+        />
       </group>
 
       {/* Avatars en Orbite (Codex / Leaderboard) */}
@@ -430,6 +653,7 @@ export default function Portal2026({
           const isOnline = onlineUsers.has(pPseudo);
           const isMe = player.isCurrent;
           const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
+          const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
 
           return (
             <AnimatedAvatar 
@@ -438,8 +662,10 @@ export default function Portal2026({
               targetPosition={targetPos} 
               avatarScale={avatarScale} 
               onSelectPlayer={onSelectPlayer} 
+              onSelectChallengeBadge={onSelectChallengeBadge}
               isOnline={isOnline}
               hasUnread={hasUnread}
+              challengeCount={pChallengeCount}
               showHealth={view === 'codex'}
               showChatIcon={view === 'codex'}
               rankTag={view === 'leaderboard' ? `#${rankNumber}` : undefined}

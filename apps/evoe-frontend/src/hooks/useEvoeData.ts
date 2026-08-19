@@ -41,6 +41,7 @@ export function useEvoeData() {
   const [challengeTargetTeamId, setChallengeTargetTeamId] = useState<number | ''>('');
   const [challengeLocalActionId, setChallengeLocalActionId] = useState<number | ''>('');
   const [challengePledge, setChallengePledge] = useState('');
+  const [challengeDurationHours, setChallengeDurationHours] = useState<number | ''>(48);
   const [challengeError, setChallengeError] = useState<string | null>(null);
   const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
 
@@ -161,12 +162,14 @@ export function useEvoeData() {
       await evoeClient.post(`${EVOE_API_URL}/challenges`, {
         targetTeamId: Number(challengeTargetTeamId),
         localActionId: Number(challengeLocalActionId),
-        pledge: challengePledge
+        pledge: challengePledge,
+        durationHours: challengeDurationHours !== '' ? Number(challengeDurationHours) : undefined
       });
       setShowChallengeModal(false);
       setChallengeTargetTeamId('');
       setChallengeLocalActionId('');
       setChallengePledge('');
+      setChallengeDurationHours(48);
       fetchChallenges();
     } catch (err: any) {
       console.error("Erreur création défi:", err);
@@ -236,6 +239,7 @@ export function useEvoeData() {
     challengeTargetTeamId, setChallengeTargetTeamId,
     challengeLocalActionId, setChallengeLocalActionId,
     challengePledge, setChallengePledge,
+    challengeDurationHours, setChallengeDurationHours,
     challengeError, setChallengeError,
     isSubmittingChallenge,
     cancelMissionConfirm, setCancelMissionConfirm,

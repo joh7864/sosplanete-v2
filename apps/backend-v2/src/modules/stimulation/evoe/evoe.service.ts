@@ -12,6 +12,7 @@ const UPLOADS_DIR = (process.env.NODE_ENV === 'production' && process.env.UPLOAD
 
 function getAvatarUrl(avatarPath: string | null): string | null {
   if (!avatarPath || avatarPath === 'avatars/default.png') return null;
+  if (avatarPath.startsWith('avatars_3D/')) return avatarPath;
   const fullPath = path.join(UPLOADS_DIR, avatarPath);
   try {
     if (fs.existsSync(fullPath)) return avatarPath;
@@ -936,16 +937,12 @@ export class EvoeService {
     const challenges = await this.prisma.evoeChallenge.findMany({
       where: {
         periodId: period.id,
-        OR: [
-          { challengerTeamId: teamId },
-          { targetTeamId: teamId },
-        ],
       },
       include: {
         challengerTeam: true,
         targetTeam: true,
         localAction: {
-          include: { actionRef: true },
+          include: { actionRef: true, evoeMission: true },
         },
       },
     });
@@ -974,6 +971,14 @@ export class EvoeService {
         }
       }
 
+      if ((currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') && ch.expiresAt && ch.expiresAt < new Date()) {
+        currentStatus = 'FAILED';
+        await this.prisma.evoeChallenge.update({
+          where: { id: ch.id },
+          data: { status: 'FAILED' },
+        });
+      }
+
       if (currentStatus === 'SUCCESS' && actionDone) {
         if (actionDone.createdAt < ch.createdAt) {
           isRetroactive = true;
@@ -990,7 +995,12 @@ export class EvoeService {
         targetTeamColor: ch.targetTeam.color,
         localActionId: ch.localActionId,
         actionLabel: ch.localAction.label,
+        actionTitle: (ch.localAction as any).evoeMission?.titreSF || ch.localAction.label,
+        actionDescription: (ch.localAction as any).evoeMission?.descriptionSF || ch.localAction.description || ch.localAction.actionRef?.description,
+        amplitude: (ch.localAction as any).evoeMission?.amplitude || 10,
         pledge: ch.pledge,
+        durationHours: ch.durationHours,
+        expiresAt: ch.expiresAt,
         status: currentStatus,
         isRetroactive,
         createdAt: ch.createdAt,
@@ -1002,7 +1012,7 @@ export class EvoeService {
   async createChallenge(
     authHeader: string,
     instanceIdStr: string,
-    data: { targetTeamId: number; localActionId: number; pledge: string },
+    data: { targetTeamId: number; localActionId: number; pledge: string; durationHours?: number },
   ) {
     const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
     const challengerTeamId = child.group.teamId;
@@ -1050,6 +1060,13 @@ export class EvoeService {
     const targetTeam = await this.prisma.team.findUnique({ where: { id: data.targetTeamId } });
     const localAction = await this.prisma.localAction.findUnique({ where: { id: data.localActionId } });
 
+    let expiresAt: Date | null = null;
+    if (data.durationHours && Number(data.durationHours) > 0) {
+      expiresAt = new Date(Date.now() + Number(data.durationHours) * 3600 * 1000);
+    } else if (period.endDate) {
+      expiresAt = new Date(period.endDate);
+    }
+
     const challenge = await this.prisma.evoeChallenge.create({
       data: {
         challengerTeamId,
@@ -1057,6 +1074,8 @@ export class EvoeService {
         localActionId: data.localActionId,
         periodId: period.id,
         pledge: data.pledge,
+        durationHours: data.durationHours ? Number(data.durationHours) : null,
+        expiresAt,
         status: 'PENDING',
       },
     });

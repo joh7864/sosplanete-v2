@@ -118,6 +118,8 @@ model Team {
   color              String?
   icon               String?
   instanceYearId     Int
+  whatsappGroupId    String?
+  whatsappInviteUrl  String?
   groups             Group[]
   instanceYear       InstanceYear        @relation(fields: [instanceYearId], references: [id])
   evoeTechnology     EvoeTeamTechnology?
@@ -322,6 +324,8 @@ model EvoeChallenge {
   periodId         Int
   status           ChallengeStatus @default(PENDING)
   pledge           String?
+  durationHours    Int?
+  expiresAt        DateTime?
   createdAt        DateTime        @default(now())
 
   challengerTeam Team        @relation("ChallengerTeam", fields: [challengerTeamId], references: [id], onDelete: Cascade)

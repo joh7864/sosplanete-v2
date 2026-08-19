@@ -160,13 +160,69 @@ const envelopeTexture = (() => {
   return tex;
 })();
 
+const swordsTextureCache = new Map<string, THREE.Texture>();
+
+function getSwordsTexture(color: string, count: number): THREE.Texture {
+  const key = `${color}_${count}`;
+  if (swordsTextureCache.has(key)) {
+    return swordsTextureCache.get(key)!;
+  }
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  
+  const r = size / 2 - 8;
+  const cx = size / 2;
+  const cy = size / 2;
+  
+  // Fond circulaire avec la couleur d'équipe
+  ctx.fillStyle = color || '#f59e0b';
+  ctx.shadowColor = color || '#f59e0b';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Bordure foncée contrastée
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(5, 8, 16, 0.94)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Épées croisées
+  ctx.font = '22px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⚔️', cx, cy + 4);
+  
+  // Nombre de défis positionné au sommet entre le haut des épées
+  if (count > 0) {
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(String(count), cx, cy - 11);
+  }
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  swordsTextureCache.set(key, tex);
+  return tex;
+}
+
 interface PlayerAvatarProps {
   player: any;
   position: [number, number, number];
   avatarScale?: number;
   onSelectPlayer?: (p: any) => void;
+  onSelectChallengeBadge?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  challengeCount?: number;
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
@@ -177,8 +233,10 @@ export function PlayerAvatar({
   position, 
   avatarScale = 1, 
   onSelectPlayer, 
+  onSelectChallengeBadge,
   isOnline = false,
   hasUnread = false,
+  challengeCount = 0,
   showHealth = true,
   showChatIcon = true,
   rankTag
@@ -359,6 +417,31 @@ export function PlayerAvatar({
             <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
             <meshBasicMaterial 
               map={envelopeTexture}
+              transparent={true}
+              depthWrite={false}
+            />
+          </mesh>
+        )}
+
+        {challengeCount > 0 && (
+          <mesh 
+            position={[-avatarSpriteScale * 0.36, avatarYOffset - avatarSpriteScale * 0.36, 0.02]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectChallengeBadge?.(player);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'auto';
+            }}
+          >
+            <planeGeometry args={[avatarSpriteScale * 0.28, avatarSpriteScale * 0.28]} />
+            <meshBasicMaterial 
+              map={getSwordsTexture(player.color || '#f59e0b', challengeCount)}
               transparent={true}
               depthWrite={false}
             />
