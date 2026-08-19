@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, Scan, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
+import { Hexagon, Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -10,6 +10,7 @@ import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import TemporalBriefing from './components/TemporalBriefing';
 import ChatPanel from './components/ChatPanel';
+import { OnboardingGuide } from './components/ui/OnboardingGuide';
 
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
@@ -94,9 +95,71 @@ function MainApp() {
   } = useEvoeData();
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
 
-
-  // Swipe gesture detection to toggle Era (2026 <-> 2070)
+  // Callback pour basculer automatiquement les onglets pendant la visite guidée (11 étapes)
+  const handleNavigateGuideStep = (stepIndex: number) => {
+    if (stepIndex === 0) { // Étape 1: Bienvenue & Profil Agent
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setChatOpen(false);
+    } else if (stepIndex === 1) { // Étape 2: Passerelle & Orbes 3D
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setChatOpen(false);
+    } else if (stepIndex === 2) { // Étape 3: Codex & Impulsion d'une mission
+      setCodexTab('missions');
+      setIsCodexCollapsed(false);
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setChatOpen(false);
+      if (!selectedSector) {
+        const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+        if (cats.length > 0) setSelectedSector(cats[0]);
+      }
+    } else if (stepIndex === 3) { // Étape 4: Arène des Défis (Lune 3D)
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setChatOpen(false);
+    } else if (stepIndex === 4) { // Étape 5: TERRE 2070 : % RÉGÉNÉRÉE
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setChatOpen(false);
+    } else if (stepIndex === 5) { // Étape 6: Projection Temporelle (Bascule 2070)
+      if (era !== '2070') handleSwitchEra();
+      setShowExtrapolation(true);
+      setShowRadar(false);
+      setChatOpen(false);
+    } else if (stepIndex === 6) { // Étape 7: Extrapolation 2070 (Bilan d'impact)
+      if (era !== '2070') handleSwitchEra();
+      setShowExtrapolation(true);
+      setShowRadar(false);
+      setChatOpen(false);
+    } else if (stepIndex === 7) { // Étape 8: Radar Temporel (Constantes & Vaisseaux)
+      if (era !== '2070') handleSwitchEra();
+      setShowExtrapolation(false);
+      setShowRadar(true);
+      setChatOpen(false);
+    } else if (stepIndex === 8) { // Étape 9: Podium 3D & Leaderboard
+      if (era !== '2026') handleSwitchEra();
+      setView2026('leaderboard');
+      setShowExtrapolation(false);
+      setShowRadar(false);
+      setChatOpen(false);
+    } else if (stepIndex === 9) { // Étape 10: Com-Link (Chat Spatial)
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setShowExtrapolation(false);
+      setShowRadar(false);
+      setChatOpen(true);
+    } else if (stepIndex === 10) { // Étape 11: Groupe WhatsApp Équipe
+      if (era !== '2026') handleSwitchEra();
+      setView2026('codex');
+      setShowExtrapolation(false);
+      setShowRadar(false);
+      setChatOpen(false);
+    }
+  };
   const swipeStartX = useRef(0);
   const swipeEndX = useRef(0);
 
@@ -185,11 +248,24 @@ function MainApp() {
   // ---------------------------------------
 
 
-  const { user, childInfos, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
-
+  const { user, childInfos, pseudo, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
+  const currentUserId = childInfos?.id || childInfos?.childId || pseudo || user || 'default_agent';
 
   // L'early return doit être après tous les hooks
   const shouldRedirect = !user || instanceChoices;
+
+  // Lancement automatique du guide d'onboarding spécifique à l'utilisateur connecté
+  useEffect(() => {
+    if (!currentUserId || shouldRedirect) return;
+    const userKey = `evoe_has_seen_onboarding_v2_${currentUserId}`;
+    const hasSeen = localStorage.getItem(userKey);
+    if (!hasSeen) {
+      const timer = setTimeout(() => {
+        setShowOnboardingGuide(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [currentUserId, shouldRedirect]);
 
   // Fermer le pop-over holographique si on clique n'importe où en dehors
   useEffect(() => {
@@ -594,6 +670,7 @@ function MainApp() {
               <h1>EVOE {era}</h1>
               {childInfos && (
                 <div 
+                  id="hud-agent-profile"
                   onClick={() => setSelectedProfileId(childInfos.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto', cursor: 'pointer', position: 'relative' }}
                 >
@@ -669,11 +746,182 @@ function MainApp() {
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', pointerEvents: 'auto' }}>
 
-            {/* Bouton direct WhatsApp Équipe / Communauté */}
+          {/* Barre de % d'Accomplissement des Missions (Jauge cybernétique vivante centrée) */}
+          {(() => {
+            const pct = (() => {
+              if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
+                return Math.min(100, Math.round(dashboardStatus.globalProgression));
+              }
+              const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId);
+              if (myTeam?.position !== undefined && myTeam.position !== null) {
+                return Math.min(100, Math.round(myTeam.position));
+              }
+              return 68;
+            })();
+
+            return (
+              <div 
+                id="hud-completion-bar"
+                className="desktop-only"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(5, 15, 25, 0.75)',
+                  border: '1.5px solid rgba(0, 255, 204, 0.5)',
+                  borderRadius: '24px',
+                  padding: '7px 20px',
+                  boxShadow: '0 0 16px rgba(0, 255, 204, 0.22)',
+                  pointerEvents: 'auto',
+                  zIndex: 10,
+                  overflow: 'hidden',
+                  minWidth: '260px',
+                  justifyContent: 'center'
+                }}
+                title="Progression globale de l'équipage sur la période active (pondération : 60% CO2, 20% Eau, 20% Déchets)"
+              >
+                {/* Couche de Remplissage de la Jauge (0% ➔ X%) avec Dégradé Vert-Émeraude ➔ Cyan */}
+                <div 
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: `${pct}%`,
+                    background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.5) 0%, rgba(0, 255, 204, 0.7) 100%)',
+                    boxShadow: '0 0 12px rgba(0, 255, 204, 0.6)',
+                    borderRadius: '24px',
+                    transition: 'width 0.8s ease-in-out',
+                    zIndex: 1
+                  }}
+                />
+
+                {/* Contenu Texte Blanc & Icône Éclair par-dessus (zIndex 2) */}
+                <Zap size={15} color="#ffffff" style={{ filter: 'drop-shadow(0 0 5px #00ffcc)', zIndex: 2, position: 'relative' }} />
+                <span style={{ 
+                  fontSize: '0.78rem', 
+                  fontWeight: '800', 
+                  color: '#ffffff', 
+                  letterSpacing: '0.6px', 
+                  whiteSpace: 'nowrap',
+                  zIndex: 2,
+                  position: 'relative',
+                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 255, 204, 0.5)'
+                }}>
+                  TERRE 2070 : {pct}% RÉGÉNÉRÉE
+                </span>
+              </div>
+            );
+          })()}
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
+
+            {/* BARRE DE GAUCHE : BOUTONS FONCTIONNELS DE JEU */}
+
+            {/* Switch Ère 2026/2070 (Icônes identiques au mobile) */}
+            <button
+              id="hud-epoch-switch"
+              className="switch-btn desktop-only" 
+              onClick={handleSwitchEra} 
+              disabled={isTransitioning}
+              title={era === '2026' ? 'Voyager vers le Radar 2070' : 'Retourner au QG 2026'}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: era === '2026' ? 'rgba(0, 179, 255, 0.18)' : 'rgba(0, 255, 204, 0.18)',
+                border: era === '2026' ? '1.5px solid #00b3ff' : '1.5px solid #00ffcc',
+                color: era === '2026' ? '#00b3ff' : '#00ffcc',
+                boxShadow: era === '2026' ? '0 0 10px rgba(0, 179, 255, 0.3)' : '0 0 10px rgba(0, 255, 204, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.25s ease'
+              }}
+            >
+              {era === '2026' ? <Radio size={18} /> : <Globe size={18} />}
+            </button>
+
+            {/* Podium / Leaderboard */}
+            <button 
+              id="btn-podium-leaderboard"
+              className={`switch-btn desktop-only ${view2026 === 'leaderboard' ? 'active' : ''}`}
+              onClick={() => setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard')}
+              title={view2026 === 'leaderboard' ? "Retour au QG Codex" : "Afficher le Classement"}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255, 215, 0, 0.15)',
+                border: '1.5px solid #ffd700',
+                color: '#ffd700',
+                boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+            >
+              <Trophy size={18} />
+            </button>
+
+            {/* SÉPARATEUR VISUEL NET */}
+            <div 
+              style={{
+                width: '1.5px',
+                height: '24px',
+                background: 'rgba(0, 255, 204, 0.35)',
+                boxShadow: '0 0 8px rgba(0, 255, 204, 0.4)',
+                margin: '0 3px'
+              }}
+            />
+
+            {/* BARRE DE DROITE : PARAMÈTRES (PORTRAIT), WHATSAPP, AIDE & QUITTER */}
+
+            {/* Toggle Portrait / Paysage (Indigo Violet Néon) */}
+            <button
+              className="switch-btn desktop-only"
+              onClick={() => {
+                const next = !allowPortrait;
+                setAllowPortrait(next);
+                localStorage.setItem('evoe_allow_portrait', String(next));
+              }}
+              title={allowPortrait ? 'Mode Portrait autorisé — cliquer pour forcer le paysage' : 'Paysage forcé — cliquer pour autoriser le portrait'}
+              style={{
+                width: '40px', height: '40px', borderRadius: '50%', padding: '0',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: allowPortrait ? 'rgba(129, 140, 248, 0.25)' : 'rgba(129, 140, 248, 0.15)',
+                border: allowPortrait ? '1.5px solid #818cf8' : '1.5px solid #6366f1',
+                color: '#818cf8',
+                boxShadow: '0 0 10px rgba(129, 140, 248, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Smartphone 
+                size={18} 
+                style={{ 
+                  transform: allowPortrait ? 'rotate(0deg)' : 'rotate(90deg)', 
+                  transition: 'transform 0.3s ease' 
+                }} 
+              />
+            </button>
+
+            {/* BARRE DE DROITE : WHATSAPP, AIDE (VIOLET/MAGENTA) & QUITTER */}
+
+            {/* WhatsApp Équipe */}
             {whatsappInviteUrl && (
               <a
+                id="hud-btn-whatsapp"
                 href={whatsappInviteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -702,87 +950,41 @@ function MainApp() {
               </a>
             )}
 
-            {/* Toggle Portrait / Paysage */}
-            <button
-              className="switch-btn desktop-only"
-              onClick={() => {
-                const next = !allowPortrait;
-                setAllowPortrait(next);
-                localStorage.setItem('evoe_allow_portrait', String(next));
-              }}
-              title={allowPortrait ? 'Mode Portrait autorisé — cliquer pour forcer le paysage' : 'Paysage forcé — cliquer pour autoriser le portrait'}
-              style={{
-                width: '40px', height: '40px', borderRadius: '50%', padding: '0',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: allowPortrait ? 'rgba(0,255,204,0.15)' : 'rgba(0,179,255,0.15)',
-                border: allowPortrait ? '1.5px solid #00ffcc' : '1.5px solid #00b3ff',
-                color: allowPortrait ? '#00ffcc' : '#00b3ff',
-                boxShadow: allowPortrait ? '0 0 10px rgba(0,255,204,0.2)' : '0 0 10px rgba(0,179,255,0.2)',
+            {/* Bouton d'Aide ? (Cercle Homogène & Typographie Premium) */}
+            <button 
+              id="hud-btn-help"
+              className="switch-btn" 
+              onClick={() => setShowOnboardingGuide(true)} 
+              title="Relancer le guide interactif (Aide)"
+              style={{ 
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(254, 243, 199, 0.15)',
+                border: '1.5px solid #fef3c7',
+                color: '#fef3c7',
+                fontSize: '1.35rem',
+                fontWeight: '800',
+                fontFamily: 'Inter, system-ui, sans-serif',
+                boxShadow: '0 0 10px rgba(254, 243, 199, 0.25)',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'transform 0.2s, box-shadow 0.2s'
               }}
             >
-              <Smartphone 
-                size={18} 
-                style={{ 
-                  transform: allowPortrait ? 'rotate(0deg)' : 'rotate(90deg)', 
-                  transition: 'transform 0.3s ease' 
-                }} 
-              />
+              ?
             </button>
 
-            <button
-              className="switch-btn desktop-only" 
-              onClick={handleSwitchEra} 
-              disabled={isTransitioning}
-              title={era === '2026' ? 'Ouvrir le Radar 2070' : 'Retour au QG 2026'}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0, 179, 255, 0.15)',
-                border: '1.5px solid #00b3ff',
-                color: '#00b3ff',
-                boxShadow: '0 0 10px rgba(0, 179, 255, 0.2)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              {era === '2026' ? <Scan size={18} /> : <Radio size={18} />}
-            </button>
-            <button 
-              className={`switch-btn desktop-only ${view2026 === 'leaderboard' ? 'active' : ''}`}
-              onClick={() => setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard')}
-              title={view2026 === 'leaderboard' ? "Retour au QG Codex" : "Afficher le Classement"}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(255, 215, 0, 0.15)',
-                border: '1.5px solid #ffd700',
-                color: '#ffd700',
-                boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              <Trophy size={18} />
-            </button>
+            {/* Quitter */}
             <button 
               className="switch-btn" 
               onClick={logoutUser} 
               title="Quitter la simulation"
               style={{ 
                 width: '40px',
-
                 height: '40px',
                 borderRadius: '50%',
                 padding: '0',
@@ -904,6 +1106,7 @@ function MainApp() {
                             <>
                               <p>{parseBold(missionWithChallenge.evoeMission?.descriptionSF || missionWithChallenge.description || "Mission secrète en attente de déchiffrage.")}</p>
                               <button 
+                                id="btn-impulser-mission"
                                 className={`hack-btn ${missionWithChallenge.evoeMission?.isImpulsed ? 'impulsed-btn' : ''}`}
                                 disabled={loadingMissionId === missionWithChallenge.id}
                                 onClick={() => {
@@ -941,7 +1144,7 @@ function MainApp() {
                     <div key={selectedSector} className="category-section">
                       <div className="category-title">{selectedSector}</div>
                     
-                    {missionsByCategory[selectedSector].map((mission: any) => (
+                    {missionsByCategory[selectedSector].map((mission: any, idx: number) => (
                       <div 
                         key={mission.id} 
                         className="mission-card"
@@ -976,6 +1179,7 @@ function MainApp() {
                           <>
                             <p>{parseBold(mission.evoeMission?.descriptionSF || mission.description || "Mission secrète en attente de déchiffrage.")}</p>
                             <button 
+                              id={idx === 0 ? "btn-impulser-mission" : undefined}
                               className={`hack-btn ${mission.evoeMission?.isImpulsed ? 'impulsed-btn' : ''}`}
                               disabled={loadingMissionId === mission.id}
                               onClick={() => {
@@ -1177,7 +1381,7 @@ function MainApp() {
           <>
             <div className="evoe-dashboards-container">
               {/* Panel de Gauche : Extrapolation Temporelle */}
-              <aside className={`evoe-glass-panel panel-left ${showExtrapolation ? 'mobile-active' : ''}`}>
+              <aside id="panel-extrapolation-2070" className={`evoe-glass-panel panel-left ${showExtrapolation ? 'mobile-active' : ''}`}>
                 <div className="evoe-panel-title-row">
                   <h2>Extrapolation 2070</h2>
                   <button className="panel-close-btn" onClick={() => setShowExtrapolation(false)}>×</button>
@@ -1300,7 +1504,7 @@ function MainApp() {
               </aside>
 
               {/* Panel de Droite : Course des Vaisseaux & Stase */}
-              <aside className={`evoe-glass-panel panel-right ${showRadar ? 'mobile-active' : ''}`}>
+              <aside id="panel-radar-2070" className={`evoe-glass-panel panel-right ${showRadar ? 'mobile-active' : ''}`}>
                 <div className="evoe-panel-title-row">
                   <h2>Radar Temporel</h2>
                   <button 
@@ -1667,6 +1871,7 @@ function MainApp() {
         </button>
 
         <button 
+          id="hud-btn-chat"
           className={`nav-item ${chatOpen ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
@@ -1683,9 +1888,16 @@ function MainApp() {
           <span>Chat</span>
         </button>
       </nav>
+
+      {/* Guide d'Onboarding / Visite Guidée Interactive */}
+      <OnboardingGuide 
+        isOpen={showOnboardingGuide}
+        onClose={() => setShowOnboardingGuide(false)}
+        onNavigateStep={handleNavigateGuideStep}
+        teamName={childInfos?.group?.team?.name}
+        userId={currentUserId}
+      />
     </div>
-
-
   );
 }
 

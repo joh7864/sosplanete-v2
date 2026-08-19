@@ -66,12 +66,10 @@ export function SpeedParticles({ isMobile = false }: { isMobile?: boolean }) {
   );
 }
 
-// Échelle cosmique commune (Frise de progression latérale)
-export function CosmicScale({ schoolYear }: { schoolYear?: string }) {
+// Échelle cosmique commune (Frise de progression % latérale)
+export function CosmicScale() {
   const scaleX = -6.5; // Positionnée sur la gauche
   const markers = [0, 20, 40, 60, 80, 100];
-  const startYearMatch = schoolYear?.match(/^(\d{4})-\d{4}$/);
-  const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : 2026;
 
   return (
     <group>
@@ -84,7 +82,6 @@ export function CosmicScale({ schoolYear }: { schoolYear?: string }) {
       {/* Graduations et Textes */}
       {markers.map(pct => {
         const markerZ = 11 - (pct / 100) * 17;
-        const calculatedYear = Math.min(startYear + 44, startYear + Math.round((pct * 44) / 100 / 5) * 5);
         
         return (
           <group key={pct} position={[scaleX, -0.51, markerZ]}>
@@ -94,18 +91,18 @@ export function CosmicScale({ schoolYear }: { schoolYear?: string }) {
               <meshBasicMaterial color="#ffffff" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
             </mesh>
             
-            {/* Texte du pourcentage */}
-            <Billboard position={[-0.6, 0.2, 0]} follow={true}>
+            {/* Texte du pourcentage d'accomplissement */}
+            <Billboard position={[-0.65, 0.2, 0]} follow={true}>
               <Text
-                fontSize={0.25}
-                color="#ffffff"
+                fontSize={0.28}
+                color={pct === 100 ? '#00ffcc' : '#ffffff'}
                 anchorX="center"
                 anchorY="middle"
                 outlineWidth={0.02}
                 outlineColor="#000000"
-                fillOpacity={0.6}
+                fillOpacity={0.85}
               >
-                {calculatedYear}
+                {pct}%
               </Text>
             </Billboard>
           </group>

@@ -441,6 +441,7 @@ export default function ChatPanel({
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
+          id="btn-com-link"
           onClick={() => changeIsOpen(true)}
           className="chat-toggle-btn"
           style={{
@@ -501,6 +502,7 @@ export default function ChatPanel({
 
       {/* Main Container */}
       <div
+        id="chat-panel-container"
         className={`chat-sidebar-container ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}
       >
         {/* Drag handle for mobile Bottom Sheet */}

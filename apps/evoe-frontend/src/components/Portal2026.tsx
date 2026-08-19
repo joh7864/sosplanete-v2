@@ -1,10 +1,26 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Text, OrbitControls, Billboard } from '@react-three/drei';
+import { Text, OrbitControls, Billboard, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useAuth } from '../context/AuthContext';
 import { PlayerAvatar } from './3d/PlayerAvatar';
 import PodiumGroup from './3d/PodiumGroup';
+
+export function getCategoryEmoji(category: string): string {
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('recycl') || cat.includes('déchet') || cat.includes('matière')) return '♻️';
+  if (cat.includes('plasma')) return '🌀';
+  if (cat.includes('électricit') || cat.includes('énerg') || cat.includes('courant')) return '⚡';
+  if (cat.includes('génétiq') || cat.includes('dna') || cat.includes('adn')) return '🧬';
+  if (cat.includes('biodiver') || cat.includes('flore') || cat.includes('nature') || cat.includes('forêt')) return '🌿';
+  if (cat.includes('propulsion')) return '🚀';
+  if (cat.includes('transport') || cat.includes('mobilit') || cat.includes('vélo')) return '🚲';
+  if (cat.includes('ressources') || cat.includes('vital') || cat.includes('eau') || cat.includes('hydrique') || cat.includes('océan')) return '💧';
+  if (cat.includes('aliment') || cat.includes('agricul') || cat.includes('nourrit') || cat.includes('repas')) return '🌾';
+  if (cat.includes('numériq') || cat.includes('tech') || cat.includes('digital') || cat.includes('écran')) return '💻';
+  if (cat.includes('habitat') || cat.includes('bâtiment') || cat.includes('logement') || cat.includes('maison')) return '🏠';
+  return '🌱';
+}
 
 function ThematicSector({ 
   category, 
@@ -19,11 +35,14 @@ function ThematicSector({
 }) {
   const [hovered, setHovered] = useState(false);
   const ref = useRef<THREE.Group>(null);
+  const coreRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
   const haloRef = useRef<THREE.Mesh>(null);
 
   const colors = ['#00ffcc', '#ff3b3b', '#ffd700', '#ff00ff', '#4dff4d', '#ff9900', '#00b3ff'];
   const sectorColor = colors[index % colors.length];
   const shortName = category.replace(/^Secteur\s+/i, '');
+  const emoji = getCategoryEmoji(category);
 
   const angle = (index / total) * Math.PI * 2;
   const radius = 3.5;
@@ -33,19 +52,27 @@ function ThematicSector({
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (ref.current) {
-      ref.current.position.y = Math.sin(t * 2 + index) * 0.2;
+      ref.current.position.y = Math.sin(t * 1.8 + index) * 0.22;
+    }
+    if (coreRef.current) {
+      coreRef.current.rotation.y = t * 0.8 + index;
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.z = t * 1.2 + index;
+      ringRef.current.rotation.y = t * 0.5;
     }
     if (haloRef.current) {
       const pulse = Math.sin(t * 3 + index) * 0.5 + 0.5;
-      haloRef.current.scale.setScalar(1 + pulse * 0.5);
+      haloRef.current.scale.setScalar(1 + pulse * 0.35);
       const mat = haloRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.2 + pulse * 0.3;
+      mat.opacity = 0.15 + pulse * 0.25;
     }
   });
 
   return (
     <group ref={ref} position={[x, 0, z]}>
-      <mesh 
+      {/* Structure de l'Orbe de Cristal Premium */}
+      <group
         onClick={() => onSelect && onSelect(category)}
         onPointerOver={() => {
           setHovered(true);
@@ -55,24 +82,85 @@ function ThematicSector({
           setHovered(false);
           document.body.style.cursor = 'auto';
         }}
-        scale={hovered ? 1.3 : 1}
+        scale={hovered ? 1.35 : 1}
       >
-        <sphereGeometry args={[0.3, 32, 32]} />
-        <meshBasicMaterial color={hovered ? '#ffffff' : sectorColor} transparent opacity={0.8} />
-      </mesh>
+        {/* 1. Coque extérieure en verre translucide haute réflexion */}
+        <mesh>
+          <sphereGeometry args={[0.34, 32, 32]} />
+          <meshPhysicalMaterial 
+            color={hovered ? '#ffffff' : sectorColor}
+            transparent={true} 
+            opacity={0.55} 
+            roughness={0.08}
+            metalness={0.3}
+            clearcoat={1.0}
+            clearcoatRoughness={0.1}
+            transmission={0.8}
+            ior={1.45}
+            reflectivity={0.9}
+          />
+        </mesh>
 
+        {/* 2. Cœur d'énergie néon incandescent intérieur */}
+        <mesh ref={coreRef}>
+          <sphereGeometry args={[0.22, 24, 24]} />
+          <meshStandardMaterial 
+            color={sectorColor} 
+            emissive={sectorColor} 
+            emissiveIntensity={hovered ? 3.0 : 1.8} 
+            roughness={0.2}
+            metalness={0.8}
+          />
+        </mesh>
+
+        {/* 3. Icône holographique thématique suspendue au cœur de l'orbe */}
+        <Billboard follow={true}>
+          <Text
+            position={[0, 0, 0.36]}
+            fontSize={0.24}
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.02}
+            outlineColor="#000000"
+          >
+            {emoji}
+          </Text>
+        </Billboard>
+
+        {/* 4. Anneau de stase holographique en orbite autour de l'orbe */}
+        <mesh ref={ringRef} rotation={[Math.PI / 3.2, 0, 0]}>
+          <torusGeometry args={[0.44, 0.012, 16, 64]} />
+          <meshBasicMaterial 
+            color={hovered ? '#ffffff' : sectorColor} 
+            transparent 
+            opacity={0.85} 
+            blending={THREE.AdditiveBlending} 
+          />
+        </mesh>
+      </group>
+
+      {/* 4. Halo lumineux atmosphérique pulsant */}
       <mesh ref={haloRef} position={[0, 0, 0]}>
-        <sphereGeometry args={[0.4, 32, 32]} />
-        <meshBasicMaterial color={sectorColor} transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <sphereGeometry args={[0.5, 32, 32]} />
+        <meshBasicMaterial 
+          color={sectorColor} 
+          transparent 
+          opacity={0.25} 
+          depthWrite={false} 
+          blending={THREE.AdditiveBlending} 
+        />
       </mesh>
 
-      <pointLight color={sectorColor} intensity={hovered ? 2 : 0.5} distance={3} />
+      {/* 5. Lumière ponctuelle du secteur */}
+      <pointLight color={sectorColor} intensity={hovered ? 3.0 : 1.2} distance={3.5} />
       
+      {/* 6. Étiquette sous l'orbe (Nom épuré du secteur sans icône) */}
       <Billboard follow={true}>
         <Text
-          position={[0, -0.6, 0]}
+          position={[0, -0.65, 0]}
           fontSize={0.2}
-          color={sectorColor}
+          fontWeight="bold"
+          color={hovered ? '#ffffff' : sectorColor}
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.02}
@@ -81,6 +169,13 @@ function ThematicSector({
           {shortName}
         </Text>
       </Billboard>
+
+      {/* Ancre HTML interactive pour le guide d'onboarding */}
+      {index === 0 && (
+        <Html center zIndexRange={[1, 0]}>
+          <div id="sector-orb-guide" style={{ width: '80px', height: '80px', pointerEvents: 'none' }} />
+        </Html>
+      )}
     </group>
   );
 }
@@ -249,32 +344,50 @@ function MoonChallengeArenaNode({
       </mesh>
 
       <pointLight color={beaconColor} intensity={hovered ? 2.5 : 1.2} distance={4} />
-      
-      {/* Symbole holographique des épées au centre de la Lune */}
-      <Billboard follow={true}>
-        <Text
-          position={[0, 0, 0.46]}
-          fontSize={0.26}
-          anchorX="center"
-          anchorY="middle"
-        >
-          ⚔️
-        </Text>
-      </Billboard>
 
-      {/* Label sous la Lune */}
+      {/* Ancre HTML interactive temps réel pour le guide d'onboarding sur la Lune */}
+      <Html center zIndexRange={[1, 0]}>
+        <div id="hud-moon-arena" style={{ width: '90px', height: '90px', pointerEvents: 'none' }} />
+      </Html>
+      
+      {/* Éléments holographiques directement SUR la Lune (Chiffre en haut, ⚔️ au centre, mot Défis en bas) */}
       <Billboard follow={true}>
+        {/* Chiffre du total des défis en cours (Rapproché au-dessus des épées) */}
         <Text
-          position={[0, -0.65, 0]}
-          fontSize={0.19}
+          position={[0, 0.18, 0.45]}
+          fontSize={0.11}
           fontWeight="bold"
-          color={totalChallenges > 0 ? '#ffb703' : '#e2e8f0'}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.02}
           outlineColor="#000000"
         >
-          {`Lune (Défis)${totalChallenges > 0 ? ` [ ${totalChallenges} ]` : ''}`}
+          {totalChallenges}
+        </Text>
+
+        {/* Épées croisées au centre de la Lune */}
+        <Text
+          position={[0, 0, 0.45]}
+          fontSize={0.20}
+          anchorX="center"
+          anchorY="middle"
+        >
+          ⚔️
+        </Text>
+
+        {/* Le mot "Défis" sous les épées (Rapproché au-dessous des épées) */}
+        <Text
+          position={[0, -0.21, 0.45]}
+          fontSize={0.11}
+          fontWeight="bold"
+          color={totalChallenges > 0 ? '#ffb703' : '#ffffff'}
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="#000000"
+        >
+          Défis
         </Text>
       </Billboard>
     </group>
@@ -574,6 +687,11 @@ export default function Portal2026({
           setShowLeaderboardModal={() => {}}
           visible={true}
         />
+        {view === 'leaderboard' && (
+          <Html center position={[0, 0.5, 0]} zIndexRange={[1, 0]}>
+            <div id="btn-podium-leaderboard" style={{ width: '320px', height: '240px', pointerEvents: 'none' }} />
+          </Html>
+        )}
       </group>
 
       {/* Secteurs Thématiques (Codex) & Arène Défis */}

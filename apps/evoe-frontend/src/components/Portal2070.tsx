@@ -266,8 +266,8 @@ export default function Portal2070({
         <meshBasicMaterial color="#010108" side={THREE.BackSide} />
       </Sphere>
 
-      {/* Échelle Cosmique (remplace les pistes) */}
-      <CosmicScale schoolYear={dashboardStatus?.schoolYear} />
+      {/* Échelle Cosmique (% d'accomplissement des missions) */}
+      <CosmicScale />
 
       {/* Vaisseaux des équipes */}
       {teams.map((t: any, i: number) => (
