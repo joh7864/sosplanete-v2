@@ -157,7 +157,7 @@ export function ChallengeModal({
                 >
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedMission 
-                      ? `${selectedMission.evoeMission?.titreSF || selectedMission.label} (+${selectedMission.evoeMission?.amplitude || 10} AT)`
+                      ? `${selectedMission.evoeMission?.titreSF || selectedMission.label} (+${selectedMission.evoeMission?.amplitude || 10} IT)`
                       : "-- Choisir une éco-mission --"
                     }
                   </span>
@@ -236,7 +236,7 @@ export function ChallengeModal({
                           >
                             <span>{m.evoeMission?.titreSF || m.label}</span>
                             <span style={{ fontSize: '0.7rem', color: '#ffd700', fontWeight: 'bold', marginLeft: '8px', whiteSpace: 'nowrap' }}>
-                              +{m.evoeMission?.amplitude || 10} AT
+                              +{m.evoeMission?.amplitude || 10} IT
                             </span>
                           </div>
                         );
@@ -267,7 +267,7 @@ export function ChallengeModal({
                     </span>
                     {activePreviewMission && (
                       <span style={{ background: 'rgba(0, 255, 204, 0.2)', color: '#00ffcc', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', whiteSpace: 'nowrap', marginLeft: '6px' }}>
-                        +{activePreviewMission.evoeMission?.amplitude || 10} AT
+                        +{activePreviewMission.evoeMission?.amplitude || 10} IT
                       </span>
                     )}
                   </div>

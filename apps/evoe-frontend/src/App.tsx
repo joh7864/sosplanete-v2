@@ -13,6 +13,7 @@ import ChatPanel from './components/ChatPanel';
 import { OnboardingGuide } from './components/ui/OnboardingGuide';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
+import pkg from '../package.json';
 
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
@@ -22,7 +23,6 @@ import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
 const ConfirmCancelModal = lazy(() => import('./components/ui/ConfirmCancelModal').then(m => ({ default: m.ConfirmCancelModal })));
-const LeaderboardModal = lazy(() => import('./components/ui/LeaderboardModal').then(m => ({ default: m.LeaderboardModal })));
 const MobileContextCarousel = lazy(() => import('./components/ui/MobileContextCarousel'));
 
 import './App.css';
@@ -869,8 +869,17 @@ function MainApp() {
             <button 
               id="btn-podium-leaderboard"
               className={`switch-btn desktop-only ${view2026 === 'leaderboard' ? 'active' : ''}`}
-              onClick={() => setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard')}
-              title={view2026 === 'leaderboard' ? "Retour au QG Codex" : "Afficher le Classement"}
+              onClick={() => {
+                setSelectedProfileId(null);
+                setChatOpen(false);
+                setShowExtrapolation(false);
+                setShowRadar(false);
+                if (era === '2070') {
+                  handleSwitchEra();
+                }
+                setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
+              }}
+              title={view2026 === 'leaderboard' ? "Retour au QG Codex" : "Afficher le Classement 3D"}
               style={{
                 width: '40px',
                 height: '40px',
@@ -879,15 +888,25 @@ function MainApp() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(255, 215, 0, 0.15)',
+                background: view2026 === 'leaderboard' ? '#ffd700' : 'rgba(255, 215, 0, 0.15)',
                 border: '1.5px solid #ffd700',
-                color: '#ffd700',
-                boxShadow: '0 0 10px rgba(255, 215, 0, 0.2)',
+                color: view2026 === 'leaderboard' ? '#050a16' : '#ffd700',
+                boxShadow: view2026 === 'leaderboard'
+                  ? '0 0 20px #ffd700, 0 0 35px rgba(255, 215, 0, 0.8)'
+                  : '0 0 10px rgba(255, 215, 0, 0.2)',
                 cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
+                transition: 'all 0.25s ease'
               }}
             >
-              <Trophy size={18} />
+              <Trophy 
+                size={20} 
+                style={{ 
+                  strokeWidth: view2026 === 'leaderboard' ? 2.8 : 1.8,
+                  fill: view2026 === 'leaderboard' ? '#050a16' : 'transparent',
+                  transform: view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
+                  transition: 'all 0.2s ease'
+                }} 
+              />
             </button>
 
             {/* SÉPARATEUR VISUEL NET */}
@@ -1146,7 +1165,7 @@ function MainApp() {
                                 ) : missionWithChallenge.evoeMission?.isImpulsed ? (
                                   "Déjà Impulsé"
                                 ) : (
-                                  `Impulser (+${missionWithChallenge.evoeMission?.amplitude || 10} AT)`
+                                  `Impulser (+${missionWithChallenge.evoeMission?.amplitude || 10} IT)`
                                 )}
                               </button>
                             </>
@@ -1219,7 +1238,7 @@ function MainApp() {
                               ) : mission.evoeMission?.isImpulsed ? (
                                 "Déjà Impulsé"
                               ) : (
-                                `Impulser (+${mission.evoeMission?.amplitude || 10} AT)`
+                                `Impulser (+${mission.evoeMission?.amplitude || 10} IT)`
                               )}
                             </button>
                           </>
@@ -1715,7 +1734,7 @@ function MainApp() {
                 ) : expandedMission.evoeMission?.isImpulsed ? (
                   "Déjà Impulsé"
                 ) : (
-                  `Impulser (+${expandedMission.evoeMission?.amplitude || 10} AT)`
+                  `Impulser (+${expandedMission.evoeMission?.amplitude || 10} IT)`
                 )}
               </button>
             </motion.div>
@@ -1769,16 +1788,7 @@ function MainApp() {
         )}
       </AnimatePresence>
 
-      {/* Modal du Leaderboard 2070 */}
-      <Suspense fallback={null}>
-        <LeaderboardModal
-          showLeaderboardModal={showLeaderboardModal}
-          setShowLeaderboardModal={setShowLeaderboardModal}
-          dashboardStatus={dashboardStatus}
-          childInfos={childInfos}
-          setSelectedProfileId={setSelectedProfileId}
-        />
-      </Suspense>
+
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 
@@ -1871,19 +1881,36 @@ function MainApp() {
         </div>
 
         <button 
-          className={`nav-item ${view2026 === 'leaderboard' || showLeaderboardModal ? 'active' : ''}`}
+          className={`nav-item ${view2026 === 'leaderboard' ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
             setChatOpen(false);
+            setShowExtrapolation(false);
+            setShowRadar(false);
             if (era === '2070') {
-              setShowLeaderboardModal(true);
-            } else {
-              setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
+              handleSwitchEra();
             }
+            setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
           }}
+          style={
+            view2026 === 'leaderboard' ? {
+              color: '#ffd700',
+              fontWeight: 'bold',
+              textShadow: '0 0 10px rgba(255, 215, 0, 0.6)'
+            } : {}
+          }
         >
-          <Trophy size={20} />
-          <span>Scores</span>
+          <Trophy 
+            size={20} 
+            style={{
+              strokeWidth: view2026 === 'leaderboard' ? 2.8 : 1.8,
+              fill: view2026 === 'leaderboard' ? '#ffd700' : 'transparent',
+              filter: view2026 === 'leaderboard' ? 'drop-shadow(0 0 8px #ffd700)' : 'none',
+              transform: view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
+              transition: 'all 0.2s ease'
+            }}
+          />
+          <span style={{ fontWeight: view2026 === 'leaderboard' ? 800 : 500 }}>Scores</span>
         </button>
 
         <button 
@@ -1932,7 +1959,7 @@ function MainApp() {
           textShadow: '0 1px 4px rgba(0, 0, 0, 0.9)'
         }}
       >
-        v5.2.0
+        v{pkg.version}
       </div>
     </div>
   );

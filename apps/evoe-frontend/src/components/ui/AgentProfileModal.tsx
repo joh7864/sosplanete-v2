@@ -443,7 +443,7 @@ export function AgentProfileModal({
                             {new Date(m.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        <span className="mission-points">+{m.amplitude} AT</span>
+                        <span className="mission-points">+{m.amplitude} IT</span>
                       </div>
                     ))
                   )}

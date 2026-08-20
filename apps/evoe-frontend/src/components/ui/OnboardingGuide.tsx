@@ -45,7 +45,7 @@ const STEPS: OnboardingStep[] = [
     title: '⚡ Le Codex & Impulsion d\'une Mission',
     targetId: 'btn-impulser-mission',
     position: 'left',
-    explanation: "Quand vous accomplissez une action éco-responsable dans la vraie vie, cliquez sur 'Impulser'. Vous gagnez des points AT et réduisez l'empreinte carbone collective de l'équipage."
+    explanation: "Quand vous accomplissez une action éco-responsable dans la vraie vie, cliquez sur 'Impulser'. Vous gagnez des points IT (Impulsions Temporelles) et réduisez l'empreinte carbone collective de l'équipage."
   },
   {
     id: 4,
@@ -428,23 +428,45 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
               </p>
             </div>
 
-            {/* Barre de progression des 7 étapes */}
-            <div style={{ display: 'flex', gap: '4px', margin: '4px 0' }}>
-              {STEPS.map((s, idx) => (
-                <div 
-                  key={s.id}
-                  style={{
-                    flex: 1,
-                    height: '4px',
-                    borderRadius: '2px',
-                    background: idx === currentStepIndex 
-                      ? '#00ffcc' 
-                      : (idx < currentStepIndex ? 'rgba(0, 255, 204, 0.4)' : 'rgba(255, 255, 255, 0.1)'),
-                    boxShadow: idx === currentStepIndex ? '0 0 6px #00ffcc' : 'none',
-                    transition: 'all 0.3s'
-                  }}
-                />
-              ))}
+            {/* Barre de progression interactive des 11 étapes (cliquables directement) */}
+            <div style={{ display: 'flex', gap: '5px', padding: '6px 0' }}>
+              {STEPS.map((s, idx) => {
+                const isActive = idx === currentStepIndex;
+                const isPassed = idx < currentStepIndex;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setCurrentStepIndex(idx)}
+                    title={`Aller à l'Étape ${idx + 1} : ${s.title}`}
+                    style={{
+                      flex: 1,
+                      height: '8px',
+                      borderRadius: '4px',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      background: isActive 
+                        ? '#00ffcc' 
+                        : (isPassed ? 'rgba(0, 255, 204, 0.45)' : 'rgba(255, 255, 255, 0.18)'),
+                      boxShadow: isActive ? '0 0 10px #00ffcc, 0 0 15px rgba(0, 255, 204, 0.6)' : 'none',
+                      transition: 'all 0.25s ease',
+                      outline: 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(0, 255, 204, 0.8)';
+                        e.currentTarget.style.transform = 'scaleY(1.3)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = isPassed ? 'rgba(0, 255, 204, 0.45)' : 'rgba(255, 255, 255, 0.18)';
+                        e.currentTarget.style.transform = 'scaleY(1)';
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
 
             {/* Actions Nav */}
