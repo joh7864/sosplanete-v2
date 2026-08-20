@@ -70,20 +70,24 @@ function ThematicSector({
   });
 
   return (
-    <group ref={ref} position={[x, 0, z]}>
+    <group 
+      ref={ref} 
+      position={[x, 0, z]}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onSelect) onSelect(category);
+      }}
+      onPointerOver={() => {
+        setHovered(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        setHovered(false);
+        document.body.style.cursor = 'auto';
+      }}
+    >
       {/* Structure de l'Orbe de Cristal Premium */}
-      <group
-        onClick={() => onSelect && onSelect(category)}
-        onPointerOver={() => {
-          setHovered(true);
-          document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-          document.body.style.cursor = 'auto';
-        }}
-        scale={hovered ? 1.35 : 1}
-      >
+      <group scale={hovered ? 1.35 : 1}>
         {/* 1. Coque extérieure en verre translucide haute réflexion */}
         <mesh>
           <sphereGeometry args={[0.34, 32, 32]} />
@@ -114,7 +118,7 @@ function ThematicSector({
         </mesh>
 
         {/* 3. Icône holographique thématique suspendue au cœur de l'orbe */}
-        <Billboard follow={true}>
+        <Billboard follow={true} raycast={() => null}>
           <Text
             position={[0, 0, 0.36]}
             fontSize={0.24}
@@ -139,8 +143,8 @@ function ThematicSector({
         </mesh>
       </group>
 
-      {/* 4. Halo lumineux atmosphérique pulsant */}
-      <mesh ref={haloRef} position={[0, 0, 0]}>
+      {/* 4. Halo lumineux atmosphérique pulsant (raycast désactivé) */}
+      <mesh ref={haloRef} position={[0, 0, 0]} raycast={() => null}>
         <sphereGeometry args={[0.5, 32, 32]} />
         <meshBasicMaterial 
           color={sectorColor} 
@@ -155,7 +159,7 @@ function ThematicSector({
       <pointLight color={sectorColor} intensity={hovered ? 3.0 : 1.2} distance={3.5} />
       
       {/* 6. Étiquette sous l'orbe (Nom épuré du secteur sans icône) */}
-      <Billboard follow={true}>
+      <Billboard follow={true} raycast={() => null}>
         <Text
           position={[0, -0.65, 0]}
           fontSize={0.2}
@@ -172,7 +176,7 @@ function ThematicSector({
 
       {/* Ancre HTML interactive pour le guide d'onboarding */}
       {index === 0 && (
-        <Html center zIndexRange={[1, 0]}>
+        <Html center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
           <div id="sector-orb-guide" style={{ width: '80px', height: '80px', pointerEvents: 'none' }} />
         </Html>
       )}
@@ -307,19 +311,24 @@ function MoonChallengeArenaNode({
   });
 
   return (
-    <group ref={groupRef}>
+    <group 
+      ref={groupRef}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onSelect) onSelect();
+      }}
+      onPointerOver={() => {
+        setHovered(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        setHovered(false);
+        document.body.style.cursor = 'auto';
+      }}
+    >
       {/* Sphère Lunaire réaliste texturée */}
       <mesh 
         ref={moonRef}
-        onClick={() => onSelect && onSelect()}
-        onPointerOver={() => {
-          setHovered(true);
-          document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-          document.body.style.cursor = 'auto';
-        }}
         scale={hovered ? 1.3 : 1}
       >
         <sphereGeometry args={[0.42, 32, 32]} />
@@ -331,8 +340,8 @@ function MoonChallengeArenaNode({
         />
       </mesh>
 
-      {/* Halo holographique atmosphérique de la base lunaire */}
-      <mesh ref={haloRef}>
+      {/* Halo holographique atmosphérique de la base lunaire (raycast désactivé pour ne pas bloquer les clics) */}
+      <mesh ref={haloRef} raycast={() => null}>
         <sphereGeometry args={[0.55, 32, 32]} />
         <meshBasicMaterial 
           color={beaconColor} 
@@ -346,12 +355,12 @@ function MoonChallengeArenaNode({
       <pointLight color={beaconColor} intensity={hovered ? 2.5 : 1.2} distance={4} />
 
       {/* Ancre HTML interactive temps réel pour le guide d'onboarding sur la Lune */}
-      <Html center zIndexRange={[1, 0]}>
+      <Html center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
         <div id="hud-moon-arena" style={{ width: '90px', height: '90px', pointerEvents: 'none' }} />
       </Html>
       
       {/* Éléments holographiques directement SUR la Lune (Chiffre en haut, ⚔️ au centre, mot Défis en bas) */}
-      <Billboard follow={true}>
+      <Billboard follow={true} raycast={() => null}>
         {/* Chiffre du total des défis en cours (Rapproché au-dessus des épées) */}
         <Text
           position={[0, 0.18, 0.45]}

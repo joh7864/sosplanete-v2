@@ -103,6 +103,16 @@ function MainApp() {
     preloadEvoeAssets();
   }, []);
 
+  const handleSelectSector = (sector: string) => {
+    setSelectedSector(sector);
+    setCodexTab('missions');
+    setIsCodexCollapsed(false);
+    setView2026('codex');
+    setChatOpen(false);
+    setSelectedProfileId(null);
+    setShowLeaderboardModal(false);
+  };
+
   // Callback pour basculer automatiquement les onglets pendant la visite guidée (11 étapes)
   const handleNavigateGuideStep = (stepIndex: number) => {
     if (stepIndex === 0) { // Étape 1: Bienvenue & Profil Agent
@@ -566,7 +576,7 @@ function MainApp() {
           {era === '2026' ? (
             <Portal2026 
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
-              onSelectSector={setSelectedSector} 
+              onSelectSector={handleSelectSector} 
               onSelectPlayer={handleSelectPlayer}
               onSelectChallenges={() => {
                 setSelectedProfileId(null);
