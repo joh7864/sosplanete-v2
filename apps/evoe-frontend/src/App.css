@@ -65,6 +65,31 @@ body {
   }
 }
 
+@media (max-height: 500px) {
+  .header {
+    padding: 6px 20px;
+  }
+  .logo h1 {
+    font-size: 1.1rem !important;
+  }
+}
+
+@media (max-width: 1024px), (max-height: 550px) {
+  #hud-completion-bar {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin: 0 auto !important;
+    min-width: 170px !important;
+    max-width: 250px !important;
+    padding: 5px 12px !important;
+  }
+  #hud-completion-bar span {
+    font-size: 0.72rem !important;
+  }
+}
+
 .logo {
   display: flex;
   align-items: center;

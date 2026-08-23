@@ -164,7 +164,7 @@ export default function MobileContextCarousel({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00ffcc', fontWeight: 'bold', fontSize: '0.85rem', letterSpacing: '0.05em' }}>
-                      <Globe size={16} /> EXTRA-POLATION 2070
+                      <Globe size={16} /> EXTRAPOLATION 2070
                     </span>
                     <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
                       1 / 2

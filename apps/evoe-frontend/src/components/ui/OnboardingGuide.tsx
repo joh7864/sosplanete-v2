@@ -277,6 +277,37 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
     pointerY = targetRect.top + targetRect.height / 2;
   }
 
+  const clampedPointerX = Math.max(25, Math.min(window.innerWidth - 65, pointerX));
+  const clampedPointerY = Math.max(25, Math.min(window.innerHeight - 65, pointerY));
+
+  const isLandscape = window.innerHeight <= 520;
+  
+  let justifyPos: 'flex-start' | 'center' | 'flex-end' = 'center';
+  let alignPos: 'flex-start' | 'center' | 'flex-end' = 'center';
+
+  if (targetRect) {
+    const centerX = targetRect.left + targetRect.width / 2;
+    const centerY = targetRect.top + targetRect.height / 2;
+
+    // Positionnement opposé horizontal
+    if (centerX < window.innerWidth * 0.45) {
+      justifyPos = 'flex-end'; // Élément à gauche -> Carte à droite
+    } else if (centerX > window.innerWidth * 0.55) {
+      justifyPos = 'flex-start'; // Élément à droite -> Carte à gauche
+    } else {
+      justifyPos = 'flex-start'; // Élément au centre -> Carte sur la gauche
+    }
+
+    // Positionnement opposé vertical
+    if (centerY < window.innerHeight * 0.45) {
+      alignPos = 'flex-end'; // Élément en haut -> Carte en bas
+    } else if (centerY > window.innerHeight * 0.65) {
+      alignPos = 'flex-start'; // Élément en bas -> Carte en haut
+    } else {
+      alignPos = isLandscape ? 'center' : 'flex-end';
+    }
+  }
+
   return (
     <AnimatePresence>
       <div 
@@ -325,19 +356,19 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
               fill="none" 
               stroke="#00ffcc" 
               strokeWidth="2" 
-              strokeDasharray="6 4"
+              strokeDasharray="6 4" 
             />
           </svg>
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(5, 10, 25, 0.75)', pointerEvents: 'none' }} />
         )}
 
-        {/* Pointeur / Main Animée (👆) avec trajectoire réactive */}
+        {/* Pointeur / Main Animée (👆) avec trajectoire réactive & zIndex maximal */}
         <motion.div
-          initial={{ x: pointerX, y: pointerY, scale: 0.8, opacity: 0 }}
+          initial={{ x: clampedPointerX, y: clampedPointerY, scale: 0.8, opacity: 0 }}
           animate={{ 
-            x: pointerX + 15, 
-            y: pointerY + 15, 
+            x: clampedPointerX + (isLandscape ? 8 : 12), 
+            y: clampedPointerY + (isLandscape ? 8 : 12), 
             scale: [1, 1.15, 1],
             opacity: 1 
           }}
@@ -350,23 +381,23 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 10001,
+            zIndex: 10005,
             pointerEvents: 'none',
-            fontSize: '2.5rem',
-            filter: 'drop-shadow(0 0 12px rgba(0, 255, 204, 0.8))'
+            fontSize: isLandscape ? '2rem' : '2.5rem',
+            filter: 'drop-shadow(0 0 12px rgba(0, 255, 204, 0.9))'
           }}
         >
           👆
         </motion.div>
 
-        {/* Infobulle Cybernétique (Tooltip Card) */}
+        {/* Infobulle Cybernétique (Tooltip Card) avec positionnement dynamique */}
         <div style={{
           position: 'absolute',
           inset: 0,
           display: 'flex',
-          justifyContent: step.position === 'center' ? 'center' : (step.position === 'left' ? 'flex-start' : 'center'),
-          alignItems: step.position === 'center' ? 'center' : (step.position === 'top' ? 'flex-start' : 'flex-end'),
-          padding: '30px',
+          justifyContent: justifyPos,
+          alignItems: alignPos,
+          padding: isLandscape ? '12px 20px' : '30px',
           pointerEvents: 'none',
           zIndex: 10002
         }}>
@@ -379,16 +410,18 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
               background: 'rgba(10, 18, 36, 0.96)',
               border: '1.5px solid rgba(0, 255, 204, 0.6)',
               borderRadius: '16px',
-              padding: '22px 24px',
-              width: '420px',
-              maxWidth: '92vw',
+              padding: isLandscape ? '12px 18px' : '22px 24px',
+              width: isLandscape ? '360px' : '420px',
+              maxWidth: isLandscape ? '46vw' : '92vw',
+              maxHeight: isLandscape ? '88vh' : 'none',
+              overflowY: isLandscape ? 'auto' : 'visible',
               boxShadow: '0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(0,255,204,0.25)',
               backdropFilter: 'blur(20px)',
               color: '#fff',
               pointerEvents: 'auto',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px'
+              gap: isLandscape ? '8px' : '12px'
             }}
           >
             {/* Header Infobulle */}

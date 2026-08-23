@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, Smartphone, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
+import { Hexagon, Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -920,36 +920,7 @@ function MainApp() {
               }}
             />
 
-            {/* BARRE DE DROITE : PARAMÈTRES (PORTRAIT), WHATSAPP, AIDE & QUITTER */}
 
-            {/* Toggle Portrait / Paysage (Indigo Violet Néon) */}
-            <button
-              className="switch-btn desktop-only"
-              onClick={() => {
-                const next = !allowPortrait;
-                setAllowPortrait(next);
-                localStorage.setItem('evoe_allow_portrait', String(next));
-              }}
-              title={allowPortrait ? 'Mode Portrait autorisé — cliquer pour forcer le paysage' : 'Paysage forcé — cliquer pour autoriser le portrait'}
-              style={{
-                width: '40px', height: '40px', borderRadius: '50%', padding: '0',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: allowPortrait ? 'rgba(129, 140, 248, 0.25)' : 'rgba(129, 140, 248, 0.15)',
-                border: allowPortrait ? '1.5px solid #818cf8' : '1.5px solid #6366f1',
-                color: '#818cf8',
-                boxShadow: '0 0 10px rgba(129, 140, 248, 0.3)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              <Smartphone 
-                size={18} 
-                style={{ 
-                  transform: allowPortrait ? 'rotate(0deg)' : 'rotate(90deg)', 
-                  transition: 'transform 0.3s ease' 
-                }} 
-              />
-            </button>
 
             {/* BARRE DE DROITE : WHATSAPP, AIDE (VIOLET/MAGENTA) & QUITTER */}
 
@@ -1589,61 +1560,64 @@ function MainApp() {
                           </span>
                         </div>
 
-                        {/* Deux mini-compteurs circulaires de contrôle (Timeline & Stase) */}
+                        {/* Deux mini-compteurs circulaires de contrôle (Régénération & Stabilité) */}
                         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 20px', marginTop: '0px', marginBottom: '0px' }}>
-                          {(() => {
-                            const startYearMatch = dashboardStatus?.schoolYear?.match(/^(\d{4})-\d{4}$/);
-                            const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : 2026;
-                            const calculatedYear = Math.min(startYear + 44, startYear + Math.round(((t.position || 0) * 44) / 100 / 5) * 5);
-                            return (
-                              <EvoeRadarMeter 
-                                value={t.position} 
-                                label="TIMELINE" 
-                                color="#ffd700" 
-                                id={`timeline-${t.id}`} 
-                                displayValue={String(calculatedYear)}
-                                tooltip="État de la Terre et progression de la ligne temporelle vers 2070. Les défis et missions réussis permettent de stabiliser le futur et de repousser la dystopie."
-                              />
-                            );
-                          })()}
                           <EvoeRadarMeter 
-                            value={t.crewBioStability} 
+                            value={t.position || 0} 
+                            label="REGEN." 
+                            color="#00ffcc" 
+                            id={`timeline-${t.id}`} 
+                            displayValue={`${Math.round(t.position || 0)}%`}
+                            tooltip="Taux de régénération planétaire apporté par ce vaisseau (60% CO₂, 20% Eau, 20% Déchets)."
+                          />
+                          <EvoeRadarMeter 
+                            value={t.crewBioStability || 0} 
                             label="STABILITÉ" 
                             color={t.crewBioStability < 40 ? '#ff3b3b' : (t.crewBioStability < 80 ? '#ff9f43' : '#10b981')} 
                             id={`stability-${t.id}`} 
-                            tooltip="Score de santé de l'équipage. S'il est trop bas, la stase se fige et vous ne pouvez plus modifier la dystopie future (seuil minimal d'action : 10%)."
+                            tooltip="Score de bio-stabilité de l'équipage. Mesure la synchronisation et la santé temporelle des agents du vaisseau."
                           />
                         </div>
 
-                        {/* Alerte Paradoxe Temporel graduée */}
+                        {/* Alerte Paradoxe Temporel graduée et cohérente */}
                         {(() => {
-                          const stability = t.crewBioStability;
-                          if (stability === 100) {
+                          const regen = t.position || 0;
+                          const stability = t.crewBioStability || 0;
+                          const points = t.points || 0;
+
+                          if (points === 0 || regen === 0) {
                             return (
-                              <div className="vessel-paradox-warning" style={{ color: '#10b981', animation: 'none', opacity: 0.85, marginTop: '2px' }}>
-                                <CheckCircle2 size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Ligne temporelle stable et entièrement synchronisée.</span>
+                              <div className="vessel-paradox-warning" style={{ color: '#a0aec0', animation: 'none', opacity: 0.85, marginTop: '2px' }}>
+                                <AlertTriangle size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(160,174,192,0.4))' }} />
+                                <span style={{ letterSpacing: '-0.1px' }}>En attente des premières impulsions du Codex.</span>
                               </div>
                             );
-                          } else if (stability >= 80) {
+                          } else if (regen >= 75 && stability >= 70) {
+                            return (
+                              <div className="vessel-paradox-warning" style={{ color: '#10b981', animation: 'none', opacity: 0.95, marginTop: '2px' }}>
+                                <CheckCircle2 size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.5))' }} />
+                                <span style={{ letterSpacing: '-0.1px' }}>Ligne temporelle optimale et flux hautement régénéré.</span>
+                              </div>
+                            );
+                          } else if (regen >= 40 || stability >= 50) {
                             return (
                               <div className="vessel-paradox-warning" style={{ color: '#ffd700', animation: 'none', marginTop: '2px' }}>
-                                <AlertTriangle size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(255,215,0,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Légère désynchronisation temporelle détectée.</span>
+                                <CheckCircle2 size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(255,215,0,0.4))' }} />
+                                <span style={{ letterSpacing: '-0.1px' }}>Progression stable — Bon rythme d'impulsions.</span>
                               </div>
                             );
-                          } else if (stability >= 40) {
+                          } else if (regen >= 15 || stability >= 25) {
                             return (
                               <div className="vessel-paradox-warning" style={{ color: '#ff9f43', marginTop: '2px' }}>
                                 <AlertTriangle size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(255,159,67,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Instabilité de la stase. Impulsions de missions requises !</span>
+                                <span style={{ letterSpacing: '-0.1px' }}>Légère désynchronisation temporelle détectée.</span>
                               </div>
                             );
                           } else {
                             return (
                               <div className="vessel-paradox-warning" style={{ color: '#ff3b3b', marginTop: '2px' }}>
                                 <AlertOctagon size={13} style={{ filter: 'drop-shadow(0 0 3px rgba(255,59,59,0.5))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Paradoxe temporel imminent ! Agents en stase prolongée.</span>
+                                <span style={{ letterSpacing: '-0.1px' }}>Instabilité de la stase — Impulsions urgentes requises.</span>
                               </div>
                             );
                           }
