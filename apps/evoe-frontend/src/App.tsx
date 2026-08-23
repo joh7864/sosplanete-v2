@@ -113,64 +113,96 @@ function MainApp() {
     setShowLeaderboardModal(false);
   };
 
+
   // Callback pour basculer automatiquement les onglets pendant la visite guidée (11 étapes)
   const handleNavigateGuideStep = (stepIndex: number) => {
+    setSelectedProfileId(null);
+    setShowLeaderboardModal(false);
+
     if (stepIndex === 0) { // Étape 1: Bienvenue & Profil Agent
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(false);
+      setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 1) { // Étape 2: Passerelle & Orbes 3D
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(false);
+      setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 2) { // Étape 3: Codex & Impulsion d'une mission
-      setCodexTab('missions');
-      setIsCodexCollapsed(false);
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setCodexTab('missions');
+      setIsCodexCollapsed(false);
+      setShowExtrapolation(false);
+      setShowRadar(false);
       setChatOpen(false);
-      if (!selectedSector) {
-        const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-        if (cats.length > 0) setSelectedSector(cats[0]);
-      }
+      const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+      if (cats.length > 0) setSelectedSector(cats[0]);
     } else if (stepIndex === 3) { // Étape 4: Arène des Défis (Lune 3D)
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null); // Fermeture complète du Codex pour voir la Lune 3D
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(false);
+      setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 4) { // Étape 5: TERRE 2070 : % RÉGÉNÉRÉE
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null); // Fermeture complète du Codex pour voir la jauge
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(false);
+      setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 5) { // Étape 6: Projection Temporelle (Bascule 2070)
       if (era !== '2070') handleSwitchEra();
-      setShowExtrapolation(true);
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(false); // Laisser fermé pour voir la Terre 2070 et la bascule
       setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 6) { // Étape 7: Extrapolation 2070 (Bilan d'impact)
       if (era !== '2070') handleSwitchEra();
-      setShowExtrapolation(true);
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
+      setShowExtrapolation(true); // Ouvrir le volet Extrapolation ici
       setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 7) { // Étape 8: Radar Temporel (Constantes & Vaisseaux)
       if (era !== '2070') handleSwitchEra();
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
       setShowExtrapolation(false);
-      setShowRadar(true);
+      setShowRadar(true); // Ouvrir le volet Radar ici
       setChatOpen(false);
     } else if (stepIndex === 8) { // Étape 9: Podium 3D & Leaderboard
       if (era !== '2026') handleSwitchEra();
       setView2026('leaderboard');
+      setSelectedSector(null); // Fermeture complète du Codex pour voir le Podium 3D
+      setIsCodexCollapsed(true);
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
     } else if (stepIndex === 9) { // Étape 10: Com-Link (Chat Spatial)
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(true);
     } else if (stepIndex === 10) { // Étape 11: Groupe WhatsApp Équipe
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
+      setSelectedSector(null);
+      setIsCodexCollapsed(true);
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
@@ -762,78 +794,6 @@ function MainApp() {
               )}
             </div>
           </div>
-
-          {/* Barre de % d'Accomplissement des Missions (Jauge cybernétique vivante centrée) */}
-          {(() => {
-            const pct = (() => {
-              if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
-                return Math.min(100, Math.round(dashboardStatus.globalProgression));
-              }
-              const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId);
-              if (myTeam?.position !== undefined && myTeam.position !== null) {
-                return Math.min(100, Math.round(myTeam.position));
-              }
-              return 68;
-            })();
-
-            return (
-              <div 
-                id="hud-completion-bar"
-                className="desktop-only"
-                style={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'rgba(5, 15, 25, 0.75)',
-                  border: '1.5px solid rgba(0, 255, 204, 0.5)',
-                  borderRadius: '24px',
-                  padding: '7px 20px',
-                  boxShadow: '0 0 16px rgba(0, 255, 204, 0.22)',
-                  pointerEvents: 'auto',
-                  zIndex: 10,
-                  overflow: 'hidden',
-                  minWidth: '260px',
-                  justifyContent: 'center'
-                }}
-                title="Progression globale de l'équipage sur la période active (pondération : 60% CO2, 20% Eau, 20% Déchets)"
-              >
-                {/* Couche de Remplissage de la Jauge (0% ➔ X%) avec Dégradé Vert-Émeraude ➔ Cyan */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    width: `${pct}%`,
-                    background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.5) 0%, rgba(0, 255, 204, 0.7) 100%)',
-                    boxShadow: '0 0 12px rgba(0, 255, 204, 0.6)',
-                    borderRadius: '24px',
-                    transition: 'width 0.8s ease-in-out',
-                    zIndex: 1
-                  }}
-                />
-
-                {/* Contenu Texte Blanc & Icône Éclair par-dessus (zIndex 2) */}
-                <Zap size={15} color="#ffffff" style={{ filter: 'drop-shadow(0 0 5px #00ffcc)', zIndex: 2, position: 'relative' }} />
-                <span style={{ 
-                  fontSize: '0.78rem', 
-                  fontWeight: '800', 
-                  color: '#ffffff', 
-                  letterSpacing: '0.6px', 
-                  whiteSpace: 'nowrap',
-                  zIndex: 2,
-                  position: 'relative',
-                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 255, 204, 0.5)'
-                }}>
-                  TERRE 2070 : {pct}% RÉGÉNÉRÉE
-                </span>
-              </div>
-            );
-          })()}
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
 
@@ -1831,7 +1791,7 @@ function MainApp() {
 
 
         {/* Central Floating Action Button (FAB) for Era Switch */}
-        <div className="fab-container">
+        <div id="hud-btn-epoch-fab" className="fab-container">
           <button 
             className="fab-button"
             onClick={handleSwitchEra}

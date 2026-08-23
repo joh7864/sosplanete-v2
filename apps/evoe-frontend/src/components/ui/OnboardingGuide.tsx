@@ -151,10 +151,12 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
           setTargetRect(rect);
         }
 
-        // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat et les ancres 3D
+        // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat, le FAB et les ancres 3D
         if (
           (targetId === 'hud-moon-arena' || 
            targetId === 'sector-orb-guide' || 
+           targetId === 'hud-btn-epoch-fab' ||
+           targetId === 'hud-completion-bar' ||
            targetId === 'chat-panel-container' || 
            targetId === 'btn-podium-leaderboard' ||
            targetId === 'panel-extrapolation-2070' ||

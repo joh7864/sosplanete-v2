@@ -26,11 +26,13 @@ function ThematicSector({
   category, 
   index, 
   total, 
+  isFrontOrb,
   onSelect 
 }: { 
   category: string; 
   index: number; 
   total: number; 
+  isFrontOrb?: boolean;
   onSelect?: (c: string) => void 
 }) {
   const [hovered, setHovered] = useState(false);
@@ -174,8 +176,8 @@ function ThematicSector({
         </Text>
       </Billboard>
 
-      {/* Ancre HTML interactive pour le guide d'onboarding */}
-      {index === 0 && (
+      {/* Ancre HTML interactive pour le guide d'onboarding sur l'orbe frontal */}
+      {isFrontOrb && (
         <Html center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
           <div id="sector-orb-guide" style={{ width: '80px', height: '80px', pointerEvents: 'none' }} />
         </Html>
@@ -682,6 +684,84 @@ export default function Portal2026({
         </mesh>
       </group>
 
+      {/* Capsule Cybernétique de Régénération - Fixe face caméra au centre exact de la Terre */}
+      {view === 'codex' && (
+        <Html center position={[0, 0, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+          <div 
+            id="hud-completion-bar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              width: isMobile ? '158px' : '188px',
+              height: '30px',
+              background: 'rgba(5, 12, 28, 0.78)',
+              border: '1.5px solid rgba(0, 255, 204, 0.75)',
+              borderRadius: '20px',
+              padding: '2px 8px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.85), 0 0 14px rgba(0, 255, 204, 0.45)',
+              backdropFilter: 'blur(8px)',
+              position: 'relative',
+              overflow: 'hidden',
+              pointerEvents: 'none',
+              userSelect: 'none'
+            }}
+          >
+            {/* Jauge de remplissage Dégradé Vert Émeraude ➔ Cyan */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: `${(() => {
+                  if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
+                    return Math.min(100, Math.round(dashboardStatus.globalProgression));
+                  }
+                  const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === me?.teamId);
+                  if (myTeam?.position !== undefined && myTeam.position !== null) {
+                    return Math.min(100, Math.round(myTeam.position));
+                  }
+                  return 68;
+                })()}%`,
+                background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.6) 0%, rgba(0, 255, 204, 0.85) 100%)',
+                boxShadow: '0 0 10px rgba(0, 255, 204, 0.6)',
+                borderRadius: '20px',
+                transition: 'width 0.8s ease-in-out',
+                zIndex: 1
+              }}
+            />
+
+            {/* Éclair & Pourcentage de régénération */}
+            <span style={{ 
+              position: 'relative', 
+              zIndex: 2, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '4px', 
+              color: '#ffffff', 
+              fontSize: isMobile ? '0.7rem' : '0.75rem', 
+              fontWeight: 800, 
+              letterSpacing: '0.4px', 
+              whiteSpace: 'nowrap',
+              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,255,204,0.6)' 
+            }}>
+              ⚡ {(() => {
+                if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
+                  return Math.min(100, Math.round(dashboardStatus.globalProgression));
+                }
+                const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === me?.teamId);
+                if (myTeam?.position !== undefined && myTeam.position !== null) {
+                  return Math.min(100, Math.round(myTeam.position));
+                }
+                return 68;
+              })()}% RÉGÉNÉRÉE
+            </span>
+          </div>
+        </Html>
+      )}
+
       {/* Podium Central (Leaderboard) */}
       <group ref={podiumGroupRef} scale={[0, 0, 0]}>
         <PodiumGroup
@@ -705,15 +785,25 @@ export default function Portal2026({
 
       {/* Secteurs Thématiques (Codex) & Arène Défis */}
       <group ref={sectorsGroupRef}>
-        {categories.map((cat, i) => (
-          <ThematicSector 
-            key={cat} 
-            category={cat} 
-            index={i} 
-            total={categories.length} 
-            onSelect={onSelectSector} 
-          />
-        ))}
+        {(() => {
+          const total = categories.length || 1;
+          const frontIdx = categories.reduce((bestIdx, _, i) => {
+            const angleCurrent = (i / total) * Math.PI * 2;
+            const angleBest = (bestIdx / total) * Math.PI * 2;
+            return Math.sin(angleCurrent) > Math.sin(angleBest) ? i : bestIdx;
+          }, 0);
+
+          return categories.map((cat, i) => (
+            <ThematicSector 
+              key={cat} 
+              category={cat} 
+              index={i} 
+              total={total} 
+              isFrontOrb={i === frontIdx}
+              onSelect={onSelectSector} 
+            />
+          ));
+        })()}
         <MoonChallengeArenaNode 
           totalChallenges={challenges?.filter(c => c.status === 'PENDING' || c.status === 'ACCEPTED').length || 0}
           onSelect={onSelectChallenges}
