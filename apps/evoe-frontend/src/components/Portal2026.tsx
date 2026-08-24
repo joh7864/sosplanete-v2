@@ -578,6 +578,7 @@ export default function Portal2026({
       portalRef.current.rotation.y = state.clock.getElapsedTime() * 0.2;
     }
 
+    // La caméra reste statique sur la Terre (demande utilisateur)
     const isLb = view === 'leaderboard';
 
     if (earthGroupRef.current) {

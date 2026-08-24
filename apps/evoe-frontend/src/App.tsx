@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +11,9 @@ import Login from './pages/Login';
 import TemporalBriefing from './components/TemporalBriefing';
 import ChatPanel from './components/ChatPanel';
 import { OnboardingGuide } from './components/ui/OnboardingGuide';
+import { MissionsCarousel3D } from './components/ui/MissionsCarousel3D';
+import { ChallengesCarousel3D } from './components/ui/ChallengesCarousel3D';
+import { OrbitalSectorRibbon } from './components/ui/OrbitalSectorRibbon';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
@@ -208,55 +211,7 @@ function MainApp() {
       setChatOpen(false);
     }
   };
-  const swipeStartX = useRef(0);
-  const swipeEndX = useRef(0);
 
-  const handleTouchStartApp = (e: React.TouchEvent) => {
-    if (era === '2070') return; // Geste désactivé en 2070 pour éviter de retourner accidentellement en 2026
-    // Avoid triggering if touch is on active input, button or interactive panels
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('button') || 
-      target.closest('input') || 
-      target.closest('select') || 
-      target.closest('.codex-panel') || 
-      target.closest('.chat-sidebar-container') || 
-      target.closest('.agent-profile-modal') || 
-      target.closest('.mobile-bottom-nav') ||
-      target.closest('canvas')
-    ) {
-      return;
-    }
-
-    const startX = e.touches[0].clientX;
-    const width = window.innerWidth;
-    
-    // Ignore edge swipes (outer 10% on left and right) to avoid conflicting with system Back gestures
-    if (startX < width * 0.1 || startX > width * 0.9) {
-      return;
-    }
-    
-    swipeStartX.current = startX;
-    swipeEndX.current = startX;
-  };
-
-  const handleTouchMoveApp = (e: React.TouchEvent) => {
-    swipeEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEndApp = () => {
-    if (!swipeStartX.current) return;
-    
-    const diffX = swipeEndX.current - swipeStartX.current;
-    
-    // Swipe left (diffX < -100px) or right (diffX > 100px) to switch Era
-    if (Math.abs(diffX) > 100) {
-      handleSwitchEra();
-    }
-    
-    swipeStartX.current = 0;
-    swipeEndX.current = 0;
-  };
 
   // --- Gestion de l'orientation mobile ---
   const [isPhysicalPortrait, setIsPhysicalPortrait] = useState<boolean>(() =>
@@ -539,12 +494,7 @@ function MainApp() {
   };
 
   return (
-    <div 
-      className="app-container"
-      onTouchStart={handleTouchStartApp}
-      onTouchMove={handleTouchMoveApp}
-      onTouchEnd={handleTouchEndApp}
-    >
+    <div className="app-container">
 
       {/* Overlay Portrait — affiché quand le mode paysage est requis et l'appareil est en portrait */}
       {showPortraitOverlay && (
@@ -1093,7 +1043,84 @@ function MainApp() {
         </header>
 
         {/* CONTENU 2026 : Le Codex Temporel (Panel UI) */}
-        {era === '2026' && selectedSector && (
+        {era === '2026' && selectedSector && (codexTab === 'missions' || codexTab === 'challenges') && !isCodexCollapsed ? (
+          <div style={{
+            position: 'absolute',
+            top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'auto',
+          }}>
+            <div style={{
+              width: 'min(1040px, 86vw)',
+              height: 'auto',
+              maxHeight: '92vh',
+              background: 'rgba(10, 15, 30, 0.85)',
+              border: '1px solid rgba(0, 255, 204, 0.2)',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              boxShadow: '0 0 50px rgba(0, 0, 0, 0.8)',
+              animation: 'popup-scale 0.3s ease-out forwards',
+            }}>
+              {/* En-tête HUD avec zIndex élevé pour s'assurer qu'il est cliquable au-dessus du carrousel */}
+              <div style={{ display: 'flex', position: 'relative', zIndex: 20, justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '8px' }}>
+                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.25rem', letterSpacing: '1px' }}>
+                  Codex missions temporelles
+                </h2>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <OrbitalSectorRibbon 
+                    categories={[...(missionsByCategory ? Object.keys(missionsByCategory) : []), 'Défis']}
+                    selectedSector={codexTab === 'challenges' ? 'Défis' : selectedSector}
+                    onSelect={(sector) => {
+                      if (sector === 'Défis') {
+                        setCodexTab('challenges');
+                      } else {
+                        setCodexTab('missions');
+                        setSelectedSector(sector);
+                      }
+                    }}
+                  />
+                  <button 
+                    onClick={() => {
+                      setSelectedSector(null);
+                    }}
+                    style={{ background: 'none', border: '1px solid rgba(255,100,100,0.5)', borderRadius: '50%', width: '36px', height: '36px', color: '#ff6666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, position: 'relative' }}>
+                {codexTab === 'missions' ? (
+                  <MissionsCarousel3D
+                    missions={missionsByCategory?.[selectedSector] || []}
+                    loadingMissionId={loadingMissionId}
+                    selectedSector={selectedSector}
+                    onImpulse={(id) => handleImpulseMission(id)}
+                    onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({actionDoneId, label})}
+                  />
+                ) : (
+                  <ChallengesCarousel3D
+                    receivedChallenges={receivedChallenges}
+                    sentChallenges={sentChallenges}
+                    missions={availableMissionsForChallenge}
+                    loadingMissionId={loadingMissionId}
+                    onRespond={handleRespondChallenge}
+                    onImpulse={(id) => handleImpulseMission(id)}
+                    onSendChallenge={() => setShowChallengeModal(true)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        ) : era === '2026' && selectedSector && (
           <aside 
             className={`codex-panel ${isCodexCollapsed ? 'collapsed' : ''}`}
             onScroll={() => setExpandedMission(null)} // Ferme le pop-over au scroll

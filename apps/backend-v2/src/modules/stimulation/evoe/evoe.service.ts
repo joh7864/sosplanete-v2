@@ -179,6 +179,9 @@ export class EvoeService {
         categoryName: physicalCat,
         categorySF: catSF,
         actionRefId: action.actionRefId,
+        co2: Number(co2.toFixed(1)),
+        water: Number(water.toFixed(1)),
+        waste: Number(waste.toFixed(1)),
         co2Year: action.actionRef?.co2Year,
         icon: imageFile ? `actions/${imageFile}` : '',
         evoeMission: {
