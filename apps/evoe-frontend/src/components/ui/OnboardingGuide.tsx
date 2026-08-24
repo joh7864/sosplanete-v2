@@ -144,6 +144,18 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
       if (!el && targetId === 'hud-btn-chat') {
         el = document.getElementById('btn-com-link');
       }
+      if (targetId === 'hud-completion-bar') {
+        const desktopEl = document.getElementById('hud-completion-bar');
+        const laserEl = document.getElementById('hud-laser-regen-bar');
+        const isMobilePortrait = window.innerWidth <= 768 && window.innerHeight > 520;
+        if (isMobilePortrait && laserEl) {
+          el = laserEl;
+        } else if (desktopEl && desktopEl.getBoundingClientRect().width > 0) {
+          el = desktopEl;
+        } else if (laserEl) {
+          el = laserEl;
+        }
+      }
 
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -151,11 +163,11 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
           setTargetRect(rect);
         }
 
-        // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat, le FAB et les ancres 3D
+        // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat, la ligne laser et les ancres 3D
         if (
           (targetId === 'hud-moon-arena' || 
            targetId === 'sector-orb-guide' || 
-           targetId === 'hud-btn-epoch-fab' ||
+           targetId === 'hud-laser-regen-bar' ||
            targetId === 'hud-completion-bar' ||
            targetId === 'chat-panel-container' || 
            targetId === 'btn-podium-leaderboard' ||

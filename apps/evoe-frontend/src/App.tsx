@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Swords } from 'lucide-react';
+import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -403,7 +403,6 @@ function MainApp() {
 
   const receivedChallenges = challenges.filter(c => c.targetTeamId === myTeamId);
   const sentChallenges = challenges.filter(c => c.challengerTeamId === myTeamId);
-  const hasPendingChallenges = receivedChallenges.some(c => c.status === 'PENDING');
   const otherTeams = dashboardStatus?.teams?.filter((t: any) => t.id !== myTeamId) || [];
   const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId) || childInfos?.group?.team;
   const whatsappInviteUrl = childInfos?.group?.team?.whatsappInviteUrl || myTeam?.whatsappInviteUrl || childInfos?.whatsappInviteUrl || childInfos?.whatsappCommunityUrl || dashboardStatus?.whatsappCommunityUrl;
@@ -712,88 +711,211 @@ function MainApp() {
       {/* UI Overlay HTML */}
       <div className="ui-overlay">
         <header className="header">
-          <div className="logo">
-            <Hexagon className="icon" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <h1>EVOE {era}</h1>
+          <div 
+            id="hud-agent-profile"
+            className="logo"
+            onClick={() => childInfos && setSelectedProfileId(childInfos.id)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px', 
+              cursor: 'pointer', 
+              pointerEvents: 'auto' 
+            }}
+            title="Ouvrir la fiche profil de l'Agent"
+          >
+            {childInfos && (
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <img 
+                  src={getAvatarUrl()} 
+                  alt="" 
+                  className="avatar-pulse-ring"
+                  style={{ 
+                    width: '36px', 
+                    height: '36px', 
+                    borderRadius: '50%', 
+                    border: `1.8px solid ${currentPlayer?.color || '#00ffcc'}`, 
+                    objectFit: 'cover',
+                    boxShadow: `0 0 10px ${currentPlayer?.color || '#00ffcc'}44`
+                  }} 
+                />
+                {unreadChat.total > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    background: '#ff3b3b',
+                    borderRadius: '50%',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1.5px solid rgba(5, 8, 16, 0.94)',
+                    boxShadow: '0 0 6px #ff3b3b',
+                    zIndex: 10
+                  }}>
+                    <Mail size={8} color="#fff" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap' }}>EVOE {era}</h1>
               {childInfos && (
-                <div 
-                  id="hud-agent-profile"
-                  onClick={() => setSelectedProfileId(childInfos.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.3)', pointerEvents: 'auto', cursor: 'pointer', position: 'relative' }}
-                >
-                  <div style={{ position: 'relative' }}>
-                    <img 
-                      src={getAvatarUrl()} 
-                      alt="" 
-                      className="avatar-pulse-ring"
-                      style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${currentPlayer?.color || '#00ffcc'}`, objectFit: 'cover' }} 
-                    />
-                    {unreadChat.total > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '-5px',
-                        right: '-5px',
-                        background: '#ff3b3b',
-                        borderRadius: '50%',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '1.5px solid rgba(5, 8, 16, 0.94)',
-                        boxShadow: '0 0 6px #ff3b3b',
-                        zIndex: 10
-                      }}>
-                        <Mail size={8} color="#fff" />
-                      </div>
-                    )}
-                    {hasPendingChallenges && (
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedProfileId(null);
-                          setShowLeaderboardModal(false);
-                          setChatOpen(false);
-                          setCodexTab('challenges');
-                          setIsCodexCollapsed(false);
-                          if (era !== '2026') handleSwitchEra();
-                          if (!selectedSector) {
-                            const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                            if (cats.length > 0) setSelectedSector(cats[0]);
-                          }
-                        }}
-                        style={{
-                          position: 'absolute',
-                          bottom: '-5px',
-                          left: '-5px',
-                          background: '#f59e0b',
-                          borderRadius: '50%',
-                          padding: '3px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '1.5px solid rgba(5, 8, 16, 0.94)',
-                          boxShadow: '0 0 6px #f59e0b',
-                          zIndex: 10,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Swords size={9} color="#fff" />
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
-                    <span>Agent Temporel {childInfos.pseudo}</span>
-                    {childInfos.schoolYear && (
-                      <span style={{ fontSize: '0.65rem', color: 'rgba(0, 255, 204, 0.7)' }}>
-                        (Année active : {childInfos.schoolYear})
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <span style={{ 
+                  fontSize: '0.75rem', 
+                  color: '#00ffcc', 
+                  fontWeight: 'bold', 
+                  textShadow: '0 0 5px rgba(0,255,204,0.3)', 
+                  whiteSpace: 'nowrap' 
+                }}>
+                  Agent Temporel {childInfos.pseudo}
+                </span>
               )}
             </div>
           </div>
+
+          {/* 1. Mode Desktop / Paysage : Capsule Cybernétique vivante au centre du Header */}
+          {(() => {
+            const pct = (() => {
+              if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
+                return Math.min(100, Math.round(dashboardStatus.globalProgression));
+              }
+              const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === childInfos?.group?.teamId);
+              if (myTeam?.position !== undefined && myTeam.position !== null) {
+                return Math.min(100, Math.round(myTeam.position));
+              }
+              return 68;
+            })();
+
+            return (
+              <>
+                <div 
+                  id="hud-completion-bar"
+                  className="desktop-only"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'rgba(5, 15, 25, 0.75)',
+                    border: '1.5px solid rgba(0, 255, 204, 0.5)',
+                    borderRadius: '24px',
+                    padding: '7px 20px',
+                    boxShadow: '0 0 16px rgba(0, 255, 204, 0.22)',
+                    pointerEvents: 'auto',
+                    zIndex: 10,
+                    overflow: 'hidden',
+                    minWidth: '240px',
+                    justifyContent: 'center'
+                  }}
+                  title="Progression globale de l'équipage sur la période active (pondération : 60% CO2, 20% Eau, 20% Déchets)"
+                >
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      bottom: 0,
+                      width: `${pct}%`,
+                      background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.5) 0%, rgba(0, 255, 204, 0.7) 100%)',
+                      boxShadow: '0 0 12px rgba(0, 255, 204, 0.6)',
+                      borderRadius: '24px',
+                      transition: 'width 0.8s ease-in-out',
+                      zIndex: 1
+                    }}
+                  />
+                  <Zap size={15} color="#ffffff" style={{ filter: 'drop-shadow(0 0 5px #00ffcc)', zIndex: 2, position: 'relative' }} />
+                  <span style={{ 
+                    fontSize: '0.78rem', 
+                    fontWeight: '800', 
+                    color: '#ffffff', 
+                    letterSpacing: '0.6px', 
+                    whiteSpace: 'nowrap',
+                    zIndex: 2,
+                    position: 'relative',
+                    textShadow: '0 1px 3px rgba(0, 0, 0, 0.8), 0 0 10px rgba(0, 255, 204, 0.5)'
+                  }}>
+                    TERRE 2070 : {pct}% RÉGÉNÉRÉE
+                  </span>
+                </div>
+
+                {/* 2. Mode Mobile Portrait (Option 2) : Ligne Laser d'Énergie au bas du Header */}
+                <div 
+                  id="hud-laser-regen-bar" 
+                  className="mobile-portrait-only"
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '3px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    overflow: 'visible',
+                    zIndex: 15,
+                    pointerEvents: 'none'
+                  }}
+                >
+                  <div 
+                    style={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #10b981 0%, #00ffcc 100%)',
+                      boxShadow: '0 0 8px #00ffcc, 0 0 4px #10b981',
+                      position: 'relative',
+                      transition: 'width 0.8s ease-in-out'
+                    }}
+                  >
+                    {/* Point lumineux d'impact laser */}
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        right: '-3px',
+                        top: '-2px',
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 0 8px #00ffcc, 0 0 12px #ffffff'
+                      }} 
+                    />
+                  </div>
+
+                  {/* Badge centré directement sur la ligne laser */}
+                  <div 
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      background: 'rgba(5, 12, 28, 0.94)',
+                      border: '1.2px solid rgba(0, 255, 204, 0.65)',
+                      borderRadius: '12px',
+                      padding: '2px 10px',
+                      fontSize: '0.66rem',
+                      fontWeight: '800',
+                      color: '#00ffcc',
+                      boxShadow: '0 0 10px rgba(0, 255, 204, 0.4), 0 2px 8px rgba(0, 0, 0, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      pointerEvents: 'none',
+                      letterSpacing: '0.4px',
+                      whiteSpace: 'nowrap',
+                      zIndex: 20
+                    }}
+                  >
+                    <Zap size={11} color="#00ffcc" style={{ filter: 'drop-shadow(0 0 4px #00ffcc)' }} />
+                    <span>TERRE 2070 : {pct}%</span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
 

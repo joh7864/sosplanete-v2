@@ -222,10 +222,21 @@ export function AgentProfileModal({
               </div>
 
               <div className="agent-profile-identity-info">
-                <h2 className="agent-profile-pseudo">{profileData.profile.pseudo}</h2>
-                <div className="agent-profile-team" style={{ color: teamColor }}>{profileData.profile.teamName}</div>
+                <h2 className="agent-profile-pseudo" style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.25' }}>
+                  {profileData.profile.pseudo}, équipe <span style={{ color: teamColor }}>{profileData.profile.teamName || 'Non assignée'}</span>
+                </h2>
+                <div 
+                  className="agent-profile-school-year" 
+                  style={{ 
+                    fontSize: '0.8rem', 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    margin: '3px 0 8px 0' 
+                  }}
+                >
+                  Année active : {profileData.profile.schoolYear || '2025-2026'}
+                </div>
 
-                {isOwner && profileData.profile?.whatsappInviteUrl && (
+                {profileData.profile?.whatsappInviteUrl && (
                   <a
                     href={profileData.profile.whatsappInviteUrl}
                     target="_blank"
@@ -240,14 +251,12 @@ export function AgentProfileModal({
                       height: '34px',
                       minWidth: '34px',
                       minHeight: '34px',
-                      flexShrink: 0,
-                      aspectRatio: '1 / 1',
                       borderRadius: '50%',
                       background: 'rgba(37, 211, 102, 0.2)',
                       border: '1.5px solid #25D366',
                       color: '#25D366',
                       textDecoration: 'none',
-                      boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
+                      boxShadow: '0 0 12px rgba(37, 211, 102, 0.35)',
                       transition: 'all 0.2s',
                       cursor: 'pointer',
                       boxSizing: 'border-box',
