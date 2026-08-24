@@ -786,7 +786,7 @@ function MainApp() {
               if (myTeam?.position !== undefined && myTeam.position !== null) {
                 return Math.min(100, Math.round(myTeam.position));
               }
-              return 68;
+              return 0;
             })();
 
             return (
