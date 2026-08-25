@@ -49,7 +49,17 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
     // S'il n'y a pas de gras, on ajoute le label en gras à la fin
     desc = `${desc}\n\nObjectif : **${mission.label}**`;
   }
-  
+
+  const rawIcon = mission.icon || mission.image || mission.icone;
+  const isImageFile = Boolean(rawIcon && typeof rawIcon === 'string' && (
+    rawIcon.includes('.') || rawIcon.startsWith('http') || rawIcon.startsWith('data:') || rawIcon.includes('/')
+  ));
+  const imgSrc = isImageFile
+    ? (rawIcon.startsWith('http') || rawIcon.startsWith('data:')
+        ? rawIcon
+        : `${EVOE_IMG_URL}${rawIcon.startsWith('/') ? rawIcon.slice(1) : rawIcon}`)
+    : null;
+
   return (
     <motion.div
       id={isActive ? "hud-active-mission-card" : undefined}
@@ -111,15 +121,20 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           overflow: 'hidden',
           flexShrink: 0
         }}>
-          {mission.image && !imgError ? (
+          {imgSrc && !imgError ? (
             <img 
-              src={mission.image.startsWith('http') ? mission.image : `${EVOE_IMG_URL}${mission.image}`} 
+              src={imgSrc} 
               alt={mission.label}
               onError={() => setImgError(true)}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{
+                width: '36px',
+                height: '36px',
+                objectFit: 'contain',
+                filter: `drop-shadow(0 0 5px ${neonColor})`
+              }}
             />
           ) : (
-            <span style={{ fontSize: '1.4rem' }}>{mission.icone || '⚡'}</span>
+            <span style={{ fontSize: '1.4rem' }}>{rawIcon || '⚡'}</span>
           )}
         </div>
 

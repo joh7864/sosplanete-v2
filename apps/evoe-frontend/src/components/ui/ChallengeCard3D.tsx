@@ -27,6 +27,7 @@ interface ChallengeCard3DProps {
   onClick?: () => void;
   style?: React.CSSProperties;
 }
+const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
 export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
   challenge,
@@ -38,6 +39,7 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
   onClick,
   style
 }) => {
+  const [imgError, setImgError] = React.useState(false);
   const isReceived = challenge.type === 'received';
   const teamColor = isReceived ? challenge.challengerTeamColor : challenge.targetTeamColor;
   const teamName = isReceived ? challenge.challengerTeamName : challenge.targetTeamName;
@@ -49,14 +51,23 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
       case 'ACCEPTED': return '#00b3ff';
       case 'SUCCESS': return '#10b981';
       case 'FAILED': return '#ff3b3b';
-      default: return '#fff';
+      case 'EXPIRED': return '#718096';
+      default: return '#a0aec0';
     }
   };
-  
+
   const statusColor = getStatusColor(challenge.status);
-  
-  // Neon colors based on status
-  const neonColor = challenge.status === 'SUCCESS' ? '#10b981' : (challenge.status === 'FAILED' ? '#ff3b3b' : teamColor || '#00ffcc');
+  const neonColor = statusColor;
+
+  const rawIcon = mission?.icon || mission?.image || mission?.icone || challenge.actionIcon;
+  const isImageFile = Boolean(rawIcon && typeof rawIcon === 'string' && (
+    rawIcon.includes('.') || rawIcon.startsWith('http') || rawIcon.startsWith('data:') || rawIcon.includes('/')
+  ));
+  const imgSrc = isImageFile
+    ? (rawIcon.startsWith('http') || rawIcon.startsWith('data:')
+        ? rawIcon
+        : `${EVOE_IMG_URL}${rawIcon.startsWith('/') ? rawIcon.slice(1) : rawIcon}`)
+    : null;
   
   return (
     <motion.div
@@ -96,7 +107,7 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
         padding: '12px 16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px'
+        gap: '8px'
       }}>
         {/* Badges */}
         <div style={{ display: 'flex', gap: '6px', zIndex: 10 }}>
@@ -109,6 +120,36 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
         </div>
 
         <div className="mission-header" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Mission Icon/Image */}
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '10px',
+            background: 'rgba(0, 255, 204, 0.08)',
+            border: `1px solid ${neonColor}40`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            flexShrink: 0
+          }}>
+            {imgSrc && !imgError ? (
+              <img 
+                src={imgSrc} 
+                alt=""
+                onError={() => setImgError(true)}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  objectFit: 'contain',
+                  filter: `drop-shadow(0 0 5px ${neonColor})`
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: '1.2rem' }}>{rawIcon || '⚔️'}</span>
+            )}
+          </div>
+
           <h3 style={{ 
             color: '#fff', 
             margin: 0,

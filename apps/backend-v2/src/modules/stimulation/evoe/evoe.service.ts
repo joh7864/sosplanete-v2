@@ -184,6 +184,7 @@ export class EvoeService {
         waste: Number(waste.toFixed(1)),
         co2Year: action.actionRef?.co2Year,
         icon: imageFile ? `actions/${imageFile}` : '',
+        image: imageFile ? `actions/${imageFile}` : '',
         evoeMission: {
           titreSF: titreSF,
           descriptionSF: descSF,
