@@ -43,7 +43,7 @@ const STEPS: OnboardingStep[] = [
     id: 3,
     badge: 'Étape 3 / 11',
     title: '⚡ Le Codex & Impulsion d\'une Mission',
-    targetId: 'btn-impulser-mission',
+    targetId: 'hud-active-mission-card',
     position: 'left',
     explanation: "Quand vous accomplissez une action éco-responsable dans la vraie vie, cliquez sur 'Impulser'. Vous gagnez des points IT (Impulsions Temporelles) et réduisez l'empreinte carbone collective de l'équipage."
   },
@@ -165,7 +165,8 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
 
         // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat, la ligne laser et les ancres 3D
         if (
-          (targetId === 'hud-moon-arena' || 
+          (targetId === 'hud-active-mission-card' ||
+           targetId === 'hud-moon-arena' || 
            targetId === 'sector-orb-guide' || 
            targetId === 'hud-laser-regen-bar' ||
            targetId === 'hud-completion-bar' ||

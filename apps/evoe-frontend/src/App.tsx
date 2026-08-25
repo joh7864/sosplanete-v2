@@ -1071,7 +1071,7 @@ function MainApp() {
               {/* En-tête HUD avec zIndex élevé pour s'assurer qu'il est cliquable au-dessus du carrousel */}
               <div style={{ display: 'flex', position: 'relative', zIndex: 20, justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '8px' }}>
                 <h2 style={{ margin: 0, color: '#fff', fontSize: '1.25rem', letterSpacing: '1px' }}>
-                  Codex missions temporelles
+                  Missions & Défis
                 </h2>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
                   <OrbitalSectorRibbon 

@@ -52,6 +52,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   
   return (
     <motion.div
+      id={isActive ? "hud-active-mission-card" : undefined}
       onClick={onClick}
       style={{
         width: 'min(330px, 86vw)',
@@ -83,110 +84,137 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         width: '200px',
         height: '100px',
         background: neonColor,
-        filter: 'blur(60px)',
-        opacity: isActive ? 0.5 : 0.1,
+        filter: 'blur(40px)',
+        opacity: isActive ? 0.3 : 0.05,
         pointerEvents: 'none'
       }} />
 
-      {/* Header / Image area */}
+      {/* Header : Image / Icon + Title */}
       <div style={{
-        position: 'relative',
-        borderBottom: `1px solid rgba(255,255,255,0.05)`,
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%)',
-        padding: '12px 16px',
-        overflow: 'hidden'
+        padding: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        background: 'rgba(255, 255, 255, 0.02)'
       }}>
-        <div className="mission-header" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {mission.icon && !imgError && (
+        {/* Mission Icon/Image */}
+        <div style={{
+          width: '46px',
+          height: '46px',
+          borderRadius: '12px',
+          background: 'rgba(0, 255, 204, 0.08)',
+          border: `1px solid ${neonColor}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}>
+          {mission.image && !imgError ? (
             <img 
-              src={`${EVOE_IMG_URL}${mission.icon}`} 
-              alt="" 
-              className="mission-icon"
+              src={mission.image.startsWith('http') ? mission.image : `${EVOE_IMG_URL}${mission.image}`} 
+              alt={mission.label}
               onError={() => setImgError(true)}
-              style={{
-                width: '36px',
-                height: '36px',
-                objectFit: 'contain',
-                filter: `drop-shadow(0 0 5px ${neonColor})`,
-              }} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
+          ) : (
+            <span style={{ fontSize: '1.4rem' }}>{mission.icone || '⚡'}</span>
           )}
-          <h3 style={{ 
-            color: '#fff', 
+        </div>
+
+        {/* Title */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{
             margin: 0,
-            fontSize: '1.05rem',
-            lineHeight: '1.3',
-            textShadow: '0 0 10px rgba(255,255,255,0.3)',
-            flex: 1
+            color: '#fff',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textShadow: isActive ? `0 0 10px ${neonColor}60` : 'none'
           }}>
             {mission.evoeMission?.titreSF || mission.label}
           </h3>
         </div>
       </div>
 
-      {/* Badges */}
-      <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
-        {mission.isChallengeActif && (
-          <div style={{ background: '#ff3b3b', color: '#fff', fontSize: '0.65rem', padding: '3px 6px', borderRadius: '6px', fontWeight: 'bold', boxShadow: '0 0 10px rgba(255,59,59,0.5)' }}>
-            ⚔️ DÉFI
-          </div>
-        )}
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: '12px 16px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ flex: 1, overflowY: 'auto', marginBottom: '8px', paddingRight: '2px' }}>
-          <p style={{ 
-            color: 'rgba(255,255,255,0.85)', 
-            fontSize: '0.82rem', 
-            lineHeight: '1.4',
-            margin: 0
-          }}>
-            {parseBold(desc)}
-          </p>
+      {/* Content : Description */}
+      <div style={{
+        padding: '16px',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '12px'
+      }}>
+        <div style={{
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontSize: '0.88rem',
+          lineHeight: 1.5,
+          overflowY: 'auto',
+          maxHeight: '160px',
+          paddingRight: '4px',
+          whiteSpace: 'pre-line'
+        }}>
+          {parseBold(desc)}
         </div>
 
-        {/* Bandes de Métriques / Impact */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(0,0,0,0.4)', borderRadius: '10px', padding: '8px 10px', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>CO2e</span>
-            <span style={{ color: '#00ffcc', fontWeight: 'bold', fontSize: '0.8rem' }}>{mission.co2 ?? mission.savedCo2 ?? mission.co2e ?? mission.defaultCo2 ?? 0} kg</span>
+        {/* Impact Indicators */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '6px',
+          background: 'rgba(0, 0, 0, 0.4)',
+          padding: '8px 6px',
+          borderRadius: '10px',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          textAlign: 'center'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>CO2e</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#00ffcc' }}>{mission.co2 ?? '0'} kg</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>Eau</span>
-            <span style={{ color: '#00b3ff', fontWeight: 'bold', fontSize: '0.8rem' }}>{mission.water ?? mission.savedWater ?? mission.eau ?? mission.defaultWater ?? 0} L</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Eau</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#00b3ff' }}>{mission.water ?? '0'} L</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>Déchets</span>
-            <span style={{ color: '#ff9f43', fontWeight: 'bold', fontSize: '0.8rem' }}>{mission.waste ?? mission.savedWaste ?? mission.dechet ?? mission.defaultWaste ?? 0} kg</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Déchets</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#f59e0b' }}>{mission.waste ?? '0'} kg</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
-            <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>HP</span>
-            <span style={{ color: '#ff3b3b', fontWeight: 'bold', fontSize: '0.8rem' }}>+{(mission.hp || mission.pointsHP || mission.points || (mission.evoeMission?.amplitude || 10))}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>HP</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#ef4444' }}>+{mission.evoeMission?.amplitude || 10}</span>
           </div>
         </div>
 
         {/* Action Button */}
         {isActive && (
-          <div style={{ marginTop: '10px' }}>
+          <div>
             {isCompleted ? (
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  onCancelConfirm(mission.evoeMission.actionDoneId, mission.label);
+                  onCancelConfirm(mission.evoeMission?.actionDoneId, mission.evoeMission?.titreSF || mission.label);
                 }}
                 disabled={isImpulsing}
                 style={{
                   width: '100%',
                   padding: '12px',
                   borderRadius: '10px',
-                  border: `1px solid ${neonColor}`,
-                  background: `rgba(16, 185, 129, 0.1)`,
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  background: 'rgba(16, 185, 129, 0.15)',
                   color: '#10b981',
-                  fontSize: '0.9rem',
+                  fontSize: '0.85rem',
                   fontWeight: 'bold',
+                  letterSpacing: '1px',
                   textTransform: 'uppercase',
                   cursor: isImpulsing ? 'wait' : 'pointer',
+                  boxShadow: '0 0 15px rgba(16, 185, 129, 0.2)',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -197,6 +225,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
               </button>
             ) : (
               <button 
+                id="btn-impulser-mission"
                 onClick={(e) => {
                   e.stopPropagation();
                   onImpulse(mission.id);
