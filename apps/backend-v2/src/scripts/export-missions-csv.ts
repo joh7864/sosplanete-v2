@@ -53,7 +53,7 @@ async function main() {
     'Économie CO2 (kg)',
     'Économie Eau (L)',
     'Économie Déchets (kg)',
-    'Gain HP / IT'
+    'Gain IT'
   ].map(escapeCsv).join(';'));
 
   // Pour dédupliquer si plusieurs instances partagent les mêmes actions

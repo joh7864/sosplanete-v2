@@ -58,21 +58,25 @@ export class LocalActionController {
   @ApiOperation({ summary: "Importation en masse d'actions du référentiel" })
   async bulkImport(
     @Body()
-    body: { instanceId: number; actionRefIds: number[]; schoolYear: string },
+    body: {
+      instanceId: number;
+      actionRefIds: number[];
+      schoolYear?: string;
+    },
     @Req() req: any,
   ) {
     return this.localActionService.importFromRef(
       body.instanceId,
       body.actionRefIds,
-      body.schoolYear,
+      body.schoolYear || '2024-2025',
       req.user,
     );
   }
 
   @Get()
   @ApiOperation({ summary: "Lister le catalogue d'actions de l'instance" })
-  @ApiQuery({ name: 'instanceId', type: Number })
-  @ApiQuery({ name: 'schoolYear', type: String, required: false })
+  @ApiQuery({ name: 'instanceId', required: true, type: Number })
+  @ApiQuery({ name: 'schoolYear', required: false, type: String })
   async findAll(
     @Query('instanceId', ParseIntPipe) instanceId: number,
     @Query('schoolYear') schoolYear: string,
@@ -81,10 +85,15 @@ export class LocalActionController {
     return this.localActionService.findAll(instanceId, schoolYear, req.user);
   }
 
-  @Post('import-codes')
-  @ApiOperation({ summary: 'Importation en masse par codes' })
-  async importCodes(
-    @Body() body: { instanceId: number; actions: any[]; schoolYear: string },
+  @Post('import-csv')
+  @ApiOperation({ summary: "Importation personnalisée d'actions via un tableau JSON" })
+  async importCsv(
+    @Body()
+    body: {
+      instanceId: number;
+      actions: any[];
+      schoolYear: string;
+    },
     @Req() req: any,
   ) {
     return this.localActionService.importByCodes(
@@ -104,7 +113,16 @@ export class LocalActionController {
       label?: string;
       description?: string;
       image?: string;
-      categoryId?: number;
+      imageEvoe?: string;
+      categoryId?: number | null;
+      specificCo2?: number | null;
+      specificWater?: number | null;
+      specificWaste?: number | null;
+      specificEnergy?: number | null;
+      titreSF?: string;
+      descriptionSF?: string;
+      pointsIT?: number;
+      pointsGagnes?: number;
     },
     @Req() req: any,
   ) {
@@ -130,22 +148,23 @@ export class LocalActionController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: (_req, _file, cb) => {
+        destination: (req, _file, cb) => {
+          const folder = req.query.folder === 'missions' ? 'missions' : 'actions';
           const basePath =
             process.env.UPLOADS_DIR ||
-            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
-          const path = join(basePath, 'actions');
-          if (!fs.existsSync(path)) {
-            fs.mkdirSync(path, { recursive: true });
+            join(__dirname, '..', '..', '..', '..', 'uploads');
+          const destPath = join(basePath, folder);
+          if (!fs.existsSync(destPath)) {
+            fs.mkdirSync(destPath, { recursive: true });
           }
-          cb(null, path);
+          cb(null, destPath);
         },
         filename: (_req, file, cb) => {
           const uniqueName = `custom-${uuidv4()}${extname(file.originalname)}`;
           cb(null, uniqueName);
         },
       }),
-      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|webp|svg\+xml)$/)) {
           cb(
@@ -167,12 +186,24 @@ export class LocalActionController {
   async uploadImage(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
+    @Query('folder') folder: string,
     @Req() req: any,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier envoyé.');
-    const imageUrl = `/uploads/actions/${file.filename}`;
-    await this.localActionService.update(id, { image: imageUrl }, req.user);
-    return { url: imageUrl };
+    const targetFolder = folder === 'missions' ? 'missions' : 'actions';
+    const imageUrl = file.filename;
+    
+    if (targetFolder === 'missions') {
+      await this.localActionService.update(id, { imageEvoe: imageUrl }, req.user);
+    } else {
+      await this.localActionService.update(id, { image: imageUrl }, req.user);
+    }
+
+    return { 
+      filename: imageUrl, 
+      url: `/uploads/${targetFolder}/${imageUrl}`,
+      folder: targetFolder 
+    };
   }
 
   @Delete(':id')

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as Papa from 'papaparse';
 
@@ -42,6 +42,7 @@ export class ActionRefService {
             const weightedStars = parseInt(row[9]?.trim() || '0', 10);
             const image = row[10]?.trim();
             const description = row[11]?.trim() || null;
+            const imageEvoe = row[12]?.trim() || null;
 
             try {
               await this.prisma.actionRef.upsert({
@@ -56,6 +57,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  imageEvoe,
                   description,
                   category: category || null,
                 },
@@ -70,6 +72,7 @@ export class ActionRefService {
                   impactTotal,
                   weightedStars,
                   image,
+                  imageEvoe,
                   description,
                   category: category || null,
                 },
@@ -96,6 +99,17 @@ export class ActionRefService {
     });
   }
 
+  async findOne(id: number) {
+    const ref = await this.prisma.actionRef.findUnique({
+      where: { id },
+      include: {
+        categoryRef: true,
+      },
+    });
+    if (!ref) throw new NotFoundException(`ActionRef #${id} not found`);
+    return ref;
+  }
+
   async search(query: string) {
     return this.prisma.actionRef.findMany({
       where: {
@@ -106,6 +120,55 @@ export class ActionRefService {
       },
       take: 100,
       orderBy: { code: 'asc' },
+    });
+  }
+
+  async update(
+    id: number,
+    data: {
+      referenceName?: string;
+      description?: string;
+      category?: string;
+      defaultCo2?: number;
+      defaultWater?: number;
+      defaultWaste?: number;
+      defaultEnergy?: number;
+      weightedStars?: number;
+      image?: string;
+      imageEvoe?: string;
+    },
+  ) {
+    const existing = await this.prisma.actionRef.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`ActionRef #${id} not found`);
+
+    return this.prisma.actionRef.update({
+      where: { id },
+      data: {
+        ...(data.referenceName !== undefined && { referenceName: data.referenceName }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.category !== undefined && { category: data.category }),
+        ...(data.defaultCo2 !== undefined && { defaultCo2: data.defaultCo2 }),
+        ...(data.defaultWater !== undefined && { defaultWater: data.defaultWater }),
+        ...(data.defaultWaste !== undefined && { defaultWaste: data.defaultWaste }),
+        ...(data.defaultEnergy !== undefined && { defaultEnergy: data.defaultEnergy }),
+        ...(data.weightedStars !== undefined && { weightedStars: data.weightedStars }),
+        ...(data.image !== undefined && { image: data.image }),
+        ...(data.imageEvoe !== undefined && { imageEvoe: data.imageEvoe }),
+      },
+    });
+  }
+
+  async remove(id: number) {
+    const existing = await this.prisma.actionRef.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`ActionRef #${id} not found`);
+
+    // Clean up localActions attached to this actionRef first if any
+    await this.prisma.localAction.deleteMany({
+      where: { actionRefId: id },
+    });
+
+    return this.prisma.actionRef.delete({
+      where: { id },
     });
   }
 }
