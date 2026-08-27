@@ -110,15 +110,22 @@ export class ActionRefService {
     return ref;
   }
 
-  async search(query: string) {
+  async search(query?: string) {
+    const q = query?.trim();
+    if (!q) {
+      return this.prisma.actionRef.findMany({
+        orderBy: { code: 'asc' },
+      });
+    }
     return this.prisma.actionRef.findMany({
       where: {
         OR: [
-          { code: { contains: query, mode: 'insensitive' } },
-          { referenceName: { contains: query, mode: 'insensitive' } },
+          { code: { contains: q, mode: 'insensitive' } },
+          { referenceName: { contains: q, mode: 'insensitive' } },
+          { category: { contains: q, mode: 'insensitive' } },
         ],
       },
-      take: 100,
+      take: 200,
       orderBy: { code: 'asc' },
     });
   }
