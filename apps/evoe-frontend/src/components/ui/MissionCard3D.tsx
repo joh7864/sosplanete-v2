@@ -73,7 +73,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         maxHeight: '520px',
         borderRadius: '24px',
         background: isCompleted 
-          ? 'rgba(6, 10, 18, 0.8)' 
+          ? 'rgba(6, 10, 18, 0.85)' 
           : 'rgba(8, 14, 28, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
@@ -88,7 +88,6 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         overflow: 'hidden',
         position: 'relative',
         cursor: 'pointer',
-        filter: isCompleted ? 'grayscale(100%) opacity(0.55)' : 'none',
         ...style
       }}
       whileHover={isActive && !isCompleted ? { scale: 1.02 } : {}}
@@ -166,7 +165,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         gap: '6px',
         position: 'relative',
         overflowY: 'auto',
-        minHeight: 0
+        minHeight: 0,
+        filter: isCompleted ? 'grayscale(100%) opacity(0.55)' : 'none'
       }}>
         {/* Bouton "!" Premium justifié à droite dans l'espace image */}
         <button
@@ -309,7 +309,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px'
+          gap: '8px',
+          filter: isCompleted ? 'grayscale(100%) opacity(0.5)' : 'none'
         }}>
           {/* CO2 */}
           <div style={{
@@ -379,35 +380,35 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
                 disabled={isImpulsing}
                 style={{
                   width: '100%',
-                  padding: '10px',
+                  padding: '11px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.18)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  fontSize: '0.82rem',
+                  border: '1.5px solid rgba(239, 68, 68, 0.55)',
+                  background: 'rgba(239, 68, 68, 0.14)',
+                  color: '#ff6b6b',
+                  fontSize: '0.85rem',
                   fontWeight: 800,
-                  letterSpacing: '0.6px',
+                  letterSpacing: '0.8px',
                   textTransform: 'uppercase',
                   cursor: isImpulsing ? 'wait' : 'pointer',
-                  boxShadow: 'none',
+                  boxShadow: '0 0 15px rgba(239, 68, 68, 0.25)',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '7px',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                  e.currentTarget.style.color = '#ff6b6b';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.85)';
+                  e.currentTarget.style.boxShadow = '0 0 22px rgba(239, 68, 68, 0.45)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.14)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.55)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.25)';
                 }}
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={15} />
                 <span>{isImpulsing ? 'ANNULATION...' : 'DÉSIMPULSER'}</span>
               </button>
             ) : (
