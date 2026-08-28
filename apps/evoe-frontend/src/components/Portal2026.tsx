@@ -452,9 +452,11 @@ function AnimatedAvatar({
   avatarScale, 
   onSelectPlayer, 
   onSelectChallengeBadge,
+  onSelectMissionsWeek,
   isOnline, 
   hasUnread,
   challengeCount,
+  missionsWeekCount,
   showHealth,
   showChatIcon,
   rankTag
@@ -464,9 +466,11 @@ function AnimatedAvatar({
   avatarScale: number;
   onSelectPlayer?: (p: any) => void;
   onSelectChallengeBadge?: (p: any) => void;
+  onSelectMissionsWeek?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
   challengeCount?: number;
+  missionsWeekCount?: number;
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
@@ -489,9 +493,11 @@ function AnimatedAvatar({
         avatarScale={avatarScale} 
         onSelectPlayer={onSelectPlayer} 
         onSelectChallengeBadge={onSelectChallengeBadge}
+        onSelectMissionsWeek={onSelectMissionsWeek}
         isOnline={isOnline}
         hasUnread={hasUnread}
         challengeCount={challengeCount}
+        missionsWeekCount={missionsWeekCount}
         showHealth={showHealth}
         showChatIcon={showChatIcon}
         rankTag={rankTag}
@@ -506,6 +512,7 @@ export default function Portal2026({
   onSelectPlayer,
   onSelectChallenges,
   onSelectChallengeBadge,
+  onSelectMissionsWeek,
   onlineUsers = new Set(),
   unreadTeam = 0,
   unreadMps = {},
@@ -513,6 +520,7 @@ export default function Portal2026({
   view = 'codex',
   dashboardStatus,
   challenges = [],
+  missionsWeekCount = 0,
   onCloseLeaderboard: _onCloseLeaderboard,
 }: { 
   categories?: string[];
@@ -520,6 +528,7 @@ export default function Portal2026({
   onSelectPlayer?: (player: any) => void;
   onSelectChallenges?: () => void;
   onSelectChallengeBadge?: (player: any) => void;
+  onSelectMissionsWeek?: (player: any) => void;
   onlineUsers?: Set<string>;
   unreadTeam?: number;
   unreadMps?: Record<string, number>;
@@ -527,6 +536,7 @@ export default function Portal2026({
   view?: 'codex' | 'leaderboard';
   dashboardStatus?: any;
   challenges?: any[];
+  missionsWeekCount?: number;
   onCloseLeaderboard?: () => void;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
@@ -807,9 +817,11 @@ export default function Portal2026({
               avatarScale={avatarScale} 
               onSelectPlayer={onSelectPlayer} 
               onSelectChallengeBadge={onSelectChallengeBadge}
+              onSelectMissionsWeek={onSelectMissionsWeek}
               isOnline={isOnline}
               hasUnread={hasUnread}
               challengeCount={pChallengeCount}
+              missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
               showHealth={view === 'codex'}
               showChatIcon={view === 'codex'}
               rankTag={view === 'leaderboard' ? `#${rankNumber}` : undefined}

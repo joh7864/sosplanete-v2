@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,7 @@ import pkg from '../package.json';
 import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 
+import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
@@ -101,6 +102,7 @@ function MainApp() {
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+  const [showMissionsWeekModal, setShowMissionsWeekModal] = useState(false);
 
   useEffect(() => {
     preloadEvoeAssets();
@@ -253,6 +255,10 @@ function MainApp() {
 
   const { user, childInfos, pseudo, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
   const currentUserId = childInfos?.id || childInfos?.childId || pseudo || user || 'default_agent';
+
+  const impulsedMissionsCount = useMemo(() => {
+    return missions?.filter((m: any) => m.evoeMission?.isImpulsed)?.length || 0;
+  }, [missions]);
 
   // L'early return doit être après tous les hooks
   const shouldRedirect = !user || instanceChoices;
@@ -590,6 +596,13 @@ function MainApp() {
               view={view2026}
               dashboardStatus={dashboardStatus}
               challenges={challenges}
+              missionsWeekCount={impulsedMissionsCount}
+              onSelectMissionsWeek={() => {
+                setSelectedProfileId(null);
+                setShowLeaderboardModal(false);
+                setChatOpen(false);
+                setShowMissionsWeekModal(true);
+              }}
               onCloseLeaderboard={() => setView2026('codex')}
             />
           ) : (
@@ -1860,6 +1873,15 @@ function MainApp() {
           handleCancelMission={handleCancelMission}
         />
       </Suspense>
+
+      {/* Modal Mes Missions de la Semaine */}
+      <MissionsWeekModal
+        isOpen={showMissionsWeekModal}
+        onClose={() => setShowMissionsWeekModal(false)}
+        missions={missions || []}
+        childPseudo={childInfos?.pseudo}
+        onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({ actionDoneId, label })}
+      />
 
       {/* Modal du Profil Agent */}
       <AnimatePresence>
