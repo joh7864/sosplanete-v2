@@ -73,27 +73,25 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         maxHeight: '520px',
         borderRadius: '24px',
         background: isCompleted 
-          ? 'rgba(8, 12, 20, 0.75)' 
+          ? 'rgba(6, 10, 18, 0.8)' 
           : 'rgba(8, 14, 28, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: isCompleted
-          ? `1.5px solid rgba(255, 255, 255, ${isActive ? '0.22' : '0.08'})`
+          ? '1.5px solid rgba(255, 255, 255, 0.12)'
           : `1.5px solid ${isActive ? `${neonColor}80` : 'rgba(255, 255, 255, 0.1)'}`,
         boxShadow: isCompleted
-          ? (isActive ? '0 15px 35px rgba(0,0,0,0.85)' : '0 10px 30px rgba(0,0,0,0.6)')
+          ? '0 10px 30px rgba(0, 0, 0, 0.85)'
           : (isActive ? `0 0 35px ${neonColor}40, inset 0 0 20px ${neonColor}20` : '0 10px 30px rgba(0,0,0,0.6)'),
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
         cursor: 'pointer',
-        filter: isCompleted 
-          ? (isActive ? 'grayscale(80%) opacity(0.85)' : 'grayscale(100%) opacity(0.5)')
-          : 'none',
+        filter: isCompleted ? 'grayscale(100%) opacity(0.55)' : 'none',
         ...style
       }}
-      whileHover={isActive ? { scale: 1.02 } : {}}
+      whileHover={isActive && !isCompleted ? { scale: 1.02 } : {}}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
       {/* Top subtle glow banner */}
