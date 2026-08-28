@@ -26,6 +26,8 @@ interface ReferenceListProps {
   minStars?: number;
   impactFilters?: { co2: boolean; water: boolean; waste: boolean };
   viewMode?: 'list' | 'grid';
+  isEvoe?: boolean;
+  sortBy?: string;
 }
 
 export const ReferenceList: React.FC<ReferenceListProps> = ({ 
@@ -38,7 +40,9 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   filterCategory,
   minStars = 0,
   impactFilters = { co2: false, water: false, waste: false },
-  viewMode = 'list'
+  viewMode = 'list',
+  isEvoe = false,
+  sortBy = 'code-asc'
 }) => {
   const { setNodeRef } = useDroppable({ id: 'reference-drop-zone' });
 
@@ -54,15 +58,35 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
 
       const isNotMapped = !mappedIds.includes(a.id);
       return matchSearch && matchCat && matchStars && matchCo2 && matchWater && matchWaste && isNotMapped;
+    }).sort((a, b) => {
+      const getIT = (act: ActionRef) => {
+        const co2 = act.defaultCo2 || 0;
+        const water = act.defaultWater || 0;
+        const waste = act.defaultWaste || 0;
+        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      };
+      if (sortBy === 'it-desc') return getIT(b) - getIT(a);
+      if (sortBy === 'it-asc') return getIT(a) - getIT(b);
+      if (sortBy === 'code-asc') return a.code.localeCompare(b.code);
+      if (sortBy === 'stars-desc') {
+        const starsA = a.weightedStars ?? 0;
+        const starsB = b.weightedStars ?? 0;
+        if (starsB !== starsA) return starsB - starsA;
+        return a.code.localeCompare(b.code);
+      }
+      if (sortBy === 'co2-desc') return (b.defaultCo2 ?? 0) - (a.defaultCo2 ?? 0);
+      if (sortBy === 'water-desc') return (b.defaultWater ?? 0) - (a.defaultWater ?? 0);
+      if (sortBy === 'waste-desc') return (b.defaultWaste ?? 0) - (a.defaultWaste ?? 0);
+      return a.code.localeCompare(b.code);
     });
-  }, [actions, globalSearch, filterCategory, minStars, impactFilters, mappedIds]);
+  }, [actions, globalSearch, filterCategory, minStars, impactFilters, mappedIds, sortBy]);
 
   const toggleSelect = (id: number) => {
-    if (selectedIds.includes(id)) {
-      onSelect(selectedIds.filter(idx => idx !== id));
-    } else {
-      onSelect([...selectedIds, id]);
-    }
+    onSelect(
+      selectedIds.includes(id) 
+        ? selectedIds.filter(i => i !== id) 
+        : [...selectedIds, id]
+    );
   };
 
   const toggleSelectAll = () => {
@@ -74,32 +98,39 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   };
 
   return (
-    <div ref={setNodeRef} className="flex flex-col gap-3 h-full bg-white/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-      
-      <div className="flex items-center justify-between px-1 h-12">
-         <button 
-          onClick={toggleSelectAll}
-          className="text-[10px] font-black uppercase text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-2"
-         >
-           <div className={`w-5 h-5 rounded-lg border-2 transition-all flex items-center justify-center ${selectedIds.length === filteredActions.length && filteredActions.length > 0 ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'bg-white border-slate-200'}`}>
-              {selectedIds.length === filteredActions.length && filteredActions.length > 0 && <Check size={12} strokeWidth={4} />}
-           </div>
-           Tout sélectionner
-         </button>
-         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-           {filteredActions.length} disponibles
-         </span>
+    <div className="flex flex-col h-full bg-slate-50/50 rounded-3xl p-4 border border-slate-100/80 shadow-inner">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200/40">
+          <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                 Actions Disponibles
+              </h3>
+              <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100 shadow-xs">
+                 {filteredActions.length}
+              </span>
+          </div>
+
+          <button 
+            onClick={toggleSelectAll}
+            className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-2"
+          >
+            <span>Tout sélectionner</span>
+            <div className={`w-5 h-5 rounded-lg border-2 transition-all flex items-center justify-center ${selectedIds.length === filteredActions.length && filteredActions.length > 0 ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-200'}`}>
+                {selectedIds.length === filteredActions.length && filteredActions.length > 0 && <Check size={12} strokeWidth={4} />}
+            </div>
+          </button>
       </div>
 
       <div className="flex-grow overflow-y-auto pr-1 custom-scrollbar flex flex-col gap-1.5 mt-3">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-10">
-             <Loader2 size={32} className="animate-spin text-emerald-500" />
+          <div className="flex items-center justify-center py-20 opacity-20">
+             <Loader2 size={32} className="animate-spin text-slate-400" />
           </div>
         ) : (
           viewMode === 'list' ? (
             filteredActions.map(action => (
-              <DraggableActionCard 
+              <CompactReferenceCard 
                 key={action.id} 
                 action={action} 
                 isSelected={selectedIds.includes(action.id)}
@@ -108,21 +139,22 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
             ))
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-               {filteredActions.map(action => (
-                 <GridReferenceCard 
-                   key={action.id}
-                   action={action}
-                   isSelected={selectedIds.includes(action.id)}
-                   onToggle={() => toggleSelect(action.id)}
-                 />
-               ))}
+              {filteredActions.map(action => (
+                <GridReferenceCard
+                  key={action.id}
+                  action={action}
+                  isSelected={selectedIds.includes(action.id)}
+                  onToggle={() => toggleSelect(action.id)}
+                  isEvoe={isEvoe}
+                />
+              ))}
             </div>
           )
         )}
-        
+
         {!loading && filteredActions.length === 0 && (
-          <div className="py-20 text-center opacity-40 italic text-[10px] text-slate-400 uppercase tracking-widest leading-relaxed">
-            Aucune action trouvée<br/>pour ces critères.
+          <div className="py-20 text-center opacity-40">
+             <p className="text-[10px] font-black uppercase tracking-widest">Toutes les actions sont sélectionnées</p>
           </div>
         )}
       </div>
@@ -130,15 +162,16 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   );
 };
 
-const DraggableActionCard = ({ action, isSelected, onToggle }: any) => {
+const CompactReferenceCard = ({ action, isSelected, onToggle }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: action.id,
+    id: `ref-${action.id}`,
     data: { type: 'reference', action }
   });
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    zIndex: 1000
+    zIndex: 1000,
+    pointerEvents: isDragging ? ('none' as const) : undefined
   } : undefined;
 
   return (
@@ -183,9 +216,9 @@ const DraggableActionCard = ({ action, isSelected, onToggle }: any) => {
     </div>
   );
 };
-const GridReferenceCard = ({ action, isSelected, onToggle }: any) => {
+const GridReferenceCard = ({ action, isSelected, onToggle, isEvoe }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: action.id,
+    id: `ref-${action.id}`,
     data: { type: 'reference', action }
   });
 
@@ -193,7 +226,8 @@ const GridReferenceCard = ({ action, isSelected, onToggle }: any) => {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     zIndex: 1000,
     opacity: 0.8,
-    scale: 1.05
+    scale: 1.05,
+    pointerEvents: isDragging ? ('none' as const) : undefined
   } : undefined;
 
   return (
@@ -219,7 +253,7 @@ const GridReferenceCard = ({ action, isSelected, onToggle }: any) => {
           <GripVertical size={18} />
         </div>
 
-        <ActionGalleryCard action={action} />
+        <ActionGalleryCard action={action} isEvoe={isEvoe} />
     </div>
   );
 };

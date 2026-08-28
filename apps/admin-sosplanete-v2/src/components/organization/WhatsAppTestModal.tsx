@@ -35,7 +35,7 @@ export const WhatsAppTestModal: React.FC<WhatsAppTestModalProps> = ({
           `─────────────────────────\n\n` +
           `🔥 *Coup de théâtre sur la ligne temporelle !*\n` +
           `Agent *@Romain* vient de ravir la 1ère place du classement global à *@William* !\n\n` +
-          `⚡ Vitalité Moteur : *98.4 HP*\n` +
+          `⚡ Vitalité Moteur : *98.4 IT*\n` +
           `🌱 Impact cumulé : *42.5 kg CO2e évités*\n\n` +
           `🚀 _Accédez au Podium 3D et reprenez la tête !_\n` +
           `👉 https://evoe.nnauru.net/launch?target=leaderboard`

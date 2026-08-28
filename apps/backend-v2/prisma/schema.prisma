@@ -33,6 +33,7 @@ model ActionRef {
   impactTotal   Float?
   weightedStars Int?
   image         String?
+  imageEvoe     String?
   description   String?
   year          Int           @default(2025)
   defaultEnergy Float?
@@ -161,6 +162,7 @@ model LocalAction {
   specificWater  Float?
   specificWaste  Float?
   image          String?
+  imageEvoe      String?
   categoryId     Int?
   specificEnergy Float?
   schoolYear     String?
@@ -301,6 +303,7 @@ model EvoeMissionTranslation {
   descriptionSF String
   pointsGagnes  Int
   isHacked      Boolean     @default(false)
+  imageOverride String?
   localAction   LocalAction @relation(fields: [localActionId], references: [id], onDelete: Cascade)
 
   @@map("evoe_mission_translation")

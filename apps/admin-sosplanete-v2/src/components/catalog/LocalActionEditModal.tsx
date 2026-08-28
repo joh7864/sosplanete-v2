@@ -13,15 +13,16 @@ import {
   AlertCircle,
   CheckCircle2,
   Settings2,
-  ExternalLink,
-  Info
+  Leaf,
+  Zap,
+  Info,
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { getAssetUrl } from '@/utils/assets';
-
-import { ActionRef, LocalAction, Category } from '@/types';
-import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import { LocalAction, Category } from '@/types';
+import { getAuthData } from '@/utils/storage';
 
 interface LocalActionEditModalProps {
   action: LocalAction | null;
@@ -38,33 +39,51 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
   onClose, 
   onSave 
 }) => {
+  const [activeTab, setActiveTab] = useState<'legacy' | 'evoe'>('legacy');
+
+  // Champs SOS Planète (Local)
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [isPreview, setIsPreview] = useState(false);
-  
+
+  // Champs Évoé SF (Local)
+  const [titreSF, setTitreSF] = useState('');
+  const [descriptionSF, setDescriptionSF] = useState('');
+  const [imageEvoe, setImageEvoe] = useState('');
+  const [pointsIT, setPointsIT] = useState<number | ''>('');
+
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingLegacy, setUploadingLegacy] = useState(false);
+  const [uploadingEvoe, setUploadingEvoe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputLegacyRef = React.useRef<HTMLInputElement>(null);
+  const fileInputEvoeRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (action) {
       setLabel(action.label || '');
       setDescription(action.description || '');
       setImage(action.image || '');
+      setImageEvoe(action.imageEvoe || '');
       setCategoryId(action.categoryId || null);
+
+      setTitreSF(action.evoeMission?.titreSF || `Mission : ${action.label || ''}`);
+      setDescriptionSF(action.evoeMission?.descriptionSF || action.description || '');
+      setPointsIT(action.evoeMission?.pointsGagnes || action.evoeMission?.pointsIT || '');
+
       setError(null);
     }
   }, [action]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, folder: 'actions' | 'missions') => {
     const file = e.target.files?.[0];
     if (!file || !action) return;
 
-    setUploading(true);
+    const isEvoe = folder === 'missions';
+    if (isEvoe) setUploadingEvoe(true);
+    else setUploadingLegacy(true);
     setError(null);
 
     const formData = new FormData();
@@ -72,7 +91,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
 
     try {
       const token = getAuthData('access_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/${action.id}/image`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/${action.id}/image?folder=${folder}`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`
@@ -81,15 +100,21 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
       });
 
       if (response.ok) {
-        const { url } = await response.json();
-        setImage(url);
+        const { filename } = await response.json();
+        if (isEvoe) {
+          setImageEvoe(filename);
+        } else {
+          setImage(filename);
+        }
       } else {
         setError("Erreur lors de l'upload de l'image.");
       }
     } catch (e) {
       setError("Erreur réseau lors de l'upload.");
     } finally {
-      setUploading(false);
+      if (isEvoe) setUploadingEvoe(false);
+      else setUploadingLegacy(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -107,15 +132,20 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          label,
-          description: description || undefined,
-          image: image || undefined,
-          categoryId: categoryId ? Number(categoryId) : null
+          label: label.trim(),
+          description: description.trim() || null,
+          image: image.trim() || null,
+          imageEvoe: imageEvoe.trim() || null,
+          categoryId: categoryId ? Number(categoryId) : null,
+          titreSF: titreSF.trim() || undefined,
+          descriptionSF: descriptionSF.trim() || undefined,
+          pointsIT: pointsIT !== '' ? Number(pointsIT) : undefined,
         })
       });
 
       if (response.ok) {
         onSave(await response.json());
+        onClose();
       } else {
         setError("Erreur lors de l'enregistrement.");
       }
@@ -128,6 +158,14 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
 
   if (!isOpen || !action) return null;
 
+  const legacyPreviewUrl = image 
+    ? (image.startsWith('http') || image.startsWith('/') ? image : getAssetUrl(`actions/${image}`))
+    : (action.actionRef?.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo.png'));
+
+  const evoePreviewUrl = imageEvoe
+    ? (imageEvoe.startsWith('http') || imageEvoe.startsWith('/') ? imageEvoe : getAssetUrl(`missions/${imageEvoe}`))
+    : (action.actionRef?.imageEvoe ? getAssetUrl(`missions/${action.actionRef.imageEvoe}`) : legacyPreviewUrl);
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       <motion.div 
@@ -139,160 +177,265 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
       />
       
       <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col my-8"
       >
         {/* Header */}
-        <div className="p-8 pb-4 flex items-center justify-between border-b border-slate-50">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center border border-emerald-100 shadow-inner">
-                 <Settings2 size={24} />
+        <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-inner font-black">
+                 {action.actionRef?.code || <Settings2 size={20} />}
               </div>
               <div>
-                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">Personnaliser l'Action</h2>
+                 <h2 className="text-xl font-black text-slate-800 tracking-tight">Personnaliser l'Action Locale</h2>
                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">
-                   Référence : <span className="text-emerald-500">{action.actionRef.code}</span>
+                   Référence : <span className="text-emerald-600">{action.actionRef?.code}</span> — {action.actionRef?.referenceName}
                  </p>
               </div>
            </div>
-           <button onClick={onClose} className="p-3 rounded-2xl bg-slate-50 text-slate-400 hover:text-slate-800 transition-all">
-              <X size={20} />
+           <button onClick={onClose} className="p-2.5 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-slate-800 transition-all">
+              <X size={18} />
            </button>
         </div>
 
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-slate-100 bg-slate-50/80 px-6 pt-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('legacy')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-t border-x ${
+              activeTab === 'legacy'
+                ? 'bg-white text-emerald-700 border-slate-200 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 border-transparent'
+            }`}
+          >
+            <Leaf size={14} className={activeTab === 'legacy' ? 'text-emerald-500' : 'text-slate-400'} />
+            <span>🌿 SOS Planète (Local)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('evoe')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold text-xs transition-all border-t border-x ${
+              activeTab === 'evoe'
+                ? 'bg-slate-900 text-cyan-400 border-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 border-transparent'
+            }`}
+          >
+            <Zap size={14} className={activeTab === 'evoe' ? 'text-cyan-400' : 'text-slate-400'} />
+            <span>🚀 Évoé SF (Local)</span>
+          </button>
+        </div>
+
         {/* Content */}
-        <div className="p-8 flex flex-col gap-6 overflow-y-auto max-h-[70vh]">
-           
-           <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-8">
-              {/* Preview & Image Selection */}
-              <div className="flex flex-col gap-3">
-                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Icône / Image</span>
-                 <input 
-                   type="file" 
-                   ref={fileInputRef} 
-                   onChange={handleFileUpload} 
-                   accept="image/*" 
-                   className="hidden" 
-                 />
-                 <div 
-                   onClick={() => fileInputRef.current?.click()}
-                   className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center relative group overflow-hidden shadow-inner cursor-pointer hover:border-emerald-300 transition-all"
-                 >
-                    {uploading ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="animate-spin text-emerald-500" size={32} />
-                        <span className="text-[10px] font-black text-emerald-500 uppercase">Envoi...</span>
+        <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[65vh]">
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2 text-rose-600 text-xs font-bold">
+              <AlertCircle size={16} /> <span>{error}</span>
+            </div>
+          )}
+
+          {activeTab === 'legacy' ? (
+            <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-6">
+              {/* Image Legacy */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Image SOS Planète</span>
+                <input 
+                  type="file" 
+                  ref={fileInputLegacyRef} 
+                  onChange={(e) => handleFileUpload(e, 'actions')} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <div 
+                  onClick={() => fileInputLegacyRef.current?.click()}
+                  className="aspect-square rounded-2xl bg-slate-50 border-2 border-slate-100 flex items-center justify-center relative group overflow-hidden shadow-inner cursor-pointer hover:border-emerald-300 transition-all"
+                >
+                  {uploadingLegacy ? (
+                    <Loader2 className="animate-spin text-emerald-500" size={24} />
+                  ) : (
+                    <>
+                      <img 
+                        src={legacyPreviewUrl}
+                        alt="Legacy"
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform"
+                        onError={(e: any) => { 
+                          e.target.onerror = null;
+                          e.target.src = '/assets/logo.png'; 
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-emerald-600/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white p-2 text-center text-[10px] font-bold">
+                        <Upload size={16} className="mb-1" />
+                        <span>Changer</span>
                       </div>
-                    ) : (
-                      <>
-                        <img 
-                          src={image || (action.actionRef.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo-sosplanete.png'))}
-                          className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500"
-                          onError={(e) => { (e.target as HTMLImageElement).src = getAssetUrl('logo-sosplanete.png'); }}
-                        />
-                        <div className="absolute inset-0 bg-emerald-500/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white p-4 text-center">
-                           <ImageIcon size={24} className="mb-2" />
-                           <span className="text-[10px] font-black uppercase tracking-widest">Changer l'image</span>
-                        </div>
-                      </>
-                    )}
-                 </div>
-                 <Button 
-                   variant="ghost" 
-                   size="sm" 
-                   onClick={() => setImage('')} 
-                   className="text-[9px] h-7 uppercase font-black tracking-widest text-slate-400 hover:text-rose-500"
-                 >
-                   Rétablir par défaut
-                 </Button>
+                    </>
+                  )}
+                </div>
+                {image && (
+                  <button 
+                    type="button"
+                    onClick={() => setImage('')}
+                    className="text-[9px] text-slate-400 hover:text-rose-500 font-bold"
+                  >
+                    Rétablir défaut
+                  </button>
+                )}
               </div>
 
-              {/* Form Fields */}
-              <div className="flex flex-col gap-6">
-                 <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
-                       <Type size={12} className="text-emerald-500" /> Libellé court (Nom)
-                    </label>
-                    <Input 
-                      placeholder="Nom de l'action pour vos élèves..." 
-                      value={label}
-                      onChange={(e) => setLabel(e.target.value)}
-                      className="h-14 bg-slate-50 border-none rounded-2xl text-lg font-black text-slate-800 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner"
-                    />
-                 </div>
+              {/* Form Legacy */}
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
+                    Nom local de l'action
+                  </label>
+                  <Input 
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    placeholder="Nom de l'action pour vos élèves..."
+                    className="font-bold text-slate-800"
+                  />
+                </div>
 
-                 <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1 flex items-center gap-2">
-                       <Settings2 size={12} className="text-emerald-500" /> Catégorie de l'Action
-                    </label>
-                    <select 
-                      value={categoryId || ''}
-                      onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full h-12 bg-slate-50 border-none rounded-2xl px-4 text-sm font-bold text-slate-700 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner appearance-none outline-none"
-                    >
-                      <option value="">-- Sans catégorie --</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                 </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
+                    Catégorie
+                  </label>
+                  <select 
+                    value={categoryId || ''}
+                    onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full h-11 bg-slate-50 border border-slate-200 rounded-xl px-3 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  >
+                    <option value="">-- Sans catégorie --</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2">
-                         <AlignLeft size={12} className="text-emerald-500" /> Description d'aide (longue)
-                      </label>
-                      <button 
-                        onClick={() => setIsPreview(!isPreview)}
-                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg transition-all ${isPreview ? 'bg-emerald-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                      >
-                        {isPreview ? 'Éditer' : 'Aperçu HTML'}
-                      </button>
-                    </div>
-                    
-                    {isPreview ? (
-                      <div 
-                        className="w-full min-h-[120px] p-5 bg-emerald-50/30 border-2 border-emerald-100/50 rounded-2xl prose-sos overflow-y-auto"
-                        dangerouslySetInnerHTML={{ __html: description || '<p class="italic text-slate-400">Aucune description...</p>' }}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-1 block">
+                    Description d'aide aux élèves
+                  </label>
+                  <textarea 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    placeholder="Conseils et explications pédagogiques..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-6">
+              {/* Image SF */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase text-cyan-600 tracking-widest">Image Évoé SF</span>
+                <input 
+                  type="file" 
+                  ref={fileInputEvoeRef} 
+                  onChange={(e) => handleFileUpload(e, 'missions')} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <div 
+                  onClick={() => fileInputEvoeRef.current?.click()}
+                  className="aspect-square rounded-2xl bg-slate-900 border-2 border-cyan-900/60 flex items-center justify-center relative group overflow-hidden shadow-inner cursor-pointer hover:border-cyan-500 transition-all"
+                >
+                  {uploadingEvoe ? (
+                    <Loader2 className="animate-spin text-cyan-400" size={24} />
+                  ) : (
+                    <>
+                      <img 
+                        src={evoePreviewUrl}
+                        alt="SF"
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform"
+                        onError={(e: any) => { e.target.src = legacyPreviewUrl; }}
                       />
-                    ) : (
-                      <textarea 
-                        placeholder="Expliquez l'action en quelques lignes pour aider les élèves à comprendre... (HTML autorisé)"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full min-h-[120px] p-5 bg-slate-50 border-none rounded-2xl text-sm text-slate-600 font-medium focus:bg-white focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-inner resize-none overflow-y-auto"
-                      />
-                    )}
-                 </div>
+                      <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-cyan-400 p-2 text-center text-[10px] font-bold">
+                        <Upload size={16} className="mb-1" />
+                        <span>Changer SF</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {imageEvoe && (
+                  <button 
+                    type="button"
+                    onClick={() => setImageEvoe('')}
+                    className="text-[9px] text-slate-400 hover:text-rose-500 font-bold"
+                  >
+                    Rétablir défaut
+                  </button>
+                )}
               </div>
-           </div>
 
-           {/* Info alert about fixed fields */}
-           <div className="mt-4 p-5 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex gap-4 items-center">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
-                 <Info size={20} />
-              </div>
-              <div>
-                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                   Les <span className="font-black text-emerald-700">étoiles</span> et les <span className="font-black text-emerald-700">impacts</span> (CO2, Eau, Déchets) sont définis au niveau mondial par SOS Planète et ne peuvent pas être modifiés localement.
-                 </p>
-              </div>
-           </div>
+              {/* Form SF */}
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-cyan-700 tracking-widest mb-1 block">
+                    Titre Futuriste (SF)
+                  </label>
+                  <Input 
+                    value={titreSF}
+                    onChange={(e) => setTitreSF(e.target.value)}
+                    placeholder="Ex : Mission : Fusion de Plasma"
+                    className="font-bold text-slate-800 border-cyan-200 focus:border-cyan-500"
+                  />
+                </div>
 
-           {error && <div className="text-rose-500 text-[10px] font-bold text-center">{error}</div>}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-cyan-700 tracking-widest mb-1 block">
+                    Points IT (Surcharge locale)
+                  </label>
+                  <Input 
+                    type="number"
+                    value={pointsIT}
+                    onChange={(e) => setPointsIT(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                    placeholder="Points IT accordés..."
+                    className="font-bold text-slate-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase text-cyan-700 tracking-widest mb-1 block">
+                    Briefing Narratif SF
+                  </label>
+                  <textarea 
+                    value={descriptionSF}
+                    onChange={(e) => setDescriptionSF(e.target.value)}
+                    rows={3}
+                    placeholder="Directive temporelle de mission..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info note */}
+          <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex gap-3 items-center text-slate-600 text-xs">
+            <Info size={18} className="text-emerald-500 shrink-0" />
+            <p className="text-[11px] leading-relaxed">
+              Les indicateurs d'impacts de base (CO2e, Eau, Déchets) sont définis au niveau mondial dans le catalogue référentiel.
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3">
-           <Button variant="ghost" onClick={onClose} disabled={loading} className="rounded-2xl">Annuler</Button>
+        <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3">
+           <Button variant="ghost" onClick={onClose} disabled={loading} className="rounded-xl text-xs">
+             Annuler
+           </Button>
            <Button 
             onClick={handleSave} 
-            className="h-14 px-12 bg-emerald-500 text-white rounded-2xl font-black shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
+            className="px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-2"
             disabled={loading}
            >
-             {loading ? <Loader2 className="animate-spin" size={20} /> : <><Save size={20} className="mr-2" /> Mettre à jour</>}
+             {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+             <span>Enregistrer les modifications</span>
            </Button>
         </div>
       </motion.div>

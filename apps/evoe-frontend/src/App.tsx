@@ -350,7 +350,7 @@ function MainApp() {
     const isChallengeActif = activeChallengeActionIds.includes(mission.id);
     if (isChallengeActif) return acc; // Exclus des catégories classiques
     
-    const cat = mission.categorySF || 'Secteur Inconnu';
+    const cat = mission.categorySF || 'Inconnu';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(mission);
     return acc;
@@ -1905,7 +1905,7 @@ function MainApp() {
             if (cats.length > 0) {
               setSelectedSector(cats[0]);
             } else {
-              setSelectedSector('Secteur Énergétique & Plasma');
+              setSelectedSector('Energie');
             }
           }}
         >
@@ -1929,7 +1929,7 @@ function MainApp() {
               if (cats.length > 0) {
                 setSelectedSector(cats[0]);
               } else {
-                setSelectedSector('Secteur Énergétique & Plasma');
+                setSelectedSector('Energie');
               }
             }
           }}

@@ -4,7 +4,7 @@
  */
 export const getAssetUrl = (path: string | undefined | null, fallback?: string) => {
   // If no path is provided, use the fallback or a default logo
-  if (!path) return fallback || '/assets/logo-sosplanete.png';
+  if (!path) return fallback || '/assets/logo.png';
 
   // If path is already an absolute URL, return it as is
   if (path.startsWith('http')) return path;

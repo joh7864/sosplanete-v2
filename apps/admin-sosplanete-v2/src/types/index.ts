@@ -109,6 +109,7 @@ export interface ActionRef {
   impactLabel?: string | null;
   weightedStars: number; // obligatoire pour compatibilité composants catalogue (défaut : 0)
   image?: string | null;
+  imageEvoe?: string | null;
   description?: string | null;
   defaultCo2?: number | null;
   defaultWater?: number | null;
@@ -124,6 +125,16 @@ export interface CategoryRef {
   _count?: { actionRefs: number };
 }
 
+export interface EvoeMissionTranslation {
+  id?: number;
+  localActionId?: number;
+  titreSF: string;
+  descriptionSF: string;
+  pointsGagnes?: number;
+  pointsIT?: number;
+  isHacked?: boolean;
+  imageOverride?: string | null;
+}
 
 export interface LocalAction {
   id: number;
@@ -131,6 +142,7 @@ export interface LocalAction {
   categoryId?: number | null;
   category?: Category | null;
   image?: string | null;
+  imageEvoe?: string | null;
   description?: string | null;
   actionRefId: number;
   actionRef: ActionRef;
@@ -140,6 +152,10 @@ export interface LocalAction {
   specificWater?: number | null;
   specificWaste?: number | null;
   specificEnergy?: number | null;
+  evoeMission?: EvoeMissionTranslation | null;
+  _count?: {
+    actionsDone: number;
+  };
 }
 
 // ─── Périodes ────────────────────────────────────────────────────────────────

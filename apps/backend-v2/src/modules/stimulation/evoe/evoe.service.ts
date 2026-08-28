@@ -22,28 +22,43 @@ function getAvatarUrl(avatarPath: string | null): string | null {
 
 const CATEGORY_SF_MAP: Record<string, string> = {
   // Pôle Ressources Vitales
-  Eau: 'Secteur Ressources Vitales',
-  "L'eau": 'Secteur Ressources Vitales',
-  Alimentation: 'Secteur Ressources Vitales',
-  "L'alimentation": 'Secteur Ressources Vitales',
-  Courses: 'Secteur Ressources Vitales',
-  Maison: 'Secteur Ressources Vitales',
+  Eau: 'Ressources vitales',
+  "L'eau": 'Ressources vitales',
+  Alimentation: 'Ressources vitales',
+  "L'alimentation": 'Ressources vitales',
+  Courses: 'Ressources vitales',
+  Maison: 'Ressources vitales',
 
   // Pôle Bio-Génétique
-  Biodiversité: 'Secteur Bio-Génétique',
-  'La biodiversité': 'Secteur Bio-Génétique',
-  Animaux: 'Secteur Bio-Génétique',
+  Biodiversité: 'Bio-génétique',
+  'La biodiversité': 'Bio-génétique',
+  Biodiversite: 'Bio-génétique',
+  Animaux: 'Bio-génétique',
 
   // Pôle Énergétique & Industriel
-  Energie: 'Secteur Énergétique & Plasma',
-  "L'énergie": 'Secteur Énergétique & Plasma',
-  Déchets: 'Secteur Recyclage & Plasma',
-  'Les déchets': 'Secteur Recyclage & Plasma',
+  Electricité: 'Energie',
+  Electricite: 'Energie',
+  Électricité: 'Energie',
+  "L'électricité": 'Energie',
+  "L'electricité": 'Energie',
+  "L'electricite": 'Energie',
+  Energie: 'Energie',
+  Énergie: 'Energie',
+  "L'énergie": 'Energie',
+  "L'energie": 'Energie',
+  Déchets: 'Recyclage',
+  'Les déchets': 'Recyclage',
+  Dechets: 'Recyclage',
+  'Les dechets': 'Recyclage',
 
   // Pôle Mobilité & Réseau
-  Transport: 'Secteur Propulsion & Mobilité',
-  Numérique: 'Secteur Archives & Réseau',
-  Ecole: 'Secteur Académie Temporelle',
+  Transport: 'Propulsion',
+  Transports: 'Propulsion',
+  'Les transports': 'Propulsion',
+  Numérique: 'Numérique',
+  Numerique: 'Numérique',
+  Ecole: 'Académie Temporelle',
+  'École': 'Académie Temporelle',
 };
 
 const PROPULSION_THRESHOLDS = [
@@ -96,6 +111,12 @@ export class EvoeService {
   ) {}
 
   async getMissions(instanceId: number, schoolYear: string) {
+    const basePath =
+      process.env.UPLOADS_DIR ||
+      path.join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+    const missionsDir = path.join(basePath, 'missions');
+    const missionsFiles = fs.existsSync(missionsDir) ? fs.readdirSync(missionsDir) : [];
+
     // Fetch all LocalActions for this instance and join with EvoeMissionTranslation
     const localActions = await this.prisma.localAction.findMany({
       where: {
@@ -110,13 +131,65 @@ export class EvoeService {
     });
 
     return localActions.map((action) => {
-      const imageFile = isValidImageFilename(action.image)
-        ? action.image
-        : isValidImageFilename(action.actionRef?.image)
-          ? action.actionRef?.image
-          : null;
-      const physicalCat = action.category?.name || '';
-      const catSF = CATEGORY_SF_MAP[physicalCat] || `Secteur ${physicalCat}`;
+      const code = action.actionRef?.code?.trim() || '';
+
+      // Auto-detect mission image on disk if not explicitly specified in DB
+      let autoEvoeImg: string | null = null;
+      if (code) {
+        const foundMissionFile = missionsFiles.find((f) => {
+          const dotIndex = f.lastIndexOf('.');
+          if (dotIndex === -1) return false;
+          const base = f.substring(0, dotIndex);
+          return (
+            base.toLowerCase() === `${code}_evoe`.toLowerCase() ||
+            base.toLowerCase() === code.toLowerCase()
+          );
+        });
+        if (foundMissionFile) {
+          autoEvoeImg = foundMissionFile;
+        }
+      }
+
+      const rawEvoeImg = [
+        action.imageEvoe,
+        action.evoeMission?.imageOverride,
+        action.actionRef?.imageEvoe,
+        autoEvoeImg,
+      ].find(isValidImageFilename);
+      const rawLegacyImg = [action.image, action.actionRef?.image].find(
+        isValidImageFilename,
+      );
+
+      let imageFile: string | null = null;
+      if (rawEvoeImg && isValidImageFilename(rawEvoeImg)) {
+        imageFile =
+          rawEvoeImg.startsWith('missions/') ||
+          rawEvoeImg.startsWith('actions/') ||
+          rawEvoeImg.startsWith('/uploads/')
+            ? rawEvoeImg.replace(/^\/uploads\//, '')
+            : `missions/${rawEvoeImg}`;
+      } else if (rawLegacyImg && isValidImageFilename(rawLegacyImg)) {
+        imageFile =
+          rawLegacyImg.startsWith('actions/') ||
+          rawLegacyImg.startsWith('missions/') ||
+          rawLegacyImg.startsWith('/uploads/')
+            ? rawLegacyImg.replace(/^\/uploads\//, '')
+            : `actions/${rawLegacyImg}`;
+      }
+
+      const physicalCat =
+        action.category?.name || action.actionRef?.category || '';
+      let catSF = 'Général';
+      if (physicalCat) {
+        const cleanCat = physicalCat.trim();
+        const unaccented = cleanCat
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        catSF =
+          CATEGORY_SF_MAP[cleanCat] ||
+          CATEGORY_SF_MAP[unaccented] ||
+          cleanCat;
+      }
 
       let descSF =
         action.evoeMission?.descriptionSF || action.description || '';
@@ -167,8 +240,9 @@ export class EvoeService {
       const co2 = action.specificCo2 ?? action.actionRef?.defaultCo2 ?? 0;
       const water = action.specificWater ?? action.actionRef?.defaultWater ?? 0;
       const waste = action.specificWaste ?? action.actionRef?.defaultWaste ?? 0;
-      const calculated = Math.round(co2 + water + waste);
-      const amplitude = calculated > 0 ? calculated : (action.evoeMission?.pointsGagnes || 10);
+      // Formule de pondération 60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT
+      const calculated = 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      const amplitude = calculated;
 
       // Fusion of physical action and SF mapping
       return {
@@ -183,12 +257,14 @@ export class EvoeService {
         water: Number(water.toFixed(1)),
         waste: Number(waste.toFixed(1)),
         co2Year: action.actionRef?.co2Year,
-        icon: imageFile ? `actions/${imageFile}` : '',
-        image: imageFile ? `actions/${imageFile}` : '',
+        icon: imageFile ? imageFile : '',
+        image: imageFile ? imageFile : '',
+        imageEvoe: action.imageEvoe || action.actionRef?.imageEvoe || null,
         evoeMission: {
           titreSF: titreSF,
           descriptionSF: descSF,
           amplitude: amplitude,
+          pointsIT: amplitude,
           isImpulsed: false,
         },
       };
@@ -253,7 +329,7 @@ export class EvoeService {
     return this.getDashboardStatus(instanceId, schoolYear);
   }
 
-  private async getDashboardStatus(instanceId: number, schoolYear: string) {
+  async getDashboardStatus(instanceId: number, schoolYear: string) {
     const teams = await this.prisma.team.findMany({
       where: {
         instanceYear: {
@@ -380,10 +456,10 @@ export class EvoeService {
       }
     });
     const childImpactMap = new Map<number, { count: number; co2: number }>();
-    childImpacts.forEach((ci) => {
+    (childImpacts || []).forEach((ci: any) => {
       childImpactMap.set(ci.childId, {
-        count: ci._count.id || 0,
-        co2: ci._sum.savedCo2 || 0,
+        count: ci._count?.id ?? (typeof ci._count === 'number' ? ci._count : 0),
+        co2: ci._sum?.savedCo2 ?? 0,
       });
     });
 
@@ -532,9 +608,11 @@ export class EvoeService {
             )
           : 100;
 
-      const systemConfig = await this.prisma.systemConfig.findFirst({
-        where: { schoolYear },
-      });
+      const systemConfig = this.prisma.systemConfig
+        ? await this.prisma.systemConfig.findFirst({
+            where: { schoolYear },
+          })
+        : null;
 
       formattedTeams.push({
         id: team.id,
@@ -576,9 +654,11 @@ export class EvoeService {
       })
       .slice(0, 10);
 
-    const systemConfig = await this.prisma.systemConfig.findFirst({
-      where: { schoolYear },
-    });
+    const systemConfig = this.prisma.systemConfig
+      ? await this.prisma.systemConfig.findFirst({
+          where: { schoolYear },
+        })
+      : null;
 
     return {
       schoolYear,
@@ -663,7 +743,7 @@ export class EvoeService {
       const totalDuration = period.endDate.getTime() - period.startDate.getTime();
       const elapsed = Math.max(0, Date.now() - period.startDate.getTime());
       const elapsedRatio = totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
-      decay = Math.round(elapsedRatio * 85); // Perte max de 85 HP (finit à 15 HP si aucune action)
+      decay = Math.round(elapsedRatio * 85); // Perte max de 85 IT (finit à 15 IT si aucune action)
     }
 
     const activeChallenges = await this.prisma.evoeChallenge.findMany({
@@ -688,13 +768,13 @@ export class EvoeService {
         childWaste += ad.savedWaste * factor;
       });
 
-      const hpCo2 = Math.min(60, (childCo2 / targetCo2) * 60);
-      const hpWater = Math.min(20, (childWater / targetWater) * 20);
-      const hpWaste = Math.min(20, (childWaste / targetWaste) * 20);
-      const baseRegen = hpCo2 + hpWater + hpWaste;
+      const itCo2 = Math.min(60, (childCo2 / targetCo2) * 60);
+      const itWater = Math.min(20, (childWater / targetWater) * 20);
+      const itWaste = Math.min(20, (childWaste / targetWaste) * 20);
+      const baseRegen = itCo2 + itWater + itWaste;
 
-      // HP Decay model: start at 100, lose decay, heal baseRegen
-      const baseHp = Math.max(0, Math.min(100, 100 - decay + baseRegen));
+      // IT Decay model: start at 100, lose decay, heal baseRegen
+      const baseIt = Math.max(0, Math.min(100, 100 - decay + baseRegen));
 
       let challengeBonus = 0;
       activeChallenges.forEach((ch) => {
@@ -708,8 +788,8 @@ export class EvoeService {
         }
       });
 
-      const totalHp = Math.min(120, Math.round(baseHp + challengeBonus));
-      healthMap.set(child.id, totalHp);
+      const totalIt = Math.min(120, Math.round(baseIt + challengeBonus));
+      healthMap.set(child.id, totalIt);
     }
 
     return healthMap;
@@ -1192,9 +1272,11 @@ export class EvoeService {
     const instanceId = team.instanceYear.instanceId;
     const schoolYear = team.instanceYear.schoolYear;
 
-    const systemConfig = await this.prisma.systemConfig.findFirst({
-      where: { schoolYear },
-    });
+    const systemConfig = this.prisma.systemConfig
+      ? await this.prisma.systemConfig.findFirst({
+          where: { schoolYear },
+        })
+      : null;
     const whatsappCommunityUrl = systemConfig?.whatsappCommunityUrl || null;
     const whatsappInviteUrl = whatsappCommunityUrl;
 
@@ -1204,7 +1286,7 @@ export class EvoeService {
     });
     const activePeriodId = activePeriod ? activePeriod.id : null;
 
-    // 2. Calculer le score de santé actuel (HP)
+    // 2. Calculer le score de santé / stabilité actuel (IT)
     const teamChildren = await this.prisma.child.findMany({
       where: { group: { teamId: team.id } },
     });

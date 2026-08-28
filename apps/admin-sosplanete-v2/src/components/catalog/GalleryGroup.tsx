@@ -4,24 +4,25 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { ActionGalleryCard } from './ActionGalleryCard';
-
-interface ActionRef {
-  id: number;
-  code: string;
-  referenceName: string;
-  category: string;
-  impactLabel: string;
-  weightedStars: number;
-  image?: string;
-}
+import { ActionRef } from '@/types';
 
 interface GalleryGroupProps {
   title: string;
   actions: ActionRef[];
   forceOpen?: boolean;
+  viewUniverse?: 'legacy' | 'evoe';
+  onEditAction?: (action: ActionRef) => void;
+  onDeleteAction?: (id: number) => void;
 }
 
-export const GalleryGroup: React.FC<GalleryGroupProps> = ({ title, actions, forceOpen }) => {
+export const GalleryGroup: React.FC<GalleryGroupProps> = ({ 
+  title, 
+  actions, 
+  forceOpen,
+  viewUniverse = 'legacy',
+  onEditAction,
+  onDeleteAction
+}) => {
   const [isOpen, setIsOpen] = React.useState(true);
 
   // Sync with global control
@@ -41,7 +42,7 @@ export const GalleryGroup: React.FC<GalleryGroupProps> = ({ title, actions, forc
       >
         <div className="flex items-center gap-2">
             {isOpen ? <ChevronDown size={18} className="text-sky-500" /> : <ChevronRight size={18} className="text-slate-400" />}
-            <h2 className="text-sm font-black text-slate-400 group-hover:text-slate-600 uppercase tracking-[0.2em] whitespace-nowrap">
+            <h2 className="text-sm font-black text-slate-500 group-hover:text-slate-700 uppercase tracking-[0.2em] whitespace-nowrap">
             {title}
             </h2>
         </div>
@@ -60,7 +61,7 @@ export const GalleryGroup: React.FC<GalleryGroupProps> = ({ title, actions, forc
                transition={{ duration: 0.3, ease: 'easeInOut' }}
                className="overflow-hidden"
             >
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 px-4 pt-4 pb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 px-2 pt-2 pb-6">
                     {actions.map((action) => (
                         <motion.div
                         key={action.id}
@@ -70,7 +71,12 @@ export const GalleryGroup: React.FC<GalleryGroupProps> = ({ title, actions, forc
                         transition={{ duration: 0.3 }}
                         layout
                         >
-                        <ActionGalleryCard action={action} />
+                        <ActionGalleryCard 
+                          action={action} 
+                          viewUniverse={viewUniverse}
+                          onEdit={onEditAction ? () => onEditAction(action) : undefined}
+                          onRemove={onDeleteAction ? () => onDeleteAction(action.id) : undefined}
+                        />
                         </motion.div>
                     ))}
                 </div>

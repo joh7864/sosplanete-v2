@@ -172,7 +172,7 @@ export const CatalogCsvModal: React.FC<CatalogCsvModalProps> = ({ isOpen, onClos
       const token = getAuthData('access_token');
       const validActions = previewData.filter(d => d.existsInRef);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/import-codes`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/local-actions/import-csv`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

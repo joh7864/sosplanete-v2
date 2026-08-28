@@ -216,7 +216,7 @@ describe('EvoeService', () => {
     });
   });
 
-  it('should apply HP decay based on elapsed period time and regeneration from actions', async () => {
+  it('should apply IT decay based on elapsed period time and regeneration from actions', async () => {
     // 1. Début de période (ratio = 0)
     (prisma.period.findUnique as jest.Mock).mockResolvedValue({
       id: 50,

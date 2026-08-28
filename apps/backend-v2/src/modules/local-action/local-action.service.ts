@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { CategoryService } from '../category/category.service';
@@ -29,7 +29,7 @@ export class LocalActionService {
     const actionRef = await this.prisma.actionRef.findUnique({
       where: { id: data.actionRefId },
     });
-    if (!actionRef) throw new Error('Action de référence non trouvée');
+    if (!actionRef) throw new NotFoundException('Action de référence non trouvée');
 
     return this.prisma.localAction.create({
       data: {
@@ -39,6 +39,10 @@ export class LocalActionService {
         description: actionRef.description,
         categoryId: data.categoryId,
         schoolYear: data.schoolYear,
+      },
+      include: {
+        actionRef: true,
+        evoeMission: true,
       },
     });
   }
@@ -56,6 +60,10 @@ export class LocalActionService {
       where: { instanceId, schoolYear: sy },
       include: {
         actionRef: true,
+        evoeMission: true,
+        _count: {
+          select: { actionsDone: true }
+        }
       },
     });
   }
@@ -99,43 +107,46 @@ export class LocalActionService {
   ) {
     const isAllowed =
       user.role === Role.AS || user.instanceIds?.includes(instanceId);
-    if (!isAllowed) throw new ForbiddenException('Action non autorisée');
-
-    const codes = actions.map((a) => a.actionRef);
-    const actionRefs = await this.prisma.actionRef.findMany({
-      where: { code: { in: codes } },
-    });
-
-    // Récupération des catégories existantes via l'InstanceYear
-    const instanceYear = await this.prisma.instanceYear.findFirst({
-      where: { instanceId, schoolYear },
-    });
-    const existingCategories = instanceYear
-      ? await this.prisma.category.findMany({
-          where: { instanceYearId: instanceYear.id },
-        })
-      : [];
+    if (!isAllowed) {
+      throw new ForbiddenException('Action non autorisée sur cet espace');
+    }
 
     const results = [];
     for (const actionInput of actions) {
-      const ref = actionRefs.find((r) => r.code === actionInput.actionRef);
+      const code = actionInput.code || actionInput.actionRef;
+      if (!code) continue;
+
+      const ref = await this.prisma.actionRef.findUnique({
+        where: { code: code.trim() },
+      });
       if (!ref) continue;
 
-      // Mapping de la catégorie par nom (normalisé)
-      let categoryId = undefined;
+      let categoryId: number | null = null;
       if (actionInput.category) {
-        const normCatName = this.categoryService.normalizeString(
-          actionInput.category,
-        );
-        const match = existingCategories.find(
-          (c) => this.categoryService.normalizeString(c.name) === normCatName,
-        );
-        if (match) {
-          categoryId = match.id;
-        }
+        try {
+          const instanceYearId = await this.categoryService.resolveInstanceYearId(
+            instanceId,
+            schoolYear,
+          );
+          let cat = await this.prisma.category.findFirst({
+            where: {
+              instanceYearId,
+              name: { equals: actionInput.category.trim(), mode: 'insensitive' },
+            },
+          });
+          if (!cat) {
+            cat = await this.prisma.category.create({
+              data: {
+                name: actionInput.category.trim(),
+                instanceYearId,
+                order: 0,
+              },
+            });
+          }
+          categoryId = cat.id;
+        } catch (e) {}
       }
 
-      // upsert pour mettre à jour si ça existe déjà ou créer
       const local = await this.prisma.localAction.upsert({
         where: {
           instanceId_actionRefId_schoolYear: {
@@ -148,7 +159,7 @@ export class LocalActionService {
           label: actionInput.name || ref.referenceName,
           image: actionInput.icon || null,
           description: actionInput.description || ref.description || null,
-          categoryId: categoryId, // Mise à jour de la catégorie si trouvée
+          categoryId: categoryId,
         },
         create: {
           instanceId,
@@ -158,6 +169,10 @@ export class LocalActionService {
           description: actionInput.description || ref.description || null,
           categoryId: categoryId,
           schoolYear,
+        },
+        include: {
+          actionRef: true,
+          evoeMission: true,
         },
       });
       results.push(local);
@@ -171,27 +186,70 @@ export class LocalActionService {
       label?: string;
       description?: string;
       image?: string;
-      categoryId?: number;
+      imageEvoe?: string;
+      categoryId?: number | null;
+      specificCo2?: number | null;
+      specificWater?: number | null;
+      specificWaste?: number | null;
+      specificEnergy?: number | null;
+      titreSF?: string;
+      descriptionSF?: string;
+      pointsIT?: number;
+      pointsGagnes?: number;
     },
     user: any,
   ) {
     const localAction = await this.prisma.localAction.findUnique({
       where: { id },
+      include: { evoeMission: true },
     });
-    if (!localAction) throw new Error('Action locale non trouvée');
+    if (!localAction) throw new NotFoundException('Action locale non trouvée');
 
     const isAllowed =
       user.role === Role.AS ||
       user.instanceIds?.includes(localAction.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
-    return this.prisma.localAction.update({
+    // 1. Update LocalAction
+    const updated = await this.prisma.localAction.update({
       where: { id },
       data: {
-        label: data.label,
-        description: data.description,
-        image: data.image,
-        categoryId: data.categoryId,
+        ...(data.label !== undefined && { label: data.label }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.image !== undefined && { image: data.image }),
+        ...(data.imageEvoe !== undefined && { imageEvoe: data.imageEvoe }),
+        ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+        ...(data.specificCo2 !== undefined && { specificCo2: data.specificCo2 }),
+        ...(data.specificWater !== undefined && { specificWater: data.specificWater }),
+        ...(data.specificWaste !== undefined && { specificWaste: data.specificWaste }),
+        ...(data.specificEnergy !== undefined && { specificEnergy: data.specificEnergy }),
+      },
+    });
+
+    // 2. Handle EvoeMissionTranslation update/upsert if SF fields provided
+    const itPoints = data.pointsIT !== undefined ? data.pointsIT : data.pointsGagnes;
+    if (data.titreSF !== undefined || data.descriptionSF !== undefined || itPoints !== undefined) {
+      await this.prisma.evoeMissionTranslation.upsert({
+        where: { localActionId: id },
+        update: {
+          ...(data.titreSF !== undefined && { titreSF: data.titreSF }),
+          ...(data.descriptionSF !== undefined && { descriptionSF: data.descriptionSF }),
+          ...(itPoints !== undefined && { pointsGagnes: itPoints }),
+        },
+        create: {
+          localActionId: id,
+          titreSF: data.titreSF || `Mission : ${updated.label}`,
+          descriptionSF: data.descriptionSF || updated.description || '',
+          pointsGagnes: itPoints || 10,
+        },
+      });
+    }
+
+    return this.prisma.localAction.findUnique({
+      where: { id },
+      include: {
+        actionRef: true,
+        evoeMission: true,
       },
     });
   }
@@ -201,7 +259,6 @@ export class LocalActionService {
     categoryId: number | null,
     user: any,
   ) {
-    // Vérification que l'utilisateur peut accéder à toutes ces actions
     const actions = await this.prisma.localAction.findMany({
       where: { id: { in: actionIds } },
       select: { instanceId: true },
@@ -223,7 +280,7 @@ export class LocalActionService {
     const localAction = await this.prisma.localAction.findUnique({
       where: { id },
     });
-    if (!localAction) throw new Error('Action locale non trouvée');
+    if (!localAction) throw new NotFoundException('Action locale non trouvée');
 
     const isAllowed =
       user.role === Role.AS ||
