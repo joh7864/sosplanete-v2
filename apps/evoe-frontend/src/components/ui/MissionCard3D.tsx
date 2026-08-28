@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RotateCcw } from 'lucide-react';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -71,23 +72,52 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         height: 'min(490px, 74vh)',
         maxHeight: '520px',
         borderRadius: '24px',
-        background: 'rgba(8, 14, 28, 0.85)',
+        background: isCompleted 
+          ? 'rgba(6, 10, 22, 0.92)' 
+          : 'rgba(8, 14, 28, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: `1.5px solid ${isActive ? `${neonColor}80` : 'rgba(255, 255, 255, 0.1)'}`,
-        boxShadow: isActive 
-          ? `0 0 35px ${neonColor}40, inset 0 0 20px ${neonColor}20` 
-          : '0 10px 30px rgba(0,0,0,0.6)',
+        border: isCompleted
+          ? `1.5px solid rgba(16, 185, 129, ${isActive ? '0.65' : '0.25'})`
+          : `1.5px solid ${isActive ? `${neonColor}80` : 'rgba(255, 255, 255, 0.1)'}`,
+        boxShadow: isCompleted
+          ? (isActive ? '0 0 25px rgba(16, 185, 129, 0.25), inset 0 0 15px rgba(16, 185, 129, 0.1)' : '0 10px 30px rgba(0,0,0,0.6)')
+          : (isActive ? `0 0 35px ${neonColor}40, inset 0 0 20px ${neonColor}20` : '0 10px 30px rgba(0,0,0,0.6)'),
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         position: 'relative',
         cursor: 'pointer',
+        filter: isCompleted && !isActive ? 'grayscale(35%) opacity(0.85)' : 'none',
         ...style
       }}
       whileHover={isActive ? { scale: 1.02 } : {}}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
+      {/* Ruban Émeraude "✓ ACCOMPLIE" en haut à gauche */}
+      {isCompleted && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            left: '-26px',
+            transform: 'rotate(-45deg)',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: '#ffffff',
+            fontSize: '0.62rem',
+            fontWeight: 900,
+            letterSpacing: '0.6px',
+            padding: '3px 26px',
+            boxShadow: '0 2px 10px rgba(16, 185, 129, 0.4)',
+            zIndex: 30,
+            textTransform: 'uppercase',
+            pointerEvents: 'none'
+          }}
+        >
+          ✓ ACCOMPLIE
+        </div>
+      )}
+
       {/* Top subtle glow banner */}
       <div style={{
         position: 'absolute',
@@ -95,7 +125,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         left: 0,
         right: 0,
         height: '3px',
-        background: `linear-gradient(90deg, #00ffcc, #d946ef)`,
+        background: isCompleted
+          ? 'linear-gradient(90deg, #10b981, rgba(16, 185, 129, 0.2))'
+          : `linear-gradient(90deg, #00ffcc, #d946ef)`,
         opacity: isActive ? 1 : 0.4
       }} />
 
@@ -106,13 +138,13 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '8px',
-        borderBottom: '1px solid rgba(0, 255, 204, 0.15)',
-        background: 'rgba(0, 255, 204, 0.03)',
+        borderBottom: isCompleted ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(0, 255, 204, 0.15)',
+        background: isCompleted ? 'rgba(16, 185, 129, 0.03)' : 'rgba(0, 255, 204, 0.03)',
         flexShrink: 0
       }}>
         <h3 style={{
           margin: 0,
-          color: '#ffffff',
+          color: isCompleted ? 'rgba(255, 255, 255, 0.9)' : '#ffffff',
           fontSize: '0.92rem',
           fontWeight: 800,
           lineHeight: 1.2,
@@ -121,18 +153,18 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
-          textShadow: isActive ? `0 0 10px rgba(0, 255, 204, 0.4)` : 'none'
+          textShadow: isActive ? (isCompleted ? '0 0 10px rgba(16, 185, 129, 0.4)' : `0 0 10px rgba(0, 255, 204, 0.4)`) : 'none'
         }}>
           {fullMissionTitle}
         </h3>
 
-        {/* Badge IT uniquement (logo IT + points) */}
+        {/* Badge IT (Vert Émeraude si accomplie, Violet sinon) */}
         <div style={{
           padding: '3px 8px',
           borderRadius: '10px',
-          background: 'rgba(217, 70, 239, 0.15)',
-          border: '1px solid rgba(217, 70, 239, 0.5)',
-          color: '#f0abfc',
+          background: isCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(217, 70, 239, 0.15)',
+          border: isCompleted ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(217, 70, 239, 0.5)',
+          color: isCompleted ? '#10b981' : '#f0abfc',
           fontSize: '0.78rem',
           fontWeight: 900,
           letterSpacing: '0.5px',
@@ -140,9 +172,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           alignItems: 'center',
           gap: '4px',
           flexShrink: 0,
-          boxShadow: '0 0 10px rgba(217, 70, 239, 0.2)'
+          boxShadow: isCompleted ? '0 0 10px rgba(16, 185, 129, 0.2)' : '0 0 10px rgba(217, 70, 239, 0.2)'
         }}>
-          <span style={{ fontSize: '0.85rem' }}>⚙️</span>
+          <span style={{ fontSize: '0.85rem' }}>{isCompleted ? '✓' : '⚙️'}</span>
           <span>{itPoints} IT</span>
         </div>
       </div>
@@ -200,9 +232,13 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           width: 'clamp(115px, 19vh, 180px)',
           height: 'clamp(115px, 19vh, 180px)',
           borderRadius: '50%',
-          border: '1.5px solid rgba(0, 255, 204, 0.35)',
-          boxShadow: '0 0 28px rgba(0, 255, 204, 0.25), inset 0 0 18px rgba(0, 255, 204, 0.15)',
-          background: 'radial-gradient(circle, rgba(0, 255, 204, 0.12) 0%, rgba(8, 14, 28, 0.8) 70%)',
+          border: isCompleted ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid rgba(0, 255, 204, 0.35)',
+          boxShadow: isCompleted 
+            ? '0 0 20px rgba(16, 185, 129, 0.18), inset 0 0 14px rgba(16, 185, 129, 0.1)' 
+            : '0 0 28px rgba(0, 255, 204, 0.25), inset 0 0 18px rgba(0, 255, 204, 0.15)',
+          background: isCompleted
+            ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(6, 10, 22, 0.85) 70%)'
+            : 'radial-gradient(circle, rgba(0, 255, 204, 0.12) 0%, rgba(8, 14, 28, 0.8) 70%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -215,7 +251,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
             position: 'absolute',
             inset: '5px',
             borderRadius: '50%',
-            border: '1px dashed rgba(0, 255, 204, 0.4)',
+            border: isCompleted ? '1px dashed rgba(16, 185, 129, 0.35)' : '1px dashed rgba(0, 255, 204, 0.4)',
             pointerEvents: 'none'
           }} />
 
@@ -229,7 +265,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
                 height: '85%',
                 objectFit: 'contain',
                 zIndex: 2,
-                filter: 'drop-shadow(0 0 14px rgba(0, 255, 204, 0.55))'
+                filter: isCompleted 
+                  ? 'grayscale(35%) opacity(0.85) drop-shadow(0 0 10px rgba(16, 185, 129, 0.35))' 
+                  : 'drop-shadow(0 0 14px rgba(0, 255, 204, 0.55))'
               }}
             />
           ) : (
@@ -255,7 +293,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         >
           <p style={{
             margin: 0,
-            color: 'rgba(255, 255, 255, 0.85)',
+            color: isCompleted ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.85)',
             fontSize: 'clamp(0.72rem, 1.35vh, 0.82rem)',
             lineHeight: 1.3,
             display: '-webkit-box',
@@ -268,7 +306,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
 
           <p style={{
             margin: 0,
-            color: '#00ffcc',
+            color: isCompleted ? '#10b981' : '#00ffcc',
             fontSize: 'clamp(0.76rem, 1.45vh, 0.85rem)',
             fontWeight: 700,
             lineHeight: 1.25,
@@ -276,7 +314,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            textShadow: '0 0 8px rgba(0, 255, 204, 0.3)'
+            textShadow: isCompleted ? '0 0 8px rgba(16, 185, 129, 0.3)' : '0 0 8px rgba(0, 255, 204, 0.3)'
           }}>
             Objectif : {objectiveText}
           </p>
@@ -352,11 +390,12 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           </div>
         </div>
 
-        {/* Bouton d'Action : Uniquement "IMPULSER" */}
+        {/* Bouton d'Action : "DÉSIMPULSER" ou "IMPULSER" */}
         {isActive && (
           <div>
             {isCompleted ? (
               <button 
+                id="btn-desimpulser-mission"
                 onClick={(e) => {
                   e.stopPropagation();
                   onCancelConfirm(mission.evoeMission?.actionDoneId, mission.evoeMission?.titreSF || mission.label);
@@ -364,24 +403,34 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
                 disabled={isImpulsing}
                 style={{
                   width: '100%',
-                  padding: '11px',
+                  padding: '10px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(16, 185, 129, 0.5)',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981',
-                  fontSize: '0.85rem',
-                  fontWeight: 900,
-                  letterSpacing: '1px',
+                  border: '1.5px solid rgba(239, 68, 68, 0.45)',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  color: '#ff6b6b',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.6px',
                   textTransform: 'uppercase',
                   cursor: isImpulsing ? 'wait' : 'pointer',
-                  boxShadow: '0 0 15px rgba(16, 185, 129, 0.2)',
+                  boxShadow: '0 0 12px rgba(239, 68, 68, 0.2)',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.22)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.7)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.45)';
                 }}
               >
-                {isImpulsing ? <span>⚡ ANALYSE...</span> : <><span>✓</span> DÉJÀ IMPULSÉ</>}
+                <RotateCcw size={14} />
+                <span>{isImpulsing ? 'ANNULATION...' : 'DÉSIMPULSER'}</span>
               </button>
             ) : (
               <button 
