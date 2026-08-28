@@ -15,6 +15,9 @@ import { DashboardKpiBar } from '@/components/dashboard/DashboardKpiBar';
 import { EcoBarRace } from '@/components/dashboard/EcoBarRace';
 import { InstanceCard, Instance } from '@/components/dashboard/InstanceCard';
 
+import { DraftResumeBanner } from '@/components/wizard/DraftResumeBanner';
+import Link from 'next/link';
+
 export default function DashboardSummaryPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [instances, setInstances] = useState<Instance[]>([]);
@@ -180,23 +183,26 @@ export default function DashboardSummaryPage() {
               </button>
             </div>
             {(userRole === 'AS' || userRole === 'AM') && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  window.location.href = '/dashboard/organization?tab=general&new=true';
-                }}
-                className="h-9 w-9 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none"
-                title="Nouvel Espace"
-              >
-                <Plus size={20} />
-              </motion.button>
+              <Link href="/dashboard/spaces/wizard">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="px-4 py-2 flex items-center gap-2 rounded-xl bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none"
+                  title="Lancer l'Assistant de Création"
+                >
+                  <Plus size={18} />
+                  <span>Créer un Espace</span>
+                </motion.button>
+              </Link>
             )}
           </div>
         }
       />
 
-      <div className="flex flex-col gap-8 max-w-7xl mx-auto pb-20">
+      <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-20">
+
+      {/* Bannière de reprise de brouillon si présent */}
+      <DraftResumeBanner />
 
       {/* KPI Stats Bar */}
       <DashboardKpiBar stats={stats} />

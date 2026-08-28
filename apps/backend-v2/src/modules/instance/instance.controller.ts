@@ -220,7 +220,12 @@ export class InstanceController {
   })
   async duplicateYear(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { fromSchoolYear: string; toSchoolYear: string },
+    @Body()
+    body: {
+      fromSchoolYear: string;
+      toSchoolYear: string;
+      cloneChildren?: boolean;
+    },
     @Request() req: any,
   ) {
     if (req.user.role === Role.AM) {
@@ -236,6 +241,7 @@ export class InstanceController {
       body.fromSchoolYear,
       body.toSchoolYear,
       req.user,
+      { cloneChildren: body.cloneChildren },
     );
   }
 

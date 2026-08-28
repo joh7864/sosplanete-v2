@@ -1215,11 +1215,13 @@ function MainApp() {
                             {missionWithChallenge.icon && (
                               <img src={`${EVOE_IMG_URL}${missionWithChallenge.icon}`} alt="" className="mission-icon" />
                             )}
-                            {!isCodexCollapsed && <h3>{missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label}</h3>}
+                            {!isCodexCollapsed && <h3 title={missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label}>{missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label}</h3>}
                           </div>
                           {!isCodexCollapsed && (
                             <>
-                              <p>{parseBold(missionWithChallenge.evoeMission?.descriptionSF || missionWithChallenge.description || "Mission secrète en attente de déchiffrage.")}</p>
+                              <p title={missionWithChallenge.evoeMission?.descriptionSF || missionWithChallenge.description || ""}>
+                                {parseBold(missionWithChallenge.evoeMission?.descriptionSF || missionWithChallenge.description || "Mission secrète en attente de déchiffrage.")}
+                              </p>
                               <button 
                                 id="btn-impulser-mission"
                                 className={`hack-btn ${missionWithChallenge.evoeMission?.isImpulsed ? 'impulsed-btn' : ''}`}
@@ -1276,7 +1278,7 @@ function MainApp() {
                           {mission.icon && (
                             <img src={`${EVOE_IMG_URL}${mission.icon}`} alt="" className="mission-icon" />
                           )}
-                          {!isCodexCollapsed && <h3>{mission.evoeMission?.titreSF || mission.label}</h3>}
+                          {!isCodexCollapsed && <h3 title={mission.evoeMission?.titreSF || mission.label}>{mission.evoeMission?.titreSF || mission.label}</h3>}
                           {mission.isChallengeActif && !isCodexCollapsed && (
                             <span style={{
                               marginLeft: 'auto',
@@ -1292,7 +1294,9 @@ function MainApp() {
                         </div>
                         {!isCodexCollapsed && (
                           <>
-                            <p>{parseBold(mission.evoeMission?.descriptionSF || mission.description || "Mission secrète en attente de déchiffrage.")}</p>
+                            <p title={mission.evoeMission?.descriptionSF || mission.description || ""}>
+                              {parseBold(mission.evoeMission?.descriptionSF || mission.description || "Mission secrète en attente de déchiffrage.")}
+                            </p>
                             <button 
                               id={idx === 0 ? "btn-impulser-mission" : undefined}
                               className={`hack-btn ${mission.evoeMission?.isImpulsed ? 'impulsed-btn' : ''}`}

@@ -196,8 +196,11 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
 
         {/* Title */}
         <div className="relative px-2 pb-1 z-10">
-          <h3 className={`text-[11px] font-black leading-tight line-clamp-2 min-h-[2.5em] text-center ${isEvoe ? 'text-cyan-200' : 'text-slate-800'}`}>
-            {isEvoe ? `Mission : ${action.referenceName}` : action.referenceName}
+          <h3 
+            title={isEvoe ? (action.titreSF || `Mission : ${action.referenceName}`) : action.referenceName}
+            className={`text-[11px] font-black leading-tight line-clamp-2 min-h-[2.5em] text-center ${isEvoe ? 'text-cyan-200' : 'text-slate-800'}`}
+          >
+            {isEvoe ? (action.titreSF || `Mission : ${action.referenceName}`) : action.referenceName}
           </h3>
         </div>
 
