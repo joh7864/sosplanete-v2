@@ -1056,10 +1056,10 @@ function MainApp() {
             pointerEvents: 'auto',
           }}>
             <div style={{
-              width: 'min(1040px, 86vw)',
+              width: 'min(1040px, 94vw)',
               height: 'auto',
-              maxHeight: '92vh',
-              background: 'rgba(10, 15, 30, 0.85)',
+              maxHeight: '96vh',
+              background: 'rgba(10, 15, 30, 0.88)',
               border: '1px solid rgba(0, 255, 204, 0.2)',
               borderRadius: '20px',
               display: 'flex',

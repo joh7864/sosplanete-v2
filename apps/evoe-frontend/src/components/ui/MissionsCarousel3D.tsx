@@ -159,8 +159,8 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
         onDragEnd={handleDragEnd}
         style={{
           position: 'relative',
-          width: '320px',
-          height: 'min(460px, 66vh)',
+          width: 'min(330px, 90vw)',
+          height: 'min(500px, 75vh)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

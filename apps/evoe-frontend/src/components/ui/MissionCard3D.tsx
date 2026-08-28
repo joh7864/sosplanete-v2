@@ -67,8 +67,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
       id={isActive ? "hud-active-mission-card" : undefined}
       onClick={onClick}
       style={{
-        width: 'min(330px, 86vw)',
-        height: 'min(490px, 72vh)',
+        width: 'min(330px, 88vw)',
+        height: 'min(490px, 74vh)',
+        maxHeight: '520px',
         borderRadius: '24px',
         background: 'rgba(8, 14, 28, 0.85)',
         backdropFilter: 'blur(20px)',
@@ -100,20 +101,21 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
 
       {/* 1. Haut : Titre + Badge IT épuré */}
       <div style={{
-        padding: '14px 16px 8px',
+        padding: '10px 14px 6px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '10px',
+        gap: '8px',
         borderBottom: '1px solid rgba(0, 255, 204, 0.15)',
-        background: 'rgba(0, 255, 204, 0.03)'
+        background: 'rgba(0, 255, 204, 0.03)',
+        flexShrink: 0
       }}>
         <h3 style={{
           margin: 0,
           color: '#ffffff',
-          fontSize: '0.98rem',
+          fontSize: '0.92rem',
           fontWeight: 800,
-          lineHeight: 1.25,
+          lineHeight: 1.2,
           letterSpacing: '0.3px',
           display: '-webkit-box',
           WebkitLineClamp: 2,
@@ -126,21 +128,21 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
 
         {/* Badge IT uniquement (logo IT + points) */}
         <div style={{
-          padding: '4px 10px',
-          borderRadius: '12px',
+          padding: '3px 8px',
+          borderRadius: '10px',
           background: 'rgba(217, 70, 239, 0.15)',
           border: '1px solid rgba(217, 70, 239, 0.5)',
           color: '#f0abfc',
-          fontSize: '0.8rem',
+          fontSize: '0.78rem',
           fontWeight: 900,
           letterSpacing: '0.5px',
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
+          gap: '4px',
           flexShrink: 0,
           boxShadow: '0 0 10px rgba(217, 70, 239, 0.2)'
         }}>
-          <span style={{ fontSize: '0.9rem' }}>⚙️</span>
+          <span style={{ fontSize: '0.85rem' }}>⚙️</span>
           <span>{itPoints} IT</span>
         </div>
       </div>
@@ -152,9 +154,11 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '0 16px',
-        gap: '10px',
-        position: 'relative'
+        padding: '4px 14px',
+        gap: '6px',
+        position: 'relative',
+        overflowY: 'auto',
+        minHeight: 0
       }}>
         {/* Bouton "!" Premium justifié à droite dans l'espace image */}
         <button
@@ -167,16 +171,16 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           title="Briefing complet"
           style={{
             position: 'absolute',
-            top: '4px',
-            right: '12px',
+            top: '2px',
+            right: '8px',
             zIndex: 10,
-            width: '26px',
-            height: '26px',
+            width: '24px',
+            height: '24px',
             borderRadius: '50%',
             background: 'rgba(8, 14, 28, 0.85)',
             border: '1.5px solid #00ffcc',
             color: '#00ffcc',
-            fontSize: '0.85rem',
+            fontSize: '0.8rem',
             fontWeight: 900,
             fontFamily: 'monospace, sans-serif',
             display: 'flex',
@@ -191,13 +195,13 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           !
         </button>
 
-        {/* Grand Portail Holographique avec l'Illustration 3D Agrandie */}
+        {/* Grand Portail Holographique avec dimensionnement dynamique */}
         <div style={{
-          width: '200px',
-          height: '200px',
+          width: 'clamp(115px, 19vh, 180px)',
+          height: 'clamp(115px, 19vh, 180px)',
           borderRadius: '50%',
           border: '1.5px solid rgba(0, 255, 204, 0.35)',
-          boxShadow: '0 0 32px rgba(0, 255, 204, 0.25), inset 0 0 22px rgba(0, 255, 204, 0.15)',
+          boxShadow: '0 0 28px rgba(0, 255, 204, 0.25), inset 0 0 18px rgba(0, 255, 204, 0.15)',
           background: 'radial-gradient(circle, rgba(0, 255, 204, 0.12) 0%, rgba(8, 14, 28, 0.8) 70%)',
           display: 'flex',
           alignItems: 'center',
@@ -209,7 +213,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           {/* Ligne d'orbite rotative subtle */}
           <div style={{
             position: 'absolute',
-            inset: '6px',
+            inset: '5px',
             borderRadius: '50%',
             border: '1px dashed rgba(0, 255, 204, 0.4)',
             pointerEvents: 'none'
@@ -221,15 +225,15 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
               alt={mission.label}
               onError={() => setImgError(true)}
               style={{
-                width: '175px',
-                height: '175px',
+                width: '85%',
+                height: '85%',
                 objectFit: 'contain',
                 zIndex: 2,
-                filter: 'drop-shadow(0 0 16px rgba(0, 255, 204, 0.55))'
+                filter: 'drop-shadow(0 0 14px rgba(0, 255, 204, 0.55))'
               }}
             />
           ) : (
-            <span style={{ fontSize: '4.5rem', zIndex: 2 }}>{rawIcon || '⚡'}</span>
+            <span style={{ fontSize: 'clamp(2.4rem, 4.5vh, 3.8rem)', zIndex: 2 }}>{rawIcon || '⚡'}</span>
           )}
         </div>
 
@@ -243,7 +247,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            gap: '3px',
             textAlign: 'center',
             width: '100%',
             cursor: 'pointer'
@@ -252,8 +256,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           <p style={{
             margin: 0,
             color: 'rgba(255, 255, 255, 0.85)',
-            fontSize: '0.82rem',
-            lineHeight: 1.35,
+            fontSize: 'clamp(0.72rem, 1.35vh, 0.82rem)',
+            lineHeight: 1.3,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -265,9 +269,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           <p style={{
             margin: 0,
             color: '#00ffcc',
-            fontSize: '0.85rem',
+            fontSize: 'clamp(0.76rem, 1.45vh, 0.85rem)',
             fontWeight: 700,
-            lineHeight: 1.28,
+            lineHeight: 1.25,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
@@ -281,10 +285,11 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
 
       {/* 4. Bas : 3 Pilules d'Impacts & Bouton d'Action */}
       <div style={{
-        padding: '6px 16px 14px',
+        padding: '4px 14px 10px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px'
+        gap: '6px',
+        flexShrink: 0
       }}>
         {/* Les 3 Pilules d'impacts écologiques */}
         <div style={{
