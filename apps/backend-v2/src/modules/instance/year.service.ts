@@ -21,9 +21,14 @@ function shiftDateByYears(
   return newDate;
 }
 
+import { PeriodService } from '../period/period.service';
+
 @Injectable()
 export class YearService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private periodService: PeriodService,
+  ) {}
 
   /**
    * Initialise une nouvelle année scolaire pour une instance.
@@ -71,6 +76,37 @@ export class YearService {
     const yearOffset = toStartYear - fromStartYear;
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Nettoyage préalable idempotent de tout reliquat éventuel sur l'année cible
+      await tx.localAction.deleteMany({
+        where: { instanceId, schoolYear: targetYear },
+      });
+      await tx.gameConfig.deleteMany({
+        where: { instanceId, schoolYear: targetYear },
+      });
+      const existingIy = await tx.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear: targetYear } },
+      });
+      if (existingIy) {
+        await tx.child.deleteMany({
+          where: { group: { team: { instanceYearId: existingIy.id } } },
+        });
+        await tx.group.deleteMany({
+          where: { team: { instanceYearId: existingIy.id } },
+        });
+        await tx.team.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.category.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.period.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.instanceYear.delete({
+          where: { id: existingIy.id },
+        });
+      }
+
       // Créer la nouvelle InstanceYear (hérite de la config de jeu)
       const newIy = await tx.instanceYear.create({
         data: {
@@ -136,16 +172,22 @@ export class YearService {
         }
       }
 
-      // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS — reste sur instanceId + schoolYear) ---
+      // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS & ÉVOÉ MISSIONS) ---
       const localActions = await tx.localAction.findMany({
         where: { instanceId, schoolYear: fromYear },
+        include: { evoeMission: true },
       });
+      const seenActionRefIds = new Set<number>();
       for (const action of localActions) {
-        await tx.localAction.create({
+        if (seenActionRefIds.has(action.actionRefId)) continue;
+        seenActionRefIds.add(action.actionRefId);
+
+        const newLocalAction = await tx.localAction.create({
           data: {
             label: action.label,
             description: action.description,
-            image: action.image,
+            image: action.image, // Icône & image SOS Planète Legacy
+            imageEvoe: action.imageEvoe, // Icône & image Évoé
             instanceId: action.instanceId,
             actionRefId: action.actionRefId,
             schoolYear: targetYear,
@@ -158,6 +200,20 @@ export class YearService {
             specificEnergy: action.specificEnergy,
           },
         });
+
+        // Clonage des missions et narrations de science-fiction Évoé associées
+        if (action.evoeMission) {
+          await tx.evoeMissionTranslation.create({
+            data: {
+              localActionId: newLocalAction.id,
+              titreSF: action.evoeMission.titreSF,
+              descriptionSF: action.evoeMission.descriptionSF,
+              pointsGagnes: action.evoeMission.pointsGagnes,
+              isHacked: action.evoeMission.isHacked,
+              imageOverride: action.evoeMission.imageOverride,
+            },
+          });
+        }
       }
 
       // --- D. CLONAGE DE LA GAMECONFIG ---
@@ -294,7 +350,7 @@ export class YearService {
   }
 
   /**
-   * Duplique les catégories, équipes (avec groupes et élèves), catalogue d'actions locales et GameConfig
+   * Duplique les catégories, équipes (avec groupes et optionnellement les élèves), catalogue d'actions locales et GameConfig
    * d'une année source vers une année cible existante vide pour une instance donnée.
    */
   async duplicateYear(
@@ -302,7 +358,10 @@ export class YearService {
     fromYear: string,
     toYear: string,
     currentUser?: any,
+    options?: { cloneChildren?: boolean },
   ) {
+    const shouldCloneChildren = options?.cloneChildren !== false;
+
     if (fromYear === toYear) {
       throw new BadRequestException(
         "L'année source et l'année cible doivent être différentes",
@@ -319,16 +378,8 @@ export class YearService {
       );
     }
 
-    // 2. Vérifier la cible : si elle existe déjà, on refuse la duplication (déjà existante)
-    const toIy = await this.prisma.instanceYear.findUnique({
-      where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
-    });
-    if (toIy) {
-      throw new ConflictException('Un espace du même nom existe déjà');
-    }
-
     console.log(
-      `[YearService] Creating and duplicating space from ${fromYear} to ${toYear} for instance ${instanceId}`,
+      `[YearService] Creating and duplicating space from ${fromYear} to ${toYear} for instance ${instanceId} (cloneChildren: ${shouldCloneChildren})`,
     );
 
     const fromStartYear = getStartYear(fromYear);
@@ -336,6 +387,37 @@ export class YearService {
     const yearOffset = toStartYear - fromStartYear;
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Nettoyage préalable idempotent de tout reliquat éventuel sur l'année cible
+      await tx.localAction.deleteMany({
+        where: { instanceId, schoolYear: toYear },
+      });
+      await tx.gameConfig.deleteMany({
+        where: { instanceId, schoolYear: toYear },
+      });
+      const existingIy = await tx.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear: toYear } },
+      });
+      if (existingIy) {
+        await tx.child.deleteMany({
+          where: { group: { team: { instanceYearId: existingIy.id } } },
+        });
+        await tx.group.deleteMany({
+          where: { team: { instanceYearId: existingIy.id } },
+        });
+        await tx.team.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.category.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.period.deleteMany({
+          where: { instanceYearId: existingIy.id },
+        });
+        await tx.instanceYear.delete({
+          where: { id: existingIy.id },
+        });
+      }
+
       // --- CREATION DE LA NOUVELLE INSTANCEYEAR CIBLE (Copie des paramètres généraux) ---
       const newIy = await tx.instanceYear.create({
         data: {
@@ -343,7 +425,7 @@ export class YearService {
           schoolYear: toYear,
           hostUrl: fromIy.hostUrl,
           icon: fromIy.icon,
-          isOpen: fromIy.isOpen,
+          isOpen: false, // Toujours fermé / brouillon par défaut
           gameStartDate: shiftDateByYears(fromIy.gameStartDate, yearOffset),
           gameEndDate: shiftDateByYears(fromIy.gameEndDate, yearOffset),
           gamePeriodsCount: fromIy.gamePeriodsCount,
@@ -368,7 +450,7 @@ export class YearService {
         categoryMap.set(cat.id, newCat.id);
       }
 
-      // --- B. CLONAGE DES TEAMS, GROUPS & CHILDREN ---
+      // --- B. CLONAGE DES TEAMS, GROUPS & (OPTIONNELLEMENT) CHILDREN ---
       const teams = await tx.team.findMany({
         where: { instanceYearId: fromIy.id },
         include: { groups: { include: { children: true } } },
@@ -388,29 +470,39 @@ export class YearService {
           const newGroup = await tx.group.create({
             data: { name: group.name, color: group.color, teamId: newTeam.id },
           });
-          for (const child of group.children) {
-            await tx.child.create({
-              data: {
-                pseudo: child.pseudo,
-                password: child.password,
-                avatar: child.avatar,
-                groupId: newGroup.id,
-              },
-            });
+
+          if (shouldCloneChildren) {
+            for (const child of group.children) {
+              await tx.child.create({
+                data: {
+                  pseudo: child.pseudo,
+                  password: child.password,
+                  avatar: child.avatar,
+                  isDelegate: child.isDelegate,
+                  groupId: newGroup.id,
+                },
+              });
+            }
           }
         }
       }
 
-      // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS) ---
+      // --- C. CLONAGE DU CATALOGUE (LOCAL ACTIONS & ÉVOÉ MISSIONS) ---
       const localActions = await tx.localAction.findMany({
         where: { instanceId, schoolYear: fromYear },
+        include: { evoeMission: true },
       });
+      const seenActionRefIds = new Set<number>();
       for (const action of localActions) {
-        await tx.localAction.create({
+        if (seenActionRefIds.has(action.actionRefId)) continue;
+        seenActionRefIds.add(action.actionRefId);
+
+        const newLocalAction = await tx.localAction.create({
           data: {
             label: action.label,
             description: action.description,
-            image: action.image,
+            image: action.image, // Icône & image SOS Planète Legacy
+            imageEvoe: action.imageEvoe, // Icône & image Évoé
             instanceId: action.instanceId,
             actionRefId: action.actionRefId,
             schoolYear: toYear,
@@ -423,6 +515,20 @@ export class YearService {
             specificEnergy: action.specificEnergy,
           },
         });
+
+        // Clonage des missions SF Évoé
+        if (action.evoeMission) {
+          await tx.evoeMissionTranslation.create({
+            data: {
+              localActionId: newLocalAction.id,
+              titreSF: action.evoeMission.titreSF,
+              descriptionSF: action.evoeMission.descriptionSF,
+              pointsGagnes: action.evoeMission.pointsGagnes,
+              isHacked: action.evoeMission.isHacked,
+              imageOverride: action.evoeMission.imageOverride,
+            },
+          });
+        }
       }
 
       // --- D. CLONAGE/UPSERT DE LA GAMECONFIG ---
@@ -459,8 +565,59 @@ export class YearService {
         });
       }
 
+      // --- E. GENERATION ET SYNCHRONISATION DES PERIODES ---
+      await this.periodService.syncPeriods(
+        instanceId,
+        newIy.id,
+        toYear,
+        false,
+        tx,
+      );
+
+      // --- F. GESTION DE LA PERIODE COURANTE ---
+      await this.periodService.handleCurrentPeriodActivation(
+        newIy.id,
+        tx,
+      );
+
       return { success: true, fromYear, toYear, instanceYearId: newIy.id };
     });
+
+    // 3. Garantir l'existence d'AnnualImpactData pour la cible
+    try {
+      const yearInt = parseInt(toYear.split('-')[0], 10);
+      const existingAid = await this.prisma.annualImpactData.findUnique({
+        where: { year: yearInt },
+      });
+      if (!existingAid) {
+        const mostRecent = await this.prisma.annualImpactData.findFirst({
+          orderBy: { year: 'desc' },
+        });
+        await this.prisma.annualImpactData.create({
+          data: {
+            year: yearInt,
+            dActuel: mostRecent?.dActuel ?? 214,
+            moyCo2Monde: mostRecent?.moyCo2Monde ?? 4.7,
+            moyEauMonde: mostRecent?.moyEauMonde ?? 1385000,
+            moyDechetsMonde: mostRecent?.moyDechetsMonde ?? 270,
+            popMonde: mostRecent?.popMonde ?? 8.1,
+            assiduityWeight: mostRecent?.assiduityWeight ?? 0.0,
+            annualMultiplierWeight: mostRecent?.annualMultiplierWeight ?? 1.0,
+            difficultyFactor: mostRecent?.difficultyFactor ?? 2.0,
+            worldProjectionMultiplier: mostRecent?.worldProjectionMultiplier ?? 1.0,
+            isCustomized: false,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn(`[duplicateYear] Note: AnnualImpactData initialization check failed:`, e);
+    }
+
+    await this.triggerYearInitializationNotifications(
+      instanceId,
+      toYear,
+      currentUser,
+    );
 
     return result;
   }

@@ -20,13 +20,9 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Centrer sur la fiche du milieu uniquement lorsque le secteur change
+  // Commencer sur la 1ère fiche lorsque le secteur change
   useEffect(() => {
-    if (missions && missions.length > 0) {
-      setActiveIndex(Math.floor(missions.length / 2));
-    } else {
-      setActiveIndex(0);
-    }
+    setActiveIndex(0);
   }, [selectedSector]); // On ne dépend QUE du selectedSector pour ne pas reset au polling
 
   // Robust Mobile Touch Swipe Handling

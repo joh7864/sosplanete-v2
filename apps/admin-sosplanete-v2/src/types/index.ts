@@ -111,6 +111,8 @@ export interface ActionRef {
   image?: string | null;
   imageEvoe?: string | null;
   description?: string | null;
+  titreSF?: string | null;
+  evoeMission?: EvoeMissionTranslation | null;
   defaultCo2?: number | null;
   defaultWater?: number | null;
   defaultWaste?: number | null;

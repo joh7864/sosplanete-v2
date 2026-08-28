@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -23,6 +23,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   style
 }) => {
   const [imgError, setImgError] = React.useState(false);
+  const [showFullBriefing, setShowFullBriefing] = React.useState(false);
   const isCompleted = mission.evoeMission?.isImpulsed;
   
   // Neon colors
@@ -48,6 +49,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   if (!introText || !isNaN(Number(introText))) {
     introText = "Directive prioritaire de l'Arche pour stabiliser la matrice :";
   }
+
+  const fullMissionTitle = mission.evoeMission?.titreSF || mission.label;
 
   const rawIcon = mission.icon || mission.image || mission.icone;
   const isImageFile = Boolean(rawIcon && typeof rawIcon === 'string' && (
@@ -95,7 +98,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         opacity: isActive ? 1 : 0.4
       }} />
 
-      {/* 1. Haut : Titre + Badge IT */}
+      {/* 1. Haut : Titre + Badge IT épuré */}
       <div style={{
         padding: '14px 16px 8px',
         display: 'flex',
@@ -118,7 +121,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           overflow: 'hidden',
           textShadow: isActive ? `0 0 10px rgba(0, 255, 204, 0.4)` : 'none'
         }}>
-          {mission.evoeMission?.titreSF || mission.label}
+          {fullMissionTitle}
         </h3>
 
         {/* Badge IT uniquement (logo IT + points) */}
@@ -142,7 +145,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         </div>
       </div>
 
-      {/* 2 & 3. Centre : Grand Portail Holographique Agrandie + Briefing & Objectif, parfaitement centrés en hauteur */}
+      {/* 2 & 3. Centre : Grand Portail Holographique avec bouton "!" + Briefing & Objectif aérés */}
       <div style={{
         flexGrow: 1,
         display: 'flex',
@@ -150,8 +153,44 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         padding: '0 16px',
-        gap: '10px'
+        gap: '10px',
+        position: 'relative'
       }}>
+        {/* Bouton "!" Premium justifié à droite dans l'espace image */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowFullBriefing(true);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          title="Briefing complet"
+          style={{
+            position: 'absolute',
+            top: '4px',
+            right: '12px',
+            zIndex: 10,
+            width: '26px',
+            height: '26px',
+            borderRadius: '50%',
+            background: 'rgba(8, 14, 28, 0.85)',
+            border: '1.5px solid #00ffcc',
+            color: '#00ffcc',
+            fontSize: '0.85rem',
+            fontWeight: 900,
+            fontFamily: 'monospace, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 0 14px rgba(0, 255, 204, 0.4), inset 0 0 8px rgba(0, 255, 204, 0.2)',
+            backdropFilter: 'blur(8px)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          !
+        </button>
+
         {/* Grand Portail Holographique avec l'Illustration 3D Agrandie */}
         <div style={{
           width: '200px',
@@ -194,14 +233,22 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           )}
         </div>
 
-        {/* Corps : Briefing & Objectif bien mis en valeur */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          textAlign: 'center',
-          width: '100%'
-        }}>
+        {/* Corps : Briefing & Objectif aérés (version épurée) */}
+        <div 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowFullBriefing(true);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            textAlign: 'center',
+            width: '100%',
+            cursor: 'pointer'
+          }}
+        >
           <p style={{
             margin: 0,
             color: 'rgba(255, 255, 255, 0.85)',
@@ -368,6 +415,129 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           </div>
         )}
       </div>
+
+      {/* Full Holographic Briefing Overlay (Mobile Tap & Desktop Click on ! or text) */}
+      <AnimatePresence>
+        {showFullBriefing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowFullBriefing(false);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 50,
+              background: 'rgba(4, 9, 20, 0.96)',
+              backdropFilter: 'blur(25px)',
+              WebkitBackdropFilter: 'blur(25px)',
+              padding: '18px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              borderRadius: '24px',
+              border: '1.5px solid rgba(0, 255, 204, 0.6)',
+              boxShadow: '0 0 45px rgba(0, 255, 204, 0.35)',
+            }}
+          >
+            {/* Header with Title and Close Button */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+              <div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#00ffcc', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  📋 Briefing Stratégique Évoé
+                </span>
+                <h4 style={{ margin: '4px 0 0', color: '#fff', fontSize: '1.02rem', fontWeight: 800, lineHeight: 1.25 }}>
+                  {fullMissionTitle}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFullBriefing(false);
+                }}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Briefing Content */}
+            <div style={{
+              margin: '10px 0',
+              padding: '12px',
+              borderRadius: '14px',
+              background: 'rgba(0, 255, 204, 0.04)',
+              border: '1px solid rgba(0, 255, 204, 0.15)',
+              maxHeight: '250px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}>
+              <div>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+                  Directive SF
+                </span>
+                <p style={{ margin: '3px 0 0', color: 'rgba(255,255,255,0.92)', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                  {introText}
+                </p>
+              </div>
+
+              <div style={{ paddingTop: '8px', borderTop: '1px dashed rgba(0, 255, 204, 0.2)' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#00ffcc', textTransform: 'uppercase' }}>
+                  🎯 Objectif Réel
+                </span>
+                <p style={{ margin: '3px 0 0', color: '#00ffcc', fontSize: '0.88rem', fontWeight: 700, lineHeight: 1.35 }}>
+                  {objectiveText}
+                </p>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowFullBriefing(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '12px',
+                background: 'rgba(0, 255, 204, 0.15)',
+                border: '1px solid rgba(0, 255, 204, 0.5)',
+                color: '#00ffcc',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+              }}
+            >
+              Fermer le Briefing
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
