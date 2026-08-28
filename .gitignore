@@ -52,6 +52,11 @@ apps/backend-v1/dev/src/admin/static/animation/*
 !apps/backend-v1/dev/src/admin/static/animation/.gitkeep
 uploads/*
 !uploads/avatars_3D/
+!uploads/missions/
+!uploads/actions/
+!uploads/categories/
+!uploads/icons/
+!uploads/logo-sosplanete.png
 
 # --- IMPORT FILES OLD ---
 .docs/3-fct/OldFiles/
