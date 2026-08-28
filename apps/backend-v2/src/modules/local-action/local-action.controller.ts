@@ -152,7 +152,7 @@ export class LocalActionController {
           const folder = req.query.folder === 'missions' ? 'missions' : 'actions';
           const basePath =
             process.env.UPLOADS_DIR ||
-            join(__dirname, '..', '..', '..', '..', 'uploads');
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
           const destPath = join(basePath, folder);
           if (!fs.existsSync(destPath)) {
             fs.mkdirSync(destPath, { recursive: true });
@@ -164,7 +164,7 @@ export class LocalActionController {
           cb(null, uniqueName);
         },
       }),
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|webp|svg\+xml)$/)) {
           cb(

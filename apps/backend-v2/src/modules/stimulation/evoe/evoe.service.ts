@@ -22,28 +22,43 @@ function getAvatarUrl(avatarPath: string | null): string | null {
 
 const CATEGORY_SF_MAP: Record<string, string> = {
   // Pôle Ressources Vitales
-  Eau: 'Secteur Ressources Vitales',
-  "L'eau": 'Secteur Ressources Vitales',
-  Alimentation: 'Secteur Ressources Vitales',
-  "L'alimentation": 'Secteur Ressources Vitales',
-  Courses: 'Secteur Ressources Vitales',
-  Maison: 'Secteur Ressources Vitales',
+  Eau: 'Ressources vitales',
+  "L'eau": 'Ressources vitales',
+  Alimentation: 'Ressources vitales',
+  "L'alimentation": 'Ressources vitales',
+  Courses: 'Ressources vitales',
+  Maison: 'Ressources vitales',
 
   // Pôle Bio-Génétique
-  Biodiversité: 'Secteur Bio-Génétique',
-  'La biodiversité': 'Secteur Bio-Génétique',
-  Animaux: 'Secteur Bio-Génétique',
+  Biodiversité: 'Bio-génétique',
+  'La biodiversité': 'Bio-génétique',
+  Biodiversite: 'Bio-génétique',
+  Animaux: 'Bio-génétique',
 
   // Pôle Énergétique & Industriel
-  Energie: 'Secteur Énergétique & Plasma',
-  "L'énergie": 'Secteur Énergétique & Plasma',
-  Déchets: 'Secteur Recyclage & Plasma',
-  'Les déchets': 'Secteur Recyclage & Plasma',
+  Electricité: 'Energie',
+  Electricite: 'Energie',
+  Électricité: 'Energie',
+  "L'électricité": 'Energie',
+  "L'electricité": 'Energie',
+  "L'electricite": 'Energie',
+  Energie: 'Energie',
+  Énergie: 'Energie',
+  "L'énergie": 'Energie',
+  "L'energie": 'Energie',
+  Déchets: 'Recyclage',
+  'Les déchets': 'Recyclage',
+  Dechets: 'Recyclage',
+  'Les dechets': 'Recyclage',
 
   // Pôle Mobilité & Réseau
-  Transport: 'Secteur Propulsion & Mobilité',
-  Numérique: 'Secteur Archives & Réseau',
-  Ecole: 'Secteur Académie Temporelle',
+  Transport: 'Propulsion',
+  Transports: 'Propulsion',
+  'Les transports': 'Propulsion',
+  Numérique: 'Numérique',
+  Numerique: 'Numérique',
+  Ecole: 'Académie Temporelle',
+  'École': 'Académie Temporelle',
 };
 
 const PROPULSION_THRESHOLDS = [
@@ -96,6 +111,12 @@ export class EvoeService {
   ) {}
 
   async getMissions(instanceId: number, schoolYear: string) {
+    const basePath =
+      process.env.UPLOADS_DIR ||
+      path.join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+    const missionsDir = path.join(basePath, 'missions');
+    const missionsFiles = fs.existsSync(missionsDir) ? fs.readdirSync(missionsDir) : [];
+
     // Fetch all LocalActions for this instance and join with EvoeMissionTranslation
     const localActions = await this.prisma.localAction.findMany({
       where: {
@@ -110,22 +131,65 @@ export class EvoeService {
     });
 
     return localActions.map((action) => {
-      const rawEvoeImg = action.imageEvoe || action.evoeMission?.imageOverride || action.actionRef?.imageEvoe;
-      const rawLegacyImg = action.image || action.actionRef?.image;
+      const code = action.actionRef?.code?.trim() || '';
+
+      // Auto-detect mission image on disk if not explicitly specified in DB
+      let autoEvoeImg: string | null = null;
+      if (code) {
+        const foundMissionFile = missionsFiles.find((f) => {
+          const dotIndex = f.lastIndexOf('.');
+          if (dotIndex === -1) return false;
+          const base = f.substring(0, dotIndex);
+          return (
+            base.toLowerCase() === `${code}_evoe`.toLowerCase() ||
+            base.toLowerCase() === code.toLowerCase()
+          );
+        });
+        if (foundMissionFile) {
+          autoEvoeImg = foundMissionFile;
+        }
+      }
+
+      const rawEvoeImg = [
+        action.imageEvoe,
+        action.evoeMission?.imageOverride,
+        action.actionRef?.imageEvoe,
+        autoEvoeImg,
+      ].find(isValidImageFilename);
+      const rawLegacyImg = [action.image, action.actionRef?.image].find(
+        isValidImageFilename,
+      );
 
       let imageFile: string | null = null;
       if (rawEvoeImg && isValidImageFilename(rawEvoeImg)) {
-        imageFile = rawEvoeImg.startsWith('missions/') || rawEvoeImg.startsWith('actions/') || rawEvoeImg.startsWith('/uploads/')
-          ? rawEvoeImg.replace(/^\/uploads\//, '')
-          : `missions/${rawEvoeImg}`;
+        imageFile =
+          rawEvoeImg.startsWith('missions/') ||
+          rawEvoeImg.startsWith('actions/') ||
+          rawEvoeImg.startsWith('/uploads/')
+            ? rawEvoeImg.replace(/^\/uploads\//, '')
+            : `missions/${rawEvoeImg}`;
       } else if (rawLegacyImg && isValidImageFilename(rawLegacyImg)) {
-        imageFile = rawLegacyImg.startsWith('actions/') || rawLegacyImg.startsWith('missions/') || rawLegacyImg.startsWith('/uploads/')
-          ? rawLegacyImg.replace(/^\/uploads\//, '')
-          : `actions/${rawLegacyImg}`;
+        imageFile =
+          rawLegacyImg.startsWith('actions/') ||
+          rawLegacyImg.startsWith('missions/') ||
+          rawLegacyImg.startsWith('/uploads/')
+            ? rawLegacyImg.replace(/^\/uploads\//, '')
+            : `actions/${rawLegacyImg}`;
       }
 
-      const physicalCat = action.category?.name || '';
-      const catSF = CATEGORY_SF_MAP[physicalCat] || `Secteur ${physicalCat}`;
+      const physicalCat =
+        action.category?.name || action.actionRef?.category || '';
+      let catSF = 'Général';
+      if (physicalCat) {
+        const cleanCat = physicalCat.trim();
+        const unaccented = cleanCat
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        catSF =
+          CATEGORY_SF_MAP[cleanCat] ||
+          CATEGORY_SF_MAP[unaccented] ||
+          cleanCat;
+      }
 
       let descSF =
         action.evoeMission?.descriptionSF || action.description || '';
@@ -176,10 +240,9 @@ export class EvoeService {
       const co2 = action.specificCo2 ?? action.actionRef?.defaultCo2 ?? 0;
       const water = action.specificWater ?? action.actionRef?.defaultWater ?? 0;
       const waste = action.specificWaste ?? action.actionRef?.defaultWaste ?? 0;
-      const calculated = Math.round(co2 + water + waste);
-      const amplitude = (action.evoeMission?.pointsGagnes && action.evoeMission.pointsGagnes > 0)
-        ? action.evoeMission.pointsGagnes
-        : (calculated > 0 ? calculated : 10);
+      // Formule de pondération 60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT
+      const calculated = 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      const amplitude = calculated;
 
       // Fusion of physical action and SF mapping
       return {

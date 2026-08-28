@@ -7,18 +7,22 @@ import { PlayerAvatar } from './3d/PlayerAvatar';
 import PodiumGroup from './3d/PodiumGroup';
 
 export function getCategoryEmoji(category: string): string {
-  const cat = (category || '').toLowerCase();
-  if (cat.includes('recycl') || cat.includes('déchet') || cat.includes('matière')) return '♻️';
+  const cat = (category || '')
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (cat.includes('recycl') || cat.includes('dechet') || cat.includes('matiere')) return '♻️';
   if (cat.includes('plasma')) return '🌀';
-  if (cat.includes('électricit') || cat.includes('énerg') || cat.includes('courant')) return '⚡';
-  if (cat.includes('génétiq') || cat.includes('dna') || cat.includes('adn')) return '🧬';
-  if (cat.includes('biodiver') || cat.includes('flore') || cat.includes('nature') || cat.includes('forêt')) return '🌿';
-  if (cat.includes('propulsion')) return '🚀';
-  if (cat.includes('transport') || cat.includes('mobilit') || cat.includes('vélo')) return '🚲';
-  if (cat.includes('ressources') || cat.includes('vital') || cat.includes('eau') || cat.includes('hydrique') || cat.includes('océan')) return '💧';
-  if (cat.includes('aliment') || cat.includes('agricul') || cat.includes('nourrit') || cat.includes('repas')) return '🌾';
-  if (cat.includes('numériq') || cat.includes('tech') || cat.includes('digital') || cat.includes('écran')) return '💻';
-  if (cat.includes('habitat') || cat.includes('bâtiment') || cat.includes('logement') || cat.includes('maison')) return '🏠';
+  if (cat.includes('electricit') || cat.includes('energ') || cat.includes('courant')) return '⚡';
+  if (cat.includes('genetiq') || cat.includes('dna') || cat.includes('adn') || cat.includes('bio')) return '🧬';
+  if (cat.includes('biodiver') || cat.includes('flore') || cat.includes('nature') || cat.includes('foret') || cat.includes('anim')) return '🌿';
+  if (cat.includes('propulsion') || cat.includes('spatial')) return '🚀';
+  if (cat.includes('transport') || cat.includes('mobilit') || cat.includes('velo')) return '🚲';
+  if (cat.includes('ressources') || cat.includes('vital') || cat.includes('eau') || cat.includes('hydrique') || cat.includes('ocean')) return '💧';
+  if (cat.includes('aliment') || cat.includes('agricul') || cat.includes('nourrit') || cat.includes('repas') || cat.includes('course')) return '🌾';
+  if (cat.includes('numeriq') || cat.includes('tech') || cat.includes('digital') || cat.includes('ecran')) return '💻';
+  if (cat.includes('habitat') || cat.includes('batiment') || cat.includes('logement') || cat.includes('maison')) return '🏠';
   return '🌱';
 }
 

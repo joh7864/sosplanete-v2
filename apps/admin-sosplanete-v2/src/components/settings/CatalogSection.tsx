@@ -15,7 +15,13 @@ import {
   Leaf,
   Zap,
   Star,
-  Layers
+  Layers,
+  SlidersHorizontal,
+  ImagePlus,
+  Droplets,
+  Check,
+  X,
+  ArrowUpDown
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { GalleryGroup } from '@/components/catalog/GalleryGroup';
@@ -24,6 +30,25 @@ import { CatalogMapping } from '@/components/catalog/CatalogMapping';
 import { ActionRefEditModal } from '@/components/catalog/ActionRefEditModal';
 import { ActionRef } from '@/types';
 import { getAuthData } from '@/utils/storage';
+
+const CATEGORY_SF_MAP: Record<string, string> = {
+  Eau: 'Ressources vitales',
+  "L'eau": 'Ressources vitales',
+  Alimentation: 'Ressources vitales',
+  "L'alimentation": 'Ressources vitales',
+  Courses: 'Ressources vitales',
+  Maison: 'Ressources vitales',
+  Biodiversité: 'Bio-génétique',
+  'La biodiversité': 'Bio-génétique',
+  Animaux: 'Bio-génétique',
+  Electricité: 'Energie',
+  Energie: 'Energie',
+  "L'énergie": 'Energie',
+  Déchets: 'Recyclage',
+  'Les déchets': 'Recyclage',
+  Transport: 'Propulsion',
+  Numérique: 'Numérique',
+};
 
 type ViewMode = 'list' | 'gallery';
 type GroupBy = 'category' | 'stars' | 'impact' | 'it';
@@ -46,6 +71,14 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
   const [actions, setActions] = useState<ActionRef[]>([]);
   const [loading, setLoading] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  // Filters & Sorting state
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [minStars, setMinStars] = useState<number>(0);
+  const [impactFilters, setImpactFilters] = useState({ co2: false, water: false, waste: false });
+  const [sortBy, setSortBy] = useState<string>('stars-desc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [syncingImages, setSyncingImages] = useState(false);
 
   // Modal d'édition d'une ActionRef
   const [editingAction, setEditingAction] = useState<ActionRef | null>(null);
@@ -77,6 +110,28 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
     }
   }, [searchQuery, role]);
 
+  const handleSyncImages = async () => {
+    setSyncingImages(true);
+    try {
+      const token = getAuthData('access_token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/action-ref/sync-images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`${data.updatedCount} image(s) synchronisée(s) avec succès depuis le dossier uploads !`);
+        fetchActions();
+      } else {
+        alert("Erreur lors de la synchronisation des images.");
+      }
+    } catch (e) {
+      alert("Erreur réseau lors de la synchronisation.");
+    } finally {
+      setSyncingImages(false);
+    }
+  };
+
   const handleDeleteAction = async (id: number) => {
     try {
       const token = getAuthData('access_token');
@@ -104,21 +159,63 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
   };
 
   const getITGroupLabel = (action: ActionRef): string => {
-    const it = Math.round((action.defaultCo2 || 0) + (action.defaultWater || 0) + (action.defaultWaste || 0)) || 10;
-    if (it <= 5) return '⚡ 1 à 5 IT (Impact Modéré)';
-    if (it <= 15) return '⚡ 6 à 15 IT (Impact Significatif)';
-    if (it <= 35) return '⚡ 16 à 35 IT (Impact Majeur)';
-    return '⚡ 36+ IT (Impact Critique / Boss)';
+    const it = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
+    if (it <= 15) return '⚡ 10 à 15 IT (Impact Modéré)';
+    if (it <= 35) return '⚡ 16 à 35 IT (Impact Significatif)';
+    if (it <= 70) return '⚡ 36 à 70 IT (Impact Majeur)';
+    return '⚡ 71+ IT (Impact Critique / Boss)';
   };
+
+  const categories = useMemo(() => Array.from(new Set(actions.map(a => a.category).filter((c): c is string => !!c))).sort(), [actions]);
+  const activeFiltersCount = (filterCategory ? 1 : 0) + (minStars > 0 ? 1 : 0) + (impactFilters.co2 ? 1 : 0) + (impactFilters.water ? 1 : 0) + (impactFilters.waste ? 1 : 0);
+
+  const filteredActions = useMemo(() => {
+    return actions.filter(action => {
+      const matchCat = !filterCategory || action.category === filterCategory;
+      const matchStars = (action.weightedStars ?? 1) >= minStars;
+      const matchCo2 = !impactFilters.co2 || (action.defaultCo2 ?? 0) > 0;
+      const matchWater = !impactFilters.water || (action.defaultWater ?? 0) > 0;
+      const matchWaste = !impactFilters.waste || (action.defaultWaste ?? 0) > 0;
+      return matchCat && matchStars && matchCo2 && matchWater && matchWaste;
+    }).sort((a, b) => {
+      const getIT = (act: ActionRef) => {
+        const co2 = act.defaultCo2 || 0;
+        const water = act.defaultWater || 0;
+        const waste = act.defaultWaste || 0;
+        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      };
+      if (sortBy === 'it-desc') return getIT(b) - getIT(a);
+      if (sortBy === 'it-asc') return getIT(a) - getIT(b);
+      if (sortBy === 'code-asc') return a.code.localeCompare(b.code);
+      if (sortBy === 'co2-desc') return (b.defaultCo2 ?? 0) - (a.defaultCo2 ?? 0);
+      if (sortBy === 'water-desc') return (b.defaultWater ?? 0) - (a.defaultWater ?? 0);
+      if (sortBy === 'waste-desc') return (b.defaultWaste ?? 0) - (a.defaultWaste ?? 0);
+      return (b.weightedStars ?? 1) - (a.weightedStars ?? 1);
+    });
+  }, [actions, filterCategory, minStars, impactFilters, sortBy]);
 
   const groupedActions = useMemo(() => {
     const groups: { [key: string]: ActionRef[] } = {};
-    actions.forEach(action => {
+    filteredActions.forEach(action => {
       let key = '';
       if (groupBy === 'stars') {
         key = `${action.weightedStars ?? 1} Étoiles`;
       } else if (groupBy === 'category') {
         key = action.category || 'Sans catégorie';
+        if (viewUniverse === 'evoe') {
+          const categoryName = action.category || '';
+          const cleanName = categoryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          
+          let matchedSector = 'Secteur Inconnu';
+          for (const [legacyCat, sfSector] of Object.entries(CATEGORY_SF_MAP)) {
+            const cleanLegacy = legacyCat.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (cleanName.toLowerCase() === cleanLegacy.toLowerCase()) {
+              matchedSector = sfSector;
+              break;
+            }
+          }
+          key = matchedSector;
+        }
       } else if (groupBy === 'it') {
         key = getITGroupLabel(action);
       } else {
@@ -139,7 +236,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
       }
       return a[0].localeCompare(b[0]);
     });
-  }, [actions, groupBy]);
+  }, [filteredActions, groupBy, viewUniverse]);
 
   const getImpactStyles = (label: string) => {
     switch (label?.toLowerCase()) {
@@ -178,139 +275,196 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
           <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
             Catalogue Référentiel Global
             <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
-              {actions.length} action{actions.length > 1 ? 's' : ''}
+              {filteredActions.length} / {actions.length} action{actions.length > 1 ? 's' : ''}
             </span>
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
             Édition des visuels, indicateurs d'impacts réels et équivalences de missions SF
           </p>
         </div>
+      </div>
 
+      {/* Barre d'outils moderne harmonisée */}
+      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col p-3 gap-3 transition-all">
         <div className="flex items-center gap-3">
-          {/* Commutateur d'Univers */}
-          <div className="flex p-1 bg-slate-200/80 rounded-2xl border border-slate-300/60 shadow-inner">
+          {/* Recherche */}
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="Rechercher par code, nom ou catégorie dans tout le référentiel..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-11 bg-slate-50 border-none rounded-xl pl-11 pr-4 shadow-inner text-sm font-bold text-slate-700 placeholder:text-slate-300 focus:bg-white transition-all outline-none"
+            />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />
+            {loading && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-emerald-500" />}
+          </div>
+
+          {/* View Mode Toggle */}
+          <button 
+            onClick={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
+            title={viewMode === 'list' ? "Passer en vue cartes" : "Passer en vue liste"}
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-all border border-slate-100/50 shrink-0"
+          >
+            {viewMode === 'list' ? <LayoutGrid size={18} /> : <List size={18} />}
+          </button>
+
+          {/* Universe Toggle Switch */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 shrink-0">
             <button
               onClick={() => {
                 setViewUniverse('legacy');
                 if (groupBy === 'it') setGroupBy('category');
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                viewUniverse === 'legacy'
-                  ? 'bg-white text-emerald-700 shadow-md'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewUniverse === 'legacy' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              <Leaf size={14} className={viewUniverse === 'legacy' ? 'text-emerald-500' : ''} />
-              <span>🌿 SOS Planète</span>
+              <Leaf size={14} /> SOS Planète
             </button>
             <button
               onClick={() => setViewUniverse('evoe')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                viewUniverse === 'evoe'
-                  ? 'bg-slate-900 text-cyan-400 shadow-md'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewUniverse === 'evoe' ? 'bg-slate-900 text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              <Zap size={14} className={viewUniverse === 'evoe' ? 'text-cyan-400' : ''} />
-              <span>🚀 Évoé SF</span>
+              <Zap size={14} /> Évoé SF
             </button>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowImportModal(true)}
-            className="h-10 px-4 flex items-center gap-2 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
+          {/* Advanced Filter Toggle */}
+          <button 
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-2 px-4 h-11 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shrink-0 ${showAdvancedFilters ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
           >
-            <Upload size={16} /> <span>Importer CSV</span>
-          </motion.button>
-        </div>
-      </div>
-
-      {/* Barre d'outils / Filtres */}
-      <GlassCard className="p-4 px-6 flex flex-col md:flex-row gap-4 items-center justify-between !rounded-2xl border-white/40 shadow-xl bg-white/80">
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          {/* Recherche */}
-          <div className="relative w-full md:w-80 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500" size={18} />
-            <input
-              type="text"
-              placeholder="Rechercher par code, nom ou catégorie..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border-slate-100 rounded-2xl text-xs focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium placeholder:text-slate-300"
-            />
-            {loading && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-emerald-500" />}
-          </div>
-
-          {/* GroupBy Buttons */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100/70 rounded-2xl border border-slate-200/60">
-            <button
-              onClick={() => setGroupBy('category')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                groupBy === 'category' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Catégories
-            </button>
-            <button
-              onClick={() => setGroupBy('stars')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                groupBy === 'stars' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Étoiles
-            </button>
-            <button
-              onClick={() => setGroupBy('impact')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                groupBy === 'impact' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Impact
-            </button>
-            {viewUniverse === 'evoe' && (
-              <button
-                onClick={() => setGroupBy('it')}
-                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
-                  groupBy === 'it' ? 'bg-slate-900 text-cyan-400 shadow-sm' : 'text-cyan-700 hover:text-cyan-900'
-                }`}
-              >
-                <Zap size={11} /> Niveau d'IT
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* View Mode & Fold/Unfold */}
-        <div className="flex items-center gap-3">
-          <div className="flex p-1 bg-slate-100/70 rounded-xl border border-slate-200/60">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Vue Liste"
-            >
-              <List size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode('gallery')}
-              className={`p-2 rounded-lg transition-all ${viewMode === 'gallery' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Vue Galerie de Cartes"
-            >
-              <LayoutGrid size={18} />
-            </button>
-          </div>
-
-          <button
-            onClick={() => setIsAllExpanded(!isAllExpanded)}
-            className="p-2.5 rounded-xl bg-white border border-slate-200/60 text-slate-500 hover:text-emerald-700 transition-all shadow-sm flex items-center gap-1 text-xs font-bold"
-            title={isAllExpanded ? 'Tout replier' : 'Tout déplier'}
-          >
-            {isAllExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-            <span className="hidden sm:inline">{isAllExpanded ? 'Replier' : 'Déplier'}</span>
+            <SlidersHorizontal size={14} />
+            Filtres & Tri
+            {activeFiltersCount > 0 && <span className="w-4 h-4 rounded-full bg-white text-emerald-600 flex items-center justify-center text-[9px]">{activeFiltersCount}</span>}
           </button>
+
+          {/* Sync Images Button */}
+          <button 
+            onClick={handleSyncImages}
+            disabled={syncingImages}
+            title="Scanner et synchroniser automatiquement les images depuis le dossier uploads"
+            className={`w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm shrink-0 ${syncingImages ? 'opacity-50 pointer-events-none' : ''}`}
+          >
+            <ImagePlus size={18} className={syncingImages ? 'animate-spin text-emerald-500' : ''} />
+          </button>
+
+          {/* Import CSV */}
+          <button 
+            onClick={() => setShowImportModal(true)}
+            title="Importer des actions de référence (CSV)"
+            className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-sm shrink-0"
+          >
+            <Upload size={18} />
+          </button>
+
+          {/* Fold / Unfold All */}
+          {viewMode === 'gallery' && (
+            <button
+              onClick={() => setIsAllExpanded(!isAllExpanded)}
+              className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-100 text-slate-500 hover:text-emerald-700 transition-all shadow-sm flex items-center justify-center shrink-0"
+              title={isAllExpanded ? 'Tout replier' : 'Tout déplier'}
+            >
+              {isAllExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+            </button>
+          )}
         </div>
-      </GlassCard>
+
+        {/* Tiroir Filtres & Tri avancés */}
+        <AnimatePresence>
+          {showAdvancedFilters && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-col gap-4 pt-2 pb-2 border-t border-slate-100 mt-1 overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                {/* PREMIUM COMPACT CATEGORY COMBOBOX */}
+                <div className="relative flex items-center">
+                  <select
+                    value={filterCategory || ''}
+                    onChange={(e) => setFilterCategory(e.target.value ? e.target.value : null)}
+                    className="h-11 bg-slate-50 border-2 border-slate-200 rounded-xl px-3.5 pr-9 text-[11px] font-black uppercase tracking-wider text-slate-700 hover:border-emerald-400 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
+                  >
+                    <option value="">📂 Toutes les catégories ({actions.length})</option>
+                    {categories.map(c => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* SORT SELECTOR */}
+                <div className="relative flex items-center">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="h-11 bg-slate-50 border-2 border-slate-200 rounded-xl px-3.5 pr-9 text-[11px] font-black uppercase tracking-wider text-slate-700 hover:border-emerald-400 focus:border-emerald-500 focus:bg-white focus:outline-none transition-all cursor-pointer shadow-sm appearance-none"
+                  >
+                    <option value="stars-desc">⭐ Score / Étoiles (5 → 1)</option>
+                    <option value="it-desc">⚡ Points IT (Max → Min)</option>
+                    <option value="it-asc">⚡ Points IT (Min → Max)</option>
+                    <option value="code-asc">🔤 Code (A → Z)</option>
+                    <option value="co2-desc">🌱 Impact CO2 Max</option>
+                    <option value="water-desc">💧 Impact Eau Max</option>
+                    <option value="waste-desc">🗑️ Impact Déchets Max</option>
+                  </select>
+                  <ArrowUpDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* STARS FILTER */}
+                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border-2 border-slate-200 h-11 px-3 shadow-sm">
+                  <span className="text-[10px] font-black text-slate-500 mr-1 uppercase">Score</span>
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button 
+                      key={s}
+                      onClick={() => setMinStars(minStars === s ? 0 : s)}
+                      className={`p-1 transition-all ${minStars >= s ? 'text-amber-500' : 'text-slate-300 hover:text-amber-300'}`}
+                    >
+                      <Star size={16} className={minStars >= s ? 'fill-amber-400' : ''} />
+                    </button>
+                  ))}
+                </div>
+
+                {/* IMPACT FILTERS */}
+                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border-2 border-slate-200 h-11 px-3 shadow-sm">
+                  <span className="text-[10px] font-black text-slate-500 mr-1 uppercase">Impacts</span>
+                  <button 
+                    onClick={() => setImpactFilters({...impactFilters, co2: !impactFilters.co2})}
+                    title="Filtre CO2"
+                    className={`p-1.5 rounded-lg transition-all ${impactFilters.co2 ? 'bg-emerald-500 text-white shadow-md' : 'text-emerald-500/40 hover:bg-emerald-100/50 hover:text-emerald-600'}`}
+                  ><Leaf size={16} /></button>
+                  <button 
+                    onClick={() => setImpactFilters({...impactFilters, water: !impactFilters.water})}
+                    title="Filtre Eau"
+                    className={`p-1.5 rounded-lg transition-all ${impactFilters.water ? 'bg-sky-500 text-white shadow-md' : 'text-sky-500/40 hover:bg-sky-100/50 hover:text-sky-600'}`}
+                  ><Droplets size={16} /></button>
+                  <button 
+                    onClick={() => setImpactFilters({...impactFilters, waste: !impactFilters.waste})}
+                    title="Filtre Déchets"
+                    className={`p-1.5 rounded-lg transition-all ${impactFilters.waste ? 'bg-amber-500 text-white shadow-md' : 'text-amber-500/40 hover:bg-amber-100/50 hover:text-amber-600'}`}
+                  ><Trash2 size={16} /></button>
+                </div>
+
+                {/* Reset filters button */}
+                {activeFiltersCount > 0 && (
+                  <button 
+                    onClick={() => { 
+                      setFilterCategory(null); 
+                      setMinStars(0); 
+                      setImpactFilters({co2:false,water:false,waste:false}); 
+                      setSortBy('stars-desc');
+                    }}
+                    className="text-[10px] font-black text-rose-500 uppercase tracking-widest pl-2 hover:underline shrink-0"
+                  >Réinitialiser</button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Liste ou Galerie */}
       <AnimatePresence mode="wait">
@@ -326,8 +480,8 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
                 <div className="text-right">ACTIONS</div>
               </div>
               <div className="max-h-[60vh] overflow-y-auto divide-y divide-slate-50">
-                {actions.map((action) => {
-                  const itPts = Math.round((action.defaultCo2 || 0) + (action.defaultWater || 0) + (action.defaultWaste || 0)) || 10;
+                {filteredActions.map((action) => {
+                  const itPts = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
                   return (
                     <div 
                       key={action.id} 

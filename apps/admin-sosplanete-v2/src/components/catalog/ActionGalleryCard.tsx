@@ -3,15 +3,58 @@
 import React from 'react';
 import { ActionRef } from '@/types';
 import { motion } from 'framer-motion';
-import { Droplets, Cloud, Trash2, Star, Zap, Settings2 } from 'lucide-react';
+import { Droplets, Cloud, Trash2, Star, Zap, Settings2, Check } from 'lucide-react';
 import { getAssetUrl } from '@/utils/assets';
 
 interface ActionGalleryCardProps {
   action: ActionRef;
   viewUniverse?: 'legacy' | 'evoe';
+  isEvoe?: boolean;
+  actionsDoneCount?: number;
   onEdit?: () => void;
   onRemove?: () => void;
 }
+
+const CATEGORY_SF_MAP: Record<string, string> = {
+  Eau: 'Ressources vitales',
+  "L'eau": 'Ressources vitales',
+  Alimentation: 'Ressources vitales',
+  "L'alimentation": 'Ressources vitales',
+  Courses: 'Ressources vitales',
+  Maison: 'Ressources vitales',
+  Biodiversité: 'Bio-génétique',
+  'La biodiversité': 'Bio-génétique',
+  Biodiversite: 'Bio-génétique',
+  Animaux: 'Bio-génétique',
+  Electricité: 'Énergie',
+  Electricite: 'Énergie',
+  Électricité: 'Énergie',
+  "L'électricité": 'Énergie',
+  "L'electricité": 'Énergie',
+  Energie: 'Énergie',
+  Énergie: 'Énergie',
+  "L'énergie": 'Énergie',
+  Déchets: 'Recyclage',
+  'Les déchets': 'Recyclage',
+  Dechets: 'Recyclage',
+  Transport: 'Propulsion',
+  Numérique: 'Numérique',
+  Numerique: 'Numérique',
+};
+
+const getSectorSF = (category?: string | null): string => {
+  if (!category) return 'Secteur Général';
+  const clean = category.trim();
+  const unaccented = clean.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  for (const [k, v] of Object.entries(CATEGORY_SF_MAP)) {
+    const cleanK = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (unaccented.toLowerCase() === cleanK.toLowerCase()) {
+      return v;
+    }
+  }
+  return `Secteur ${category}`;
+};
 
 const getCategoryColor = (category: string) => {
   const cat = category?.toLowerCase();
@@ -26,23 +69,27 @@ const getCategoryColor = (category: string) => {
 export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({ 
   action, 
   viewUniverse = 'legacy',
+  isEvoe: isEvoeProp,
+  actionsDoneCount,
   onEdit,
   onRemove
 }) => {
-  const isEvoe = viewUniverse === 'evoe';
-  const colorClasses = getCategoryColor(action.category ?? '');
+  const isEvoe = isEvoeProp !== undefined ? isEvoeProp : viewUniverse === 'evoe';
+  const rawCategory = action.category || (action as any).actionRef?.category || (action as any).categoryName || '';
+  const displayCategory = isEvoe ? getSectorSF(rawCategory) : (rawCategory || 'Général');
+  const colorClasses = getCategoryColor(rawCategory);
 
-  // Calcul dynamique des points IT
-  const pointsIT = Math.round((action.defaultCo2 || 0) + (action.defaultWater || 0) + (action.defaultWaste || 0)) || 10;
+  // Calcul dynamique des points IT (Pondération 60% CO2e, 20% Déchets, 20% Eau, base 10)
+  const pointsIT = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
 
-  // Résolution de l'image
+  // Résolution dynamique de l'image (Convention automatique: code.png pour legacy, code_evoe.jpg pour evoe)
   const legacyImgSrc = action.image 
     ? (action.image.startsWith('http') || action.image.startsWith('/') ? action.image : getAssetUrl(`actions/${action.image}`))
-    : getAssetUrl('logo-sosplanete.png');
+    : (action.code ? getAssetUrl(`actions/${action.code}.png`) : getAssetUrl('logo-sosplanete.png'));
 
   const evoeImgSrc = action.imageEvoe
     ? (action.imageEvoe.startsWith('http') || action.imageEvoe.startsWith('/') ? action.imageEvoe : getAssetUrl(`missions/${action.imageEvoe}`))
-    : legacyImgSrc;
+    : (action.code ? getAssetUrl(`missions/${action.code}_evoe.jpg`) : legacyImgSrc);
 
   const currentImgSrc = isEvoe ? evoeImgSrc : legacyImgSrc;
 
@@ -53,11 +100,21 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
         <span className="text-[10px] font-black text-slate-600 tracking-wider uppercase opacity-80">
           {action.code}
         </span>
-        {isEvoe && (
-          <span className="text-[9px] font-black text-cyan-600 bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-200/60 flex items-center gap-0.5">
-            <Zap size={9} /> {pointsIT} IT
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {actionsDoneCount !== undefined && (
+            <div 
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black border transition-all ${
+                actionsDoneCount > 0 
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                  : 'bg-white text-slate-400 border-slate-200'
+              }`}
+              title={`${actionsDoneCount} réalisation(s)`}
+            >
+              {actionsDoneCount > 0 && <Check size={10} strokeWidth={4} />}
+              <span>{actionsDoneCount}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick Action Hover Buttons */}
@@ -101,8 +158,8 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
         
         {/* Category Header */}
         <div className="relative p-2 flex justify-between items-start z-10">
-          <span className={`text-[9px] font-black uppercase tracking-tighter truncate max-w-[90px] ${isEvoe ? 'text-cyan-300' : 'text-slate-800'}`}>
-            {action.category || 'Référence'}
+          <span className={`text-[9px] font-black uppercase tracking-tighter truncate max-w-[120px] ${isEvoe ? 'text-cyan-300' : 'text-slate-800'}`} title={displayCategory}>
+            {displayCategory}
           </span>
           
           {!isEvoe ? (
@@ -130,7 +187,10 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
             src={currentImgSrc} 
             alt={action.referenceName}
             className={`w-full h-full object-contain mb-2 ${isEvoe ? 'drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]' : ''}`}
-            onError={(e: any) => { e.target.src = isEvoe ? legacyImgSrc : '/assets/logo-sosplanete.png'; }}
+            onError={(e: any) => { 
+              e.target.onerror = null; 
+              e.target.src = isEvoe ? legacyImgSrc : '/assets/logo.png'; 
+            }}
           />
         </div>
 

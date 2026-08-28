@@ -510,7 +510,7 @@ export function PlayerAvatar({
                 material-depthWrite={false}
                 renderOrder={1001}
               >
-                {`${player.health} HP`}
+                {`${player.health} IT`}
               </Text>
             )}
           </group>

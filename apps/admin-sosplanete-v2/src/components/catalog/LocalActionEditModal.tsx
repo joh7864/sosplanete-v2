@@ -160,7 +160,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
 
   const legacyPreviewUrl = image 
     ? (image.startsWith('http') || image.startsWith('/') ? image : getAssetUrl(`actions/${image}`))
-    : (action.actionRef?.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo-sosplanete.png'));
+    : (action.actionRef?.image ? getAssetUrl(`actions/${action.actionRef.image}`) : getAssetUrl('logo.png'));
 
   const evoePreviewUrl = imageEvoe
     ? (imageEvoe.startsWith('http') || imageEvoe.startsWith('/') ? imageEvoe : getAssetUrl(`missions/${imageEvoe}`))
@@ -261,7 +261,10 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
                         src={legacyPreviewUrl}
                         alt="Legacy"
                         className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform"
-                        onError={(e: any) => { e.target.src = '/assets/logo-sosplanete.png'; }}
+                        onError={(e: any) => { 
+                          e.target.onerror = null;
+                          e.target.src = '/assets/logo.png'; 
+                        }}
                       />
                       <div className="absolute inset-0 bg-emerald-600/80 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white p-2 text-center text-[10px] font-bold">
                         <Upload size={16} className="mb-1" />

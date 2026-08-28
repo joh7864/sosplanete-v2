@@ -68,7 +68,7 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
         ? rawIcon
         : `${EVOE_IMG_URL}${rawIcon.startsWith('/') ? rawIcon.slice(1) : rawIcon}`)
     : null;
-  
+
   return (
     <motion.div
       onClick={onClick}
@@ -224,7 +224,7 @@ export const ChallengeCard3D: React.FC<ChallengeCard3DProps> = ({
               <span style={{ color: '#ff9f43', fontWeight: 'bold', fontSize: '0.8rem' }}>{mission.waste ?? mission.savedWaste ?? mission.dechet ?? mission.defaultWaste ?? 0} kg</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px' }}>
-              <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>HP (x2)</span>
+              <span style={{ fontSize: '0.6rem', color: '#a0aec0', textTransform: 'uppercase' }}>IT (x2)</span>
               <span style={{ color: '#ff3b3b', fontWeight: 'bold', fontSize: '0.8rem' }}>+{(mission.hp || mission.pointsHP || mission.points || (mission.evoeMission?.amplitude || 10)) * 2}</span>
             </div>
           </div>

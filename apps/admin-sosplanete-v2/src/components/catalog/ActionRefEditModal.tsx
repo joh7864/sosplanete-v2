@@ -73,11 +73,12 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
   const fileInputLegacyRef = React.useRef<HTMLInputElement>(null);
   const fileInputEvoeRef = React.useRef<HTMLInputElement>(null);
 
-  // Calcul automatique des points IT d'après les indicateurs d'impact
+  // Calcul automatique des points IT d'après les indicateurs d'impact (Pondération 60% CO2e, 20% Déchets, 20% Eau, base 10)
   const calculatedIT = useMemo(() => {
-    const total = (Number(defaultCo2) || 0) + (Number(defaultWater) || 0) + (Number(defaultWaste) || 0);
-    const rounded = Math.round(total);
-    return rounded > 0 ? rounded : 10;
+    const co2 = Number(defaultCo2) || 0;
+    const water = Number(defaultWater) || 0;
+    const waste = Number(defaultWaste) || 0;
+    return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
   }, [defaultCo2, defaultWater, defaultWaste]);
 
   useEffect(() => {
@@ -97,8 +98,11 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
       setTitreSF(`Mission : ${action.referenceName || ''}`);
       setDescriptionSF(action.description || '');
       
-      const autoIT = Math.round((action.defaultCo2 ?? 0) + (action.defaultWater ?? 0) + (action.defaultWaste ?? 0));
-      setPointsIT(autoIT > 0 ? autoIT : 10);
+      const co2 = action.defaultCo2 ?? 0;
+      const water = action.defaultWater ?? 0;
+      const waste = action.defaultWaste ?? 0;
+      const autoIT = 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      setPointsIT(autoIT);
       setIsManualIT(false);
 
       setError(null);
@@ -198,7 +202,7 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
   // Helper pour obtenir la bonne URL de prévisualisation
   const legacyPreviewUrl = image 
     ? (image.startsWith('http') || image.startsWith('/') ? image : getAssetUrl(`actions/${image}`))
-    : getAssetUrl('logo-sosplanete.png');
+    : getAssetUrl('logo.png');
 
   const evoePreviewUrl = imageEvoe
     ? (imageEvoe.startsWith('http') || imageEvoe.startsWith('/') ? imageEvoe : getAssetUrl(`missions/${imageEvoe}`))
@@ -517,7 +521,7 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
                         )}
                       </div>
                       <p className="text-[10px] text-slate-400">
-                        Formule par défaut : (CO2e {defaultCo2}kg + Eau {defaultWater}L + Déchets {defaultWaste}kg) = <strong className="text-cyan-300">{calculatedIT} IT</strong>
+                        Formule pondérée (60% CO2e, 20% Déchets, 20% Eau, base 10) : <strong className="text-cyan-300">{calculatedIT} IT</strong>
                       </p>
                     </div>
 
@@ -598,7 +602,10 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
                           src={legacyPreviewUrl} 
                           alt="Preview" 
                           className="max-h-[100px] w-auto object-contain"
-                          onError={(e: any) => { e.target.src = '/assets/logo-sosplanete.png'; }}
+                          onError={(e: any) => { 
+                            e.target.onerror = null;
+                            e.target.src = '/assets/logo.png'; 
+                          }}
                         />
                       </div>
 

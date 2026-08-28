@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { 
   Plus, 
   Trash2, 
@@ -9,7 +9,8 @@ import {
   Check,
   Star,
   Leaf,
-  Droplets
+  Droplets,
+  GripVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ActionGalleryCard } from '../ActionGalleryCard';
@@ -28,6 +29,8 @@ interface LocalListProps {
   impactFilters?: { co2: boolean; water: boolean; waste: boolean };
   viewMode?: 'list' | 'grid';
   isFullWidth?: boolean;
+  sortBy?: string;
+  isEvoe?: boolean;
 }
 
 export const LocalList: React.FC<LocalListProps> = ({ 
@@ -42,12 +45,14 @@ export const LocalList: React.FC<LocalListProps> = ({
   minStars = 0,
   impactFilters = { co2: false, water: false, waste: false },
   viewMode = 'list',
-  isFullWidth = false
+  isFullWidth = false,
+  sortBy = 'done-desc',
+  isEvoe = false
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: 'local-drop-zone' });
 
   const filteredLocal = useMemo(() => {
-    return actions.filter(la => {
+    const list = actions.filter(la => {
       const matchSearch = la.label.toLowerCase().includes(globalSearch.toLowerCase()) || la.actionRef.code.toLowerCase().includes(globalSearch.toLowerCase());
       const matchCat = !filterCategory || (la.category && (typeof la.category === 'string' ? la.category === filterCategory : la.category.name === filterCategory));
       const matchStars = (la.actionRef.weightedStars || 0) >= minStars;
@@ -58,7 +63,48 @@ export const LocalList: React.FC<LocalListProps> = ({
 
       return matchSearch && matchCat && matchStars && matchCo2 && matchWater && matchWaste;
     });
-  }, [actions, globalSearch, filterCategory, minStars, impactFilters]);
+
+    return [...list].sort((a, b) => {
+      const getIT = (item: LocalAction) => {
+        const co2 = item.actionRef.defaultCo2 || 0;
+        const water = item.actionRef.defaultWater || 0;
+        const waste = item.actionRef.defaultWaste || 0;
+        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      };
+      if (sortBy === 'it-desc') {
+        const itA = getIT(a);
+        const itB = getIT(b);
+        if (itB !== itA) return itB - itA;
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      if (sortBy === 'it-asc') {
+        const itA = getIT(a);
+        const itB = getIT(b);
+        if (itA !== itB) return itA - itB;
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      const countA = a._count?.actionsDone ?? 0;
+      const countB = b._count?.actionsDone ?? 0;
+      if (sortBy === 'done-desc') {
+        if (countB !== countA) return countB - countA;
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      if (sortBy === 'done-asc') {
+        if (countA !== countB) return countA - countB;
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      if (sortBy === 'code-asc') {
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      if (sortBy === 'stars-desc') {
+        const starsA = a.actionRef.weightedStars ?? 0;
+        const starsB = b.actionRef.weightedStars ?? 0;
+        if (starsB !== starsA) return starsB - starsA;
+        return a.actionRef.code.localeCompare(b.actionRef.code);
+      }
+      return countB - countA;
+    });
+  }, [actions, globalSearch, filterCategory, minStars, impactFilters, sortBy]);
 
   const toggleSelect = (id: number) => {
     if (selectedIds.includes(id)) {
@@ -125,41 +171,15 @@ export const LocalList: React.FC<LocalListProps> = ({
           ) : (
             <div className={`grid gap-4 pt-2 transition-all duration-500 ${isFullWidth ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
               {filteredLocal.map(action => (
-                <div key={action.id} className="relative group">
-                   {/* Checkbox Overlay */}
-                   <div 
-                    onClick={(e) => { e.stopPropagation(); toggleSelect(action.id); }}
-                    className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all cursor-pointer shadow-md ${selectedIds.includes(action.id) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 opacity-0 group-hover:opacity-100'}`}
-                   >
-                     {selectedIds.includes(action.id) && <Check size={14} strokeWidth={4} />}
-                   </div>
-
-                   {/* Quick Edit/Remove Mini Overlay */}
-                   <div className="absolute bottom-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); onEdit(action); }}
-                        className="w-7 h-7 rounded-lg bg-white/90 text-slate-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-md"
-                      >
-                         <Settings2 size={12} />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); onRemove(action.id); }}
-                        className="w-7 h-7 rounded-lg bg-white/90 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"
-                      >
-                         <Trash2 size={12} />
-                      </button>
-                   </div>
-
-                   <div onClick={() => onEdit(action)}>
-                    <ActionGalleryCard 
-                      action={{
-                        ...action.actionRef,
-                        referenceName: action.label, // Use local label
-                        category: typeof action.category === 'string' ? action.category : (action.category?.name || 'Référence')
-                      }} 
-                    />
-                   </div>
-                </div>
+                <DraggableGridLocalCard
+                  key={action.id}
+                  action={action}
+                  isSelected={selectedIds.includes(action.id)}
+                  onToggle={() => toggleSelect(action.id)}
+                  onEdit={() => onEdit(action)}
+                  onRemove={() => onRemove(action.id)}
+                  isEvoe={isEvoe}
+                />
               ))}
             </div>
           )
@@ -178,17 +198,38 @@ export const LocalList: React.FC<LocalListProps> = ({
   );
 };
 
-const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove }: any) => {
+const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `local-${action.id}`,
+    data: { type: 'local', action }
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+    pointerEvents: isDragging ? ('none' as const) : undefined
+  } : undefined;
+
   return (
     <div 
+      ref={setNodeRef}
+      style={style}
       onClick={onEdit}
-      className={`group relative flex items-center gap-3 p-2.5 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-lg'}`}
+      className={`group relative flex items-center gap-3 p-2.5 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-lg'} ${isDragging ? 'opacity-50 grayscale scale-95' : ''}`}
     >
       <div 
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all ${isSelected ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 group-hover:border-emerald-300'}`}
       >
         {isSelected && <Check size={14} strokeWidth={4} />}
+      </div>
+
+      <div 
+        {...listeners} 
+        {...attributes}
+        className="cursor-grab active:cursor-grabbing text-slate-200 hover:text-emerald-400 transition-colors"
+      >
+        <GripVertical size={16} />
       </div>
 
       <div className="flex flex-col flex-grow min-w-0">
@@ -206,6 +247,21 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove }: an
            </div>
         </div>
       </div>
+      
+      {/* Badge de réalisations */}
+      {action._count?.actionsDone !== undefined && (
+        <div 
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black border transition-all shrink-0 ${
+            action._count.actionsDone > 0 
+              ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+              : 'bg-slate-50 text-slate-400 border-slate-200'
+          }`}
+          title={`${action._count.actionsDone} réalisation(s) par les élèves`}
+        >
+          {action._count.actionsDone > 0 && <Check size={12} strokeWidth={4} />}
+          <span>{action._count.actionsDone > 0 ? action._count.actionsDone : '0'}</span>
+        </div>
+      )}
 
       <div className="flex items-center gap-1.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
          <button 
@@ -214,6 +270,71 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove }: an
          >
            <Trash2 size={14} />
          </button>
+      </div>
+    </div>
+  );
+};
+
+const DraggableGridLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `local-${action.id}`,
+    data: { type: 'local', action }
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+    pointerEvents: isDragging ? ('none' as const) : undefined
+  } : undefined;
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`relative group transition-all ${isSelected ? 'scale-95' : ''} ${isDragging ? 'opacity-50 grayscale' : 'hover:scale-[1.02]'}`}
+    >
+      {/* Checkbox Overlay */}
+      <div 
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className={`absolute top-2 right-2 z-20 w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all cursor-pointer shadow-md ${isSelected ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 opacity-0 group-hover:opacity-100'}`}
+      >
+        {isSelected && <Check size={14} strokeWidth={4} />}
+      </div>
+
+      <div 
+        {...listeners} 
+        {...attributes}
+        className="absolute top-10 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border-2 border-slate-100 flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-300 hover:text-emerald-500 hover:border-emerald-300 hover:shadow-lg transition-all opacity-0 group-hover:opacity-100"
+      >
+        <GripVertical size={14} />
+      </div>
+
+      {/* Quick Edit/Remove Mini Overlay */}
+      <div className="absolute bottom-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button 
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="w-7 h-7 rounded-lg bg-white/90 text-slate-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-md"
+        >
+          <Settings2 size={12} />
+        </button>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="w-7 h-7 rounded-lg bg-white/90 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+
+      <div onClick={onEdit}>
+        <ActionGalleryCard 
+          action={{
+            ...action.actionRef,
+            referenceName: action.label,
+            category: (typeof action.category === 'string' ? action.category : action.category?.name) || action.actionRef.category || 'Général'
+          }}
+          isEvoe={isEvoe}
+          actionsDoneCount={action._count?.actionsDone}
+        />
       </div>
     </div>
   );

@@ -64,6 +64,7 @@ export function AgentProfileModal({
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [genderOpen, setGenderOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -313,7 +314,7 @@ export function AgentProfileModal({
             <div className="agent-vitality-container">
               <div className="agent-vitality-label">
                 <span>Vitalité Temporelle</span>
-                <span style={{ color: teamColor }}>{profileData.health} HP</span>
+                <span style={{ color: teamColor }}>{profileData.health} IT</span>
               </div>
               <div className="agent-vitality-track">
                 <div 
@@ -342,13 +343,46 @@ export function AgentProfileModal({
                 <div className="form-row">
                   <div className="form-group">
                     <label>Genre</label>
-                    <select value={gender || ''} onChange={(e) => setGender(e.target.value)}>
-                      <option value="">Non défini</option>
-                      <option value="EH">Kid Garçon (EH)</option>
-                      <option value="EF">Kid Fille (EF)</option>
-                      <option value="M">Adulte Homme (M)</option>
-                      <option value="F">Adulte Femme (F)</option>
-                    </select>
+                    <div className={`agent-select-wrapper${genderOpen ? ' open' : ''}`}>
+                      <button
+                        type="button"
+                        className="agent-select-trigger"
+                        onClick={() => setGenderOpen(v => !v)}
+                        onBlur={() => setTimeout(() => setGenderOpen(false), 150)}
+                      >
+                        <span>
+                          {gender === 'EH' ? 'Kid Garçon (EH)'
+                            : gender === 'EF' ? 'Kid Fille (EF)'
+                            : gender === 'M' ? 'Adulte Homme (M)'
+                            : gender === 'F' ? 'Adulte Femme (F)'
+                            : 'Non défini'}
+                        </span>
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transition: 'transform 0.2s', transform: genderOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          <path d="M2 4L6 8L10 4" stroke="rgba(0,255,204,0.7)" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                      </button>
+                      {genderOpen && (
+                        <div className="agent-select-dropdown">
+                          {[
+                            { value: '', label: 'Non défini' },
+                            { value: 'EH', label: 'Kid Garçon (EH)' },
+                            { value: 'EF', label: 'Kid Fille (EF)' },
+                            { value: 'M', label: 'Adulte Homme (M)' },
+                            { value: 'F', label: 'Adulte Femme (F)' },
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              className={`agent-select-option${gender === opt.value ? ' selected' : ''}`}
+                              onMouseDown={() => { setGender(opt.value); setGenderOpen(false); }}
+                            >
+                              {gender === opt.value && <span className="agent-select-check">✓</span>}
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="form-group">

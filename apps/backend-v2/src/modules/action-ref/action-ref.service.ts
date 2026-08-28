@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as Papa from 'papaparse';
+import * as fs from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class ActionRefService {
@@ -177,5 +179,81 @@ export class ActionRefService {
     return this.prisma.actionRef.delete({
       where: { id },
     });
+  }
+
+  async syncImagesFromDisk() {
+    const basePath =
+      process.env.UPLOADS_DIR ||
+      join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+    
+    const actionsDir = join(basePath, 'actions');
+    const missionsDir = join(basePath, 'missions');
+
+    const actionsFiles = fs.existsSync(actionsDir) ? fs.readdirSync(actionsDir) : [];
+    const missionsFiles = fs.existsSync(missionsDir) ? fs.readdirSync(missionsDir) : [];
+
+    const allRefs = await this.prisma.actionRef.findMany();
+    let updatedCount = 0;
+    const details: { code: string; image?: string; imageEvoe?: string }[] = [];
+
+    for (const ref of allRefs) {
+      const code = ref.code.trim();
+      let newImage: string | null = null;
+      let newImageEvoe: string | null = null;
+
+      // 1. Check in uploads/actions/
+      // Matches exact code.extension (e.g. D09.png, D09.jpg, D09.jpeg, D09.webp)
+      const actionFile = actionsFiles.find(f => {
+        const dotIndex = f.lastIndexOf('.');
+        if (dotIndex === -1) return false;
+        const base = f.substring(0, dotIndex);
+        return base.toLowerCase() === code.toLowerCase();
+      });
+      if (actionFile) {
+        newImage = actionFile;
+      }
+
+      // 2. Check in uploads/missions/
+      // Matches code_evoe.extension or code.extension (e.g. D09_evoe.jpg, D09_evoe.png, D09.jpg)
+      const missionFile = missionsFiles.find(f => {
+        const dotIndex = f.lastIndexOf('.');
+        if (dotIndex === -1) return false;
+        const base = f.substring(0, dotIndex);
+        return (
+          base.toLowerCase() === `${code}_evoe`.toLowerCase() ||
+          base.toLowerCase() === code.toLowerCase()
+        );
+      });
+      if (missionFile) {
+        newImageEvoe = missionFile;
+      }
+
+      const needsUpdate =
+        (newImage && newImage !== ref.image) ||
+        (newImageEvoe && newImageEvoe !== ref.imageEvoe);
+
+      if (needsUpdate) {
+        await this.prisma.actionRef.update({
+          where: { id: ref.id },
+          data: {
+            ...(newImage && { image: newImage }),
+            ...(newImageEvoe && { imageEvoe: newImageEvoe }),
+          },
+        });
+        updatedCount++;
+        details.push({
+          code,
+          image: newImage || ref.image || undefined,
+          imageEvoe: newImageEvoe || ref.imageEvoe || undefined,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      totalRefs: allRefs.length,
+      updatedCount,
+      details,
+    };
   }
 }

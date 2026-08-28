@@ -60,6 +60,22 @@ export class ActionRefController {
     return this.actionRefService.importFromCSV(file.buffer);
   }
 
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Récupérer tout le référentiel des actions' })
+  async findAll() {
+    return this.actionRefService.findAll();
+  }
+
+  @Post('sync-images')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Scanner et synchroniser automatiquement les images depuis uploads' })
+  async syncImages() {
+    return this.actionRefService.syncImagesFromDisk();
+  }
+
   @Get('search')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -122,7 +138,7 @@ export class ActionRefController {
           const folder = req.query.folder === 'missions' ? 'missions' : 'actions';
           const basePath =
             process.env.UPLOADS_DIR ||
-            join(__dirname, '..', '..', '..', '..', 'uploads');
+            join(__dirname, '..', '..', '..', '..', '..', 'uploads');
           const destPath = join(basePath, folder);
           if (!fs.existsSync(destPath)) {
             fs.mkdirSync(destPath, { recursive: true });
@@ -134,7 +150,7 @@ export class ActionRefController {
           cb(null, uniqueName);
         },
       }),
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+      limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
       fileFilter: (_req, file, cb) => {
         if (!file.mimetype.match(/^image\/(jpeg|png|webp|svg\+xml)$/)) {
           cb(

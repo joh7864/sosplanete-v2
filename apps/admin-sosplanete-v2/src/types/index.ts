@@ -153,6 +153,9 @@ export interface LocalAction {
   specificWaste?: number | null;
   specificEnergy?: number | null;
   evoeMission?: EvoeMissionTranslation | null;
+  _count?: {
+    actionsDone: number;
+  };
 }
 
 // ─── Périodes ────────────────────────────────────────────────────────────────

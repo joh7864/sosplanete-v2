@@ -61,6 +61,9 @@ export class LocalActionService {
       include: {
         actionRef: true,
         evoeMission: true,
+        _count: {
+          select: { actionsDone: true }
+        }
       },
     });
   }
