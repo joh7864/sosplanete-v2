@@ -197,7 +197,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.78rem', color: 'rgba(255,255,255,0.75)' }}>
                 {totalCO2 > 0 && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#00ffcc' }}>
-                    <Cloud size={13} /> {totalCO2.toFixed(1)}kg
+                    <Cloud size={13} /> {totalCO2.toFixed(1)}kgCO2e
                   </span>
                 )}
                 {totalWater > 0 && (
