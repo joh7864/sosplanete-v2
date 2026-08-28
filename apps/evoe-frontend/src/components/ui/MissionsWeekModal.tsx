@@ -340,7 +340,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Middle: Badges IT & Impact */}
+                    {/* Middle: Badge IT */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <span
                         style={{
@@ -355,22 +355,6 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                       >
                         ⚙️ {itPoints} IT
                       </span>
-
-                      {mission.co2 > 0 && (
-                        <span
-                          style={{
-                            padding: '4px 6px',
-                            borderRadius: '8px',
-                            background: 'rgba(0, 255, 204, 0.08)',
-                            border: '1px solid rgba(0, 255, 204, 0.25)',
-                            color: '#00ffcc',
-                            fontSize: '0.72rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          ☁️ {mission.co2}kg
-                        </span>
-                      )}
                     </div>
 
                     {/* Right: Bouton Désimpulser Premium */}
