@@ -1118,6 +1118,7 @@ function MainApp() {
                     selectedSector={selectedSector}
                     onImpulse={(id) => handleImpulseMission(id)}
                     onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({actionDoneId, label})}
+                    onOpenMissionsWeek={() => setShowMissionsWeekModal(true)}
                   />
                 ) : (
                   <ChallengesCarousel3D

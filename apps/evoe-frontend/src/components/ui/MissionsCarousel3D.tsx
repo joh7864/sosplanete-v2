@@ -7,6 +7,7 @@ interface MissionsCarousel3DProps {
   loadingMissionId: number | null;
   onImpulse: (id: number) => void;
   onCancelConfirm: (actionDoneId: number, label: string) => void;
+  onOpenMissionsWeek?: () => void;
   selectedSector: string;
 }
 
@@ -15,6 +16,7 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
   loadingMissionId,
   onImpulse,
   onCancelConfirm,
+  onOpenMissionsWeek,
   selectedSector
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -211,6 +213,7 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
                   isImpulsing={loadingMissionId === mission.id}
                   onImpulse={onImpulse}
                   onCancelConfirm={onCancelConfirm}
+                  onOpenMissionsWeek={onOpenMissionsWeek}
                   onClick={() => {
                     if (!isActive) setActiveIndex(index);
                   }}

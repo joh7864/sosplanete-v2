@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, CalendarCheck } from 'lucide-react';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -10,6 +10,7 @@ interface MissionCard3DProps {
   isImpulsing: boolean;
   onImpulse: (id: number) => void;
   onCancelConfirm: (actionDoneId: number, label: string) => void;
+  onOpenMissionsWeek?: () => void;
   onClick?: () => void;
   style?: React.CSSProperties;
 }
@@ -20,6 +21,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   isImpulsing,
   onImpulse,
   onCancelConfirm,
+  onOpenMissionsWeek,
   onClick,
   style
 }) => {
@@ -367,82 +369,128 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
           </div>
         </div>
 
-        {/* Bouton d'Action : "DÉSIMPULSER" ou "IMPULSER" */}
+        {/* Bouton d'Action : "DÉSIMPULSER" ou "IMPULSER" + Bouton Accès Missions de la Semaine */}
         {isActive && (
-          <div>
-            {isCompleted ? (
-              <button 
-                id="btn-desimpulser-mission"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+            <div style={{ flex: 1 }}>
+              {isCompleted ? (
+                <button 
+                  id="btn-desimpulser-mission"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelConfirm(mission.evoeMission?.actionDoneId, mission.evoeMission?.titreSF || mission.label);
+                  }}
+                  disabled={isImpulsing}
+                  style={{
+                    width: '100%',
+                    padding: '11px',
+                    borderRadius: '12px',
+                    border: '1.5px solid rgba(239, 68, 68, 0.55)',
+                    background: 'rgba(239, 68, 68, 0.14)',
+                    color: '#ff6b6b',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    cursor: isImpulsing ? 'wait' : 'pointer',
+                    boxShadow: '0 0 15px rgba(239, 68, 68, 0.25)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '7px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.85)';
+                    e.currentTarget.style.boxShadow = '0 0 22px rgba(239, 68, 68, 0.45)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.14)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.55)';
+                    e.currentTarget.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.25)';
+                  }}
+                >
+                  <RotateCcw size={15} />
+                  <span>{isImpulsing ? 'ANNULATION...' : 'DÉSIMPULSER'}</span>
+                </button>
+              ) : (
+                <button 
+                  id="btn-impulser-mission"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onImpulse(mission.id);
+                  }}
+                  disabled={isImpulsing}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #00ffcc 0%, #00e5ff 100%)',
+                    color: '#06101e',
+                    fontSize: '0.92rem',
+                    fontWeight: 900,
+                    letterSpacing: '1.2px',
+                    textTransform: 'uppercase',
+                    cursor: isImpulsing ? 'wait' : 'pointer',
+                    boxShadow: '0 0 25px rgba(0, 255, 204, 0.45)',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                >
+                  {isImpulsing ? (
+                    <span>⚡ ANALYSE EN COURS...</span>
+                  ) : (
+                    <span>IMPULSER</span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Bouton d'accès aux Missions de la Semaine avec Tooltip */}
+            {onOpenMissionsWeek && (
+              <button
+                id="btn-missions-week-access"
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onCancelConfirm(mission.evoeMission?.actionDoneId, mission.evoeMission?.titreSF || mission.label);
+                  onOpenMissionsWeek();
                 }}
-                disabled={isImpulsing}
+                onPointerDown={(e) => e.stopPropagation()}
+                title="Mes missions de la semaine"
                 style={{
-                  width: '100%',
-                  padding: '11px',
+                  width: '44px',
+                  height: '44px',
                   borderRadius: '12px',
-                  border: '1.5px solid rgba(239, 68, 68, 0.55)',
-                  background: 'rgba(239, 68, 68, 0.14)',
-                  color: '#ff6b6b',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.8px',
-                  textTransform: 'uppercase',
-                  cursor: isImpulsing ? 'wait' : 'pointer',
-                  boxShadow: '0 0 15px rgba(239, 68, 68, 0.25)',
+                  border: '1.5px solid rgba(0, 255, 204, 0.45)',
+                  background: 'rgba(6, 12, 24, 0.85)',
+                  color: '#00ffcc',
                   display: 'flex',
-                  justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '7px',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  boxShadow: '0 0 15px rgba(0, 255, 204, 0.2), inset 0 0 10px rgba(0, 255, 204, 0.1)',
+                  backdropFilter: 'blur(8px)',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.85)';
-                  e.currentTarget.style.boxShadow = '0 0 22px rgba(239, 68, 68, 0.45)';
+                  e.currentTarget.style.background = 'rgba(0, 255, 204, 0.18)';
+                  e.currentTarget.style.borderColor = '#00ffcc';
+                  e.currentTarget.style.boxShadow = '0 0 22px rgba(0, 255, 204, 0.45)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.14)';
-                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.55)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.25)';
+                  e.currentTarget.style.background = 'rgba(6, 12, 24, 0.85)';
+                  e.currentTarget.style.borderColor = 'rgba(0, 255, 204, 0.45)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 204, 0.2), inset 0 0 10px rgba(0, 255, 204, 0.1)';
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
-                <RotateCcw size={15} />
-                <span>{isImpulsing ? 'ANNULATION...' : 'DÉSIMPULSER'}</span>
-              </button>
-            ) : (
-              <button 
-                id="btn-impulser-mission"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onImpulse(mission.id);
-                }}
-                disabled={isImpulsing}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #00ffcc 0%, #00e5ff 100%)',
-                  color: '#06101e',
-                  fontSize: '0.92rem',
-                  fontWeight: 900,
-                  letterSpacing: '1.2px',
-                  textTransform: 'uppercase',
-                  cursor: isImpulsing ? 'wait' : 'pointer',
-                  boxShadow: '0 0 25px rgba(0, 255, 204, 0.45)',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
-                {isImpulsing ? (
-                  <span>⚡ ANALYSE EN COURS...</span>
-                ) : (
-                  <span>IMPULSER</span>
-                )}
+                <CalendarCheck size={20} />
               </button>
             )}
           </div>
