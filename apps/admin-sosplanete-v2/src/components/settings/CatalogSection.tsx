@@ -196,16 +196,19 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
 
   const groupedActions = useMemo(() => {
     const groups: { [key: string]: ActionRef[] } = {};
+
     filteredActions.forEach(action => {
       let key = '';
-      if (groupBy === 'stars') {
+
+      if (sortBy === 'stars-desc') {
         key = `${action.weightedStars ?? 1} Étoiles`;
-      } else if (groupBy === 'category') {
+      } else if (sortBy === 'it-desc' || sortBy === 'it-asc') {
+        key = getITGroupLabel(action);
+      } else if (sortBy === 'code-asc') {
         key = action.category || 'Sans catégorie';
         if (viewUniverse === 'evoe') {
           const categoryName = action.category || '';
           const cleanName = categoryName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          
           let matchedSector = 'Secteur Inconnu';
           for (const [legacyCat, sfSector] of Object.entries(CATEGORY_SF_MAP)) {
             const cleanLegacy = legacyCat.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -216,10 +219,26 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
           }
           key = matchedSector;
         }
-      } else if (groupBy === 'it') {
-        key = getITGroupLabel(action);
+      } else if (sortBy === 'co2-desc') {
+        const co2 = action.defaultCo2 ?? 0;
+        if (co2 >= 5) key = '🌱 Impact CO2 Majeur (≥ 5 kg)';
+        else if (co2 >= 1) key = '🌱 Impact CO2 Significatif (1 à 5 kg)';
+        else if (co2 > 0) key = '🌱 Impact CO2 Modéré (< 1 kg)';
+        else key = '🌱 Sans Impact CO2 Direct';
+      } else if (sortBy === 'water-desc') {
+        const water = action.defaultWater ?? 0;
+        if (water >= 500) key = '💧 Impact Eau Majeur (≥ 500 L)';
+        else if (water >= 50) key = '💧 Impact Eau Significatif (50 à 500 L)';
+        else if (water > 0) key = '💧 Impact Eau Modéré (< 50 L)';
+        else key = '💧 Sans Impact Eau Direct';
+      } else if (sortBy === 'waste-desc') {
+        const waste = action.defaultWaste ?? 0;
+        if (waste >= 1) key = '🗑️ Impact Déchets Majeur (≥ 1 kg)';
+        else if (waste >= 0.2) key = '🗑️ Impact Déchets Significatif (0.2 à 1 kg)';
+        else if (waste > 0) key = '🗑️ Impact Déchets Modéré (< 0.2 kg)';
+        else key = '🗑️ Sans Impact Déchets Direct';
       } else {
-        key = action.impactLabel || 'Impact non défini';
+        key = `${action.weightedStars ?? 1} Étoiles`;
       }
 
       if (!groups[key]) groups[key] = [];
@@ -227,16 +246,61 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
     });
 
     return Object.entries(groups).sort((a, b) => {
-      if (groupBy === 'stars') return (parseInt(b[0]) || 0) - (parseInt(a[0]) || 0);
-      if (groupBy === 'it') {
-        const order = ['⚡ 1 à 5 IT', '⚡ 6 à 15 IT', '⚡ 16 à 35 IT', '⚡ 36+ IT'];
-        const idxA = order.findIndex(o => a[0].startsWith(o));
-        const idxB = order.findIndex(o => b[0].startsWith(o));
-        return idxA - idxB;
+      if (sortBy === 'stars-desc') {
+        return (parseInt(b[0]) || 0) - (parseInt(a[0]) || 0);
+      }
+      if (sortBy === 'it-desc') {
+        const itOrderDesc = [
+          '⚡ 71+ IT (Impact Critique / Boss)',
+          '⚡ 36 à 70 IT (Impact Majeur)',
+          '⚡ 16 à 35 IT (Impact Significatif)',
+          '⚡ 10 à 15 IT (Impact Modéré)'
+        ];
+        const idxA = itOrderDesc.findIndex(o => a[0].startsWith(o));
+        const idxB = itOrderDesc.findIndex(o => b[0].startsWith(o));
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      }
+      if (sortBy === 'it-asc') {
+        const itOrderAsc = [
+          '⚡ 10 à 15 IT (Impact Modéré)',
+          '⚡ 16 à 35 IT (Impact Significatif)',
+          '⚡ 36 à 70 IT (Impact Majeur)',
+          '⚡ 71+ IT (Impact Critique / Boss)'
+        ];
+        const idxA = itOrderAsc.findIndex(o => a[0].startsWith(o));
+        const idxB = itOrderAsc.findIndex(o => b[0].startsWith(o));
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      }
+      if (sortBy === 'co2-desc') {
+        const co2Order = [
+          '🌱 Impact CO2 Majeur (≥ 5 kg)',
+          '🌱 Impact CO2 Significatif (1 à 5 kg)',
+          '🌱 Impact CO2 Modéré (< 1 kg)',
+          '🌱 Sans Impact CO2 Direct'
+        ];
+        return co2Order.indexOf(a[0]) - co2Order.indexOf(b[0]);
+      }
+      if (sortBy === 'water-desc') {
+        const waterOrder = [
+          '💧 Impact Eau Majeur (≥ 500 L)',
+          '💧 Impact Eau Significatif (50 à 500 L)',
+          '💧 Impact Eau Modéré (< 50 L)',
+          '💧 Sans Impact Eau Direct'
+        ];
+        return waterOrder.indexOf(a[0]) - waterOrder.indexOf(b[0]);
+      }
+      if (sortBy === 'waste-desc') {
+        const wasteOrder = [
+          '🗑️ Impact Déchets Majeur (≥ 1 kg)',
+          '🗑️ Impact Déchets Significatif (0.2 à 1 kg)',
+          '🗑️ Impact Déchets Modéré (< 0.2 kg)',
+          '🗑️ Sans Impact Déchets Direct'
+        ];
+        return wasteOrder.indexOf(a[0]) - wasteOrder.indexOf(b[0]);
       }
       return a[0].localeCompare(b[0]);
     });
-  }, [filteredActions, groupBy, viewUniverse]);
+  }, [filteredActions, sortBy, viewUniverse]);
 
   const getImpactStyles = (label: string) => {
     switch (label?.toLowerCase()) {
@@ -545,7 +609,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
             </GlassCard>
           </motion.div>
         ) : (
-          <motion.div key={`gallery-${groupBy}-${viewUniverse}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
+          <motion.div key={`gallery-${sortBy}-${viewUniverse}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
             {groupedActions.map(([groupName, groupActions]) => (
               <GalleryGroup 
                 key={groupName} 
