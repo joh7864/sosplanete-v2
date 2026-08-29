@@ -129,16 +129,19 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
   useEffect(() => {
     const fetchSteps = async () => {
       try {
-        const url = `${import.meta.env.VITE_API_URL}/stimulation/system-config`;
-        const authDataStr = localStorage.getItem('evoe_auth_data');
-        let headers: Record<string, string> = {};
-        if (authDataStr) {
-          const authData = JSON.parse(authDataStr);
-          if (authData.access_token) {
-            headers['Authorization'] = `Bearer ${authData.access_token}`;
-          }
+        const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
+        const savedInstanceId = localStorage.getItem('instanceId') || sessionStorage.getItem('instanceId');
+        if (!savedAuth) return;
+
+        const evoeApiUrl = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
+        const headers: Record<string, string> = {
+          Authorization: `Basic ${savedAuth}`,
+        };
+        if (savedInstanceId) {
+          headers['x-instance-id'] = savedInstanceId;
         }
-        const resp = await fetch(url, { headers });
+
+        const resp = await fetch(`${evoeApiUrl}/onboarding-steps`, { headers });
         if (resp.ok) {
           const data = await resp.json();
           if (data && data.ftuxSteps && Array.isArray(data.ftuxSteps) && data.ftuxSteps.length > 0) {

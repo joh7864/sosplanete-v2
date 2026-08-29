@@ -87,6 +87,7 @@ export class StimulationService {
         whatsappCommunityUrl: data.whatsappCommunityUrl,
         whatsappGeneralUrl: data.whatsappGeneralUrl,
         whatsappGeneralId: data.whatsappGeneralId,
+        ...(data.ftuxSteps !== undefined && { ftuxSteps: data.ftuxSteps }),
       },
     });
   }

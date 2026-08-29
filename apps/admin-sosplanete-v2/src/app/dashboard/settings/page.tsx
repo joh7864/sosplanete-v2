@@ -83,7 +83,7 @@ function SettingsContent() {
     { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
     { id: 'tuning', label: 'Tuning critères', icon: '🎛️', adminOnly: true },
     { id: 'anchors', label: 'Ecoles', icon: '🏢', adminOnly: true },
-    { id: 'ftux', label: 'FTUX', icon: '✨', adminOnly: true, tooltip: 'First Time User eXperience' },
+    { id: 'ftux', label: 'On-Boarding', icon: '✨', adminOnly: true, tooltip: 'First Time User eXperience' },
   ];
 
   const visibleTabs = tabDef.filter(t => !t.adminOnly || isAS);

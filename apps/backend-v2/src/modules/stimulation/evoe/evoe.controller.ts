@@ -62,6 +62,17 @@ export class EvoeController {
     return this.evoeService.getContext(auth, instanceIdStr);
   }
 
+  @Get('onboarding-steps')
+  @ApiOperation({
+    summary: "Récupère les étapes de l'On-Boarding sécurisées pour le joueur connecté",
+  })
+  getOnboardingSteps(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.evoeService.getOnboardingSteps(auth, instanceIdStr);
+  }
+
   @Post('propulsion/reset/:instanceId')
   @ApiOperation({
     summary:

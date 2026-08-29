@@ -795,6 +795,19 @@ export class EvoeService {
     return healthMap;
   }
 
+  async getOnboardingSteps(authHeader: string, instanceIdStr?: string) {
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
+    const schoolYear = child.group.team.instanceYear.schoolYear;
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { schoolYear },
+      select: { ftuxSteps: true },
+    });
+    return { ftuxSteps: config?.ftuxSteps ?? [] };
+  }
+
   async getContext(authHeader: string, instanceIdStr?: string) {
     // 1. Authentifier l'enfant
     const child = await this.legacyApiService.getChildFromAuth(

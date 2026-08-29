@@ -34,6 +34,7 @@ const DEFAULT_STEPS: OnboardingStep[] = [
 export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageExists, setImageExists] = useState(true);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
@@ -72,6 +73,7 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveSuccess(false);
     try {
       const updatedSteps = steps.map((s, idx) => ({ ...s, badge: `Étape ${idx + 1} / ${steps.length}` }));
       setSteps(updatedSteps);
@@ -84,6 +86,9 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
         },
         body: JSON.stringify({ ftuxSteps: updatedSteps }),
       });
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
       console.error(e);
     } finally {
@@ -167,13 +172,13 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
   const displayImageUrl = `${rawImageUrl}?t=${imageTimestamp}`;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto h-[78vh]">
       {/* Colonne de Gauche : Liste des étapes */}
-      <div className="lg:col-span-1 flex flex-col h-[78vh] bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+      <div className="lg:col-span-1 flex flex-col h-full min-h-0 bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10">
           <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
             <Target className="text-emerald-500" size={20} />
-            Étapes de l'On-boarding
+            Étapes de l'On-Boarding
           </h3>
           <div className="flex gap-2">
             <button 
@@ -216,18 +221,22 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
         </div>
         
         <div className="p-6 border-t border-slate-100 bg-slate-50">
-          <Button className="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/20" onClick={handleSave} disabled={saving}>
+          <Button 
+            className={`w-full h-12 rounded-xl text-white font-bold text-sm tracking-wide shadow-lg transition-all ${saveSuccess ? 'bg-emerald-500 shadow-emerald-500/40' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'}`} 
+            onClick={handleSave} 
+            disabled={saving}
+          >
             {saving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save className="mr-2" size={18} />}
-            Enregistrer la configuration
+            {saveSuccess ? 'Enregistré avec succès !' : 'Enregistrer la configuration'}
           </Button>
         </div>
       </div>
 
       {/* Colonne de Droite : Édition de l'étape active */}
       {activeStep ? (
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-            <div className="flex justify-between items-center mb-8">
+        <div className="lg:col-span-2 flex flex-col gap-6 h-full min-h-0">
+          <div className="p-6 bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col h-full min-h-0">
+            <div className="flex justify-between items-center mb-8 shrink-0">
               <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
                 <Edit2 className="text-emerald-500" size={20} />
                 Édition : {activeStep.badge}
@@ -241,77 +250,87 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Titre de l'étape</label>
-                  <Input 
-                    value={activeStep.title} 
-                    onChange={(e) => updateStep(activeStepIndex, 'title', e.target.value)} 
-                    className="bg-white border-slate-200 text-slate-800 font-bold h-12 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Cible UI (Target ID)</label>
-                  <Input 
-                    value={activeStep.targetId} 
-                    onChange={(e) => updateStep(activeStepIndex, 'targetId', e.target.value)} 
-                    className="bg-slate-50 border-slate-200 font-mono text-sm text-slate-600 h-12 rounded-xl focus:border-emerald-500"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-2 font-medium">L'identifiant de l'élément HTML ciblé par le tutoriel.</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Position de l'infobulle</label>
-                  <select 
-                    value={activeStep.position}
-                    onChange={(e) => updateStep(activeStepIndex, 'position', e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl h-12 px-4 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer"
-                  >
-                    <option value="top">Haut (Top)</option>
-                    <option value="bottom">Bas (Bottom)</option>
-                    <option value="left">Gauche (Left)</option>
-                    <option value="right">Droite (Right)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 flex items-center gap-2">
-                    <ImageIcon size={14} /> Illustration (optionnelle)
-                  </label>
-                  <div className="flex items-center gap-2">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2 flex flex-col gap-8 min-h-0">
+              {/* Ligne du haut : Les 4 champs de base en 2 colonnes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 shrink-0">
+                {/* Sous-colonne 1 */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Titre de l'étape</label>
                     <Input 
-                      placeholder="ex: /img/tuto/radar.png"
-                      value={activeStep.imageUrl || (imageExists ? defaultImageUrl : '')} 
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === defaultImageUrl) {
-                          updateStep(activeStepIndex, 'imageUrl', '');
-                        } else {
-                          updateStep(activeStepIndex, 'imageUrl', val);
-                        }
-                      }} 
-                      className={`bg-white border-slate-200 font-bold h-12 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 flex-1 ${!activeStep.imageUrl && imageExists ? 'text-slate-400' : 'text-slate-800'}`}
+                      value={activeStep.title} 
+                      onChange={(e) => updateStep(activeStepIndex, 'title', e.target.value)} 
+                      className="bg-white border-slate-200 text-slate-800 font-bold h-12 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                     />
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, activeStepIndex)}
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Cible UI (Target ID)</label>
+                    <Input 
+                      value={activeStep.targetId} 
+                      onChange={(e) => updateStep(activeStepIndex, 'targetId', e.target.value)} 
+                      className="bg-slate-50 border-slate-200 font-mono text-sm text-slate-600 h-12 rounded-xl focus:border-emerald-500"
                     />
-                    <button 
-                      type="button"
-                      className="h-12 w-12 shrink-0 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 flex items-center justify-center transition-all disabled:opacity-50"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      title="Uploader une illustration"
+                    <p className="text-[10px] text-slate-400 mt-2 font-medium">L'identifiant de l'élément HTML ciblé par le tutoriel.</p>
+                  </div>
+                </div>
+
+                {/* Sous-colonne 2 */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Position de l'infobulle</label>
+                    <select 
+                      value={activeStep.position}
+                      onChange={(e) => updateStep(activeStepIndex, 'position', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl h-12 px-4 text-sm font-bold text-slate-600 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer"
                     >
-                      {uploading ? <Loader2 size={18} className="animate-spin text-emerald-500" /> : <Upload size={18} />}
-                    </button>
+                      <option value="top">Haut (Top)</option>
+                      <option value="bottom">Bas (Bottom)</option>
+                      <option value="left">Gauche (Left)</option>
+                      <option value="right">Droite (Right)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 flex items-center gap-2">
+                      <ImageIcon size={14} /> Illustration (optionnelle)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="ex: /img/tuto/radar.png"
+                        value={activeStep.imageUrl || (imageExists ? defaultImageUrl : '')} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === defaultImageUrl) {
+                            updateStep(activeStepIndex, 'imageUrl', '');
+                          } else {
+                            updateStep(activeStepIndex, 'imageUrl', val);
+                          }
+                        }} 
+                        className={`bg-white border-slate-200 font-bold h-12 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 flex-1 ${!activeStep.imageUrl && imageExists ? 'text-slate-400' : 'text-slate-800'}`}
+                      />
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, activeStepIndex)}
+                      />
+                      <button 
+                        type="button"
+                        className="h-12 w-12 shrink-0 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 flex items-center justify-center transition-all disabled:opacity-50"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        title="Uploader une illustration"
+                      >
+                        {uploading ? <Loader2 size={18} className="animate-spin text-emerald-500" /> : <Upload size={18} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="space-y-6 h-full flex flex-col">
-                <div className="flex-1 flex flex-col">
+
+              {/* Ligne du bas : Texte et Mockup */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex flex-col flex-1 min-h-[150px]">
                   <label className="text-xs text-slate-400 uppercase tracking-widest font-black mb-2 block">Texte d'explication</label>
                   <textarea 
                     value={activeStep.explanation} 
@@ -319,53 +338,52 @@ export function FTUXSettings({ schoolYear }: { schoolYear: string }) {
                     className="w-full flex-1 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-600 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 resize-none transition-all leading-relaxed"
                   />
                 </div>
+
+                <div className="flex flex-col justify-start pt-6">
+                  {/* Visualisation "Mockup" */}
+                  {imageExists ? (
+                    <div className="w-full rounded-2xl overflow-hidden relative border border-slate-200 shadow-md flex flex-col justify-center items-center">
+                      <img 
+                        src={displayImageUrl} 
+                        alt="Aperçu FTUX" 
+                        className="w-full h-auto object-contain rounded-2xl" 
+                        onError={() => setImageExists(false)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 w-full bg-slate-800 rounded-2xl overflow-hidden relative min-h-[200px] shadow-lg border-2 border-slate-900 flex flex-col">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                        <Target size={14} className="text-emerald-400"/> Simulation (Aperçu)
+                      </h3>
+                      
+                      <div className="relative w-full flex-1 rounded-xl bg-[#050a16] overflow-hidden flex items-center justify-center p-4 border border-slate-700/50">
+                        <div className="text-center text-slate-600 text-[10px] font-bold absolute top-2 left-3 z-10">
+                          Evoe UI
+                        </div>
+                        
+                        <div className="relative p-4 border-2 border-dashed border-emerald-400 bg-emerald-500/10 rounded-xl flex items-center justify-center min-w-[120px] min-h-[60px] z-20 backdrop-blur-sm">
+                          <div className="absolute -top-4 -right-4 text-2xl animate-bounce filter drop-shadow-lg">👆</div>
+                          <div className="text-emerald-300 font-mono text-[10px] font-bold tracking-wide">
+                            #{activeStep.targetId}
+                          </div>
+                        </div>
+
+                        <div className={`absolute bg-slate-900 border border-emerald-500/30 p-4 rounded-xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] max-w-[200px] z-30
+                          ${activeStep.position === 'bottom' ? 'mt-[100px]' : ''}
+                          ${activeStep.position === 'top' ? 'mb-[100px]' : ''}
+                          ${activeStep.position === 'left' ? 'mr-[180px]' : ''}
+                          ${activeStep.position === 'right' ? 'ml-[180px]' : ''}
+                        `}>
+                          <div className="text-[8px] uppercase tracking-widest text-emerald-400 font-black mb-1">{activeStep.badge}</div>
+                          <div className="text-xs font-bold text-white mb-2 leading-tight">{activeStep.title}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Visualisation "Mockup" */}
-          {imageExists ? (
-            <div className="flex-1 w-full rounded-[2rem] overflow-hidden relative shadow-2xl border-4 border-slate-900 bg-slate-900 flex flex-col justify-center items-center">
-              <img 
-                src={displayImageUrl} 
-                alt="Aperçu FTUX" 
-                className="w-full h-auto object-contain" 
-                onError={() => setImageExists(false)}
-              />
-            </div>
-          ) : (
-            <div className="p-8 flex-1 bg-slate-800 rounded-[2rem] overflow-hidden relative min-h-[350px] shadow-2xl border-4 border-slate-900 flex flex-col">
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                <Target size={14} className="text-emerald-400"/> Simulation du ciblage (Aperçu schématique)
-              </h3>
-              
-              <div className="relative w-full flex-1 min-h-[320px] rounded-2xl bg-[#050a16] overflow-hidden flex items-center justify-center p-4 border border-slate-700/50">
-                <div className="text-center text-slate-600 text-xs font-bold absolute top-4 left-4 z-10">
-                  Interface Evoe simulée
-                </div>
-                
-                {/* Représentation symbolique de l'élément ciblé */}
-                <div className="relative p-6 border-2 border-dashed border-emerald-400 bg-emerald-500/10 rounded-2xl flex items-center justify-center min-w-[220px] min-h-[110px] z-20 backdrop-blur-sm">
-                  <div className="absolute -top-6 -right-6 text-4xl animate-bounce filter drop-shadow-lg">👆</div>
-                  <div className="text-emerald-300 font-mono text-sm font-bold tracking-wide">
-                    #{activeStep.targetId}
-                  </div>
-                </div>
-
-                {/* Simulation de l'infobulle */}
-                <div className={`absolute bg-slate-900 border border-emerald-500/30 p-5 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.4)] max-w-[280px] z-30
-                  ${activeStep.position === 'bottom' ? 'mt-[180px]' : ''}
-                  ${activeStep.position === 'top' ? 'mb-[180px]' : ''}
-                  ${activeStep.position === 'left' ? 'mr-[350px]' : ''}
-                  ${activeStep.position === 'right' ? 'ml-[350px]' : ''}
-                `}>
-                  <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-black mb-2">{activeStep.badge}</div>
-                  <div className="text-sm font-bold text-white mb-2 leading-tight">{activeStep.title}</div>
-                  <div className="text-xs text-slate-300 leading-relaxed font-medium">{activeStep.explanation}</div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <div className="lg:col-span-2 flex items-center justify-center h-[75vh] bg-white rounded-[2rem] border border-slate-100">
