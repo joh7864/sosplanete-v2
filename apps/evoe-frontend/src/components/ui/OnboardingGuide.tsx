@@ -153,7 +153,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
       }
     };
     fetchSteps();
-  }, []);
+  }, [isOpen, userId]);
 
   const step = steps[currentStepIndex];
   if (!step) return null;
@@ -202,19 +202,8 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
           setTargetRect(rect);
         }
 
-        // Relance de la boucle temps réel pour les panneaux 2070, le podium 3D, le panneau chat, la ligne laser et les ancres 3D
-        if (
-          (targetId === 'hud-active-mission-card' ||
-           targetId === 'hud-moon-arena' || 
-           targetId === 'sector-orb-guide' || 
-           targetId === 'hud-laser-regen-bar' ||
-           targetId === 'hud-completion-bar' ||
-           targetId === 'chat-panel-container' || 
-           targetId === 'btn-podium-leaderboard' ||
-           targetId === 'panel-extrapolation-2070' ||
-           targetId === 'panel-radar-2070') && 
-          isEffectActive
-        ) {
+        // Relance de la boucle temps réel pour suivre parfaitement les animations d'ouverture (ex: dépliement du Codex)
+        if (isEffectActive) {
           animId = requestAnimationFrame(updateTarget);
         }
         return;

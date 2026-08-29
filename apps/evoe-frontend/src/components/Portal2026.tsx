@@ -602,7 +602,7 @@ export default function Portal2026({
     }
 
     if (podiumGroupRef.current) {
-      const targetScale = isLb ? 1 : 0;
+      const targetScale = isLb ? 1.45 : 0;
       const s = podiumGroupRef.current.scale.x + (targetScale - podiumGroupRef.current.scale.x) * 0.08;
       podiumGroupRef.current.scale.setScalar(s);
     }
@@ -700,22 +700,26 @@ export default function Portal2026({
       </group>
 
       {/* Podium Central (Leaderboard) */}
-      <group ref={podiumGroupRef} scale={[0, 0, 0]}>
+      <group ref={podiumGroupRef} scale={[0, 0, 0]} position={[0, -0.4, 0]}>
         <PodiumGroup
           players={top3}
           childInfos={me}
           setSelectedProfileId={(id) => {
             if (id && onSelectPlayer) {
-              const targetP = teamList.find(p => p.childId === id || p.id === id);
-              if (targetP) onSelectPlayer(targetP);
+              const targetP = top3.find(p => p.childId === id || p.id === id) || teamList.find(p => p.childId === id || p.id === id);
+              if (targetP) {
+                onSelectPlayer(targetP);
+              } else {
+                onSelectPlayer({ id, childId: id });
+              }
             }
           }}
           setShowLeaderboardModal={() => {}}
           visible={true}
         />
         {view === 'leaderboard' && (
-          <Html center position={[0, 0.5, 0]} zIndexRange={[1, 0]}>
-            <div id="btn-podium-leaderboard" style={{ width: '320px', height: '240px', pointerEvents: 'none' }} />
+          <Html center position={[0, 0.5, 0]} zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
+            <div id="btn-podium-leaderboard" style={{ width: '420px', height: '320px', pointerEvents: 'none' }} />
           </Html>
         )}
       </group>

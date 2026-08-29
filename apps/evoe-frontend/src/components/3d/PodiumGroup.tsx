@@ -148,9 +148,41 @@ function SweepingSpotlight({ position, targetPos, color }: { position: [number, 
 }
 
 // 5. Capsule Lumineuse thématique colorée
-function ColoredCapsule({ position, height, radius, color }: { position: [number, number, number]; height: number; radius: number; color: string }) {
+function ColoredCapsule({ 
+  position, 
+  height, 
+  radius, 
+  color,
+  onClick,
+}: { 
+  position: [number, number, number]; 
+  height: number; 
+  radius: number; 
+  color: string;
+  onClick?: () => void;
+}) {
   return (
-    <group position={position}>
+    <group 
+      position={position}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          onClick();
+        }
+      }}
+      onPointerOver={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }
+      }}
+      onPointerOut={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          document.body.style.cursor = 'auto';
+        }
+      }}
+    >
       {/* Cylindre de verre externe coloré translucide */}
       <mesh castShadow receiveShadow>
         <cylinderGeometry args={[radius, radius, height, 32]} />
@@ -223,8 +255,11 @@ export default function PodiumGroup({
   const bronzePlayer = players[2];
 
   const handleSelectPlayer = (p: any) => {
-    setSelectedProfileId(p.childId);
-    setShowLeaderboardModal(false);
+    const profileId = p?.childId || p?.id;
+    if (profileId) {
+      setSelectedProfileId(profileId);
+      setShowLeaderboardModal(false);
+    }
   };
 
   return (
@@ -232,7 +267,7 @@ export default function PodiumGroup({
       {/* 🚀 Plateforme Géante de Base "Cyber Circuit" en verre sombre à lueur cyan */}
       <group position={[0, -0.9, 0]}>
         <mesh receiveShadow>
-          <cylinderGeometry args={[2.0, 2.1, 0.3, 32]} />
+          <cylinderGeometry args={[2.4, 2.5, 0.35, 32]} />
           <meshStandardMaterial 
             color="#0f172a" 
             metalness={0.8} 
@@ -242,8 +277,8 @@ export default function PodiumGroup({
           />
         </mesh>
         {/* Anneau de lueur néon cyan */}
-        <mesh position={[0, 0.151, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[2.02, 0.015, 8, 64]} />
+        <mesh position={[0, 0.176, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[2.42, 0.02, 8, 64]} />
           <meshBasicMaterial color="#00ffcc" transparent opacity={0.8} />
         </mesh>
       </group>
@@ -252,48 +287,74 @@ export default function PodiumGroup({
       {goldPlayer && (
         <>
           {/* Capsule de verre lumineuse dorée */}
-          <ColoredCapsule position={[0, 0.1, 0]} height={1.6} radius={0.44} color="#ffd700" />
+          <ColoredCapsule 
+            position={[0, 0.15, 0]} 
+            height={1.7} 
+            radius={0.52} 
+            color="#ffd700" 
+            onClick={() => handleSelectPlayer(goldPlayer)}
+          />
 
           {/* Numéro 1 garanti visible à l'avant */}
-          <Billboard follow={true} position={[0, 0.1, 0.55]}>
+          <Billboard follow={true} position={[0, 0.15, 0.65]}>
             <Text
-              fontSize={0.48}
+              fontSize={0.55}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
-              outlineWidth={0.03}
+              outlineWidth={0.035}
               outlineColor="#ffd700"
+              onClick={() => handleSelectPlayer(goldPlayer)}
             >
               1
             </Text>
           </Billboard>
 
           {/* Anneaux orbitaux */}
-          <OrbitalRings position={[0, 0.1, 0]} color="#ffd700" radius={0.62} />
+          <OrbitalRings position={[0, 0.15, 0]} color="#ffd700" radius={0.72} />
 
           {/* Fontaine de particules dorées */}
-          <PodiumParticles count={40} color="#ffd700" basePosition={[0, 0.9, 0]} />
+          <PodiumParticles count={45} color="#ffd700" basePosition={[0, 1.0, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[0, 4, 0]} targetPos={[0, 0.9, 0]} color="#ffd700" />
+          <SweepingSpotlight position={[0, 4.5, 0]} targetPos={[0, 1.0, 0]} color="#ffd700" />
 
           {/* Couronne dorée réorientée et bien positionnée */}
-          <GoldCrown position={[0, 2.35, 0]} />
+          <GoldCrown position={[0, 2.65, 0]} />
 
           {/* Avatar */}
           <group 
             name="avatar-container" 
-            position={[0, 1.7, 0]} 
-            userData={{ baseY: 1.7 }}
+            position={[0, 1.9, 0]} 
+            userData={{ baseY: 1.9 }}
           >
+            {/* Hitbox sphérique invisible ultra-large pour garantir 100% de détection du clic */}
+            <mesh
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectPlayer(goldPlayer);
+              }}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'pointer';
+              }}
+              onPointerOut={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'auto';
+              }}
+            >
+              <sphereGeometry args={[0.9, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+
             <PlayerAvatar 
               player={{
                 ...goldPlayer,
                 isCurrent: goldPlayer.childId === childInfos?.id
               }}
               position={[0, 0, 0]}
-              avatarScale={0.82}
+              avatarScale={1.12}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
@@ -304,45 +365,71 @@ export default function PodiumGroup({
       {silverPlayer && (
         <>
           {/* Capsule de verre argentée */}
-          <ColoredCapsule position={[-1.1, -0.15, 0]} height={1.1} radius={0.38} color="#00ffcc" />
+          <ColoredCapsule 
+            position={[-1.25, -0.1, 0]} 
+            height={1.25} 
+            radius={0.46} 
+            color="#00ffcc" 
+            onClick={() => handleSelectPlayer(silverPlayer)}
+          />
 
           {/* Numéro 2 garanti visible à l'avant */}
-          <Billboard follow={true} position={[-1.1, -0.15, 0.48]}>
+          <Billboard follow={true} position={[-1.25, -0.1, 0.58]}>
             <Text
-              fontSize={0.38}
+              fontSize={0.44}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
               outlineWidth={0.03}
               outlineColor="#00ffcc"
+              onClick={() => handleSelectPlayer(silverPlayer)}
             >
               2
             </Text>
           </Billboard>
 
           {/* Anneaux orbitaux */}
-          <OrbitalRings position={[-1.1, -0.15, 0]} color="#00ffcc" radius={0.54} />
+          <OrbitalRings position={[-1.25, -0.1, 0]} color="#00ffcc" radius={0.62} />
 
           {/* Fontaine de particules */}
-          <PodiumParticles count={30} color="#00ffcc" basePosition={[-1.1, 0.4, 0]} />
+          <PodiumParticles count={35} color="#00ffcc" basePosition={[-1.25, 0.5, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[-1.1, 4, 0]} targetPos={[-1.1, 0.4, 0]} color="#00ffcc" />
+          <SweepingSpotlight position={[-1.25, 4.2, 0]} targetPos={[-1.25, 0.5, 0]} color="#00ffcc" />
 
           {/* Avatar */}
           <group 
             name="avatar-container" 
-            position={[-1.1, 1.1, 0]} 
-            userData={{ baseY: 1.1 }}
+            position={[-1.25, 1.3, 0]} 
+            userData={{ baseY: 1.3 }}
           >
+            {/* Hitbox sphérique invisible */}
+            <mesh
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectPlayer(silverPlayer);
+              }}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'pointer';
+              }}
+              onPointerOut={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'auto';
+              }}
+            >
+              <sphereGeometry args={[0.8, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+
             <PlayerAvatar 
               player={{
                 ...silverPlayer,
                 isCurrent: silverPlayer.childId === childInfos?.id
               }}
               position={[0, 0, 0]}
-              avatarScale={0.76}
+              avatarScale={1.0}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
@@ -353,45 +440,71 @@ export default function PodiumGroup({
       {bronzePlayer && (
         <>
           {/* Capsule de verre bronze */}
-          <ColoredCapsule position={[1.1, -0.3, 0]} height={0.8} radius={0.38} color="#ff7700" />
+          <ColoredCapsule 
+            position={[1.25, -0.25, 0]} 
+            height={0.95} 
+            radius={0.46} 
+            color="#ff7700" 
+            onClick={() => handleSelectPlayer(bronzePlayer)}
+          />
 
           {/* Numéro 3 garanti visible à l'avant */}
-          <Billboard follow={true} position={[1.1, -0.3, 0.48]}>
+          <Billboard follow={true} position={[1.25, -0.25, 0.58]}>
             <Text
-              fontSize={0.34}
+              fontSize={0.40}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
               outlineWidth={0.03}
               outlineColor="#ff7700"
+              onClick={() => handleSelectPlayer(bronzePlayer)}
             >
               3
             </Text>
           </Billboard>
 
           {/* Anneaux orbitaux */}
-          <OrbitalRings position={[1.1, -0.3, 0]} color="#ff7700" radius={0.54} />
+          <OrbitalRings position={[1.25, -0.25, 0]} color="#ff7700" radius={0.62} />
 
           {/* Fontaine de particules */}
-          <PodiumParticles count={30} color="#ff7700" basePosition={[1.1, 0.1, 0]} />
+          <PodiumParticles count={35} color="#ff7700" basePosition={[1.25, 0.2, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[1.1, 4, 0]} targetPos={[1.1, 0.1, 0]} color="#ff7700" />
+          <SweepingSpotlight position={[1.25, 4.2, 0]} targetPos={[1.25, 0.2, 0]} color="#ff7700" />
 
           {/* Avatar */}
           <group 
             name="avatar-container" 
-            position={[1.1, 0.8, 0]} 
-            userData={{ baseY: 0.8 }}
+            position={[1.25, 1.0, 0]} 
+            userData={{ baseY: 1.0 }}
           >
+            {/* Hitbox sphérique invisible */}
+            <mesh
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectPlayer(bronzePlayer);
+              }}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'pointer';
+              }}
+              onPointerOut={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = 'auto';
+              }}
+            >
+              <sphereGeometry args={[0.8, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+
             <PlayerAvatar 
               player={{
                 ...bronzePlayer,
                 isCurrent: bronzePlayer.childId === childInfos?.id
               }}
               position={[0, 0, 0]}
-              avatarScale={0.76}
+              avatarScale={1.0}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
