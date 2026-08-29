@@ -169,7 +169,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         minHeight: 0,
         filter: isCompleted ? 'grayscale(100%) opacity(0.55)' : 'none'
       }}>
-        {/* Bouton "!" Premium justifié à droite dans l'espace image */}
+        {/* [TEST] L'ancien Bouton "!" a été commenté pour pouvoir revenir en arrière facilement
         <button
           type="button"
           onClick={(e) => {
@@ -203,11 +203,12 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         >
           !
         </button>
+        */}
 
         {/* Grand Portail Holographique avec dimensionnement dynamique */}
         <div style={{
-          width: 'clamp(115px, 19vh, 180px)',
-          height: 'clamp(115px, 19vh, 180px)',
+          width: 'clamp(135px, 22vh, 210px)',
+          height: 'clamp(135px, 22vh, 210px)',
           borderRadius: '50%',
           border: isCompleted ? '1.5px solid rgba(255, 255, 255, 0.12)' : '1.5px solid rgba(0, 255, 204, 0.35)',
           boxShadow: isCompleted 
@@ -370,7 +371,37 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
 
         {/* Bouton d'Action : "DÉSIMPULSER" ou "IMPULSER" + Bouton Accès Missions de la Semaine */}
         {isActive && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <div style={{ marginTop: 'auto', display: 'flex', gap: '8px' }}>
+              {/* [TEST] Bouton "!" déplacé à gauche des actions */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFullBriefing(true);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                title="Briefing complet"
+                style={{
+                  width: '42px',
+                  borderRadius: '12px',
+                  background: isCompleted ? 'rgba(255, 255, 255, 0.08)' : 'rgba(8, 14, 28, 0.85)',
+                  border: isCompleted ? '1.5px solid rgba(255, 255, 255, 0.25)' : '1.5px solid #00ffcc',
+                  color: isCompleted ? 'rgba(255, 255, 255, 0.7)' : '#00ffcc',
+                  fontSize: '1.2rem',
+                  fontWeight: 900,
+                  fontFamily: 'monospace, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: isCompleted ? 'none' : '0 0 14px rgba(0, 255, 204, 0.4)',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
+                }}
+              >
+                !
+              </button>
+
             <div style={{ flex: 1 }}>
               {isCompleted ? (
                 <button 
