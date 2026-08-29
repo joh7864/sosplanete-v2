@@ -106,10 +106,27 @@ function MainApp() {
   const [showMissionsWeekModal, setShowMissionsWeekModal] = useState(false);
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+
+  const handleVesselClick = (teamId: number | string) => {
+    setShowRadar(true);
+    setSelectedRadarTeamId(teamId);
+  };
 
   useEffect(() => {
     preloadEvoeAssets();
   }, []);
+
+  useEffect(() => {
+    if (selectedRadarTeamId !== null && showRadar) {
+      setTimeout(() => {
+        const el = document.getElementById(`radar-team-${selectedRadarTeamId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [selectedRadarTeamId, showRadar]);
 
   const handleSelectSector = (sector: string) => {
     setSelectedSector(sector);
@@ -145,7 +162,7 @@ function MainApp() {
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 2) { // Étape 3: Codex & Impulsion d'une mission
+    } else if (stepIndex === 2 || stepIndex === 3) { // Étape 3 & 4: Codex & Impulsion + Puissance des IT
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
       setCodexTab('missions');
@@ -154,8 +171,8 @@ function MainApp() {
       setShowRadar(false);
       setChatOpen(false);
       const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-      if (cats.length > 0) setSelectedSector(cats[0]);
-    } else if (stepIndex === 3) { // Étape 4: Arène des Défis (Lune 3D)
+      if (cats.length > 0 && !selectedSector) setSelectedSector(cats[0]);
+    } else if (stepIndex === 4) { // Étape 5: Arène des Défis (Lune 3D)
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
       setSelectedSector(null); // Fermeture complète du Codex pour voir la Lune 3D
@@ -163,7 +180,7 @@ function MainApp() {
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 4) { // Étape 5: TERRE 2070 : % RÉGÉNÉRÉE
+    } else if (stepIndex === 5) { // Étape 6: TERRE 2070 : % RÉGÉNÉRÉE
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
       setSelectedSector(null); // Fermeture complète du Codex pour voir la jauge
@@ -171,28 +188,28 @@ function MainApp() {
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 5) { // Étape 6: Projection Temporelle (Bascule 2070)
+    } else if (stepIndex === 6) { // Étape 7: Projection Temporelle (Bascule 2070)
       if (era !== '2070') handleSwitchEra();
       setSelectedSector(null);
       setIsCodexCollapsed(true);
       setShowExtrapolation(false); // Laisser fermé pour voir la Terre 2070 et la bascule
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 6) { // Étape 7: Extrapolation 2070 (Bilan d'impact)
+    } else if (stepIndex === 7) { // Étape 8: Extrapolation 2070 (Bilan d'impact)
       if (era !== '2070') handleSwitchEra();
       setSelectedSector(null);
       setIsCodexCollapsed(true);
       setShowExtrapolation(true); // Ouvrir le volet Extrapolation ici
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 7) { // Étape 8: Radar Temporel (Constantes & Vaisseaux)
+    } else if (stepIndex === 8) { // Étape 9: Radar Temporel (Constantes & Vaisseaux)
       if (era !== '2070') handleSwitchEra();
       setSelectedSector(null);
       setIsCodexCollapsed(true);
       setShowExtrapolation(false);
       setShowRadar(true); // Ouvrir le volet Radar ici
       setChatOpen(false);
-    } else if (stepIndex === 8) { // Étape 9: Podium 3D & Leaderboard
+    } else if (stepIndex === 9) { // Étape 10: Podium 3D & Leaderboard
       if (era !== '2026') handleSwitchEra();
       setView2026('leaderboard');
       setSelectedSector(null); // Fermeture complète du Codex pour voir le Podium 3D
@@ -200,7 +217,7 @@ function MainApp() {
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(false);
-    } else if (stepIndex === 9) { // Étape 10: Com-Link (Chat Spatial)
+    } else if (stepIndex === 10) { // Étape 11: Com-Link (Chat Spatial)
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
       setSelectedSector(null);
@@ -208,7 +225,7 @@ function MainApp() {
       setShowExtrapolation(false);
       setShowRadar(false);
       setChatOpen(true);
-    } else if (stepIndex === 10) { // Étape 11: Groupe WhatsApp Équipe
+    } else if (stepIndex === 11) { // Étape 12: Groupe WhatsApp Équipe
       if (era !== '2026') handleSwitchEra();
       setView2026('codex');
       setSelectedSector(null);
@@ -646,6 +663,7 @@ function MainApp() {
             <Portal2070 
               dashboardStatus={dashboardStatus} 
               onEarthClick={handleEarthClick} 
+              onVesselClick={handleVesselClick}
               isMobile={isMobile}
             />
           )}
@@ -1832,7 +1850,22 @@ function MainApp() {
                 {dashboardStatus ? (
                   <div className="vessels-list">
                     {[...dashboardStatus.teams].sort((a, b) => b.position - a.position).map((t: any) => (
-                      <div key={t.id} className="vessel-row" style={{ borderLeftColor: t.color || '#00ffcc' }}>
+                      <div 
+                        key={t.id} 
+                        id={`radar-team-${t.id}`}
+                        className={`vessel-row ${selectedRadarTeamId === t.id ? 'highlighted-vessel' : ''}`} 
+                        style={{ 
+                          borderLeftColor: t.color || '#00ffcc',
+                          ...(selectedRadarTeamId === t.id ? {
+                            background: 'rgba(0, 255, 204, 0.1)',
+                            boxShadow: '0 0 15px rgba(0, 255, 204, 0.2)',
+                            transform: 'scale(1.02)',
+                            transition: 'all 0.3s ease'
+                          } : {
+                            transition: 'all 0.3s ease'
+                          })
+                        }}
+                      >
                         <div className="vessel-row-header">
                           <span className="vessel-team-name" style={{ color: t.color || '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {t.icon ? (

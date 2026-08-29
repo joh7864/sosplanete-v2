@@ -10,10 +10,12 @@ import { SpeedParticles, CosmicScale, TemporalEchoPulse } from './3d/CosmicEnvir
 export default function Portal2070({ 
   dashboardStatus, 
   onEarthClick,
+  onVesselClick,
   isMobile = false
 }: { 
   dashboardStatus: any; 
   onEarthClick?: (level: number) => void;
+  onVesselClick?: (teamId: number) => void;
   isMobile?: boolean;
 }) {
   const orbitRef = useRef<THREE.Group>(null);
@@ -271,7 +273,7 @@ export default function Portal2070({
 
       {/* Vaisseaux des équipes */}
       {teams.map((t: any, i: number) => (
-        <Vessel2070 key={t.id} team={t} index={i} total={teams.length} />
+        <Vessel2070 key={t.id} team={t} index={i} total={teams.length} onClick={onVesselClick} />
       ))}
 
       {/* L'Arche EVOE (Origine en Z = 12.2) */}

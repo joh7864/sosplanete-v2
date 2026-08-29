@@ -239,6 +239,7 @@ model SystemConfig {
   whatsappCommunityUrl   String?
   whatsappGeneralUrl     String?
   whatsappGeneralId      String?
+  ftuxSteps              Json?
 }
 
 model InstanceAnimalUnlock {

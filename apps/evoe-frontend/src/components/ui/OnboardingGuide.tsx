@@ -22,10 +22,10 @@ interface OnboardingGuideProps {
   userId?: string;
 }
 
-const STEPS: OnboardingStep[] = [
+const DEFAULT_STEPS: OnboardingStep[] = [
   {
     id: 1,
-    badge: 'Étape 1 / 11',
+    badge: 'Étape 1 / 12',
     title: '🚀 Bienvenue à bord, Agent !',
     targetId: 'hud-agent-profile',
     position: 'bottom',
@@ -33,7 +33,7 @@ const STEPS: OnboardingStep[] = [
   },
   {
     id: 2,
-    badge: 'Étape 2 / 11',
+    badge: 'Étape 2 / 12',
     title: '🌍 La Passerelle & Les Secteurs Écologiques',
     targetId: 'sector-orb-guide',
     position: 'bottom',
@@ -41,7 +41,7 @@ const STEPS: OnboardingStep[] = [
   },
   {
     id: 3,
-    badge: 'Étape 3 / 11',
+    badge: 'Étape 3 / 12',
     title: '⚡ Le Codex & Impulsion d\'une Mission',
     targetId: 'hud-active-mission-card',
     position: 'left',
@@ -49,63 +49,71 @@ const STEPS: OnboardingStep[] = [
   },
   {
     id: 4,
-    badge: 'Étape 4 / 11',
+    badge: 'Étape 4 / 12',
+    title: '⚡ La Puissance des Impulsions Temporelles (IT)',
+    targetId: 'mission-card-it-counter',
+    position: 'left',
+    explanation: "Les IT représentent la puissance de l'énergie vitale envoyée vers le futur. Chaque éco-geste réel accompli génère des IT. Plus vous accumulez d'IT, plus le futur se régénère rapidement et évolue dans le bon sens !"
+  },
+  {
+    id: 5,
+    badge: 'Étape 5 / 12',
     title: '🌕 L\'Arène des Défis Temporels',
     targetId: 'hud-moon-arena',
     position: 'bottom',
     explanation: "Cliquez sur la Lune en orbite ou le badge d'un joueur pour entrer dans l'arène des défis. Défiez les équipes adverses avec un chrono (24h/48h) et un gage d'équipe !"
   },
   {
-    id: 5,
-    badge: 'Étape 5 / 11',
+    id: 6,
+    badge: 'Étape 6 / 12',
     title: '📊 TERRE 2070 : % RÉGÉNÉRÉE',
     targetId: 'hud-completion-bar',
     position: 'bottom',
     explanation: "Suivez la jauge de régénération planétaire en direct. Plus votre équipage accomplit d'éco-gestes réels, plus le score d'accomplissement augmente et plus la Terre se refroidit à l'horizon 2070 !"
   },
   {
-    id: 6,
-    badge: 'Étape 6 / 11',
+    id: 7,
+    badge: 'Étape 7 / 12',
     title: '⏳ Projection Temporelle : Cap sur 2070',
     targetId: 'hud-epoch-switch',
     position: 'bottom',
     explanation: "Basculez à tout moment vers l'ère 2070 pour explorer la Terre régénérée dans le futur et visualiser en direct l'impact à long terme des actions de votre équipage !"
   },
   {
-    id: 7,
-    badge: 'Étape 7 / 11',
+    id: 8,
+    badge: 'Étape 8 / 12',
     title: '🔮 Extrapolation 2070 & Bilan d\'Impact',
     targetId: 'panel-extrapolation-2070',
     position: 'right',
     explanation: "Explorez le tableau d'extrapolation 2070 ! Visualisez le recul du Jour de Dépassement Mondial, la glace arctique préservée et les équivalences en piscines d'eau potable et camions évités."
   },
   {
-    id: 8,
-    badge: 'Étape 8 / 11',
-    title: '📡 Radar Temporel & Stase Technologique',
+    id: 9,
+    badge: 'Étape 9 / 12',
+    title: '🚀 Radar Temporel & Évolution des Vaisseaux',
     targetId: 'panel-radar-2070',
     position: 'left',
-    explanation: "Analysez le Radar Temporel 2070 ! Suivez en direct la vitesse de propulsion des vaisseaux et la restauration des 5 constantes vitales au fil des missions réussies."
+    explanation: "Chaque vaisseau possède 5 niveaux d'évolution. Vous franchissez des paliers technologiques selon votre progression globale de régénération :\n- N1 (0%) : Friction Thermique\n- N2 (25%) : Voiles Photovoltaïques\n- N3 (45%) : Fusion Magnétique\n- N4 (65%) : Résonance Quantique\n- N5 (85%) : Singularité Protonique"
   },
   {
-    id: 9,
-    badge: 'Étape 9 / 11',
+    id: 10,
+    badge: 'Étape 10 / 12',
     title: '🏆 Podium 3D & Progression',
     targetId: 'btn-podium-leaderboard',
     position: 'left',
     explanation: "Consultez le classement général sur le podium holographique 3D et cliquez sur n'importe quel avatar d'agent pour inspecter sa fiche, ses badges et son palmarès."
   },
   {
-    id: 10,
-    badge: 'Étape 10 / 11',
+    id: 11,
+    badge: 'Étape 11 / 12',
     title: '💬 Com-Link & Messagerie d\'Équipage',
     targetId: 'chat-panel-container',
     position: 'left',
     explanation: "Ouvrez le Com-Link spatial pour dialoguer en direct avec votre équipage, coordonner vos actions éco-responsables et débriefer vos stratégies de mission !"
   },
   {
-    id: 11,
-    badge: 'Étape 11 / 11',
+    id: 12,
+    badge: 'Étape 12 / 12',
     title: '📡 Canal WhatsApp Équipe & Alertes',
     targetId: 'hud-btn-whatsapp',
     position: 'left',
@@ -116,8 +124,36 @@ const STEPS: OnboardingStep[] = [
 export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, userId }: OnboardingGuideProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [steps, setSteps] = useState<OnboardingStep[]>(DEFAULT_STEPS);
 
-  const step = STEPS[currentStepIndex];
+  useEffect(() => {
+    const fetchSteps = async () => {
+      try {
+        const url = `${import.meta.env.VITE_API_URL}/stimulation/system-config`;
+        const authDataStr = localStorage.getItem('evoe_auth_data');
+        let headers: Record<string, string> = {};
+        if (authDataStr) {
+          const authData = JSON.parse(authDataStr);
+          if (authData.access_token) {
+            headers['Authorization'] = `Bearer ${authData.access_token}`;
+          }
+        }
+        const resp = await fetch(url, { headers });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.ftuxSteps && Array.isArray(data.ftuxSteps) && data.ftuxSteps.length > 0) {
+            setSteps(data.ftuxSteps);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load custom FTUX steps", e);
+      }
+    };
+    fetchSteps();
+  }, []);
+
+  const step = steps[currentStepIndex];
+  if (!step) return null;
 
   // Mesure réactive de l'élément cible (avec boucle d'animation temps réel sécurisée)
   useEffect(() => {
@@ -268,7 +304,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
   if (!isOpen) return null;
 
   const handleNext = () => {
-    if (currentStepIndex < STEPS.length - 1) {
+    if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
       const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
@@ -451,7 +487,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
                 fontWeight: 'bold', 
                 letterSpacing: '0.5px' 
               }}>
-                Étape {currentStepIndex + 1} / {STEPS.length}
+                Étape {currentStepIndex + 1} / {steps.length}
               </span>
               <button
                 onClick={() => {
@@ -476,9 +512,9 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
               </p>
             </div>
 
-            {/* Barre de progression interactive des 11 étapes (cliquables directement) */}
+            {/* Barre de progression interactive des étapes (cliquables directement) */}
             <div style={{ display: 'flex', gap: '5px', padding: '6px 0' }}>
-              {STEPS.map((s, idx) => {
+              {steps.map((s, idx) => {
                 const isActive = idx === currentStepIndex;
                 const isPassed = idx < currentStepIndex;
                 return (
@@ -553,7 +589,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
                   boxShadow: '0 0 15px rgba(0, 255, 204, 0.4)'
                 }}
               >
-                {currentStepIndex === STEPS.length - 1 ? 'Terminer 🚀' : 'Suivant'} <ChevronRight size={16} />
+                {currentStepIndex === steps.length - 1 ? 'Terminer 🚀' : 'Suivant'} <ChevronRight size={16} />
               </button>
             </div>
           </motion.div>

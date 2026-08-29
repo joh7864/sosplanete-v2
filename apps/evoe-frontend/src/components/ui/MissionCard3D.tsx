@@ -135,7 +135,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         </h3>
 
         {/* Badge IT (Grisé sobre si accomplie, Violet sinon) */}
-        <div style={{
+        <div 
+          id="mission-card-it-counter"
+          style={{
           padding: '3px 8px',
           borderRadius: '10px',
           background: isCompleted ? 'rgba(255, 255, 255, 0.06)' : 'rgba(217, 70, 239, 0.15)',

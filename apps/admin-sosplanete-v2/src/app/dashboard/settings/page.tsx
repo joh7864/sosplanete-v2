@@ -30,6 +30,7 @@ import { GlobalDataSettings } from '@/components/settings/GlobalDataSettings';
 import { SystemConfigForm } from '@/components/settings/SystemConfigForm';
 import { ManagedSpacesSection } from '@/components/settings/ManagedSpacesSection';
 import { TuningSimulator } from '@/components/settings/TuningSimulator';
+import { FTUXSettings } from '@/components/settings/FTUXSettings';
 
 export default function SettingsPage() {
   return (
@@ -40,7 +41,7 @@ export default function SettingsPage() {
 }
 
 function SettingsContent() {
-  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data' | 'tuning' | 'anchors';
+  type ActiveTab = 'profile' | 'users' | 'catalog' | 'data' | 'tuning' | 'anchors' | 'ftux';
 
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('tab') as ActiveTab) || 'profile';
@@ -75,13 +76,14 @@ function SettingsContent() {
 
   const isAS = userRole === 'AS';
 
-  const tabDef: { id: ActiveTab; label: string; icon: string; adminOnly?: boolean }[] = [
+  const tabDef: { id: ActiveTab; label: string; icon: string; adminOnly?: boolean; tooltip?: string }[] = [
     { id: 'profile', label: 'Profil & Notifications', icon: '👤' },
     { id: 'users', label: 'Utilisateurs', icon: '👥', adminOnly: true },
     { id: 'catalog', label: 'Catalogue', icon: '📚' },
     { id: 'data', label: 'Données de calcul', icon: '🌍', adminOnly: true },
     { id: 'tuning', label: 'Tuning critères', icon: '🎛️', adminOnly: true },
     { id: 'anchors', label: 'Ecoles', icon: '🏢', adminOnly: true },
+    { id: 'ftux', label: 'FTUX', icon: '✨', adminOnly: true, tooltip: 'First Time User eXperience' },
   ];
 
   const visibleTabs = tabDef.filter(t => !t.adminOnly || isAS);
@@ -99,7 +101,9 @@ function SettingsContent() {
                 <button
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-3 py-4 px-6 text-[13px] font-black uppercase tracking-widest transition-all duration-300 relative whitespace-nowrap ${activeTab === tab.id ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-800'}`}
+                  title={tab.tooltip || tab.label}
                 >
+                  <span className="text-lg opacity-80">{tab.icon}</span>
                   {tab.label}
                   {activeTab === tab.id && (
                     <motion.div layoutId="activeSettingsTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] bg-emerald-500 rounded-t-full shadow-[0_-2px_10px_rgba(16,185,129,0.3)]" />
@@ -136,6 +140,11 @@ function SettingsContent() {
         {/* Tuning Simulateur — pleine largeur */}
         {activeTab === 'tuning' && isAS && (
           <TuningSimulator schoolYear={schoolYear} />
+        )}
+
+        {/* FTUX Settings — pleine largeur */}
+        {activeTab === 'ftux' && isAS && (
+          <FTUXSettings schoolYear={schoolYear} />
         )}
 
         {/* Profil & Utilisateurs — largeur contrainte pour lisibilité */}

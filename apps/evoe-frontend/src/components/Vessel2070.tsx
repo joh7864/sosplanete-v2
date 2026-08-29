@@ -9,7 +9,7 @@ import { EngineN1, EngineN2, EngineN3, EngineN4, EngineN5 } from './3d/VesselEng
 // =========================================================
 // COMPOSANT PRINCIPAL VESSEL
 // =========================================================
-export default function Vessel2070({ team, index, total }: { team: any; index: number; total: number }) {
+export default function Vessel2070({ team, index, total, onClick }: { team: any; index: number; total: number; onClick?: (teamId: number) => void }) {
   const outerGroupRef = useRef<THREE.Group>(null);
   const innerGroupRef = useRef<THREE.Group>(null);
   
@@ -88,7 +88,29 @@ export default function Vessel2070({ team, index, total }: { team: any; index: n
   const flameInnerColor = isGreenTeam ? '#caffff' : '#ffea88';
 
   return (
-    <group ref={outerGroupRef} position={[xOffset, 0, 11]} scale={[1.4, 1.4, 1.4]}>
+    <group 
+      ref={outerGroupRef} 
+      position={[xOffset, 0, 11]} 
+      scale={[1.4, 1.4, 1.4]}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          onClick(team.id);
+        }
+      }}
+      onPointerOver={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }
+      }}
+      onPointerOut={(e) => {
+        if (onClick) {
+          e.stopPropagation();
+          document.body.style.cursor = 'auto';
+        }
+      }}
+    >
       <group ref={innerGroupRef}>
         <pointLight position={[0, -0.2, 0]} color={colorHex} intensity={1.2} distance={4.0} decay={2.0} />
 
