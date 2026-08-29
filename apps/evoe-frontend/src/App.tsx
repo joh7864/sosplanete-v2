@@ -14,6 +14,7 @@ import { OnboardingGuide } from './components/ui/OnboardingGuide';
 import { MissionsCarousel3D } from './components/ui/MissionsCarousel3D';
 import { ChallengesCarousel3D } from './components/ui/ChallengesCarousel3D';
 import { OrbitalSectorRibbon } from './components/ui/OrbitalSectorRibbon';
+import { MissionSearchBar } from './components/ui/MissionSearchBar';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
@@ -103,6 +104,8 @@ function MainApp() {
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [showMissionsWeekModal, setShowMissionsWeekModal] = useState(false);
+  const [missionSearchQuery, setMissionSearchQuery] = useState('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     preloadEvoeAssets();
@@ -110,6 +113,8 @@ function MainApp() {
 
   const handleSelectSector = (sector: string) => {
     setSelectedSector(sector);
+    setMissionSearchQuery('');
+    setIsMobileSearchOpen(false);
     setCodexTab('missions');
     setIsCodexCollapsed(false);
     setView2026('codex');
@@ -361,6 +366,38 @@ function MainApp() {
     acc[cat].push(mission);
     return acc;
   }, {});
+
+  // Filtrage mémoïsé pour la recherche de mission (sur toutes les missions de l'instance)
+  const searchedMissions = useMemo(() => {
+    const rawQ = missionSearchQuery.trim();
+    if (!rawQ || !missions) return [];
+    
+    const normalize = (str?: string | null) => 
+      (str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    const q = normalize(rawQ);
+
+    return missions.filter((m: any) => {
+      const titreSF = normalize(m.evoeMission?.titreSF);
+      const label = normalize(m.label);
+      const descSF = normalize(m.evoeMission?.descriptionSF);
+      const desc = normalize(m.description);
+      const catSF = normalize(m.categorySF);
+      const cat = normalize(m.category);
+
+      return (
+        titreSF.includes(q) ||
+        label.includes(q) ||
+        descSF.includes(q) ||
+        desc.includes(q) ||
+        catSF.includes(q) ||
+        cat.includes(q)
+      );
+    });
+  }, [missions, missionSearchQuery]);
 
   const receivedChallenges = challenges.filter(c => c.targetTeamId === myTeamId);
   const sentChallenges = challenges.filter(c => c.challengerTeamId === myTeamId);
@@ -1058,39 +1095,128 @@ function MainApp() {
         {/* CONTENU 2026 : Le Codex Temporel (Panel UI) */}
         {era === '2026' && selectedSector && (codexTab === 'missions' || codexTab === 'challenges') && !isCodexCollapsed ? (
           <div style={{
-            position: 'absolute',
-            top: 0, left: 0, width: '100%', height: '100%',
-            background: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(5px)',
-            zIndex: 1000,
+            position: 'fixed',
+            inset: 0,
+            width: '100vw',
+            height: '100dvh',
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 10005,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'auto',
+            padding: isMobile ? 0 : '20px',
+            boxSizing: 'border-box'
           }}>
             <div style={{
-              width: 'min(1040px, 94vw)',
-              height: 'auto',
-              maxHeight: '96vh',
-              background: 'rgba(10, 15, 30, 0.88)',
-              border: '1px solid rgba(0, 255, 204, 0.2)',
-              borderRadius: '20px',
+              width: isMobile ? '100vw' : 'min(1040px, 94vw)',
+              height: isMobile ? '100dvh' : 'min(700px, calc(100dvh - 40px))',
+              background: 'rgba(10, 15, 30, 0.94)',
+              border: isMobile ? 'none' : '1px solid rgba(0, 255, 204, 0.2)',
+              borderRadius: isMobile ? 0 : '20px',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
               boxShadow: '0 0 50px rgba(0, 0, 0, 0.8)',
               animation: 'popup-scale 0.3s ease-out forwards',
             }}>
-              {/* En-tête HUD avec zIndex élevé pour s'assurer qu'il est cliquable au-dessus du carrousel */}
-              <div style={{ display: 'flex', position: 'relative', zIndex: 20, justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '8px' }}>
-                <h2 style={{ margin: 0, color: '#fff', fontSize: '1.25rem', letterSpacing: '1px' }}>
-                  Missions & Défis
-                </h2>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {/* En-tête HUD responsive — flexShrink:0 garantit qu'il ne se réduit pas */}
+              <div style={{
+                display: 'flex',
+                position: 'relative',
+                zIndex: 20,
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'stretch' : 'center',
+                padding: isMobile ? '8px 12px 6px' : '12px 16px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                gap: isMobile ? '6px' : '12px',
+                background: 'rgba(0, 255, 204, 0.02)',
+                flexShrink: 0
+              }}>
+                {/* Ligne 1 sur Mobile: Titre + Contrôles (Loupe + Fermer) / Gauche sur Desktop */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <h2 style={{
+                    margin: 0,
+                    color: '#fff',
+                    fontSize: isMobile ? '1.05rem' : '1.25rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.8px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    Missions & Défis
+                  </h2>
+
+                  {isMobile && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <MissionSearchBar
+                        value={missionSearchQuery}
+                        onChange={(val) => {
+                          setMissionSearchQuery(val);
+                          if (val && codexTab !== 'missions') {
+                            setCodexTab('missions');
+                          }
+                        }}
+                        isMobile={true}
+                        isOpenMobile={isMobileSearchOpen}
+                        onToggleMobile={(open) => {
+                          setIsMobileSearchOpen(open);
+                        }}
+                        resultsCount={searchedMissions.length}
+                      />
+
+                      <button 
+                        onClick={() => {
+                          setSelectedSector(null);
+                          setMissionSearchQuery('');
+                          setIsMobileSearchOpen(false);
+                        }}
+                        style={{
+                          background: 'rgba(255, 100, 100, 0.1)',
+                          border: '1px solid rgba(255,100,100,0.4)',
+                          borderRadius: '50%',
+                          width: '34px',
+                          height: '34px',
+                          color: '#ff6666',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'auto'
+                        }}
+                        title="Fermer"
+                      >
+                        <X size={17} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Ruban des secteurs — Ligne 2 mobile, inline desktop */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'center',
+                  justifyContent: isMobile ? 'flex-start' : 'center',
+                  overflowX: 'auto',
+                  msOverflowStyle: 'none',
+                  scrollbarWidth: 'none',
+                  flex: isMobile ? 'none' : '1 1 auto',
+                  minWidth: 0
+                }}>
                   <OrbitalSectorRibbon 
                     categories={[...(missionsByCategory ? Object.keys(missionsByCategory) : []), 'Défis']}
-                    selectedSector={codexTab === 'challenges' ? 'Défis' : selectedSector}
+                    selectedSector={missionSearchQuery.trim() ? null : (codexTab === 'challenges' ? 'Défis' : selectedSector)}
                     onSelect={(sector) => {
+                      setMissionSearchQuery('');
+                      setIsMobileSearchOpen(false);
                       if (sector === 'Défis') {
                         setCodexTab('challenges');
                       } else {
@@ -1099,19 +1225,72 @@ function MainApp() {
                       }
                     }}
                   />
-                  <button 
-                    onClick={() => {
-                      setSelectedSector(null);
-                    }}
-                    style={{ background: 'none', border: '1px solid rgba(255,100,100,0.5)', borderRadius: '50%', width: '36px', height: '36px', color: '#ff6666', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}
-                  >
-                    <X size={18} />
-                  </button>
+
+                  {!isMobile && (
+                    <>
+                      <MissionSearchBar
+                        value={missionSearchQuery}
+                        onChange={(val) => {
+                          setMissionSearchQuery(val);
+                          if (val && codexTab !== 'missions') {
+                            setCodexTab('missions');
+                          }
+                        }}
+                        isMobile={false}
+                        resultsCount={searchedMissions.length}
+                      />
+
+                      <button 
+                        onClick={() => {
+                          setSelectedSector(null);
+                          setMissionSearchQuery('');
+                          setIsMobileSearchOpen(false);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: '1px solid rgba(255,100,100,0.5)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          color: '#ff6666',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'auto',
+                          flexShrink: 0
+                        }}
+                        title="Fermer"
+                      >
+                        <X size={18} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div style={{ flex: 1, position: 'relative' }}>
-                {codexTab === 'missions' ? (
+              {/* Corps du popup — height:100% transmet la hauteur au carousel enfant */}
+              <div style={{
+                flex: 1,
+                minHeight: 0,
+                position: 'relative',
+                height: '100%',
+              }}>
+                {missionSearchQuery.trim().length > 0 ? (
+                  <MissionsCarousel3D
+                    missions={searchedMissions}
+                    loadingMissionId={loadingMissionId}
+                    selectedSector={`search_${missionSearchQuery}`}
+                    isSearchMode={true}
+                    onClearSearch={() => {
+                      setMissionSearchQuery('');
+                      setIsMobileSearchOpen(false);
+                    }}
+                    onImpulse={(id) => handleImpulseMission(id)}
+                    onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({actionDoneId, label})}
+                    onOpenMissionsWeek={() => setShowMissionsWeekModal(true)}
+                  />
+                ) : codexTab === 'missions' ? (
                   <MissionsCarousel3D
                     missions={missionsByCategory?.[selectedSector] || []}
                     loadingMissionId={loadingMissionId}

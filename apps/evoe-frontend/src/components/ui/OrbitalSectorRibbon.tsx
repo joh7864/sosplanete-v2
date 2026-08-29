@@ -16,15 +16,19 @@ export const OrbitalSectorRibbon: React.FC<OrbitalSectorRibbonProps> = ({
   if (!categories || categories.length === 0) return null;
 
   return (
-    <div style={{
-      display: 'flex',
-      gap: '8px',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflowX: 'auto',
-      msOverflowStyle: 'none',
-      scrollbarWidth: 'none',
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: '6px',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        overflowX: 'auto',
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none',
+        padding: '2px 0',
+        width: '100%'
+      }}
+    >
       <style>{`.ribbon-scroll::-webkit-scrollbar { display: none; }`}</style>
       
       {categories.map(category => {
@@ -33,25 +37,27 @@ export const OrbitalSectorRibbon: React.FC<OrbitalSectorRibbonProps> = ({
           <motion.button
             key={category}
             onClick={() => onSelect(category)}
-            title={category} // Native tooltip
+            title={category}
             style={{
-              background: isActive ? 'rgba(0, 255, 204, 0.2)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${isActive ? '#00ffcc' : 'transparent'}`,
+              background: isActive ? 'rgba(0, 255, 204, 0.22)' : 'rgba(255,255,255,0.05)',
+              border: `1.5px solid ${isActive ? '#00ffcc' : 'rgba(255,255,255,0.1)'}`,
               color: isActive ? '#00ffcc' : 'rgba(255,255,255,0.6)',
-              width: '40px',
-              height: '40px',
+              width: '34px',
+              height: '34px',
+              minWidth: '34px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: isActive ? '0 0 10px rgba(0, 255, 204, 0.4)' : 'none'
+              transition: 'all 0.25s ease',
+              boxShadow: isActive ? '0 0 10px rgba(0, 255, 204, 0.45)' : 'none',
+              flexShrink: 0
             }}
-            whileHover={{ scale: 1.1, background: 'rgba(255,255,255,0.1)' }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08, background: 'rgba(255,255,255,0.1)' }}
+            whileTap={{ scale: 0.92 }}
           >
-            <span style={{ fontSize: '1.2rem', filter: isActive ? 'drop-shadow(0 0 5px #00ffcc)' : 'none' }}>
+            <span style={{ fontSize: '1.05rem', filter: isActive ? 'drop-shadow(0 0 4px #00ffcc)' : 'none' }}>
               {category === 'Défis' ? '⚔️' : getCategoryEmoji(category)}
             </span>
           </motion.button>

@@ -71,8 +71,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
       onClick={onClick}
       style={{
         width: 'min(330px, 88vw)',
-        height: 'min(490px, 74vh)',
-        maxHeight: '520px',
+        height: 'min(490px, calc(100dvh - 165px))',
         borderRadius: '24px',
         background: isCompleted 
           ? 'rgba(6, 10, 18, 0.85)' 
@@ -162,9 +161,9 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '4px 14px',
-        gap: '6px',
+        justifyContent: 'space-evenly',
+        padding: '2px 12px',
+        gap: '8px',
         position: 'relative',
         overflowY: 'auto',
         minHeight: 0,

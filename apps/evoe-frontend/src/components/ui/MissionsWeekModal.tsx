@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Droplet, Trash2, Cloud, CheckCircle2, RotateCcw } from 'lucide-react';
+import { MissionCard3D } from './MissionCard3D';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -19,6 +20,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
   childPseudo,
   onCancelConfirm
 }) => {
+  const [selectedMission, setSelectedMission] = useState<any>(null);
   if (!isOpen) return null;
 
   // Filter impulsed missions
@@ -271,6 +273,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
+                    onClick={() => setSelectedMission(mission)}
                     style={{
                       background: 'rgba(10, 18, 36, 0.75)',
                       border: '1.5px solid rgba(16, 185, 129, 0.3)',
@@ -281,7 +284,8 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                       justifyContent: 'space-between',
                       gap: '12px',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-                      flexWrap: 'wrap'
+                      flexWrap: 'wrap',
+                      cursor: 'pointer'
                     }}
                   >
                     {/* Left: Thumbnail + Title + Objective */}
@@ -360,7 +364,10 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                     {/* Right: Bouton Désimpulser Premium */}
                     <button
                       type="button"
-                      onClick={() => onCancelConfirm(mission.evoeMission?.actionDoneId, title)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCancelConfirm(mission.evoeMission?.actionDoneId, title);
+                      }}
                       style={{
                         padding: '8px 14px',
                         borderRadius: '12px',
@@ -427,6 +434,43 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
               Fermer
             </button>
           </div>
+
+          {/* Overlay détaillé de la mission (Fiche MissionCard3D) */}
+          <AnimatePresence>
+            {selectedMission && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedMission(null)}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(2, 6, 18, 0.85)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  zIndex: 50,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '20px'
+                }}
+              >
+                <div onClick={(e) => e.stopPropagation()}>
+                  <MissionCard3D
+                    mission={selectedMission}
+                    isActive={true}
+                    isImpulsing={false}
+                    onImpulse={() => {}}
+                    onCancelConfirm={(id, label) => {
+                      onCancelConfirm(id, label);
+                      setSelectedMission(null);
+                    }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </AnimatePresence>
