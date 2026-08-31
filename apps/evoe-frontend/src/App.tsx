@@ -91,6 +91,7 @@ function MainApp() {
     showLeaderboardModal, setShowLeaderboardModal,
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
+    isStealthMode, toggleStealthMode,
     onlineUsers, setOnlineUsers,
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,
@@ -651,6 +652,8 @@ function MainApp() {
               dashboardStatus={dashboardStatus}
               challenges={challenges}
               missionsWeekCount={impulsedMissionsCount}
+              isStealthMode={isStealthMode}
+              onToggleStealth={toggleStealthMode}
               onSelectMissionsWeek={() => {
                 setSelectedProfileId(null);
                 setShowLeaderboardModal(false);
@@ -2105,6 +2108,8 @@ function MainApp() {
               onClose={() => setSelectedProfileId(null)}
               isOwner={selectedProfileId === childInfos?.id}
               refreshData={fetchEvoeData}
+              isStealthMode={isStealthMode}
+              onToggleStealth={toggleStealthMode}
             />
           </Suspense>
         )}
@@ -2124,6 +2129,7 @@ function MainApp() {
         onOpen={() => setChatOpen(true)}
         onClose={() => setChatOpen(false)}
         onTabChange={(tab) => setChatActiveTab(tab)}
+        isStealthMode={isStealthMode}
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}

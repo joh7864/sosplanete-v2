@@ -23,6 +23,7 @@ interface ChatPanelProps {
   onClose?: () => void;
   onOpen?: () => void;
   onTabChange?: (tab: string) => void;
+  isStealthMode?: boolean;
 }
 
 export default function ChatPanel({ 
@@ -35,7 +36,8 @@ export default function ChatPanel({
   activeTabProp,
   onClose,
   onOpen,
-  onTabChange
+  onTabChange,
+  isStealthMode
 }: ChatPanelProps) {
   const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
@@ -99,7 +101,8 @@ export default function ChatPanel({
     isOpen,
     activeTab,
     teams,
-    onOnlineUsersChange
+    onOnlineUsersChange,
+    isStealthMode
   });
 
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);

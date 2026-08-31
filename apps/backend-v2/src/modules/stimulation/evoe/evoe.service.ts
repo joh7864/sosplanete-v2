@@ -100,6 +100,7 @@ const isValidImageFilename = (s: string | null | undefined): boolean => {
 };
 
 import { ChatGateway } from '../chat.gateway';
+import { WhatsAppService } from '../whatsapp.service';
 
 @Injectable()
 export class EvoeService {
@@ -108,6 +109,7 @@ export class EvoeService {
     private readonly legacyApiService: LegacyApiService,
     private readonly impactService: ImpactService,
     private readonly chatGateway?: ChatGateway,
+    private readonly whatsAppService?: WhatsAppService,
   ) {}
 
   async getMissions(instanceId: number, schoolYear: string) {
@@ -553,6 +555,20 @@ export class EvoeService {
           (t) => t.level === currentMaxLevel,
         );
         if (matchedTech) propTech = matchedTech;
+
+        if (this.chatGateway) {
+          this.chatGateway.sendSystemAlert(
+            `🚀 PALIER TECHNOLOGIQUE ! Le vaisseau de l'équipe "${team.name}" passe au Niveau ${calculatedLevel} (${propTech.name}) !`,
+          );
+        }
+        if (this.whatsAppService) {
+          this.whatsAppService.sendPropulsionLevelUpNotification(
+            team.name,
+            calculatedLevel,
+            propTech.name,
+            schoolYear,
+          );
+        }
       } else if (existingTech) {
         const matchedTech = PROPULSION_THRESHOLDS.find(
           (t) => t.level === currentMaxLevel,
@@ -1182,6 +1198,18 @@ export class EvoeService {
         `🚨 DÉFI SPATIO-TEMPOREL ! L'équipe "${challengerTeam.name}" défie l'équipe "${targetTeam.name}" sur la mission "${localAction.label}". Gage : "${data.pledge || 'aucun'}"`
       );
     }
+    if (this.whatsAppService && challengerTeam && targetTeam && localAction) {
+      const iy = await this.prisma.instanceYear.findUnique({
+        where: { id: child.group.team.instanceYearId },
+      });
+      this.whatsAppService.sendChallengeCreatedNotification(
+        challengerTeam.name,
+        targetTeam.name,
+        localAction.label,
+        data.pledge,
+        iy?.schoolYear,
+      );
+    }
 
     return challenge;
   }
@@ -1241,6 +1269,29 @@ export class EvoeService {
       } else if (newStatus === 'SUCCESS') {
         this.chatGateway.sendSystemAlert(
           `⚡ DÉFI REMPORTÉ ! L'équipe "${updated.targetTeam.name}" a accompli sa mission rétroactivement et triomphe du défi de l'équipe "${updated.challengerTeam.name}" !`
+        );
+      }
+    }
+
+    if (this.whatsAppService) {
+      if (newStatus === 'ACCEPTED') {
+        this.whatsAppService.sendChallengeAcceptedNotification(
+          updated.challengerTeam.name,
+          updated.targetTeam.name,
+          updated.localAction.label,
+        );
+      } else if (newStatus === 'DECLINED') {
+        this.whatsAppService.sendChallengeDeclinedNotification(
+          updated.challengerTeam.name,
+          updated.targetTeam.name,
+          updated.localAction.label,
+        );
+      } else if (newStatus === 'SUCCESS') {
+        this.whatsAppService.sendChallengeWonNotification(
+          updated.targetTeam.name,
+          updated.challengerTeam.name,
+          updated.localAction.label,
+          true,
         );
       }
     }

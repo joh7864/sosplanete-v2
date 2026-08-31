@@ -121,6 +121,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // 3. Assigner les données au client et rejoindre les salons
+      const isStealth = client.handshake.query?.isStealth === 'true' || client.handshake.auth?.isStealth === true;
+      client.data.isStealth = isStealth;
+
       if (child) {
         // Enfant/Joueur connecté
         const fullChild = await this.prisma.child.findUnique({
@@ -650,12 +653,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
-   * Diffuse la liste des pseudos connectés à tous les clients
+   * Bascule du Mode Furtif (Invisible) pour le client connecté
+   */
+  @SubscribeMessage('setStealthMode')
+  async handleSetStealthMode(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { isStealth: boolean },
+  ) {
+    client.data.isStealth = Boolean(body?.isStealth);
+    this.logger.log(`[Chat WebSockets] Mode Furtif ${client.data.isStealth ? 'ACTIVÉ' : 'DÉSACTIVÉ'} pour ${client.data.pseudo}`);
+    this.broadcastOnlineUsers();
+  }
+
+  /**
+   * Diffuse la liste des pseudos connectés à tous les clients (hors utilisateurs en mode furtif)
    */
   private async broadcastOnlineUsers() {
     try {
       const sockets = await this.server.fetchSockets();
       const onlinePseudos = sockets
+        .filter(s => !s.data.isStealth)
         .map(s => s.data.pseudo)
         .filter((pseudo): pseudo is string => !!pseudo);
       

@@ -20,10 +20,38 @@ export function getCategoryEmoji(category: string): string {
   if (cat.includes('propulsion') || cat.includes('spatial')) return '🚀';
   if (cat.includes('transport') || cat.includes('mobilit') || cat.includes('velo')) return '🚲';
   if (cat.includes('ressources') || cat.includes('vital') || cat.includes('eau') || cat.includes('hydrique') || cat.includes('ocean')) return '💧';
+  if (cat.includes('academie') || cat.includes('ecole')) return '🎓';
   if (cat.includes('aliment') || cat.includes('agricul') || cat.includes('nourrit') || cat.includes('repas') || cat.includes('course')) return '🌾';
   if (cat.includes('numeriq') || cat.includes('tech') || cat.includes('digital') || cat.includes('ecran')) return '💻';
   if (cat.includes('habitat') || cat.includes('batiment') || cat.includes('logement') || cat.includes('maison')) return '🏠';
   return '🌱';
+}
+
+const emojiTextureCache = new Map<string, THREE.CanvasTexture>();
+
+export function getEmojiTexture(emoji: string): THREE.CanvasTexture {
+  if (emojiTextureCache.has(emoji)) {
+    return emojiTextureCache.get(emoji)!;
+  }
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.font = '84px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, size / 2, size / 2 + 6);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  emojiTextureCache.set(emoji, texture);
+  return texture;
 }
 
 function ThematicSector({ 
@@ -49,6 +77,7 @@ function ThematicSector({
   const sectorColor = colors[index % colors.length];
   const shortName = category.replace(/^Secteur\s+/i, '');
   const emoji = getCategoryEmoji(category);
+  const emojiTexture = useMemo(() => getEmojiTexture(emoji), [emoji]);
 
   const angle = (index / total) * Math.PI * 2;
   const radius = 3.5;
@@ -123,18 +152,17 @@ function ThematicSector({
           />
         </mesh>
 
-        {/* 3. Icône holographique thématique suspendue au cœur de l'orbe */}
+        {/* 3. Icône holographique thématique suspendue au cœur de l'orbe (Rendu couleur identique au Codex) */}
         <Billboard follow={true} raycast={() => null}>
-          <Text
-            position={[0, 0, 0.36]}
-            fontSize={0.24}
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor="#000000"
-          >
-            {emoji}
-          </Text>
+          <mesh position={[0, 0, 0.36]}>
+            <planeGeometry args={[0.34, 0.34]} />
+            <meshBasicMaterial 
+              map={emojiTexture} 
+              transparent={true} 
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
         </Billboard>
 
         {/* 4. Anneau de stase holographique en orbite autour de l'orbe */}
@@ -286,6 +314,7 @@ function MoonChallengeArenaNode({
   const haloRef = useRef<THREE.Mesh>(null);
 
   const moonTexture = useMemo(() => getMoonTexture(), []);
+  const swordsTexture = useMemo(() => getEmojiTexture('⚔️'), []);
   const beaconColor = totalChallenges > 0 ? '#f59e0b' : '#38bdf8';
 
   // Orbite lunaire autour de la Terre (surélevée au-dessus des catégories et plus large)
@@ -381,15 +410,16 @@ function MoonChallengeArenaNode({
           {totalChallenges}
         </Text>
 
-        {/* Épées croisées au centre de la Lune */}
-        <Text
-          position={[0, 0, 0.45]}
-          fontSize={0.20}
-          anchorX="center"
-          anchorY="middle"
-        >
-          ⚔️
-        </Text>
+        {/* Épées croisées au centre de la Lune (Rendu couleur identique au Codex) */}
+        <mesh position={[0, 0, 0.45]}>
+          <planeGeometry args={[0.26, 0.26]} />
+          <meshBasicMaterial 
+            map={swordsTexture} 
+            transparent={true} 
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
 
         {/* Le mot "Défis" sous les épées (Rapproché au-dessous des épées) */}
         <Text
@@ -455,6 +485,8 @@ function AnimatedAvatar({
   onSelectMissionsWeek,
   isOnline, 
   hasUnread,
+  isStealthMode,
+  onToggleStealth,
   challengeCount,
   missionsWeekCount,
   showHealth,
@@ -469,6 +501,8 @@ function AnimatedAvatar({
   onSelectMissionsWeek?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  isStealthMode?: boolean;
+  onToggleStealth?: () => void;
   challengeCount?: number;
   missionsWeekCount?: number;
   showHealth?: boolean;
@@ -496,6 +530,8 @@ function AnimatedAvatar({
         onSelectMissionsWeek={onSelectMissionsWeek}
         isOnline={isOnline}
         hasUnread={hasUnread}
+        isStealthMode={isStealthMode}
+        onToggleStealth={onToggleStealth}
         challengeCount={challengeCount}
         missionsWeekCount={missionsWeekCount}
         showHealth={showHealth}
@@ -521,6 +557,8 @@ export default function Portal2026({
   dashboardStatus,
   challenges = [],
   missionsWeekCount = 0,
+  isStealthMode = false,
+  onToggleStealth,
   onCloseLeaderboard: _onCloseLeaderboard,
 }: { 
   categories?: string[];
@@ -537,6 +575,8 @@ export default function Portal2026({
   dashboardStatus?: any;
   challenges?: any[];
   missionsWeekCount?: number;
+  isStealthMode?: boolean;
+  onToggleStealth?: () => void;
   onCloseLeaderboard?: () => void;
 }) {
   const portalRef = useRef<THREE.Mesh>(null);
@@ -824,6 +864,8 @@ export default function Portal2026({
               onSelectMissionsWeek={onSelectMissionsWeek}
               isOnline={isOnline}
               hasUnread={hasUnread}
+              isStealthMode={isMe ? isStealthMode : false}
+              onToggleStealth={isMe ? onToggleStealth : undefined}
               challengeCount={pChallengeCount}
               missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
               showHealth={view === 'codex'}

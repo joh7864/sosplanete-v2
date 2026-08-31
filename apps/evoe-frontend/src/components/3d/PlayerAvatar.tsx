@@ -112,6 +112,36 @@ const greenDotTexture = (() => {
   return tex;
 })();
 
+const blueDotTexture = (() => {
+  const size = 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  
+  const r = 9;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(5, 8, 16, 0.94)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+})();
+
 const envelopeTexture = (() => {
   const size = 64;
   const canvas = document.createElement('canvas');
@@ -278,6 +308,8 @@ interface PlayerAvatarProps {
   onSelectMissionsWeek?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  isStealthMode?: boolean;
+  onToggleStealth?: () => void;
   challengeCount?: number;
   missionsWeekCount?: number;
   showHealth?: boolean;
@@ -294,6 +326,8 @@ export function PlayerAvatar({
   onSelectMissionsWeek,
   isOnline = false,
   hasUnread = false,
+  isStealthMode = false,
+  onToggleStealth,
   challengeCount = 0,
   missionsWeekCount = 0,
   showHealth = true,
@@ -302,6 +336,7 @@ export function PlayerAvatar({
 }: PlayerAvatarProps) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
+  const isSelfStealth = isMe && isStealthMode;
   const initial = (player.pseudo || '?')[0].toUpperCase();
 
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
@@ -429,9 +464,9 @@ export function PlayerAvatar({
           <planeGeometry args={[haloScale, haloScale]} />
           <meshBasicMaterial 
             map={haloTexture}
-            color={color} 
+            color={isSelfStealth ? '#38bdf8' : color} 
             transparent={true} 
-            opacity={isMe ? 0.9 : 0.6} 
+            opacity={isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6)} 
             depthWrite={false} 
           />
         </mesh>
@@ -443,6 +478,7 @@ export function PlayerAvatar({
               key={texture.uuid}
               map={texture} 
               transparent={true}
+              opacity={isSelfStealth ? 0.55 : 1}
               depthWrite={false}
             />
           </mesh>
@@ -454,17 +490,40 @@ export function PlayerAvatar({
             anchorX="center"
             anchorY="middle"
             material-depthWrite={false}
+            material-transparent={true}
+            material-opacity={isSelfStealth ? 0.55 : 1}
             frustumCulled={false}
           >
             {initial}
           </Text>
         )}
 
-        {isOnline && (
-          <mesh position={[avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.01]}>
+        {/* Pastille de présence : Verte si connecté normal, Bleue (#38bdf8) si en mode furtif pour le joueur lui-même */}
+        {((isOnline && !isSelfStealth) || isSelfStealth) && (
+          <mesh 
+            position={[avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.01]}
+            onClick={(e) => {
+              if (isMe && onToggleStealth) {
+                e.stopPropagation();
+                onToggleStealth();
+              }
+            }}
+            onPointerOver={(e) => {
+              if (isMe && onToggleStealth) {
+                e.stopPropagation();
+                document.body.style.cursor = 'pointer';
+              }
+            }}
+            onPointerOut={(e) => {
+              if (isMe && onToggleStealth) {
+                e.stopPropagation();
+                document.body.style.cursor = 'auto';
+              }
+            }}
+          >
             <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
             <meshBasicMaterial 
-              map={greenDotTexture}
+              map={isSelfStealth ? blueDotTexture : greenDotTexture}
               transparent={true}
               depthWrite={false}
             />

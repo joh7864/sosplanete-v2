@@ -26,13 +26,17 @@ interface AgentProfileModalProps {
   onClose: () => void;
   isOwner: boolean;
   refreshData: () => void;
+  isStealthMode?: boolean;
+  onToggleStealth?: () => void;
 }
 
 export function AgentProfileModal({
   profileId,
   onClose,
   isOwner,
-  refreshData
+  refreshData,
+  isStealthMode = false,
+  onToggleStealth
 }: AgentProfileModalProps) {
   const { refreshContext } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
@@ -205,16 +209,55 @@ export function AgentProfileModal({
           {/* Section Identité & Vitalité */}
           <div className="agent-profile-sidebar">
             <div className="agent-profile-identity-header">
-              <div className="agent-profile-avatar-wrapper" style={{ borderColor: teamColor }}>
+              <div 
+                className="agent-profile-avatar-wrapper" 
+                style={{ 
+                  borderColor: isOwner && isStealthMode ? '#38bdf8' : teamColor,
+                  position: 'relative'
+                }}
+              >
                 <img 
                   src={renderAvatar(currentAvatar, currentGender, currentPseudo)} 
                   alt="" 
                   className="agent-profile-avatar" 
+                  style={{
+                    opacity: isOwner && isStealthMode ? 0.6 : 1,
+                    transition: 'opacity 0.3s ease'
+                  }}
                 />
+                
+                {/* Pastille de statut de connexion interactive pour le propriétaire (Bleue si furtif, Verte si normal) */}
+                {isOwner && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleStealth?.();
+                    }}
+                    title={isStealthMode ? "Mode Furtif actif (cliquer pour redevenir visible)" : "En Ligne (cliquer pour passer en mode furtif)"}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      background: isStealthMode ? '#38bdf8' : '#00ffcc',
+                      boxShadow: isStealthMode ? '0 0 10px #38bdf8, inset 0 0 4px rgba(255,255,255,0.8)' : '0 0 10px #00ffcc, inset 0 0 4px rgba(255,255,255,0.8)',
+                      border: '2.5px solid rgba(10, 16, 32, 0.95)',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      zIndex: 4
+                    }}
+                  />
+                )}
+
                 {isOwner && (
                   <button 
                     className="agent-profile-avatar-edit-btn" 
-                    onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAvatarPicker(!showAvatarPicker);
+                    }}
                     title="Changer d'avatar"
                   >
                     <Camera size={14} />

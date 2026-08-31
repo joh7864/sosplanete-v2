@@ -11,6 +11,8 @@ import { ImpactService } from '../impact/impact.service';
 import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
 import { TrackingService } from '../tracking/tracking.service';
 import { EcoBarRaceService } from '../stimulation/eco-bar-race.service';
+import { WhatsAppService } from '../stimulation/whatsapp.service';
+import { ChatGateway } from '../stimulation/chat.gateway';
 
 const isValidImageFilename = (s: string | null | undefined): boolean => {
   if (!s) return false;
@@ -39,6 +41,8 @@ export class LegacyApiService {
     private animalUnlockService: AnimalUnlockService,
     private trackingService: TrackingService,
     private ecoBarRaceService: EcoBarRaceService,
+    private whatsAppService?: WhatsAppService,
+    private chatGateway?: ChatGateway,
   ) {}
 
   async checkAuthChild(pseudo: string, pass: string) {
@@ -317,7 +321,7 @@ export class LegacyApiService {
 
     const child = await this.prisma.child.findUnique({
       where: { id: parseInt(childId) },
-      include: { group: { include: { team: true } } },
+      include: { group: { include: { team: { include: { instanceYear: true } } } } },
     });
     if (!child || child.group.team.instanceYearId !== period.instanceYearId) {
       throw new UnauthorizedException(
@@ -328,6 +332,9 @@ export class LegacyApiService {
     const co2 = action.specificCo2 ?? action.actionRef.defaultCo2 ?? 0;
     const water = action.specificWater ?? action.actionRef.defaultWater ?? 0;
     const waste = action.specificWaste ?? action.actionRef.defaultWaste ?? 0;
+
+    // Récupérer le Top 3 avant l'action pour détecter l'entrée sur le podium
+    const topBefore = await this.getTop3Players(period.instanceYearId);
 
     const saved = await this.prisma.actionDone.create({
       data: {
@@ -340,7 +347,233 @@ export class LegacyApiService {
       },
     });
 
+    // 1. Résolution automatique des défis actifs pour cette mission
+    try {
+      const matchingChallenges = await this.prisma.evoeChallenge.findMany({
+        where: {
+          periodId: period.id,
+          localActionId: action.id,
+          targetTeamId: child.group.teamId,
+          status: { in: ['ACCEPTED', 'PENDING'] },
+        },
+        include: {
+          challengerTeam: true,
+          targetTeam: true,
+        },
+      });
+
+      for (const ch of matchingChallenges) {
+        await this.prisma.evoeChallenge.update({
+          where: { id: ch.id },
+          data: { status: 'SUCCESS' },
+        });
+        if (this.chatGateway) {
+          this.chatGateway.sendSystemAlert(
+            `⚡ DÉFI REMPORTÉ ! L'équipe "${ch.targetTeam.name}" a accompli sa mission et triomphe du défi de l'équipe "${ch.challengerTeam.name}" !`,
+          );
+        }
+        if (this.whatsAppService) {
+          await this.whatsAppService.sendChallengeWonNotification(
+            ch.targetTeam.name,
+            ch.challengerTeam.name,
+            action.label,
+            false,
+            child.group.team.instanceYear.schoolYear,
+          );
+        }
+      }
+    } catch (e: any) {
+      this.logger.error('Erreur lors de la résolution de défi post-action :', e);
+    }
+
+    // 2. Vérifier l'évolution technologique du vaisseau (palier propulsion)
+    try {
+      await this.checkSpaceshipUpgrade(
+        child.group.teamId,
+        period.instanceYearId,
+        period.id,
+        child.group.team.instanceYear.schoolYear,
+      );
+    } catch (e: any) {
+      this.logger.error('Erreur lors de la vérification de niveau de vaisseau :', e);
+    }
+
+    // 3. Vérifier l'entrée ou la progression sur le podium (Top 3)
+    try {
+      const topAfter = await this.getTop3Players(period.instanceYearId);
+      const playerInTopAfter = topAfter.find((p) => p.childId === child.id);
+      if (playerInTopAfter) {
+        const playerInTopBefore = topBefore.find((p) => p.childId === child.id);
+        if (!playerInTopBefore || playerInTopAfter.rank < playerInTopBefore.rank) {
+          if (this.whatsAppService) {
+            await this.whatsAppService.sendPodiumArrivalNotification(
+              child.pseudo,
+              child.group.team.name,
+              playerInTopAfter.rank,
+              playerInTopAfter.score,
+              child.group.team.instanceYear.schoolYear,
+            );
+          }
+        }
+      }
+    } catch (e: any) {
+      this.logger.error('Erreur lors de la vérification du podium :', e);
+    }
+
     return { success: true, message: 'Action enregistrée', actionId: saved.id };
+  }
+
+  private async getTop3Players(instanceYearId: number) {
+    try {
+      const teams = await this.prisma.team.findMany({
+        where: { instanceYearId },
+        include: {
+          groups: {
+            include: {
+              children: true,
+            },
+          },
+        },
+      });
+
+      const childImpacts = await this.prisma.actionDone.groupBy({
+        by: ['childId'],
+        _count: { id: true },
+        _sum: { savedCo2: true },
+        where: {
+          period: { instanceYearId },
+        },
+      });
+
+      const impactMap = new Map<number, { count: number; co2: number }>();
+      childImpacts.forEach((ci) => {
+        impactMap.set(ci.childId, {
+          count: ci._count.id || 0,
+          co2: ci._sum.savedCo2 || 0,
+        });
+      });
+
+      const list: Array<{ childId: number; pseudo: string; teamName: string; score: number; count: number }> = [];
+      teams.forEach((t) => {
+        t.groups.forEach((g) => {
+          g.children.forEach((c) => {
+            const impact = impactMap.get(c.id) || { count: 0, co2: 0 };
+            const score = impact.count * 10 + impact.co2;
+            list.push({
+              childId: c.id,
+              pseudo: c.pseudo,
+              teamName: t.name,
+              score,
+              count: impact.count,
+            });
+          });
+        });
+      });
+
+      list.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.count !== a.count) return b.count - a.count;
+        return a.pseudo.localeCompare(b.pseudo);
+      });
+
+      return list.slice(0, 3).map((item, idx) => ({
+        ...item,
+        rank: idx + 1,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async checkSpaceshipUpgrade(
+    teamId: number,
+    instanceYearId: number,
+    periodId: number,
+    schoolYear: string,
+  ) {
+    const team = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      include: {
+        groups: { include: { children: true } },
+        instanceYear: true,
+        evoeTechnology: true,
+      },
+    });
+    if (!team) return;
+
+    const totalChildren = team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
+    const gameConfig = await this.prisma.gameConfig.findFirst({
+      where: { instanceId: team.instanceYear.instanceId, schoolYear },
+    });
+
+    const actionsCountTarget = gameConfig?.avgActionsPerChildPerPeriod || 8;
+    const refCo2Target = 5.0 * actionsCountTarget; // 5 kg par action
+    const refWaterTarget = 50.0 * actionsCountTarget; // 50 L par action
+    const refWasteTarget = 2.0 * actionsCountTarget; // 2 kg par action
+
+    const teamImpact = await this.prisma.actionDone.aggregate({
+      _sum: { savedCo2: true, savedWater: true, savedWaste: true },
+      where: {
+        periodId,
+        child: { group: { teamId: team.id } },
+      },
+    });
+
+    const teamCo2 = teamImpact._sum.savedCo2 || 0;
+    const teamWater = teamImpact._sum.savedWater || 0;
+    const teamWaste = teamImpact._sum.savedWaste || 0;
+
+    const avgCo2ChildPeriod = teamCo2 / totalChildren;
+    const avgWaterChildPeriod = teamWater / totalChildren;
+    const avgWasteChildPeriod = teamWaste / totalChildren;
+
+    const rCo2 = refCo2Target > 0 ? Math.min(1, avgCo2ChildPeriod / refCo2Target) : 0;
+    const rWater = refWaterTarget > 0 ? Math.min(1, avgWaterChildPeriod / refWaterTarget) : 0;
+    const rWaste = refWasteTarget > 0 ? Math.min(1, avgWasteChildPeriod / refWasteTarget) : 0;
+
+    const position = Number(((rCo2 * 0.6 + rWater * 0.2 + rWaste * 0.2) * 100).toFixed(1));
+
+    const PROPULSION_THRESHOLDS = [
+      { level: 1, percentRequired: 0, name: 'Friction Thermique' },
+      { level: 2, percentRequired: 25, name: 'Voiles Photovoltaïques' },
+      { level: 3, percentRequired: 45, name: 'Fusion Magnétique' },
+      { level: 4, percentRequired: 65, name: 'Résonance Quantique' },
+      { level: 5, percentRequired: 85, name: 'Singularité Protonique' },
+    ];
+
+    let calculatedLevel = 1;
+    let propTech = PROPULSION_THRESHOLDS[0];
+    for (const threshold of PROPULSION_THRESHOLDS) {
+      if (position >= threshold.percentRequired) {
+        calculatedLevel = threshold.level;
+        propTech = threshold;
+      }
+    }
+
+    const existingTech = team.evoeTechnology;
+    const currentMaxLevel = existingTech?.maxLevel || 1;
+
+    if (calculatedLevel > currentMaxLevel) {
+      await this.prisma.evoeTeamTechnology.upsert({
+        where: { teamId: team.id },
+        update: { maxLevel: calculatedLevel },
+        create: { teamId: team.id, maxLevel: calculatedLevel },
+      });
+
+      if (this.chatGateway) {
+        this.chatGateway.sendSystemAlert(
+          `🚀 PALIER TECHNOLOGIQUE ! Le vaisseau de l'équipe "${team.name}" passe au Niveau ${calculatedLevel} (${propTech.name}) !`,
+        );
+      }
+      if (this.whatsAppService) {
+        await this.whatsAppService.sendPropulsionLevelUpNotification(
+          team.name,
+          calculatedLevel,
+          propTech.name,
+          schoolYear,
+        );
+      }
+    }
   }
 
   async deleteActionDone(actionId: string) {

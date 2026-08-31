@@ -56,6 +56,27 @@ export function useEvoeData() {
     localStorage.getItem('evoe_allow_portrait') === 'true'
   );
 
+  // Mode Furtif (Invisible)
+  const [isStealthMode, setIsStealthMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('evoe_stealth_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleStealthMode = (customValue?: boolean) => {
+    setIsStealthMode(prev => {
+      const next = typeof customValue === 'boolean' ? customValue : !prev;
+      try {
+        localStorage.setItem('evoe_stealth_mode', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   // States de chat et statut de connexion
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [unreadChat, setUnreadChat] = useState<{
@@ -246,6 +267,7 @@ export function useEvoeData() {
     showLeaderboardModal, setShowLeaderboardModal,
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
+    isStealthMode, setIsStealthMode, toggleStealthMode,
     onlineUsers, setOnlineUsers,
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,

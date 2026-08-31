@@ -13,13 +13,15 @@ interface UseChatSocketProps {
   activeTab: string;
   teams: any[];
   onOnlineUsersChange?: (users: Set<string>) => void;
+  isStealthMode?: boolean;
 }
 
 export function useChatSocket({
   isOpen,
   activeTab,
   teams,
-  onOnlineUsersChange
+  onOnlineUsersChange,
+  isStealthMode
 }: UseChatSocketProps) {
   const { childInfos, players, instanceId } = useAuth();
   
@@ -38,6 +40,12 @@ export function useChatSocket({
   const myPseudo = childInfos?.pseudo || '';
   const myPseudoRef = useRef(myPseudo);
   const myTeamNameRef = useRef('');
+
+  useEffect(() => {
+    if (socket && typeof isStealthMode === 'boolean') {
+      socket.emit('setStealthMode', { isStealth: isStealthMode });
+    }
+  }, [socket, isStealthMode]);
 
   useEffect(() => {
     myPseudoRef.current = myPseudo;
@@ -65,9 +73,10 @@ export function useChatSocket({
     if (!savedAuth) return;
 
     const socketUrl = getSocketUrl();
+    const isStealthSaved = localStorage.getItem('evoe_stealth_mode') === 'true';
     const socketInstance = io(`${socketUrl}/chat`, {
-      auth: { token: savedAuth },
-      query: { instanceId: instanceId || '' }
+      auth: { token: savedAuth, isStealth: isStealthSaved },
+      query: { instanceId: instanceId || '', isStealth: String(isStealthSaved) }
     });
 
     socketInstance.on('connect', () => {
@@ -230,8 +239,15 @@ export function useChatSocket({
     };
   }, [savedAuth, onOnlineUsersChange, instanceId]);
 
+  const emitStealthMode = (isStealth: boolean) => {
+    if (socket) {
+      socket.emit('setStealthMode', { isStealth });
+    }
+  };
+
   return {
     socket,
+    emitStealthMode,
     messages,
     setMessages,
     errorMsg,
