@@ -4,6 +4,15 @@ import { Terminal, MessageSquare, Edit2, Trash2, Send } from 'lucide-react';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
+export const resolveImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  const root = (import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/').replace(/\/static\/?$/, '');
+  return `${root}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 interface ChatMessageItemProps {
   msg: ChatMessage;
   msgReplies: ChatMessage[];
@@ -36,6 +45,7 @@ interface ChatMessageItemProps {
   onAddReaction: (messageId: string, emoji: string) => void;
   onEditMessage: (messageId: string, text: string) => void;
   onDeleteMessage: (messageId: string) => void;
+  onOpenImageLightbox?: (url: string) => void;
 }
 
 export function ChatMessageItem({
@@ -65,7 +75,8 @@ export function ChatMessageItem({
   onSendReply,
   onAddReaction,
   onEditMessage,
-  onDeleteMessage
+  onDeleteMessage,
+  onOpenImageLightbox
 }: ChatMessageItemProps) {
 
   const getRoleBadgeColor = (m: ChatMessage) => {
@@ -361,6 +372,43 @@ export function ChatMessageItem({
             </div>
           )}
 
+          {/* Image attachée au message */}
+          {msg.imageUrl && (
+            <div style={{ marginTop: '6px', maxWidth: '100%' }}>
+              <div
+                onClick={() => {
+                  const fullUrl = resolveImageUrl(msg.imageUrl);
+                  if (fullUrl) onOpenImageLightbox?.(fullUrl);
+                }}
+                style={{
+                  display: 'inline-block',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(0, 255, 204, 0.25)',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                  cursor: 'pointer',
+                  background: 'rgba(0,0,0,0.3)',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  maxWidth: '100%'
+                }}
+                title="Cliquer pour agrandir l'image"
+              >
+                <img
+                  src={resolveImageUrl(msg.imageUrl) || ''}
+                  alt="Pièce jointe Comm-Link"
+                  style={{
+                    display: 'block',
+                    maxWidth: '100%',
+                    maxHeight: '220px',
+                    borderRadius: '7px',
+                    objectFit: 'contain'
+                  }}
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Réactions */}
           {msg.reactions && msg.reactions.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
@@ -484,9 +532,7 @@ export function ChatMessageItem({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm("Voulez-vous vraiment supprimer ce message ?")) {
-                      onDeleteMessage(msg.id);
-                    }
+                    onDeleteMessage(msg.id);
                   }}
                   style={{ background: 'transparent', border: 'none', color: '#ff3b3b', cursor: 'pointer', padding: '2px 6px' }}
                   title="Supprimer le message"
@@ -625,6 +671,41 @@ export function ChatMessageItem({
                       {formatMentions(decodeHtmlEntities(reply.content))}
                     </div>
                   )}
+
+                  {/* Image attachée à la réponse */}
+                  {reply.imageUrl && (
+                    <div style={{ marginTop: '4px', maxWidth: '100%' }}>
+                      <div
+                        onClick={() => {
+                          const fullUrl = resolveImageUrl(reply.imageUrl);
+                          if (fullUrl) onOpenImageLightbox?.(fullUrl);
+                        }}
+                        style={{
+                          display: 'inline-block',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(0, 255, 204, 0.25)',
+                          cursor: 'pointer',
+                          background: 'rgba(0,0,0,0.3)',
+                          maxWidth: '100%'
+                        }}
+                        title="Cliquer pour agrandir l'image"
+                      >
+                        <img
+                          src={resolveImageUrl(reply.imageUrl) || ''}
+                          alt="Pièce jointe Comm-Link"
+                          style={{
+                            display: 'block',
+                            maxWidth: '100%',
+                            maxHeight: '160px',
+                            borderRadius: '5px',
+                            objectFit: 'contain'
+                          }}
+                          loading="lazy"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bouton de suppression de réponse pour l'auteur ou l'admin */}
@@ -632,9 +713,7 @@ export function ChatMessageItem({
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm("Voulez-vous vraiment supprimer cette réponse ?")) {
-                        onDeleteMessage(reply.id);
-                      }
+                      onDeleteMessage(reply.id);
                     }}
                     style={{
                       background: 'transparent',

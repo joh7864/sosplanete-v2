@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Shield, AlertTriangle, Send, X, Terminal, Radio, Info, Maximize2, Minimize2, Menu, Mail, ChevronDown, ChevronRight } from 'lucide-react';
+import { MessageSquare, Shield, AlertTriangle, Send, X, Terminal, Radio, Info, Maximize2, Minimize2, Menu, Mail, ChevronDown, ChevronRight, Image as ImageIcon, ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { ChatMessageItem } from './chat/ChatMessageItem';
+import { evoeClient } from '../lib/api';
 
 
 interface ChatPanelProps {
@@ -130,6 +131,15 @@ export default function ChatPanel({
   const [suggestionTriggerIndex, setSuggestionTriggerIndex] = useState(-1);
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(0);
 
+  // States pour pièces jointes images & Lightbox
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [pendingImageName, setPendingImageName] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -206,9 +216,80 @@ export default function ChatPanel({
     }
   }, [messages, isOpen, activeTab]);
 
+  const handleUploadFile = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg("Seules les images (PNG, JPG, GIF, WEBP) sont acceptées.");
+      setTimeout(() => setErrorMsg(null), 4000);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg("Image trop volumineuse (maximum 5 Mo).");
+      setTimeout(() => setErrorMsg(null), 4000);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPendingImagePreview(objectUrl);
+    setPendingImageName(file.name);
+    setIsUploadingImage(true);
+    setErrorMsg(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
+      const resp = await evoeClient.post(`${BASE_API_URL}/evoe/chat/upload-image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setPendingImageUrl(resp.data.imageUrl);
+    } catch (err: any) {
+      console.error("Erreur lors de l'upload de l'image chat:", err);
+      setErrorMsg(err.response?.data?.message || "Échec du téléversement de l'image.");
+      setPendingImagePreview(null);
+      setPendingImageName(null);
+      setPendingImageUrl(null);
+      setTimeout(() => setErrorMsg(null), 4000);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleUploadFile(file);
+    }
+    e.target.value = '';
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleUploadFile(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const handleCancelPendingImage = () => {
+    setPendingImagePreview(null);
+    setPendingImageUrl(null);
+    setPendingImageName(null);
+    setIsUploadingImage(false);
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!socket || !inputText.trim()) return;
+    if (!socket) return;
+    if (!inputText.trim() && !pendingImageUrl) return;
+    if (isUploadingImage) return;
 
     // Détecter si le message commence par une commande de type /destinataire
     let shouldSend = true;
@@ -230,25 +311,26 @@ export default function ChatPanel({
           }
         }
         
-        // S'il n'y a pas de message après la commande, on change juste de salon sans émettre au serveur
-        if (parts.length === 1) {
+        // S'il n'y a pas de message après la commande et pas d'image, on change juste de salon sans émettre au serveur
+        if (parts.length === 1 && !pendingImageUrl) {
           shouldSend = false;
         }
       }
     }
 
     if (shouldSend) {
+      const payload = { text: inputText, imageUrl: pendingImageUrl };
       if (activeTab === 'global' || inputText.startsWith('/')) {
         // Si l'utilisateur commence par un slash, on émet tel quel (le serveur gère le parsing)
-        socket.emit('sendGlobal', { text: inputText });
+        socket.emit('sendGlobal', payload);
       } else if (activeTab === 'team') {
-        socket.emit('sendTeam', { text: inputText });
+        socket.emit('sendTeam', payload);
       } else if (activeTab.startsWith('mp:')) {
         const target = activeTab.split(':')[1];
-        socket.emit('sendGlobal', { text: `/${target} ${inputText}` });
+        socket.emit('sendGlobal', { text: `/${target} ${inputText}`, imageUrl: pendingImageUrl });
       } else if (activeTab.startsWith('team:')) {
         const target = activeTab.split(':')[1];
-        socket.emit('sendGlobal', { text: `/${target} ${inputText}` });
+        socket.emit('sendGlobal', { text: `/${target} ${inputText}`, imageUrl: pendingImageUrl });
       } else {
         setErrorMsg("Impossible d'émettre sur le canal système.");
         setTimeout(() => setErrorMsg(null), 3000);
@@ -257,6 +339,9 @@ export default function ChatPanel({
     }
 
     setInputText('');
+    setPendingImageUrl(null);
+    setPendingImagePreview(null);
+    setPendingImageName(null);
     setSuggestions([]);
     setSuggestionType(null);
     inputRef.current?.focus();
@@ -787,8 +872,9 @@ export default function ChatPanel({
                     socket?.emit('editMessage', { messageId, text });
                   }}
                   onDeleteMessage={(messageId) => {
-                    socket?.emit('deleteMessage', { messageId });
+                    setDeleteConfirmId(messageId);
                   }}
+                  onOpenImageLightbox={(url) => setLightboxImageUrl(url)}
                 />
               );
             })
@@ -845,6 +931,78 @@ export default function ChatPanel({
           </div>
         )}
 
+        {/* Bandeau d'aperçu d'image en attente */}
+        {pendingImagePreview && (
+          <div
+            style={{
+              padding: '8px 16px',
+              background: 'rgba(5, 12, 24, 0.95)',
+              borderTop: '1px solid rgba(0, 255, 204, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div style={{ position: 'relative', width: '40px', height: '40px', flexShrink: 0 }}>
+                <img
+                  src={pendingImagePreview}
+                  alt="Aperçu"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    border: '1px solid #00ffcc'
+                  }}
+                />
+                {isUploadingImage && (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.65)',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Loader2 size={16} className="spin-loading" style={{ color: '#00ffcc' }} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={{ fontSize: '0.75rem', color: '#fff', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {pendingImageName || 'Image jointe'}
+                </span>
+                <span style={{ fontSize: '0.65rem', color: isUploadingImage ? '#00ffcc' : 'rgba(255,255,255,0.6)' }}>
+                  {isUploadingImage ? 'Téléversement en cours...' : 'Prête à transmettre'}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancelPendingImage}
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Retirer l'image"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Temporary Error Notice */}
         {errorMsg && (
           <div
@@ -873,9 +1031,40 @@ export default function ChatPanel({
               borderTop: '1px solid rgba(0, 255, 204, 0.15)',
               background: 'rgba(0,0,0,0.4)',
               display: 'flex',
-              gap: '10px'
+              alignItems: 'center',
+              gap: '8px'
             }}
           >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
+            />
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(0,255,204,0.2)',
+                borderRadius: '6px',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#00ffcc',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flexShrink: 0
+              }}
+              title="Joindre une image (ou coller avec Ctrl+V)"
+            >
+              <ImageIcon size={16} />
+            </button>
+
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
                 ref={inputRef}
@@ -883,6 +1072,7 @@ export default function ChatPanel({
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
+                onPaste={handlePaste}
                 placeholder={`Transmettre sur [${activeTab.toUpperCase()}]...`}
                 maxLength={500}
                 style={{
@@ -927,9 +1117,9 @@ export default function ChatPanel({
             </div>
             <button
               type="submit"
-              disabled={!inputText.trim()}
+              disabled={(!inputText.trim() && !pendingImageUrl) || isUploadingImage}
               style={{
-                background: inputText.trim() 
+                background: (inputText.trim() || pendingImageUrl) && !isUploadingImage
                   ? (activeTab === 'team' ? myTeamColor : '#00ffcc') 
                   : 'rgba(255,255,255,0.05)',
                 border: 'none',
@@ -939,9 +1129,10 @@ export default function ChatPanel({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: inputText.trim() ? '#000' : 'rgba(255,255,255,0.2)',
-                cursor: inputText.trim() ? 'pointer' : 'not-allowed',
-                transition: 'all 0.2s'
+                color: (inputText.trim() || pendingImageUrl) && !isUploadingImage ? '#000' : 'rgba(255,255,255,0.2)',
+                cursor: (inputText.trim() || pendingImageUrl) && !isUploadingImage ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s',
+                flexShrink: 0
               }}
             >
               <Send size={15} />
@@ -962,6 +1153,257 @@ export default function ChatPanel({
           </div>
         )}
       </div>
+
+      {/* Image Lightbox HD Modal */}
+      {lightboxImageUrl && (
+        <div
+          onClick={() => setLightboxImageUrl(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: '92vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+          >
+            <div style={{ position: 'absolute', top: '-44px', right: '0px', display: 'flex', gap: '10px' }}>
+              <a
+                href={lightboxImageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#00ffcc',
+                  background: 'rgba(10, 20, 35, 0.85)',
+                  border: '1px solid rgba(0, 255, 204, 0.35)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.75rem',
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+                title="Ouvrir dans un nouvel onglet"
+              >
+                <ExternalLink size={14} />
+                <span>Plein écran</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setLightboxImageUrl(null)}
+                style={{
+                  color: '#fff',
+                  background: 'rgba(10, 20, 35, 0.85)',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+                title="Fermer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <img
+              src={lightboxImageUrl}
+              alt="Visualisation HD"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '82vh',
+                borderRadius: '8px',
+                border: '1.5px solid rgba(0, 255, 204, 0.4)',
+                boxShadow: '0 0 40px rgba(0, 255, 204, 0.25), 0 20px 50px rgba(0,0,0,0.9)',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmation de Suppression de Message Premium */}
+      {deleteConfirmId && (() => {
+        const msgToDelete = messages.find(m => m.id === deleteConfirmId);
+        return (
+          <div
+            onClick={() => setDeleteConfirmId(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              zIndex: 9999999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'linear-gradient(135deg, rgba(22, 12, 18, 0.98) 0%, rgba(12, 16, 28, 0.98) 100%)',
+                border: '1.5px solid rgba(239, 68, 68, 0.45)',
+                boxShadow: '0 0 35px rgba(239, 68, 68, 0.22), 0 25px 60px rgba(0, 0, 0, 0.9)',
+                borderRadius: '16px',
+                padding: '28px 24px 22px 24px',
+                width: '420px',
+                maxWidth: '92vw',
+                color: '#fff',
+                textAlign: 'center',
+                position: 'relative'
+              }}
+            >
+              {/* Icône de Suppression avec halo rougeoyant */}
+              <div
+                style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1.5px solid rgba(239, 68, 68, 0.5)',
+                  boxShadow: '0 0 20px rgba(239, 68, 68, 0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px auto',
+                  color: '#ef4444'
+                }}
+              >
+                <Trash2 size={24} />
+              </div>
+
+              <h3
+                style={{
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  color: '#ef4444',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.8px',
+                  margin: '0 0 8px 0',
+                  textShadow: '0 0 12px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                Supprimer la transmission ?
+              </h3>
+
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: '1.5', margin: '0 0 16px 0' }}>
+                Voulez-vous vraiment effacer ce message ? Cette action est irréversible et sera répercutée pour tous les membres du Comm-Link.
+              </p>
+
+              {/* Aperçu du contenu à supprimer */}
+              {msgToDelete && (
+                <div
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.45)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderLeft: '3px solid #ef4444',
+                    borderRadius: '6px',
+                    padding: '10px 12px',
+                    marginBottom: '20px',
+                    textAlign: 'left',
+                    fontSize: '0.78rem',
+                    color: '#cbd5e1',
+                    maxHeight: '110px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.45)', marginBottom: '4px', fontWeight: 'bold' }}>
+                    @{msgToDelete.sender} • {new Date(msgToDelete.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  {msgToDelete.content && (
+                    <div style={{ fontStyle: 'italic', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                      "{msgToDelete.content.length > 140 ? msgToDelete.content.substring(0, 140) + '...' : msgToDelete.content}"
+                    </div>
+                  )}
+                  {msgToDelete.imageUrl && (
+                    <div style={{ marginTop: msgToDelete.content ? '6px' : '0', display: 'flex', alignItems: 'center', gap: '6px', color: '#00ffcc', fontSize: '0.72rem' }}>
+                      <span>🖼️ Pièce jointe image</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Boutons d'action */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmId(null)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    color: '#e2e8f0',
+                    padding: '10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)')}
+                >
+                  Annuler
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteConfirmId) {
+                      socket?.emit('deleteMessage', { messageId: deleteConfirmId });
+                      setDeleteConfirmId(null);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 18px rgba(239, 68, 68, 0.45)',
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.7)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 0 18px rgba(239, 68, 68, 0.45)')}
+                >
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

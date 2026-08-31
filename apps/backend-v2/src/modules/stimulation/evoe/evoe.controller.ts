@@ -182,6 +182,54 @@ export class EvoeController {
     return { filename: `avatars/${file.filename}` };
   }
 
+  @Post('chat/upload-image')
+  @ApiOperation({ summary: "Upload d'une image pour le chat Comm-Link" })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const basePath =
+            process.env.UPLOADS_DIR ||
+            join(__dirname, '..', '..', '..', '..', '..', '..', 'uploads');
+          const path = join(basePath, 'chat');
+          const fs = require('fs');
+          if (!fs.existsSync(path)) {
+            fs.mkdirSync(path, { recursive: true });
+          }
+          cb(null, path);
+        },
+        filename: (req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        if (allowed.includes(extname(file.originalname).toLowerCase())) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Format de fichier non supporté (PNG, JPG, GIF, WEBP acceptés)'), false);
+        }
+      },
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo max
+    }),
+  )
+  async uploadChatImage(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu');
+    await this.evoeService.verifyAuth(auth, instanceIdStr);
+    return { 
+      imageUrl: `/static/chat/${file.filename}`,
+      filename: file.filename,
+      originalName: file.originalname,
+      size: file.size
+    };
+  }
+
   @Patch('profile')
   @ApiOperation({ summary: "Mise à jour du profil d'un agent temporel" })
   async updateProfile(

@@ -216,7 +216,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendGlobal')
   async handleGlobalMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { text: string; parentId?: string },
+    @MessageBody() body: { text?: string; imageUrl?: string; parentId?: string },
   ) {
     if (!client.data.pseudo) return;
 
@@ -228,13 +228,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Interception des commandes (messages privés / chuchotements)
     if (body.text && body.text.startsWith('/')) {
-      const isCommand = await this.handleChatCommand(client, body.text, body.parentId);
+      const isCommand = await this.handleChatCommand(client, body.text, body.parentId, body.imageUrl);
       if (isCommand) return;
     }
 
     // 2. Assainissement du texte (Sanitization XSS)
-    const sanitizedText = this.sanitize(body.text);
-    if (!sanitizedText || sanitizedText.trim() === '') return;
+    const sanitizedText = this.sanitize(body.text || '');
+    if ((!sanitizedText || sanitizedText.trim() === '') && !body.imageUrl) return;
 
     const messageData = {
       id: Math.random().toString(36).substring(2, 9),
@@ -242,6 +242,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       role: client.data.role,
       teamName: client.data.teamName || null,
       content: sanitizedText,
+      imageUrl: body.imageUrl || null,
       timestamp: new Date(),
       parentId: body.parentId || null,
     };
@@ -259,7 +260,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sendTeam')
   async handleTeamMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() body: { text: string; parentId?: string },
+    @MessageBody() body: { text?: string; imageUrl?: string; parentId?: string },
   ) {
     // Les admins ne peuvent pas envoyer de messages sur le canal équipe car ils n'ont pas d'équipe
     if (client.data.role !== 'CHILD' || !client.data.teamId) {
@@ -275,13 +276,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Interception des commandes (messages privés / chuchotements)
     if (body.text && body.text.startsWith('/')) {
-      const isCommand = await this.handleChatCommand(client, body.text, body.parentId);
+      const isCommand = await this.handleChatCommand(client, body.text, body.parentId, body.imageUrl);
       if (isCommand) return;
     }
 
     // 2. Assainissement du texte (Sanitization XSS)
-    const sanitizedText = this.sanitize(body.text);
-    if (!sanitizedText || sanitizedText.trim() === '') return;
+    const sanitizedText = this.sanitize(body.text || '');
+    if ((!sanitizedText || sanitizedText.trim() === '') && !body.imageUrl) return;
 
     const messageData = {
       id: Math.random().toString(36).substring(2, 9),
@@ -289,6 +290,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       role: client.data.role,
       teamName: client.data.teamName,
       content: sanitizedText,
+      imageUrl: body.imageUrl || null,
       timestamp: new Date(),
       parentId: body.parentId || null,
     };
@@ -315,6 +317,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client: Socket,
     text: string,
     parentId?: string,
+    imageUrl?: string,
   ): Promise<boolean> {
     if (!text.startsWith('/')) {
       return false;
@@ -330,15 +333,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const targetName = match[1];
     const content = match[2]?.trim();
 
-    if (!content) {
-      client.emit('chatError', 'Veuillez saisir un message après le nom du destinataire.');
+    if (!content && !imageUrl) {
+      client.emit('chatError', 'Veuillez saisir un message ou joindre une image.');
       return true;
     }
 
-    const sanitizedContent = this.sanitize(content);
-    if (!sanitizedContent) {
-      return true;
-    }
+    const sanitizedContent = this.sanitize(content || '');
 
     // 1. Chercher si la cible correspond à une équipe (case-insensitive) dans la même instance
     const targetTeam = await this.prisma.team.findFirst({
@@ -366,6 +366,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         teamName: client.data.teamName,
         targetTeamName: targetTeam.name,
         content: sanitizedContent,
+        imageUrl: imageUrl || null,
         isPrivate: true,
         timestamp: new Date(),
         parentId: parentId || null,
@@ -411,6 +412,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         teamName: client.data.teamName || null,
         targetPseudo: targetSocket.data.pseudo,
         content: sanitizedContent,
+        imageUrl: imageUrl || null,
         isPrivate: true,
         timestamp: new Date(),
         parentId: parentId || null,

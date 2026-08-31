@@ -6,6 +6,7 @@ export interface ChatMessage {
   targetTeamName?: string;
   targetPseudo?: string;
   content: string;
+  imageUrl?: string | null;
   isPrivate?: boolean;
   timestamp: string | Date;
   channel?: 'global' | 'team';
