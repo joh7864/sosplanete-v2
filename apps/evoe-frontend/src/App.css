@@ -2106,13 +2106,13 @@ body {
   color: #fff;
   font-family: ui-sans-serif, system-ui, sans-serif;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s ease;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s ease;
 }
 .chat-sidebar-container.open {
   display: flex;
 }
 .chat-sidebar-container.expanded {
-  width: 600px;
+  width: calc(100vw * 2 / 3);
 }
 .chat-drag-handle {
   display: none;
@@ -2128,11 +2128,16 @@ body {
     right: 0;
     height: 75vh;
     width: 100% !important;
+    max-width: 100% !important;
     border-left: none;
     border-top: 1px solid rgba(0, 255, 204, 0.3);
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
     transform: translateY(0);
+  }
+  .chat-sidebar-container.expanded {
+    height: 92vh !important;
+    width: 100% !important;
   }
   .chat-drag-handle {
     display: block;
