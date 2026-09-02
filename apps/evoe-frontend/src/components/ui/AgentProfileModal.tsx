@@ -387,8 +387,10 @@ export function AgentProfileModal({
             {/* Barre de Vitalité */}
             <div className="agent-vitality-container">
               <div className="agent-vitality-label">
-                <span>Vitalité Temporelle</span>
-                <span style={{ color: teamColor }}>{profileData.health} IT</span>
+                <span>Vitalité Période</span>
+                <span style={{ color: teamColor }}>
+                  {profileData.periodMissions?.length ?? 0} action{(profileData.periodMissions?.length ?? 0) > 1 ? 's' : ''} — {profileData.health} IT
+                </span>
               </div>
               <div className="agent-vitality-track">
                 <div 
@@ -529,19 +531,19 @@ export function AgentProfileModal({
                 className={`profile-tab-btn ${activeTab === 'missions' ? 'active' : ''}`}
                 onClick={() => setActiveTab('missions')}
               >
-                Missions Période ({profileData.periodMissions.length})
+                Missions Période ({profileData.periodMissions?.length ?? 0})
               </button>
               <button 
                 className={`profile-tab-btn ${activeTab === 'top5' ? 'active' : ''}`}
                 onClick={() => setActiveTab('top5')}
               >
-                Top 5 Historique
+                Historique Global ({profileData.totalMissionsCount ?? profileData.top5Missions?.length ?? 0})
               </button>
               <button 
                 className={`profile-tab-btn ${activeTab === 'challenges' ? 'active' : ''}`}
                 onClick={() => setActiveTab('challenges')}
               >
-                Défis PvP ({profileData.challenges.length})
+                Défis PvP ({profileData.challenges?.length ?? 0})
               </button>
             </div>
 

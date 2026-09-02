@@ -44,6 +44,7 @@ export function useEvoeData() {
   const [challengeDurationHours, setChallengeDurationHours] = useState<number | ''>(48);
   const [challengeError, setChallengeError] = useState<string | null>(null);
   const [isSubmittingChallenge, setIsSubmittingChallenge] = useState(false);
+  const [showNoPeriodModal, setShowNoPeriodModal] = useState<boolean>(false);
 
   // States pour le modal de confirmation d'annulation
   const [cancelMissionConfirm, setCancelMissionConfirm] = useState<{ actionDoneId: number; label: string } | null>(null);
@@ -158,6 +159,10 @@ export function useEvoeData() {
 
   const handleImpulseMission = async (missionId: number) => {
     if (!childInfos?.id) return;
+    if (childInfos?.isPeriodOpen === false) {
+      setShowNoPeriodModal(true);
+      return;
+    }
     try {
       setLoadingMissionId(missionId);
       setIsGlitching(true);
@@ -166,8 +171,12 @@ export function useEvoeData() {
       await evoeClient.post(`${API_URL}/actiondone/${childInfos.id}`, { id: missionId });
       await refreshContext();
       fetchEvoeData();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur d'impulsion de la mission:", err);
+      const msg = err.response?.data?.message || err.message || '';
+      if (typeof msg === 'string' && msg.toLowerCase().includes('période')) {
+        setShowNoPeriodModal(true);
+      }
     } finally {
       setLoadingMissionId(null);
     }
@@ -189,6 +198,11 @@ export function useEvoeData() {
 
   const handleSendChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (childInfos?.isPeriodOpen === false) {
+      setShowChallengeModal(false);
+      setShowNoPeriodModal(true);
+      return;
+    }
     if (!challengeTargetTeamId || !challengeLocalActionId || !challengePledge.trim()) {
       setChallengeError("Veuillez remplir tous les champs.");
       return;
@@ -211,7 +225,12 @@ export function useEvoeData() {
     } catch (err: any) {
       console.error("Erreur création défi:", err);
       const errMsg = err.response?.data?.message || "Erreur lors de la création du défi.";
-      setChallengeError(errMsg);
+      if (typeof errMsg === 'string' && errMsg.toLowerCase().includes('période')) {
+        setShowChallengeModal(false);
+        setShowNoPeriodModal(true);
+      } else {
+        setChallengeError(errMsg);
+      }
     } finally {
       setIsSubmittingChallenge(false);
     }
@@ -280,6 +299,7 @@ export function useEvoeData() {
     challengeError, setChallengeError,
     isSubmittingChallenge,
     cancelMissionConfirm, setCancelMissionConfirm,
+    showNoPeriodModal, setShowNoPeriodModal,
     showLeaderboardModal, setShowLeaderboardModal,
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,

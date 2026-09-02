@@ -355,15 +355,43 @@ export class EvoeService {
     });
     const gamePeriodsCount = instanceYearObj?.gamePeriodsCount || 40;
 
-    const activePeriod = await this.prisma.period.findFirst({
+    const now = new Date();
+    let activePeriod = await this.prisma.period.findFirst({
       where: {
         instanceYear: {
           instanceId,
           schoolYear,
         },
+        startDate: { lte: now },
+        endDate: { gte: now },
         isOpen: true,
       },
     });
+
+    if (!activePeriod) {
+      activePeriod = await this.prisma.period.findFirst({
+        where: {
+          instanceYear: {
+            instanceId,
+            schoolYear,
+          },
+          isOpen: true,
+        },
+        orderBy: { endDate: 'desc' },
+      });
+    }
+
+    if (!activePeriod) {
+      activePeriod = await this.prisma.period.findFirst({
+        where: {
+          instanceYear: {
+            instanceId,
+            schoolYear,
+          },
+        },
+        orderBy: { endDate: 'desc' },
+      });
+    }
 
     // Charger les constantes annuelles pour le calcul de santé (mêmes références que calculateImpact)
     const year = parseInt(schoolYear.split('-')[0], 10);
@@ -452,16 +480,18 @@ export class EvoeService {
     const childImpacts = await this.prisma.actionDone.groupBy({
       by: ['childId'],
       _count: { id: true },
-      _sum: { savedCo2: true },
+      _sum: { savedCo2: true, savedWater: true, savedWaste: true },
       where: {
         period: { instanceYear: { instanceId, schoolYear } }
       }
     });
-    const childImpactMap = new Map<number, { count: number; co2: number }>();
+    const childImpactMap = new Map<number, { count: number; co2: number; water: number; waste: number }>();
     (childImpacts || []).forEach((ci: any) => {
       childImpactMap.set(ci.childId, {
         count: ci._count?.id ?? (typeof ci._count === 'number' ? ci._count : 0),
         co2: ci._sum?.savedCo2 ?? 0,
+        water: ci._sum?.savedWater ?? 0,
+        waste: ci._sum?.savedWaste ?? 0,
       });
     });
 
@@ -487,11 +517,22 @@ export class EvoeService {
       const co2 = teamImpact._sum?.savedCo2 || 0;
       const water = teamImpact._sum?.savedWater || 0;
       const waste = teamImpact._sum?.savedWaste || 0;
-      const totalPoints = Math.round(co2 + water + waste);
-
-      // 2. Calculer l'avancement (position sur la Timeline de 0 à 100) avec Option C - Target actions
       const teamChildrenCount =
         team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
+
+      const teamActionsCount = (team.groups || []).reduce((acc, g) => {
+        return acc + g.children.reduce((cAcc, c) => cAcc + (childImpactMap.get(c.id)?.count || 0), 0);
+      }, 0);
+
+      const totalPoints = this.calculateNormalizedScore(
+        co2,
+        water,
+        waste,
+        teamActionsCount / teamChildrenCount,
+        moyCo2Monde * 1000 * teamChildrenCount,
+        moyEauMonde * teamChildrenCount,
+        moyDechetsMonde * teamChildrenCount,
+      );
 
       // Moyenne réalisée par enfant et par période (semaine)
       const avgCo2ChildPeriod = co2 / teamChildrenCount / gamePeriodsCount;
@@ -597,7 +638,16 @@ export class EvoeService {
       const teamPlayersHealth = [];
       for (const child of children) {
         const health = healthMap.get(child.id) ?? 0;
-        const impact = childImpactMap.get(child.id) || { count: 0, co2: 0 };
+        const impact = childImpactMap.get(child.id) || { count: 0, co2: 0, water: 0, waste: 0 };
+        const score = this.calculateNormalizedScore(
+          impact.co2,
+          impact.water,
+          impact.waste,
+          impact.count,
+          moyCo2Monde * 1000,
+          moyEauMonde,
+          moyDechetsMonde,
+        );
         const ph = {
           id: child.id,
           childId: child.id,
@@ -610,7 +660,9 @@ export class EvoeService {
           health,
           actionsCount: impact.count,
           co2: impact.co2,
-          score: impact.count * 10 + impact.co2,
+          water: impact.water,
+          waste: impact.waste,
+          score,
         };
         teamPlayersHealth.push(ph);
         allPlayersHealth.push(ph);
@@ -840,9 +892,17 @@ export class EvoeService {
       include: { groups: { include: { children: true } } },
     });
 
-    const activePeriod = await this.prisma.period.findFirst({
-      where: { instanceYearId, isOpen: true },
+    const now = new Date();
+    let activePeriod = await this.prisma.period.findFirst({
+      where: {
+        instanceYearId,
+        startDate: { lte: now },
+        endDate: { gte: now },
+        isOpen: true,
+      },
     });
+
+    const isPeriodOpen = !!activePeriod;
 
     const childrenList: any[] = [];
     teams.forEach((t) => {
@@ -864,19 +924,29 @@ export class EvoeService {
       childrenList,
     );
 
+    const year = parseInt(schoolYear.split('-')[0], 10);
+    const annualData = await this.prisma.annualImpactData.findUnique({
+      where: { year },
+    });
+    const moyCo2Monde = annualData?.moyCo2Monde ?? 4.7;
+    const moyEauMonde = annualData?.moyEauMonde ?? 1385000;
+    const moyDechetsMonde = annualData?.moyDechetsMonde ?? 270;
+
     const childImpacts = await this.prisma.actionDone.groupBy({
       by: ['childId'],
       _count: { id: true },
-      _sum: { savedCo2: true },
+      _sum: { savedCo2: true, savedWater: true, savedWaste: true },
       where: {
         period: { instanceYear: { instanceId, schoolYear } }
       }
     });
-    const childImpactMap = new Map<number, { count: number; co2: number }>();
-    childImpacts.forEach((ci) => {
+    const childImpactMap = new Map<number, { count: number; co2: number; water: number; waste: number }>();
+    childImpacts.forEach((ci: any) => {
       childImpactMap.set(ci.childId, {
-        count: ci._count.id || 0,
-        co2: ci._sum.savedCo2 || 0,
+        count: ci._count?.id ?? (typeof ci._count === 'number' ? ci._count : 0),
+        co2: ci._sum?.savedCo2 ?? 0,
+        water: ci._sum?.savedWater ?? 0,
+        waste: ci._sum?.savedWaste ?? 0,
       });
     });
 
@@ -888,7 +958,16 @@ export class EvoeService {
         teamCount += g.children.length;
         g.children.forEach((c) => {
           const health = healthMap.get(c.id) ?? 0;
-          const impact = childImpactMap.get(c.id) || { count: 0, co2: 0 };
+          const impact = childImpactMap.get(c.id) || { count: 0, co2: 0, water: 0, waste: 0 };
+          const score = this.calculateNormalizedScore(
+            impact.co2,
+            impact.water,
+            impact.waste,
+            impact.count,
+            moyCo2Monde * 1000,
+            moyEauMonde,
+            moyDechetsMonde,
+          );
 
           players.push({
             id: c.id,
@@ -905,7 +984,9 @@ export class EvoeService {
             health,
             actionsCount: impact.count,
             co2: impact.co2,
-            score: impact.count * 10 + impact.co2,
+            water: impact.water,
+            waste: impact.waste,
+            score,
           });
         });
       });
@@ -963,6 +1044,7 @@ export class EvoeService {
         pseudo: child.pseudo,
         hasSeenBriefing: child.hasSeenBriefing,
         hasSeenOnboarding: child.hasSeenOnboarding,
+        isPeriodOpen,
         teamCount,
         schoolYear,
         youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
@@ -1155,24 +1237,20 @@ export class EvoeService {
       throw new BadRequestException("Vous ne pouvez pas défier votre propre équipe.");
     }
     const instanceYearId = child.group.team.instanceYearId;
-    let period: any = null;
-    try {
-      period = await this.legacyApiService.getOpenPeriod(instanceYearId);
-    } catch {
-      period = await this.prisma.period.findFirst({
-        where: { instanceYearId, isOpen: true },
-      });
-      if (!period) {
-        period = await this.prisma.period.findFirst({
-          where: { instanceYearId },
-          orderBy: { startDate: 'desc' },
-        });
-      }
-    }
+    const now = new Date();
+    const activePeriod = await this.prisma.period.findFirst({
+      where: {
+        instanceYearId,
+        isOpen: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+    });
 
-    if (!period) {
-      throw new BadRequestException("Aucune période de jeu n'est disponible pour lancer un défi.");
+    if (!activePeriod) {
+      throw new BadRequestException('Aucune période ouverte, contactez votre administrateur.');
     }
+    const period = activePeriod;
 
     // Vérifier la stabilité de la période précédente pour déterminer le quota
     const previousPeriod = await this.prisma.period.findFirst({
@@ -1383,10 +1461,35 @@ export class EvoeService {
     const whatsappCommunityUrl = systemConfig?.whatsappCommunityUrl || null;
     const whatsappInviteUrl = team.whatsappInviteUrl || whatsappCommunityUrl;
 
-    // 1. Trouver la période active
-    const activePeriod = await this.prisma.period.findFirst({
-      where: { instanceYearId, isOpen: true },
+    // 1. Trouver la période active ou la plus récente
+    const now = new Date();
+    let activePeriod = await this.prisma.period.findFirst({
+      where: {
+        instanceYearId,
+        startDate: { lte: now },
+        endDate: { gte: now },
+        isOpen: true,
+      },
     });
+
+    if (!activePeriod) {
+      activePeriod = await this.prisma.period.findFirst({
+        where: {
+          instanceYearId,
+          isOpen: true,
+        },
+        orderBy: { endDate: 'desc' },
+      });
+    }
+
+    if (!activePeriod) {
+      activePeriod = await this.prisma.period.findFirst({
+        where: {
+          instanceYearId,
+        },
+        orderBy: { endDate: 'desc' },
+      });
+    }
     const activePeriodId = activePeriod ? activePeriod.id : null;
 
     // 2. Calculer le score de santé / stabilité actuel (IT)
@@ -1534,6 +1637,10 @@ export class EvoeService {
       });
     }
 
+    const totalMissionsCount = await this.prisma.actionDone.count({
+      where: { childId: child.id },
+    });
+
     return {
       profile: {
         id: child.id,
@@ -1551,6 +1658,7 @@ export class EvoeService {
       personalMetrics,
       periodMissions,
       top5Missions,
+      totalMissionsCount,
       challenges: mappedChallenges,
     };
   }
@@ -1614,5 +1722,22 @@ export class EvoeService {
       data: { hasSeenOnboarding: true },
     });
     return { success: true };
+  }
+
+  private calculateNormalizedScore(
+    co2Kg: number,
+    waterL: number,
+    wasteKg: number,
+    actionsCount: number,
+    refCo2Kg = 4700,
+    refWaterL = 1385000,
+    refWasteKg = 270,
+  ): number {
+    const pCo2 = refCo2Kg > 0 ? co2Kg / refCo2Kg : 0;
+    const pWater = refWaterL > 0 ? waterL / refWaterL : 0;
+    const pWaste = refWasteKg > 0 ? wasteKg / refWasteKg : 0;
+    const rawImpact = (pCo2 * 0.5 + pWater * 0.2 + pWaste * 0.2) * 1000;
+    const bonusActions = Math.min(100, (actionsCount || 0) * 2);
+    return Math.round(rawImpact + bonusActions);
   }
 }

@@ -870,7 +870,7 @@ export default function Portal2026({
               missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
               showHealth={view === 'codex'}
               showChatIcon={view === 'codex'}
-              rankTag={view === 'leaderboard' ? `#${rankNumber}` : undefined}
+              rankTag={view === 'leaderboard' ? `#${rankNumber} • ${rankMatch?.score ?? player.score ?? 0} IT` : undefined}
             />
           );
         });

@@ -659,34 +659,79 @@ export function PlayerAvatar({
           </group>
         </Billboard>
       ) : (
-        rankTag && (
-          <Billboard follow={true}>
-            <Text
-              position={[0, -(haloScale * 0.5 + 0.08), 0.01]}
-              fontSize={fontSize * 1.1}
-              fontWeight="900"
-              color={color}
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.02}
-              outlineColor="#000000"
-              material-depthWrite={false}
-              frustumCulled={false}
-            >
-              {rankTag}
-            </Text>
-          </Billboard>
-        )
+        rankTag && (() => {
+          const match = rankTag.match(/^(#\d+)\s*(?:[•\/\-]\s*)?(.*)$/);
+          const rankPart = match ? match[1] : rankTag;
+          const scorePart = match && match[2] ? `• ${match[2]}` : '';
+
+          return (
+            <Billboard follow={true}>
+              <group position={[0, -(haloScale * 0.5 + 0.06), 0.01]}>
+                {scorePart ? (
+                  <group>
+                    <Text
+                      position={[-0.015, 0, 0]}
+                      fontSize={fontSize * 0.58}
+                      fontWeight="900"
+                      letterSpacing={0.04}
+                      color={color || '#ffd700'}
+                      anchorX="right"
+                      anchorY="middle"
+                      outlineWidth={0.014}
+                      outlineColor="#050a16"
+                      material-depthWrite={false}
+                      frustumCulled={false}
+                    >
+                      {rankPart}
+                    </Text>
+                    <Text
+                      position={[0.015, 0, 0]}
+                      fontSize={fontSize * 0.48}
+                      fontWeight="400"
+                      letterSpacing={0.02}
+                      color="#94a3b8"
+                      anchorX="left"
+                      anchorY="middle"
+                      outlineWidth={0.01}
+                      outlineColor="#050a16"
+                      material-depthWrite={false}
+                      frustumCulled={false}
+                    >
+                      {scorePart}
+                    </Text>
+                  </group>
+                ) : (
+                  <Text
+                    fontSize={fontSize * 0.58}
+                    fontWeight="900"
+                    letterSpacing={0.04}
+                    color={color || '#ffd700'}
+                    anchorX="center"
+                    anchorY="middle"
+                    outlineWidth={0.014}
+                    outlineColor="#050a16"
+                    material-depthWrite={false}
+                    frustumCulled={false}
+                  >
+                    {rankTag}
+                  </Text>
+                )}
+              </group>
+            </Billboard>
+          );
+        })()
       )}
 
       <Billboard follow={true}>
         <Text
-          position={[0, -(haloScale * 0.5 + 0.2), 0]}
-          fontSize={fontSize}
+          position={[0, -(haloScale * 0.5 + (rankTag && !showHealth ? 0.17 : 0.20)), 0]}
+          fontSize={fontSize * 1.05}
+          fontWeight="800"
+          letterSpacing={0.03}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.02}
+          outlineWidth={0.025}
           outlineColor="#000000"
           material-depthWrite={false}
           frustumCulled={false}

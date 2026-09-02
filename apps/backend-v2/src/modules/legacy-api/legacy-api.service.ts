@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
@@ -212,15 +213,15 @@ export class LegacyApiService {
     const now = new Date();
 
     const openPeriod = await this.prisma.period.findFirst({
-      where: { instanceYearId, isOpen: true },
+      where: {
+        instanceYearId,
+        isOpen: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
     });
 
-    // Cas nominal : la période actuellement ouverte englobe la date
-    if (
-      openPeriod &&
-      openPeriod.startDate <= now &&
-      openPeriod.endDate >= now
-    ) {
+    if (openPeriod) {
       return openPeriod;
     }
 
@@ -245,26 +246,9 @@ export class LegacyApiService {
       return { ...correctPeriod, isOpen: true };
     }
 
-    // Si une période est déjà marquée isOpen (ex: transition inter-semaines ou après fin de période), la conserver
-    if (openPeriod) {
-      return openPeriod;
-    }
-
-    // Fallback : retenir la période la plus récente de l'année scolaire
-    const latestPeriod = await this.prisma.period.findFirst({
-      where: { instanceYearId },
-      orderBy: { startDate: 'desc' },
-    });
-
-    if (!latestPeriod)
-      throw new NotFoundException('Aucune période de jeu configurée pour cette école.');
-
-    await this.prisma.period.update({
-      where: { id: latestPeriod.id },
-      data: { isOpen: true },
-    });
-
-    return { ...latestPeriod, isOpen: true };
+    throw new BadRequestException(
+      'Aucune période ouverte, contactez votre administrateur.',
+    );
   }
 
   async getCategories(origin?: string, instanceIdStr?: string) {

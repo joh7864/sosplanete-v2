@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import { PlayerAvatar } from './PlayerAvatar';
 
@@ -104,23 +103,7 @@ export default function CylinderCarousel({
 
         return (
           <group key={p.childId} position={[x, -0.55, z]}>
-            {/* Petit badge textuel indiquant le rang de classement juste au-dessus de l'avatar */}
-            <Billboard follow={true}>
-              <Text
-                position={[0, 0.42, 0.02]}
-                fontSize={0.11}
-                fontWeight="900"
-                color={p.color || '#00e8ff'}
-                anchorX="center"
-                anchorY="middle"
-                outlineWidth={0.015}
-                outlineColor="#050a16"
-              >
-                {`#${rank}`}
-              </Text>
-            </Billboard>
-
-            {/* Avatar 3D de l'agent en orbite */}
+            {/* Avatar 3D de l'agent en orbite avec étiquette de classement enrichie (#4 - 450 IT) */}
             <PlayerAvatar 
               player={{
                 ...p,
@@ -128,6 +111,8 @@ export default function CylinderCarousel({
               }}
               position={[0, 0, 0]}
               avatarScale={0.65}
+              showHealth={false}
+              rankTag={`#${rank} • ${p.score ?? 0} IT`}
               onSelectPlayer={(player) => setSelectedProfileId(player.childId)}
             />
           </group>

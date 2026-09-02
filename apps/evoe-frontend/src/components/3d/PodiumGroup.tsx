@@ -88,31 +88,7 @@ function OrbitalRings({ position, color, radius = 0.58 }: { position: [number, n
   );
 }
 
-// 3. Couronne de Lumière
-function GoldCrown({ position = [0, 0, 0] }: { position?: [number, number, number] }) {
-  const crownRef = useRef<THREE.Mesh>(null);
-  
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    if (crownRef.current) {
-      crownRef.current.rotation.y = t * 1.2;
-      crownRef.current.position.y = position[1] + Math.sin(t * 3.0) * 0.03;
-    }
-  });
 
-  return (
-    <mesh ref={crownRef} position={position} rotation={[Math.PI / 3, 0, 0]}>
-      <torusGeometry args={[0.2, 0.016, 8, 36]} />
-      <meshStandardMaterial 
-        color="#ffd700" 
-        metalness={0.9} 
-        roughness={0.1} 
-        emissive="#ffd700" 
-        emissiveIntensity={1.8} 
-      />
-    </mesh>
-  );
-}
 
 // 4. Projecteur balayant
 function SweepingSpotlight({ position, targetPos, color }: { position: [number, number, number]; targetPos: [number, number, number]; color: string }) {
@@ -320,9 +296,6 @@ export default function PodiumGroup({
           {/* Projecteur */}
           <SweepingSpotlight position={[0, 4.5, 0]} targetPos={[0, 1.0, 0]} color="#ffd700" />
 
-          {/* Couronne dorée réorientée et bien positionnée */}
-          <GoldCrown position={[0, 2.65, 0]} />
-
           {/* Avatar */}
           <group 
             name="avatar-container" 
@@ -355,6 +328,8 @@ export default function PodiumGroup({
               }}
               position={[0, 0, 0]}
               avatarScale={1.12}
+              showHealth={false}
+              rankTag={`#1 • ${goldPlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
@@ -396,7 +371,7 @@ export default function PodiumGroup({
           <PodiumParticles count={35} color="#00ffcc" basePosition={[-1.25, 0.5, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[-1.25, 4.2, 0]} targetPos={[-1.25, 0.5, 0]} color="#00ffcc" />
+          <SweepingSpotlight position={[-1.25, 4.2, 0]} targetPos={[-1.25, 0.5, 0]} color="#e2e8f0" />
 
           {/* Avatar */}
           <group 
@@ -430,6 +405,8 @@ export default function PodiumGroup({
               }}
               position={[0, 0, 0]}
               avatarScale={1.0}
+              showHealth={false}
+              rankTag={`#2 • ${silverPlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
@@ -505,6 +482,8 @@ export default function PodiumGroup({
               }}
               position={[0, 0, 0]}
               avatarScale={1.0}
+              showHealth={false}
+              rankTag={`#3 • ${bronzePlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
             />
           </group>
