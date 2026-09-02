@@ -138,16 +138,18 @@ model Group {
 }
 
 model Child {
-  id          Int          @id @default(autoincrement())
-  pseudo      String
-  password    String?
-  groupId     Int
-  avatar      String?
-  isDelegate  Boolean      @default(false)
-  gender      String?
-  birthDate   DateTime?
-  actionsDone ActionDone[]
-  group       Group        @relation(fields: [groupId], references: [id])
+  id              Int          @id @default(autoincrement())
+  pseudo          String
+  password        String?
+  groupId         Int
+  avatar          String?
+  isDelegate      Boolean      @default(false)
+  hasSeenBriefing   Boolean      @default(false)
+  hasSeenOnboarding Boolean      @default(false)
+  gender          String?
+  birthDate       DateTime?
+  actionsDone     ActionDone[]
+  group           Group        @relation(fields: [groupId], references: [id])
 
   @@unique([pseudo, groupId])
 }

@@ -99,7 +99,7 @@ function MainApp() {
     fetchEvoeData, fetchChallenges,
     handleImpulseMission, handleCancelMission,
     handleSendChallenge, handleRespondChallenge,
-    handleResetPropulsion
+    handleResetPropulsion, handleCompleteBriefing
   } = useEvoeData();
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
@@ -286,9 +286,12 @@ function MainApp() {
   // L'early return doit être après tous les hooks
   const shouldRedirect = !user || instanceChoices;
 
+  // hasSeenOnboarding : source de vérité côté serveur (via childInfos), localStorage en cache local
+  const hasSeenOnboarding: boolean = (childInfos as any)?.hasSeenOnboarding === true;
+
   // Lancement automatique du guide d'onboarding spécifique à l'utilisateur connecté
   useEffect(() => {
-    if (!currentUserId || shouldRedirect) return;
+    if (!currentUserId || shouldRedirect || hasSeenOnboarding) return;
     const userKey = `evoe_has_seen_onboarding_v2_${currentUserId}`;
     const hasSeen = localStorage.getItem(userKey);
     if (!hasSeen) {
@@ -297,7 +300,8 @@ function MainApp() {
       }, 1200);
       return () => clearTimeout(timer);
     }
-  }, [currentUserId, shouldRedirect]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId, shouldRedirect, hasSeenOnboarding]);
 
   // Fermer le pop-over holographique si on clique n'importe où en dehors
   useEffect(() => {
@@ -603,7 +607,7 @@ function MainApp() {
 
       {showBriefing && childInfos?.youtubeBriefingUrl && (
         <TemporalBriefing 
-          onComplete={() => setShowBriefing(false)} 
+          onComplete={(skipNextTime) => handleCompleteBriefing(!!skipNextTime)} 
           youtubeUrl={childInfos.youtubeBriefingUrl} 
           childId={childInfos.id}
         />
@@ -2110,6 +2114,10 @@ function MainApp() {
               refreshData={fetchEvoeData}
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
+              onOpenBriefing={() => {
+                setSelectedProfileId(null);
+                setShowBriefing(true);
+              }}
             />
           </Suspense>
         )}

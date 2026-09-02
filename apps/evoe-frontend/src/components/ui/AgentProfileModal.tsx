@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw } from 'lucide-react';
+import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -28,6 +28,7 @@ interface AgentProfileModalProps {
   refreshData: () => void;
   isStealthMode?: boolean;
   onToggleStealth?: () => void;
+  onOpenBriefing?: () => void;
 }
 
 export function AgentProfileModal({
@@ -36,7 +37,8 @@ export function AgentProfileModal({
   isOwner,
   refreshData,
   isStealthMode = false,
-  onToggleStealth
+  onToggleStealth,
+  onOpenBriefing
 }: AgentProfileModalProps) {
   const { refreshContext } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
@@ -280,35 +282,64 @@ export function AgentProfileModal({
                   Année active : {profileData.profile.schoolYear || '2025-2026'}
                 </div>
 
-                {profileData.profile?.whatsappInviteUrl && (
-                  <a
-                    href={profileData.profile.whatsappInviteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Rejoindre le WhatsApp de l'Équipe"
-                    className="agent-whatsapp-link"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '34px',
-                      height: '34px',
-                      minWidth: '34px',
-                      minHeight: '34px',
-                      borderRadius: '50%',
-                      background: 'rgba(37, 211, 102, 0.2)',
-                      border: '1.5px solid #25D366',
-                      color: '#25D366',
-                      textDecoration: 'none',
-                      boxShadow: '0 0 12px rgba(37, 211, 102, 0.35)',
-                      transition: 'all 0.2s',
-                      cursor: 'pointer',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <FaWhatsapp size={18} />
-                  </a>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {profileData.profile?.whatsappInviteUrl && (
+                    <a
+                      href={profileData.profile.whatsappInviteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Rejoindre le WhatsApp de l'Équipe"
+                      className="agent-whatsapp-link"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '34px',
+                        height: '34px',
+                        minWidth: '34px',
+                        minHeight: '34px',
+                        borderRadius: '50%',
+                        background: 'rgba(37, 211, 102, 0.2)',
+                        border: '1.5px solid #25D366',
+                        color: '#25D366',
+                        textDecoration: 'none',
+                        boxShadow: '0 0 12px rgba(37, 211, 102, 0.35)',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <FaWhatsapp size={18} />
+                    </a>
+                  )}
+
+                  {onOpenBriefing && (
+                    <button
+                      onClick={onOpenBriefing}
+                      title="Revoir le Briefing Temporel (Vidéo)"
+                      className="agent-briefing-btn"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '34px',
+                        height: '34px',
+                        minWidth: '34px',
+                        minHeight: '34px',
+                        borderRadius: '50%',
+                        background: 'rgba(0, 255, 204, 0.15)',
+                        border: '1.5px solid #00ffcc',
+                        color: '#00ffcc',
+                        boxShadow: '0 0 12px rgba(0, 255, 204, 0.35)',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <Film size={17} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

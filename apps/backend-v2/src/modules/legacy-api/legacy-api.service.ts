@@ -89,15 +89,23 @@ export class LegacyApiService {
     if (validChildren.length === 0)
       throw new UnauthorizedException('Mot de passe incorrect');
 
+    // Priorité aux instances ouvertes (isOpen: true)
+    let activeChildren = validChildren.filter(
+      (c) => c.group.team.instanceYear.isOpen,
+    );
+    if (activeChildren.length === 0) {
+      activeChildren = validChildren;
+    }
+
     const currentSchoolYear = getCurrentSchoolYear();
-    let currentYearChildren = validChildren.filter(
+    let currentYearChildren = activeChildren.filter(
       (c) => c.group.team.instanceYear.schoolYear === currentSchoolYear,
     );
 
     if (currentYearChildren.length === 0) {
       // Fallback : Si l'année courante n'est pas encore enregistrée en DB,
       // retenir la dernière année scolaire active où l'élève est inscrit.
-      currentYearChildren = [...validChildren].sort(
+      currentYearChildren = [...activeChildren].sort(
         (a, b) => b.group.team.instanceYearId - a.group.team.instanceYearId,
       );
     }

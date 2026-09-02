@@ -126,6 +126,24 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [steps, setSteps] = useState<OnboardingStep[]>(DEFAULT_STEPS);
 
+  const markSeen = async () => {
+    const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
+    localStorage.setItem(userKey, 'true');
+    try {
+      const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
+      const savedInstanceId = localStorage.getItem('instanceId') || sessionStorage.getItem('instanceId');
+      if (savedAuth) {
+        const evoeApiUrl = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
+        const headers: Record<string, string> = { Authorization: `Basic ${savedAuth}` };
+        if (savedInstanceId) headers['x-instance-id'] = savedInstanceId;
+        await fetch(`${evoeApiUrl}/onboarding/seen`, { method: 'POST', headers });
+      }
+    } catch (e) {
+      console.error('Erreur enregistrement onboarding vu:', e);
+    }
+    onClose();
+  };
+
   useEffect(() => {
     const fetchSteps = async () => {
       try {
@@ -299,9 +317,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
-      const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
-      localStorage.setItem(userKey, 'true');
-      onClose();
+      markSeen();
     }
   };
 
@@ -484,11 +500,7 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
                 Étape {currentStepIndex + 1} / {steps.length}
               </span>
               <button
-                onClick={() => {
-                  const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
-                  localStorage.setItem(userKey, 'true');
-                  onClose();
-                }}
+                onClick={markSeen}
                 title="Passer le tutoriel"
                 style={{ background: 'transparent', border: 'none', color: '#a0aec0', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
               >

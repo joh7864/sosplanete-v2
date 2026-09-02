@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, FastForward, Rewind, SkipForward, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Play, Pause, FastForward, Rewind, SkipForward, AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import YouTube from 'react-youtube';
 import { preloadEvoeAssets } from '../utils/preloadAssets';
 
@@ -14,7 +14,7 @@ function getYoutubeId(url: string | null | undefined): string {
   return match && match[1] ? match[1] : "";
 }
 
-export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { onComplete: () => void, youtubeUrl?: string | null, childId?: number }) {
+export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { onComplete: (skipNextTime?: boolean) => void, youtubeUrl?: string | null, childId?: number }) {
   const [phase, setPhase] = useState<'interception' | 'video'>('interception');
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -75,7 +75,7 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
     if (skipNextTime && childId) {
       localStorage.setItem(`evoe_skip_briefing_${childId}`, 'true');
     }
-    onComplete();
+    onComplete(skipNextTime);
   };
 
   return (
@@ -105,9 +105,28 @@ export default function TemporalBriefing({ onComplete, youtubeUrl, childId }: { 
                 Connexion Sécurisée Établie
               </span>
             </div>
-            <span style={{ fontSize: '0.8rem', color: '#ff3b3b', animation: 'briefing-blink 1.5s infinite' }}>
-              ● DIRECT
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '0.8rem', color: '#ff3b3b', animation: 'briefing-blink 1.5s infinite' }}>
+                ● DIRECT
+              </span>
+              <button
+                onClick={() => finishBriefing()}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#00ffcc',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.8,
+                  transition: 'opacity 0.2s',
+                }}
+                title="Fermer le briefing"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           <div className="briefing-video-wrapper">

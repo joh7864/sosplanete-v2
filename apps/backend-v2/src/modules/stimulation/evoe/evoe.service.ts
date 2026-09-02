@@ -635,7 +635,7 @@ export class EvoeService {
         name: team.name,
         color: team.color,
         icon: team.icon,
-        whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
+        whatsappInviteUrl: team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
         whatsappGroupId: null,
         level: currentMaxLevel,
         propulsionType: propTech.name,
@@ -961,18 +961,20 @@ export class EvoeService {
       childInfos: {
         id: child.id,
         pseudo: child.pseudo,
+        hasSeenBriefing: child.hasSeenBriefing,
+        hasSeenOnboarding: child.hasSeenOnboarding,
         teamCount,
         schoolYear,
         youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
         whatsappCommunityName: systemConfig?.whatsappCommunityName ?? null,
         whatsappCommunityUrl: systemConfig?.whatsappCommunityUrl ?? null,
-        whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
+        whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
         group: {
           team: {
             id: child.group.team.id,
             name: child.group.team.name,
             color: child.group.team.color,
-            whatsappInviteUrl: systemConfig?.whatsappCommunityUrl || null,
+            whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
           },
         },
       },
@@ -1379,7 +1381,7 @@ export class EvoeService {
         })
       : null;
     const whatsappCommunityUrl = systemConfig?.whatsappCommunityUrl || null;
-    const whatsappInviteUrl = whatsappCommunityUrl;
+    const whatsappInviteUrl = team.whatsappInviteUrl || whatsappCommunityUrl;
 
     // 1. Trouver la période active
     const activePeriod = await this.prisma.period.findFirst({
@@ -1539,6 +1541,7 @@ export class EvoeService {
         avatar: getAvatarUrl(child.avatar),
         gender: child.gender,
         birthDate: child.birthDate,
+        hasSeenBriefing: child.hasSeenBriefing,
         teamName: team.name,
         teamColor: team.color,
         whatsappInviteUrl,
@@ -1593,5 +1596,23 @@ export class EvoeService {
     if (data.avatar !== undefined) updateData.avatar = data.avatar;
 
     return this.prisma.child.update({ where: { id: child.id }, data: updateData });
+  }
+
+  async markBriefingSeen(authHeader: string, instanceIdStr?: string) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    await this.prisma.child.update({
+      where: { id: child.id },
+      data: { hasSeenBriefing: true },
+    });
+    return { success: true };
+  }
+
+  async markOnboardingSeen(authHeader: string, instanceIdStr?: string) {
+    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    await this.prisma.child.update({
+      where: { id: child.id },
+      data: { hasSeenOnboarding: true },
+    });
+    return { success: true };
   }
 }

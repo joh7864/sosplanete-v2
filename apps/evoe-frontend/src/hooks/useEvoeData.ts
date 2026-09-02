@@ -98,12 +98,27 @@ export function useEvoeData() {
   const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [chatActiveTab, setChatActiveTab] = useState<string | undefined>(undefined);
 
+  const hasSeenBriefing: boolean = (childInfos as any)?.hasSeenBriefing === true;
+
   useEffect(() => {
     if (childInfos?.id) {
       const skipped = localStorage.getItem(`evoe_skip_briefing_${childInfos.id}`) === 'true';
-      setShowBriefing(!skipped);
+      setShowBriefing(!hasSeenBriefing && !skipped);
     }
-  }, [childInfos?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childInfos?.id, hasSeenBriefing]);
+
+  const handleCompleteBriefing = async (skipNextTime: boolean) => {
+    setShowBriefing(false);
+    if (childInfos?.id && skipNextTime) {
+      try {
+        localStorage.setItem(`evoe_skip_briefing_${childInfos.id}`, 'true');
+        await evoeClient.post(`${EVOE_API_URL}/briefing/seen`);
+      } catch (err) {
+        console.error("Erreur enregistrement briefing vu:", err);
+      }
+    }
+  };
 
   const fetchEvoeData = () => {
     if (!instanceId) return;
@@ -276,6 +291,6 @@ export function useEvoeData() {
     fetchEvoeData, fetchChallenges,
     handleImpulseMission, handleCancelMission,
     handleSendChallenge, handleRespondChallenge,
-    handleResetPropulsion
+    handleResetPropulsion, handleCompleteBriefing
   };
 }

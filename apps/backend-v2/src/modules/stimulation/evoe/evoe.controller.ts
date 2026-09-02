@@ -239,4 +239,22 @@ export class EvoeController {
   ) {
     return this.evoeService.updateProfile(auth, instanceIdStr, body);
   }
+
+  @Post('briefing/seen')
+  @ApiOperation({ summary: 'Enregistre que le joueur a visionné ou passé le briefing temporel' })
+  async markBriefingSeen(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.evoeService.markBriefingSeen(auth, instanceIdStr);
+  }
+
+  @Post('onboarding/seen')
+  @ApiOperation({ summary: "Enregistre que le joueur a complété le guide d'onboarding" })
+  async markOnboardingSeen(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    return this.evoeService.markOnboardingSeen(auth, instanceIdStr);
+  }
 }
