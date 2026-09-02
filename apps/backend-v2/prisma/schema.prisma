@@ -35,6 +35,7 @@ model ActionRef {
   image         String?
   imageEvoe     String?
   description   String?
+  hypotheseCalcul String?
   year          Int           @default(2025)
   defaultEnergy Float?
   category      String?
@@ -100,6 +101,7 @@ model InstanceYear {
   gameStartDate    DateTime?
   gameEndDate      DateTime?
   gamePeriodsCount Int        @default(24)
+  periodStartDay   Int        @default(3)
   unlockedChapters Int        @default(0)
   createdAt        DateTime   @default(now())
   adminId          Int?
@@ -224,6 +226,7 @@ model GameConfig {
   gameStartDate               DateTime?
   gameEndDate                 DateTime?
   gamePeriodsCount            Int       @default(24)
+  periodStartDay              Int       @default(3)
   instance                    Instance  @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, schoolYear])

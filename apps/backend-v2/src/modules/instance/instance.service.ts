@@ -27,23 +27,6 @@ function validateDatesForSchoolYear(
   endDate: Date | null,
 ): void {
   if (!startDate || !endDate) return;
-  const match = schoolYear.match(/^(\d{4})/);
-  const startYear = match ? parseInt(match[1], 10) : new Date().getFullYear();
-  const endYear = startYear + 1;
-
-  const minDate = new Date(Date.UTC(startYear, 7, 1, 0, 0, 0, 0)); // 1er août de startYear
-  const maxDate = new Date(Date.UTC(endYear, 7, 31, 23, 59, 59, 999)); // 31 août de endYear
-
-  if (startDate < minDate || startDate > maxDate) {
-    throw new BadRequestException(
-      `La date de début du jeu (${startDate.toLocaleDateString('fr-FR')}) n'est pas cohérente avec l'année scolaire ${schoolYear}`,
-    );
-  }
-  if (endDate < minDate || endDate > maxDate) {
-    throw new BadRequestException(
-      `La date de fin du jeu (${endDate.toLocaleDateString('fr-FR')}) n'est pas cohérente avec l'année scolaire ${schoolYear}`,
-    );
-  }
   if (startDate >= endDate) {
     throw new BadRequestException(
       `La date de début de jeu doit être antérieure à la date de fin`,
@@ -154,6 +137,7 @@ export class InstanceService {
             gameStartDate,
             gameEndDate,
             gamePeriodsCount: data.gamePeriodsCount ?? 24,
+            periodStartDay: data.periodStartDay ?? 3,
             adminId: data.adminId,
           },
         });
@@ -166,6 +150,7 @@ export class InstanceService {
             gameStartDate,
             gameEndDate,
             gamePeriodsCount: data.gamePeriodsCount ?? 24,
+            periodStartDay: data.periodStartDay ?? 3,
           },
         });
 
@@ -375,6 +360,7 @@ export class InstanceService {
       gameStartDate,
       gameEndDate,
       gamePeriodsCount,
+      periodStartDay,
       isOpen,
       allowAllDelegate,
       force,
@@ -430,6 +416,8 @@ export class InstanceService {
           iyUpdate.gameEndDate = new Date(gameEndDate);
         if (gamePeriodsCount !== undefined)
           iyUpdate.gamePeriodsCount = gamePeriodsCount;
+        if (periodStartDay !== undefined)
+          iyUpdate.periodStartDay = periodStartDay;
         if (hostUrl !== undefined) iyUpdate.hostUrl = hostUrl;
         if (icon !== undefined) iyUpdate.icon = icon;
         if (adminId !== undefined) iyUpdate.adminId = adminId;
@@ -465,7 +453,8 @@ export class InstanceService {
         if (
           gameStartDate !== undefined ||
           gameEndDate !== undefined ||
-          gamePeriodsCount !== undefined
+          gamePeriodsCount !== undefined ||
+          periodStartDay !== undefined
         ) {
           await tx.gameConfig.upsert({
             where: {
@@ -475,6 +464,7 @@ export class InstanceService {
               ...(gameStartDate && { gameStartDate: new Date(gameStartDate) }),
               ...(gameEndDate && { gameEndDate: new Date(gameEndDate) }),
               ...(gamePeriodsCount !== undefined && { gamePeriodsCount }),
+              ...(periodStartDay !== undefined && { periodStartDay }),
             },
             create: {
               instanceId: id,
@@ -484,6 +474,7 @@ export class InstanceService {
                 : undefined,
               gameEndDate: gameEndDate ? new Date(gameEndDate) : undefined,
               gamePeriodsCount: gamePeriodsCount ?? 24,
+              periodStartDay: periodStartDay ?? 3,
             },
           });
 

@@ -5,6 +5,16 @@ import { Calendar, Clock, RotateCcw, AlertCircle, Edit3, Check } from 'lucide-re
 import { StepHeader } from '../StepHeader';
 import { WizardDraftState, WizardPeriodItem } from '@/types/wizard';
 
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Dimanche' },
+  { value: 1, label: 'Lundi' },
+  { value: 2, label: 'Mardi' },
+  { value: 3, label: 'Mercredi' },
+  { value: 4, label: 'Jeudi' },
+  { value: 5, label: 'Vendredi' },
+  { value: 6, label: 'Samedi' },
+];
+
 interface Step3CalendarPeriodsProps {
   state: WizardDraftState;
   onChange: (updater: (prev: WizardDraftState) => WizardDraftState) => void;
@@ -13,32 +23,48 @@ interface Step3CalendarPeriodsProps {
 export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ state, onChange }) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  // Generate 24 periods when dates change if no custom periods yet
+  // Generate 7-day periods when dates change if no custom periods yet
   useEffect(() => {
     if (!state.calendar.customPeriods || state.calendar.customPeriods.length === 0) {
-      recomputePeriods(state.calendar.gameStartDate, state.calendar.gameEndDate, state.calendar.gamePeriodsCount);
+      recomputePeriods(
+        state.calendar.gameStartDate,
+        state.calendar.gameEndDate,
+        state.calendar.periodStartDay ?? 3,
+      );
     }
   }, []);
 
-  const recomputePeriods = (startStr: string, endStr: string, count: number = 24) => {
+  const recomputePeriods = (startStr: string, endStr: string, startDayOfWeek: number = 3) => {
     if (!startStr || !endStr) return;
-    const start = new Date(startStr);
-    const end = new Date(endStr);
-    if (start >= end) return;
+    const gameStart = new Date(startStr);
+    const gameEnd = new Date(endStr);
+    if (gameStart >= gameEnd) return;
 
-    const totalMs = end.getTime() - start.getTime();
-    const sliceMs = totalMs / count;
+    // Début de la période 1 calé sur startDayOfWeek
+    const d = new Date(gameStart);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    let diff = (day - startDayOfWeek + 7) % 7;
+
+    let pStart = new Date(d.getTime() - diff * 24 * 60 * 60 * 1000);
+    pStart.setHours(0, 0, 0, 0);
 
     const generated: WizardPeriodItem[] = [];
-    for (let i = 0; i < count; i++) {
-      const pStart = new Date(start.getTime() + i * sliceMs);
-      const pEnd = new Date(start.getTime() + (i + 1) * sliceMs - 1);
+    let periodNumber = 1;
+
+    while (pStart <= gameEnd) {
+      const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+      pEnd.setHours(23, 59, 59, 999);
 
       generated.push({
-        number: i + 1,
+        number: periodNumber,
         startDate: pStart.toISOString().split('T')[0],
         endDate: pEnd.toISOString().split('T')[0],
       });
+
+      pStart = new Date(pStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      pStart.setHours(0, 0, 0, 0);
+      periodNumber++;
     }
 
     onChange((prev) => ({
@@ -47,7 +73,8 @@ export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ stat
         ...prev.calendar,
         gameStartDate: startStr,
         gameEndDate: endStr,
-        gamePeriodsCount: count,
+        periodStartDay: startDayOfWeek,
+        gamePeriodsCount: generated.length,
         customPeriods: generated,
       },
     }));
@@ -65,7 +92,19 @@ export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ stat
       },
     }));
 
-    recomputePeriods(newStart, newEnd, state.calendar.gamePeriodsCount);
+    recomputePeriods(newStart, newEnd, state.calendar.periodStartDay ?? 3);
+  };
+
+  const handleStartDayChange = (newDay: number) => {
+    onChange((prev) => ({
+      ...prev,
+      calendar: {
+        ...prev.calendar,
+        periodStartDay: newDay,
+      },
+    }));
+
+    recomputePeriods(state.calendar.gameStartDate, state.calendar.gameEndDate, newDay);
   };
 
   const handlePeriodDateChange = (idx: number, field: 'startDate' | 'endDate', val: string) => {
@@ -92,15 +131,15 @@ export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ stat
       <StepHeader
         stepNumber={3}
         title="Calendrier de Saison & Périodes de Jeu"
-        subtitle="Définissez les dates globales de l'année scolaire et visualisez le calendrier des 24 périodes de jeu."
-        objective="Fixer la date de début et de fin de saison, et ajuster ponctuellement les périodes si nécessaire."
-        impact="Le rythme des périodes rythme les défis, l'ouverture des formulaires d'écogestes et la course contre l'animal mascotte."
-        tip="Les dates sont calculées automatiquement entre le 1er septembre et le 31 août. Vous pouvez modifier n'importe quelle période directement dans le tableau."
+        subtitle="Définissez les dates de saison et générez automatiquement le calendrier des périodes de 7 jours."
+        objective="Fixer la date de début, de fin et le jour de début de cycle (ex: Mercredi ou Dimanche)."
+        impact="Toutes les périodes de 7 jours s'enchaînent automatiquement pour rythmer les défis et les missions."
+        tip="Les périodes sont calculées par tranches de 7 jours consécutives selon le jour de début choisi."
       />
 
       {/* Global dates selector */}
       <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-slate-200/80 shadow-md mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
               Date de Début de Saison *
@@ -126,18 +165,35 @@ export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ stat
           </div>
 
           <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              Jour de Début de Période *
+            </label>
+            <select
+              value={state.calendar.periodStartDay ?? 3}
+              onChange={(e) => handleStartDayChange(parseInt(e.target.value, 10))}
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            >
+              {DAYS_OF_WEEK.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <button
               type="button"
               onClick={() =>
                 recomputePeriods(
                   state.calendar.gameStartDate,
                   state.calendar.gameEndDate,
-                  state.calendar.gamePeriodsCount,
+                  state.calendar.periodStartDay ?? 3,
                 )
               }
               className="w-full px-4 py-3 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold text-xs uppercase tracking-wider border border-emerald-200 transition-colors flex items-center justify-center gap-2"
             >
-              <RotateCcw size={16} /> Recalculer 24 périodes égales
+              <RotateCcw size={16} /> Recalculer 7 jours
             </button>
           </div>
         </div>
@@ -148,10 +204,10 @@ export const Step3CalendarPeriods: React.FC<Step3CalendarPeriodsProps> = ({ stat
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
             <Clock size={18} className="text-emerald-600" />
-            Découpage des 24 Périodes de Jeu
+            Découpage des {state.calendar.customPeriods.length} Périodes de Jeu (Cycles de 7 jours)
           </h3>
           <span className="text-xs font-bold text-slate-500">
-            Cliquez sur les dates pour modifier une période ponctuellement
+            Périodes consécutives de 7 jours alignées sur le {DAYS_OF_WEEK.find(d => d.value === (state.calendar.periodStartDay ?? 3))?.label}
           </span>
         </div>
 

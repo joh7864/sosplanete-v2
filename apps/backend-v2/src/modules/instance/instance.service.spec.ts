@@ -4,6 +4,7 @@ import { InstanceService } from './instance.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PeriodService } from '../period/period.service';
 import { InstanceCleanupService } from './instance-cleanup.service';
+import { YearService } from './year.service';
 
 /**
  * Tests unitaires pour InstanceService.syncPeriods (via update)
@@ -84,6 +85,7 @@ describe('InstanceService — syncPeriods', () => {
         InstanceService,
         PeriodService,
         InstanceCleanupService,
+        { provide: YearService, useValue: {} },
         { provide: PrismaService, useValue: prismaMock },
       ],
     }).compile();

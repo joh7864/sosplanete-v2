@@ -12,6 +12,7 @@ export function TuningSimulator({ schoolYear }: { schoolYear: string }) {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<number | 'all'>('all');
 
   const [baseData, setBaseData] = useState<any>(null);
   const [tuning, setTuning] = useState({
@@ -26,13 +27,16 @@ export function TuningSimulator({ schoolYear }: { schoolYear: string }) {
   const [simulatedEod, setSimulatedEod] = useState<Date | null>(null);
 
   useEffect(() => {
-    fetchBaseData();
+    fetchBaseData(selectedInstanceId);
   }, [schoolYear]);
 
-  const fetchBaseData = async () => {
+  const fetchBaseData = async (instId: number | 'all' = selectedInstanceId) => {
     setLoading(true);
     try {
-      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/impact/simulation-base?schoolYear=${schoolYear}`, {
+      const query = instId !== 'all'
+        ? `schoolYear=${schoolYear}&instanceId=${instId}`
+        : `schoolYear=${schoolYear}`;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/impact/simulation-base?${query}`, {
         headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
       });
       if (resp.ok) {
@@ -147,7 +151,7 @@ export function TuningSimulator({ schoolYear }: { schoolYear: string }) {
         
         {/* Colonne de gauche : Contrôles */}
         <GlassCard className="flex-1 p-8 rounded-3xl border-none shadow-2xl bg-white/95">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
                 Réglage de l'Algorithme <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest">{schoolYear}</span>
@@ -160,6 +164,34 @@ export function TuningSimulator({ schoolYear }: { schoolYear: string }) {
             >
               <HelpCircle size={24} />
             </button>
+          </div>
+
+          {/* Sélecteur de périmètre / Espace */}
+          <div className="mb-8 p-4 bg-slate-50/80 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-0.5">
+                Périmètre de Simulation
+              </label>
+              <p className="text-[11px] text-slate-400 font-medium">
+                Testez l'algorithme sur un établissement précis ou sur l'ensemble des écoles.
+              </p>
+            </div>
+            <select
+              value={selectedInstanceId}
+              onChange={(e) => {
+                const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                setSelectedInstanceId(val);
+                fetchBaseData(val);
+              }}
+              className="bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-sm cursor-pointer min-w-[200px]"
+            >
+              <option value="all">🌍 Tous les espaces (Global)</option>
+              {baseData?.instancesList?.map((inst: any) => (
+                <option key={inst.id} value={inst.id}>
+                  🏫 {inst.schoolName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-8">
@@ -245,8 +277,8 @@ export function TuningSimulator({ schoolYear }: { schoolYear: string }) {
             </div>
           </div>
           
-          <div className="mt-8 text-xs text-slate-500 text-center px-4">
-            Ces calculs sont basés sur les {baseData?.actionsCount || 0} actions réelles effectuées dans l'année scolaire sélectionnée.
+          <div className="mt-8 text-xs text-slate-400 text-center px-4 leading-relaxed">
+            Calculs basés sur <strong className="text-white font-bold">{baseData?.actionsCount || 0} actions</strong> ({baseData?.nbChildrenTotal || 0} élèves) dans {selectedInstanceId === 'all' ? <span className="text-emerald-400 font-bold">tous les espaces réunis</span> : <span className="text-sky-400 font-bold">l'espace sélectionné</span>}.
           </div>
         </GlassCard>
       </div>

@@ -18,8 +18,8 @@ export function TrackingCharts({ chartData }: TrackingChartsProps) {
   return (
     <GlassCard className="p-8">
       <h2 className="text-xl font-black text-slate-800 mb-8">Évolution Hebdomadaire Globale</h2>
-      <div className="h-[350px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-[350px] w-full overflow-hidden">
+        <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
           <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="colorActions" x1="0" y1="0" x2="0" y2="1">

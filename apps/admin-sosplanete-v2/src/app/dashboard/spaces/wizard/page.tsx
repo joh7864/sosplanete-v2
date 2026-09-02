@@ -200,6 +200,7 @@ export default function SpaceWizardPage() {
           gameStartDate: state.calendar.gameStartDate,
           gameEndDate: state.calendar.gameEndDate,
           gamePeriodsCount: state.calendar.gamePeriodsCount,
+          periodStartDay: state.calendar.periodStartDay ?? 3,
           isOpen: openImmediately,
         };
 

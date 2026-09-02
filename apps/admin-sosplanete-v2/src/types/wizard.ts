@@ -59,6 +59,7 @@ export interface WizardDraftState {
     gameStartDate: string;
     gameEndDate: string;
     gamePeriodsCount: number;
+    periodStartDay: number;
     customPeriods: WizardPeriodItem[];
   };
 
@@ -123,6 +124,7 @@ export const INITIAL_WIZARD_STATE: WizardDraftState = {
     gameStartDate: '2025-09-01',
     gameEndDate: '2026-06-30',
     gamePeriodsCount: 24,
+    periodStartDay: 3,
     customPeriods: [],
   },
   organization: {

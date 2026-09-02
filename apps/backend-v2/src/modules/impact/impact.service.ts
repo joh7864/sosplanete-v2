@@ -64,13 +64,13 @@ export class ImpactService {
 
       // 2. Nombre total d'enfants inscrits
       let nbChildrenTotal = 1;
+      const sy = schoolYearFilter || `${year}-${year + 1}`;
       if (instanceId !== null) {
         nbChildrenTotal =
           (await this.prisma.child.count({
-            where: { group: { team: { instanceYear: { instanceId } } } },
+            where: { group: { team: { instanceYear: { instanceId, schoolYear: sy } } } },
           })) || 1;
       } else {
-        const sy = schoolYearFilter || `${year}-${year + 1}`;
         nbChildrenTotal =
           (await this.prisma.child.count({
             where: { group: { team: { instanceYear: { schoolYear: sy } } } },
@@ -215,7 +215,7 @@ export class ImpactService {
           name = inst.schoolName;
           // Compter les enfants via instanceYear
           nbChildren = await this.prisma.child.count({
-            where: { group: { team: { instanceYear: { instanceId } } } },
+            where: { group: { team: { instanceYear: { instanceId, schoolYear: sy } } } },
           });
         }
       }
@@ -365,19 +365,27 @@ export class ImpactService {
     return data;
   }
 
-  async getSimulationBase(schoolYear: string) {
+  async getSimulationBase(schoolYear: string, instanceId?: number) {
     const year = parseInt(schoolYear.split('-')[0], 10);
     const annualData = await this.prisma.annualImpactData.findUnique({
       where: { year },
     });
 
-    // En global, on prend tous les enfants actifs dans l'année scolaire
+    const childWhere = instanceId
+      ? { group: { team: { instanceYear: { schoolYear, instanceId } } } }
+      : { group: { team: { instanceYear: { schoolYear } } } };
+
     const nbChildrenTotal =
       (await this.prisma.child.count({
-        where: { group: { team: { instanceYear: { schoolYear } } } },
+        where: childWhere,
       })) || 1;
+
+    const actionWhere = instanceId
+      ? { period: { instanceYear: { schoolYear, instanceId } } }
+      : { period: { instanceYear: { schoolYear } } };
+
     const actionsDone = await this.prisma.actionDone.findMany({
-      where: { period: { instanceYear: { schoolYear } } },
+      where: actionWhere,
       select: { savedCo2: true, savedWater: true, savedWaste: true },
     });
 
@@ -393,13 +401,27 @@ export class ImpactService {
     const catalogSize = (await this.prisma.actionRef.count()) || 62;
     
     let gameDuration = 52; // Default for global
-    const configs = await this.prisma.gameConfig.findMany({
-      where: { schoolYear },
-      select: { gamePeriodsCount: true },
-    });
-    if (configs.length > 0) {
-      gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+    if (instanceId) {
+      const config = await this.prisma.gameConfig.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear } },
+      });
+      gameDuration = config?.gamePeriodsCount || 52;
+    } else {
+      const configs = await this.prisma.gameConfig.findMany({
+        where: { schoolYear },
+        select: { gamePeriodsCount: true },
+      });
+      if (configs.length > 0) {
+        gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+      }
     }
+
+    // Récupérer la liste des instances pour le sélecteur du simulateur
+    const instancesList = await this.prisma.instance.findMany({
+      where: { instanceYears: { some: { schoolYear } } },
+      select: { id: true, schoolName: true },
+      orderBy: { schoolName: 'asc' },
+    });
 
     return {
       annualData: annualData || {
@@ -420,6 +442,7 @@ export class ImpactService {
       realWaste,
       catalogSize,
       gameDuration,
+      instancesList,
     };
   }
 

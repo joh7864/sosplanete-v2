@@ -17,10 +17,12 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
   const [gameStartDate, setGameStartDate] = useState('');
   const [gameEndDate, setGameEndDate] = useState('');
   const [gamePeriodsCount, setGamePeriodsCount] = useState('24');
+  const [periodStartDay, setPeriodStartDay] = useState<number>(3);
   
   const savedGameStartDate = React.useRef('');
   const savedGameEndDate = React.useRef('');
   const savedGamePeriodsCount = React.useRef('24');
+  const savedPeriodStartDay = React.useRef<number>(3);
 
   const calculatedWeeks = useMemo(() => {
     if (!gameStartDate || !gameEndDate) return 0;
@@ -33,28 +35,13 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
 
   const dateError = useMemo(() => {
     if (!gameStartDate || !gameEndDate) return null;
-    const match = schoolYear.match(/^(\d{4})/);
-    if (!match) return null;
-    const startYear = parseInt(match[1], 10);
-    const endYear = startYear + 1;
-
-    const minDate = new Date(Date.UTC(startYear, 7, 1, 0, 0, 0, 0)); // 1er août de startYear
-    const maxDate = new Date(Date.UTC(endYear, 7, 31, 23, 59, 59, 999)); // 31 août de endYear
-
     const start = new Date(gameStartDate);
     const end = new Date(gameEndDate);
-
-    if (start < minDate || start > maxDate) {
-      return `La date de début doit être comprise entre le 01/08/${startYear} et le 31/08/${endYear}.`;
-    }
-    if (end < minDate || end > maxDate) {
-      return `La date de fin doit être comprise entre le 01/08/${startYear} et le 31/08/${endYear}.`;
-    }
     if (start >= end) {
       return "La date de début de jeu doit être antérieure à la date de fin.";
     }
     return null;
-  }, [gameStartDate, gameEndDate, schoolYear]);
+  }, [gameStartDate, gameEndDate]);
 
   useEffect(() => {
     if (instanceYearId) {
@@ -71,14 +58,17 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
         const start = data.gameStartDate ? new Date(data.gameStartDate).toISOString().split('T')[0] : '';
         const end = data.gameEndDate ? new Date(data.gameEndDate).toISOString().split('T')[0] : '';
         const periodsCount = data.gamePeriodsCount ? data.gamePeriodsCount.toString() : '24';
+        const startDay = data.periodStartDay !== undefined ? data.periodStartDay : 3;
 
         setGameStartDate(start);
         setGameEndDate(end);
         setGamePeriodsCount(periodsCount);
+        setPeriodStartDay(startDay);
 
         savedGameStartDate.current = start;
         savedGameEndDate.current = end;
         savedGamePeriodsCount.current = periodsCount;
+        savedPeriodStartDay.current = startDay;
       }
     } catch (e) {
       console.error('[PeriodSettings] fetchGameConfig failed:', e);
@@ -95,8 +85,9 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
           schoolYear,
           ...(gameStartDate && { gameStartDate: new Date(gameStartDate).toISOString() }),
           ...(gameEndDate && { gameEndDate: new Date(gameEndDate).toISOString() }),
+          periodStartDay: Number(periodStartDay),
           ...(calculatedWeeks > 0 && { gamePeriodsCount: calculatedWeeks }),
-          force: true, // We auto-force here or we'd need the dialog logic
+          force: true,
         }),
       });
 
@@ -119,6 +110,7 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
     setGameStartDate(savedGameStartDate.current);
     setGameEndDate(savedGameEndDate.current);
     setGamePeriodsCount(savedGamePeriodsCount.current);
+    setPeriodStartDay(savedPeriodStartDay.current);
   };
 
   if (!instanceYearId) {
@@ -196,6 +188,22 @@ export function PeriodSettings({ instanceId, schoolYear, instanceYearId }: { ins
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex flex-col gap-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jour de début de période</label>
+                     <select
+                       value={periodStartDay}
+                       onChange={(e) => setPeriodStartDay(parseInt(e.target.value, 10))}
+                       className="w-full bg-slate-50 border-none h-14 rounded-2xl px-4 font-bold text-slate-700 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-sky-500/20 transition-all shadow-sm"
+                     >
+                       <option value={0}>Dimanche</option>
+                       <option value={1}>Lundi</option>
+                       <option value={2}>Mardi</option>
+                       <option value={3}>Mercredi</option>
+                       <option value={4}>Jeudi</option>
+                       <option value={5}>Vendredi</option>
+                       <option value={6}>Samedi</option>
+                     </select>
+                  </div>
                   <div className="flex flex-col gap-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Durée totale (semaines)</label>
                      <div className="relative">

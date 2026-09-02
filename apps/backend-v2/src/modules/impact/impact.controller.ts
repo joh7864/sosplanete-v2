@@ -54,9 +54,13 @@ export class ImpactController {
   }
 
   @Get('simulation-base')
-  async getSimulationBase(@Query('schoolYear') schoolYear?: string) {
+  async getSimulationBase(
+    @Query('schoolYear') schoolYear?: string,
+    @Query('instanceId') instanceId?: string,
+  ) {
     const sy = schoolYear || '2024-2025';
-    return this.impactService.getSimulationBase(sy);
+    const instId = instanceId ? parseInt(instanceId, 10) : undefined;
+    return this.impactService.getSimulationBase(sy, isNaN(instId as number) ? undefined : instId);
   }
 
   @Get('history')

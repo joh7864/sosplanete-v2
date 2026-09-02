@@ -49,6 +49,7 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
   const [referenceName, setReferenceName] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [hypotheseCalcul, setHypotheseCalcul] = useState('');
   const [weightedStars, setWeightedStars] = useState(2);
   const [defaultCo2, setDefaultCo2] = useState<number>(0);
   const [defaultWater, setDefaultWater] = useState<number>(0);
@@ -86,6 +87,7 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
       setReferenceName(action.referenceName || '');
       setCategory(action.category || 'Général');
       setDescription(action.description || '');
+      setHypotheseCalcul(action.hypotheseCalcul || '');
       setWeightedStars(action.weightedStars ?? 2);
       setDefaultCo2(action.defaultCo2 ?? 0);
       setDefaultWater(action.defaultWater ?? 0);
@@ -163,6 +165,7 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
         referenceName: referenceName.trim(),
         category: category.trim(),
         description: description.trim() || null,
+        hypotheseCalcul: hypotheseCalcul.trim() || null,
         weightedStars: Number(weightedStars) || 1,
         defaultCo2: Number(defaultCo2) || 0,
         defaultWater: Number(defaultWater) || 0,
@@ -358,6 +361,19 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
                         onChange={(e) => setDescription(e.target.value)}
                         rows={3}
                         placeholder="Explications pédagogiques et bienfaits pour la planète..."
+                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-xs font-medium text-slate-700 resize-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">
+                        Hypothèse de Calcul (Admin uniquement)
+                      </label>
+                      <textarea
+                        value={hypotheseCalcul}
+                        onChange={(e) => setHypotheseCalcul(e.target.value)}
+                        rows={2}
+                        placeholder="Ex: 5 repas par semaine sans boeuf = -10kg CO2..."
                         className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-xs font-medium text-slate-700 resize-none transition-all"
                       />
                     </div>

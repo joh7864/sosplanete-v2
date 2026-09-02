@@ -664,7 +664,7 @@ function AnimalsTrackingTab({ instanceId, refreshKey, schoolYear, instanceYearId
             <p className="text-xs mt-1">Utilisez le bouton ↺ pour lancer un premier calcul.</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
+          <ResponsiveContainer width="100%" height={320} minWidth={0} minHeight={0}>
             <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fontWeight: 700, fill: '#94a3b8' }} />

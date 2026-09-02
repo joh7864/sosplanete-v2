@@ -20,6 +20,12 @@ export class ActionRefService {
         delimiter: ';',
         complete: async (results) => {
           const rows = results.data as string[][];
+          if (rows.length === 0) return resolve({ success: true, count: 0, errors: 0 });
+
+          // Extraction des en-têtes (ligne 0) pour trouver les nouvelles colonnes dynamiquement
+          const headers = rows[0].map(h => h?.trim().toLowerCase());
+          const hypotheseIndex = headers.findIndex(h => h === 'hypothese_calcul' || h === 'hypothèse_calcul' || h === 'hypothese calcul' || h === 'hypothèse calcul');
+
           // On ignore l'en-tête (ligne 0)
           const dataLines = rows.slice(1);
 
@@ -46,6 +52,15 @@ export class ActionRefService {
             const description = row[11]?.trim() || null;
             const imageEvoe = row[12]?.trim() || null;
 
+            // Si la colonne Hypothese_Calcul est présente, on l'ajoute au nouveau champ dédié
+            let hypotheseCalcul = null;
+            if (hypotheseIndex !== -1 && row[hypotheseIndex]) {
+              const hypVal = row[hypotheseIndex].trim();
+              if (hypVal) {
+                hypotheseCalcul = hypVal;
+              }
+            }
+
             try {
               await this.prisma.actionRef.upsert({
                 where: { code },
@@ -61,6 +76,7 @@ export class ActionRefService {
                   image,
                   imageEvoe,
                   description,
+                  hypotheseCalcul,
                   category: category || null,
                 },
                 create: {
@@ -76,6 +92,7 @@ export class ActionRefService {
                   image,
                   imageEvoe,
                   description,
+                  hypotheseCalcul,
                   category: category || null,
                 },
               });
@@ -137,6 +154,7 @@ export class ActionRefService {
     data: {
       referenceName?: string;
       description?: string;
+      hypotheseCalcul?: string;
       category?: string;
       defaultCo2?: number;
       defaultWater?: number;
@@ -155,6 +173,7 @@ export class ActionRefService {
       data: {
         ...(data.referenceName !== undefined && { referenceName: data.referenceName }),
         ...(data.description !== undefined && { description: data.description }),
+        ...(data.hypotheseCalcul !== undefined && { hypotheseCalcul: data.hypotheseCalcul }),
         ...(data.category !== undefined && { category: data.category }),
         ...(data.defaultCo2 !== undefined && { defaultCo2: data.defaultCo2 }),
         ...(data.defaultWater !== undefined && { defaultWater: data.defaultWater }),

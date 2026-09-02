@@ -136,6 +136,12 @@ export class PeriodService {
         orderBy: { startDate: 'asc' },
       });
 
+      const iy = await this.prisma.instanceYear.findUnique({
+        where: { id: period.instanceYearId },
+        select: { periodStartDay: true },
+      });
+      const startDayOfWeek = iy?.periodStartDay ?? 3;
+
       let currentEnd = new Date(updatedPeriod.endDate);
       for (const fp of futurePeriods) {
         const nextStart = new Date(currentEnd.getTime() + 1000);
@@ -143,11 +149,10 @@ export class PeriodService {
 
         const d = new Date(nextStart);
         const day = d.getDay();
-        let diffToWednesday = day - 3;
-        if (diffToWednesday < 0) diffToWednesday += 7;
+        let diff = (day - startDayOfWeek + 7) % 7;
 
         const pStart = new Date(
-          d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000,
+          d.getTime() - diff * 24 * 60 * 60 * 1000,
         );
         pStart.setHours(0, 0, 0, 0);
         const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
@@ -278,15 +283,17 @@ export class PeriodService {
     console.log('[CRON] Fin de la vérification.');
   }
 
-  getPeriodBoundaries(date: Date): { startDate: Date; endDate: Date } {
+  getPeriodBoundaries(
+    date: Date,
+    startDayOfWeek: number = 3,
+  ): { startDate: Date; endDate: Date } {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     const day = d.getDay();
-    let diffToWednesday = day - 3;
-    if (diffToWednesday < 0) diffToWednesday += 7;
+    let diff = (day - startDayOfWeek + 7) % 7;
 
     const startDate = new Date(
-      d.getTime() - diffToWednesday * 24 * 60 * 60 * 1000,
+      d.getTime() - diff * 24 * 60 * 60 * 1000,
     );
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
@@ -338,6 +345,7 @@ export class PeriodService {
       return;
     }
 
+    const startDayOfWeek = config.periodStartDay ?? 3;
     const gameStart = new Date(config.gameStartDate);
     const gameEnd = new Date(config.gameEndDate);
 
@@ -346,7 +354,7 @@ export class PeriodService {
       orderBy: { startDate: 'asc' },
     });
 
-    const firstBoundaries = this.getPeriodBoundaries(gameStart);
+    const firstBoundaries = this.getPeriodBoundaries(gameStart, startDayOfWeek);
     let pStart = firstBoundaries.startDate;
     let pEnd = firstBoundaries.endDate;
 
@@ -402,6 +410,20 @@ export class PeriodService {
           },
         });
       }
+    }
+
+    // Synchronisation automatique du nombre total de périodes
+    if (client.instanceYear?.update) {
+      await client.instanceYear.update({
+        where: { id: instanceYearId },
+        data: { gamePeriodsCount: generatedPeriods.length },
+      });
+    }
+    if (client.gameConfig?.update) {
+      await client.gameConfig.update({
+        where: { id: config.id },
+        data: { gamePeriodsCount: generatedPeriods.length },
+      });
     }
   }
 }
