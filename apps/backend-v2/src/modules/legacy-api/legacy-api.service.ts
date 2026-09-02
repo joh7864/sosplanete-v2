@@ -215,7 +215,7 @@ export class LegacyApiService {
       where: { instanceYearId, isOpen: true },
     });
 
-    // Cas nominal
+    // Cas nominal : la période actuellement ouverte englobe la date
     if (
       openPeriod &&
       openPeriod.startDate <= now &&
@@ -224,7 +224,7 @@ export class LegacyApiService {
       return openPeriod;
     }
 
-    // Auto-correction
+    // Auto-correction : chercher une période qui englobe exactement la date actuelle
     const correctPeriod = await this.prisma.period.findFirst({
       where: {
         instanceYearId,
@@ -233,19 +233,38 @@ export class LegacyApiService {
       },
     });
 
-    if (!correctPeriod)
-      throw new NotFoundException('Aucune période de jeu ouverte.');
+    if (correctPeriod) {
+      await this.prisma.period.updateMany({
+        where: { instanceYearId, isOpen: true },
+        data: { isOpen: false },
+      });
+      await this.prisma.period.update({
+        where: { id: correctPeriod.id },
+        data: { isOpen: true },
+      });
+      return { ...correctPeriod, isOpen: true };
+    }
 
-    await this.prisma.period.updateMany({
-      where: { instanceYearId, isOpen: true },
-      data: { isOpen: false },
+    // Si une période est déjà marquée isOpen (ex: transition inter-semaines ou après fin de période), la conserver
+    if (openPeriod) {
+      return openPeriod;
+    }
+
+    // Fallback : retenir la période la plus récente de l'année scolaire
+    const latestPeriod = await this.prisma.period.findFirst({
+      where: { instanceYearId },
+      orderBy: { startDate: 'desc' },
     });
+
+    if (!latestPeriod)
+      throw new NotFoundException('Aucune période de jeu configurée pour cette école.');
+
     await this.prisma.period.update({
-      where: { id: correctPeriod.id },
+      where: { id: latestPeriod.id },
       data: { isOpen: true },
     });
 
-    return { ...correctPeriod, isOpen: true };
+    return { ...latestPeriod, isOpen: true };
   }
 
   async getCategories(origin?: string, instanceIdStr?: string) {
@@ -284,7 +303,6 @@ export class LegacyApiService {
       const water = a.specificWater ?? a.actionRef.defaultWater ?? 0;
       const waste = a.specificWaste ?? a.actionRef.defaultWaste ?? 0;
       const points = Math.round(co2 + water + waste);
-      // localAction.image peut contenir des valeurs numériques corrompues : on valide l'extension
       const imageFile = isValidImageFilename(a.image)
         ? a.image
         : isValidImageFilename(a.actionRef.image)
@@ -306,10 +324,18 @@ export class LegacyApiService {
     origin?: string,
     instanceIdStr?: string,
   ) {
-    const { instanceId, instanceYearId } = await this.getInstanceContext(
-      origin,
-      instanceIdStr,
-    );
+    const parsedChildId = parseInt(childId, 10);
+    if (isNaN(parsedChildId)) {
+      throw new UnauthorizedException('ID enfant invalide');
+    }
+
+    const child = await this.prisma.child.findUnique({
+      where: { id: parsedChildId },
+      include: { group: { include: { team: { include: { instanceYear: true } } } } },
+    });
+    if (!child) throw new NotFoundException('Élève introuvable');
+
+    const instanceYearId = child.group.team.instanceYearId;
     const period = await this.getOpenPeriod(instanceYearId);
 
     const data = Array.isArray(payload) ? payload[0] : payload;
@@ -327,11 +353,7 @@ export class LegacyApiService {
     });
     if (!action) throw new NotFoundException('Action introuvable');
 
-    const child = await this.prisma.child.findUnique({
-      where: { id: parseInt(childId) },
-      include: { group: { include: { team: { include: { instanceYear: true } } } } },
-    });
-    if (!child || child.group.team.instanceYearId !== period.instanceYearId) {
+    if (child.group.team.instanceYearId !== period.instanceYearId) {
       throw new UnauthorizedException(
         "Erreur : Cet utilisateur n'appartient pas à l'année scolaire en cours. Veuillez contacter votre administrateur.",
       );
