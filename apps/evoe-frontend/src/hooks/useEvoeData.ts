@@ -123,9 +123,10 @@ export function useEvoeData() {
     try {
       setLoadingChallenges(true);
       const res = await evoeClient.get(`${EVOE_API_URL}/challenges`);
-      setChallenges(res.data);
+      setChallenges(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Erreur chargement défis:", err);
+      setChallenges([]);
     } finally {
       setLoadingChallenges(false);
     }

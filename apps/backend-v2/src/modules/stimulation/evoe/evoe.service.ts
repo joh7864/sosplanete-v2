@@ -1045,7 +1045,27 @@ export class EvoeService {
   async getChallenges(authHeader: string, instanceIdStr?: string) {
     const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
     const teamId = child.group.teamId;
-    const period = await this.legacyApiService.getOpenPeriod(child.group.team.instanceYearId);
+    const instanceYearId = child.group.team.instanceYearId;
+
+    let period: any = null;
+    try {
+      period = await this.legacyApiService.getOpenPeriod(instanceYearId);
+    } catch {
+      // Si aucune période n'est actuellement ouverte, fallback sur la période active ou la plus récente
+      period = await this.prisma.period.findFirst({
+        where: { instanceYearId, isOpen: true },
+      });
+      if (!period) {
+        period = await this.prisma.period.findFirst({
+          where: { instanceYearId },
+          orderBy: { startDate: 'desc' },
+        });
+      }
+    }
+
+    if (!period) {
+      return [];
+    }
 
     const challenges = await this.prisma.evoeChallenge.findMany({
       where: {
@@ -1133,7 +1153,24 @@ export class EvoeService {
       throw new BadRequestException("Vous ne pouvez pas défier votre propre équipe.");
     }
     const instanceYearId = child.group.team.instanceYearId;
-    const period = await this.legacyApiService.getOpenPeriod(instanceYearId);
+    let period: any = null;
+    try {
+      period = await this.legacyApiService.getOpenPeriod(instanceYearId);
+    } catch {
+      period = await this.prisma.period.findFirst({
+        where: { instanceYearId, isOpen: true },
+      });
+      if (!period) {
+        period = await this.prisma.period.findFirst({
+          where: { instanceYearId },
+          orderBy: { startDate: 'desc' },
+        });
+      }
+    }
+
+    if (!period) {
+      throw new BadRequestException("Aucune période de jeu n'est disponible pour lancer un défi.");
+    }
 
     // Vérifier la stabilité de la période précédente pour déterminer le quota
     const previousPeriod = await this.prisma.period.findFirst({

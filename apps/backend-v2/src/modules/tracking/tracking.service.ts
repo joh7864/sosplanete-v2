@@ -375,4 +375,98 @@ export class TrackingService {
       hasMoreErrors: errors.length > 500,
     };
   }
+
+  async exportActionsCsv(
+    instanceId: number,
+    schoolYear: string,
+    instanceYearIdDirect?: number,
+  ) {
+    const instanceYear = instanceYearIdDirect
+      ? await this.prisma.instanceYear.findUnique({
+          where: { id: instanceYearIdDirect },
+          include: { instance: true },
+        })
+      : await this.prisma.instanceYear.findUnique({
+          where: { instanceId_schoolYear: { instanceId, schoolYear } },
+          include: { instance: true },
+        });
+
+    if (!instanceYear) {
+      throw new NotFoundException(
+        `Aucune InstanceYear pour instance ${instanceId} / ${schoolYear}`,
+      );
+    }
+
+    const periods = await this.prisma.period.findMany({
+      where: { instanceYearId: instanceYear.id },
+      orderBy: { startDate: 'asc' },
+    });
+    const periodMap = new Map<number, string>();
+    periods.forEach((p, idx) => {
+      periodMap.set(p.id, `S${idx + 1}`);
+    });
+
+    const actions = await this.prisma.actionDone.findMany({
+      where: {
+        child: { group: { team: { instanceYearId: instanceYear.id } } },
+      },
+      include: {
+        child: {
+          include: {
+            group: {
+              include: {
+                team: true,
+              },
+            },
+          },
+        },
+        localAction: {
+          include: {
+            actionRef: true,
+          },
+        },
+        period: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const rows = actions.map((a) => {
+      const d = new Date(a.createdAt);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const dateFormatted = `${day}/${month}/${year}`;
+
+      return {
+        'Action ref': a.localAction?.actionRef?.code || a.localAction?.label || '',
+        Action: a.localAction?.label || '',
+        Team: a.child?.group?.team?.name || '',
+        Group: a.child?.group?.name || '',
+        Children: a.child?.pseudo || '',
+        Date: dateFormatted,
+        Periode: periodMap.get(a.periodId) || `P${a.periodId}`,
+        'Eco tCO2e': (a.savedCo2 ?? 0).toString().replace('.', ','),
+        'Eco eau': (a.savedWater ?? 0).toString().replace('.', ','),
+        'Eco dechets': (a.savedWaste ?? 0).toString().replace('.', ','),
+        'Eco energie': (a.savedEnergy ?? 0).toString().replace('.', ','),
+      };
+    });
+
+    const csvContent = Papa.unparse(rows, {
+      delimiter: ';',
+      quotes: true,
+    });
+
+    const rawName = instanceYear.instance?.schoolName || `instance_${instanceId}`;
+    const instanceName = rawName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `actions_done_${instanceName}_${schoolYear}.csv`;
+
+    return {
+      csvContent,
+      filename,
+      count: rows.length,
+    };
+  }
 }

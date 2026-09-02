@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
 import { ChatGateway } from '../chat.gateway';
+import { WhatsAppService } from '../whatsapp.service';
 
 describe('EvoeService', () => {
   let service: EvoeService;
@@ -79,6 +80,7 @@ describe('EvoeService', () => {
         }),
       },
       actionDone: {
+        findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([
           {
             id: 10,
@@ -137,6 +139,7 @@ describe('EvoeService', () => {
           },
         },
       }),
+      getOpenPeriod: jest.fn().mockResolvedValue({ id: 50, isOpen: true }),
     } as unknown as jest.Mocked<LegacyApiService>;
 
     const impactMock = {
@@ -157,7 +160,14 @@ describe('EvoeService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: LegacyApiService, useValue: legacyApiMock },
         { provide: ImpactService, useValue: impactMock },
-        { provide: ChatGateway, useValue: {} },
+        { provide: ChatGateway, useValue: { sendSystemAlert: jest.fn() } },
+        {
+          provide: WhatsAppService,
+          useValue: {
+            sendChallengeCreatedNotification: jest.fn(),
+            sendPropulsionLevelUpNotification: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -172,7 +182,7 @@ describe('EvoeService', () => {
     expect(result.length).toBe(1);
     expect(result[0].evoeMission).toBeDefined();
     expect(result[0].evoeMission!.titreSF).toBe('Mission : Bouclier');
-    expect(result[0].categorySF).toBe('Secteur Énergétique & Plasma');
+    expect(result[0].categorySF).toBe('Energie');
   });
 
   it('should fetch and calculate extrapolation metrics correctly', async () => {
@@ -240,5 +250,40 @@ describe('EvoeService', () => {
     const guardianEndHealth = resultEnd.playersHealth.find(p => p.childId === 300)?.health;
     // With max decay (85) and some regen from actions, it should be lower than 100
     expect(guardianEndHealth).toBeLessThan(100);
+  });
+
+  it('should return empty list when no game period exists', async () => {
+    (legacyApiService.getOpenPeriod as jest.Mock).mockRejectedValue(new Error('No open period'));
+    (prisma.period.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.getChallenges('Bearer token', '1');
+    expect(result).toEqual([]);
+  });
+
+  it('should return challenges when period is open', async () => {
+    (legacyApiService.getOpenPeriod as jest.Mock).mockResolvedValue({ id: 50, isOpen: true });
+    (prisma.evoeChallenge.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 1,
+        challengerTeamId: 100,
+        challengerTeam: { name: 'Alpha', color: '#f00' },
+        targetTeamId: 101,
+        targetTeam: { name: 'Beta', color: '#00f' },
+        localActionId: 1,
+        localAction: {
+          label: 'Action 1',
+          evoeMission: { titreSF: 'Mission SF 1', descriptionSF: 'Desc SF 1', amplitude: 15 },
+        },
+        pledge: 'Pledge test',
+        durationHours: 24,
+        expiresAt: new Date(Date.now() + 86400000),
+        status: 'PENDING',
+        createdAt: new Date(),
+      },
+    ]);
+
+    const result = await service.getChallenges('Bearer token', '1');
+    expect(result.length).toBe(1);
+    expect(result[0].actionTitle).toBe('Mission SF 1');
   });
 });

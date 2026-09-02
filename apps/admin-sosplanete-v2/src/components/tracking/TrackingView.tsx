@@ -16,6 +16,7 @@ import {
   Loader2,
   Building2,
   Upload,
+  Download,
   Check,
   Maximize2,
   Minimize2,
@@ -141,6 +142,45 @@ export function TrackingView({
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportActionsCsv = async () => {
+    if (!instanceId) return;
+    try {
+      setIsExporting(true);
+      const query = instanceYearId
+        ? `instanceId=${instanceId}&schoolYear=${schoolYear}&instanceYearId=${instanceYearId}`
+        : `instanceId=${instanceId}&schoolYear=${schoolYear}`;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tracking/export-actions-csv?${query}`, {
+        headers: {
+          Authorization: `Bearer ${getAuthData('access_token')}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Erreur lors de l'export CSV");
+      }
+      const data = await res.json();
+      const csvContent = data.csvContent;
+      const filename = data.filename || `actions_done_${instanceId}_${schoolYear}.csv`;
+
+      // Téléchargement avec BOM UTF-8 pour ouverture propre dans Excel
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erreur lors de l'exportation des actions:", err);
+      alert("Une erreur est survenue lors de l'exportation des actions en CSV.");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -289,6 +329,17 @@ export function TrackingView({
                 title="Comprendre le calcul de l'impact"
               >
                 <HelpCircle size={20} className="group-hover:rotate-12 transition-transform" />
+              </button>
+            )}
+
+            {instanceId && activeTab === 'actions' && (
+              <button 
+                onClick={handleExportActionsCsv}
+                disabled={isExporting}
+                className="p-2 rounded-xl bg-white text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all border border-slate-100 shadow-sm flex items-center justify-center disabled:opacity-50"
+                title="Exporter les actions saisies (CSV)"
+              >
+                {isExporting ? <Loader2 size={20} className="animate-spin text-emerald-600" /> : <Download size={20} />}
               </button>
             )}
 
