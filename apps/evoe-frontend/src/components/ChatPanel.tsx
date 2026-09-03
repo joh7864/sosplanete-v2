@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { ChatMessageItem } from './chat/ChatMessageItem';
 import { evoeClient } from '../lib/api';
+import pkg from '../../package.json';
 
 
 interface ChatPanelProps {
@@ -643,7 +644,24 @@ export default function ChatPanel({
             {isGroup1Expanded && (
               <>
                 <div className={`channel-item ${activeTab === 'global' ? 'active' : ''}`} onClick={() => { changeActiveTab('global'); setIsDrawerOpen(false); }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Radio size={14} /> # global</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Radio size={14} /> # global
+                    <span 
+                      style={{ 
+                        fontSize: '0.65rem', 
+                        fontFamily: 'monospace', 
+                        color: 'rgba(0, 255, 204, 0.75)', 
+                        background: 'rgba(0, 255, 204, 0.1)', 
+                        border: '1px solid rgba(0, 255, 204, 0.25)', 
+                        borderRadius: '4px', 
+                        padding: '1px 5px',
+                        fontWeight: 600,
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      v{pkg.version}
+                    </span>
+                  </div>
                   {unreadGlobal > 0 && <span className="channel-badge">{unreadGlobal}</span>}
                 </div>
                 <div className={`channel-item ${activeTab === 'system' ? 'active' : ''}`} onClick={() => { changeActiveTab('system'); setIsDrawerOpen(false); }}>
@@ -796,7 +814,28 @@ export default function ChatPanel({
               alignItems: 'center', 
               gap: '6px' 
             }}>
-              {activeTab === 'global' && <><Radio size={16}/> # global</>}
+              {activeTab === 'global' && (
+                <>
+                  <Radio size={16}/> # global
+                  <span 
+                    style={{ 
+                      fontSize: '0.68rem', 
+                      fontFamily: 'monospace', 
+                      color: 'rgba(0, 255, 204, 0.85)', 
+                      background: 'rgba(0, 255, 204, 0.12)', 
+                      border: '1px solid rgba(0, 255, 204, 0.35)', 
+                      borderRadius: '4px', 
+                      padding: '1px 6px', 
+                      marginLeft: '6px',
+                      fontWeight: 700,
+                      letterSpacing: '0.5px',
+                      boxShadow: '0 0 6px rgba(0, 255, 204, 0.2)'
+                    }}
+                  >
+                    v{pkg.version}
+                  </span>
+                </>
+              )}
               {activeTab === 'team' && <><Shield size={16}/> # équipe ({myTeamName || 'Sans équipe'})</>}
               {activeTab === 'system' && <><Info size={16}/> # système</>}
               {activeTab.startsWith('mp:') && <><MessageSquare size={16}/> @{activeTab.split(':')[1]}</>}
