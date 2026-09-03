@@ -264,16 +264,34 @@ function OrganizationContent() {
   }, [teams]);
 
   const findTeamAndGroupForPlayer = (player: any) => {
-    if (!player) return { teamName: '', groupName: '' };
-    if (player.teamName && player.groupName) return { teamName: player.teamName, groupName: player.groupName };
+    if (!player) return { teamName: '', groupName: '', groupId: undefined, teamId: undefined };
+    if (player.teamName && player.groupName) {
+      return { 
+        teamName: player.teamName, 
+        groupName: player.groupName, 
+        groupId: player.groupId, 
+        teamId: player.teamId 
+      };
+    }
     for (const team of teams) {
       for (const group of team.groups || []) {
-        if (group.children?.some((c: any) => c.id === player.id || (c.pseudo && player.pseudo && c.pseudo.toLowerCase() === player.pseudo.toLowerCase()))) {
-          return { teamName: team.name, groupName: group.name };
+        if (player.groupId && (group.id === player.groupId || String(group.id) === String(player.groupId))) {
+          return { teamName: team.name, groupName: group.name, groupId: group.id, teamId: team.id };
+        }
+        if (player.id && group.children?.some((c: any) => c.id === player.id || String(c.id) === String(player.id))) {
+          return { teamName: team.name, groupName: group.name, groupId: group.id, teamId: team.id };
+        }
+        if (player.pseudo && group.children?.some((c: any) => c.pseudo && c.pseudo.toLowerCase() === player.pseudo.toLowerCase())) {
+          return { teamName: team.name, groupName: group.name, groupId: group.id, teamId: team.id };
         }
       }
     }
-    return { teamName: player.teamName || '', groupName: player.groupName || '' };
+    return { 
+      teamName: player.teamName || '', 
+      groupName: player.groupName || '', 
+      groupId: player.groupId, 
+      teamId: player.teamId 
+    };
   };
 
   const [confirmData, setConfirmData] = useState<{title: string, description: string, onConfirm: () => Promise<void>} | null>(null);
@@ -832,12 +850,28 @@ function OrganizationContent() {
               setIsNewGroup(true);
             }}
             onEditPlayer={(p: any) => {
-              setSelectedPlayer(p);
+              const teamInfo = findTeamAndGroupForPlayer(p);
+              setSelectedPlayer({
+                ...p,
+                teamName: p.teamName || teamInfo.teamName,
+                groupName: p.groupName || teamInfo.groupName,
+                groupId: p.groupId || teamInfo.groupId,
+                teamId: p.teamId || teamInfo.teamId,
+              });
               setShowPlayerModal(true);
               setIsNewPlayer(false);
             }}
-            onAddPlayer={(gId: number) => {
-              setSelectedGroup({ id: gId } as any);
+            onAddPlayer={(gId: number, tName?: string, gName?: string, tId?: number) => {
+              setSelectedGroup({ id: gId, name: gName } as any);
+              if (tId) {
+                setSelectedTeam({ id: tId, name: tName } as any);
+              }
+              setSelectedPlayer({
+                teamName: tName,
+                groupName: gName,
+                groupId: gId,
+                teamId: tId,
+              } as any);
               setShowPlayerModal(true);
               setIsNewPlayer(true);
             }}

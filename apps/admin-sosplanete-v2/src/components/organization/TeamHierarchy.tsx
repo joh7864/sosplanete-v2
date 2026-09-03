@@ -231,7 +231,7 @@ export function TeamCard({
                                 </div>
                               </div>
                               <div className="flex gap-1.5">
-                                <button onClick={() => onAddPlayer(group.id)} className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors shadow-sm"><Plus size={14} /></button>
+                                <button onClick={() => onAddPlayer(group.id, team.name, group.name, team.id)} className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors shadow-sm"><Plus size={14} /></button>
                                 <button onClick={() => onEditGroup(group)} className="p-2 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors border border-slate-100"><Settings2 size={14} /></button>
                               </div>
                             </div>
@@ -281,7 +281,7 @@ export function TeamCard({
                                           </button>
                                           <div 
                                             className="min-w-0 cursor-pointer hover:text-emerald-600 transition-colors"
-                                            onClick={() => onEditPlayer(c)}
+                                            onClick={() => onEditPlayer({ ...c, teamName: team.name, groupName: group.name, groupId: group.id, teamId: team.id })}
                                           >
                                             <span className="text-[11px] font-black text-slate-800 truncate block">{c.pseudo}</span>
                                           </div>
@@ -303,7 +303,7 @@ export function TeamCard({
                                           
                                           <div className="w-6 flex justify-end">
                                             <button 
-                                              onClick={(e) => { e.stopPropagation(); onDeletePlayer(c); }}
+                                              onClick={(e) => { e.stopPropagation(); onDeletePlayer({ ...c, teamName: team.name, groupName: group.name, groupId: group.id, teamId: team.id }); }}
                                               className="p-1 rounded-md text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-40 group-hover/row:opacity-100"
                                               title="Supprimer l'équipier"
                                             >

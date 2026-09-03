@@ -128,19 +128,42 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       setShowAvatarPicker(false);
 
       // Initialiser l'équipe et le groupe sélectionnés
+      let matchedTeam: any = null;
+      let matchedGroup: any = null;
+
+      const targetGroupId = initialData?.groupId;
+      if (targetGroupId) {
+        for (const t of teams) {
+          const g = t.groups?.find((grp: any) => grp.id === targetGroupId || String(grp.id) === String(targetGroupId));
+          if (g) {
+            matchedTeam = t;
+            matchedGroup = g;
+            break;
+          }
+        }
+      }
+
       const effectiveTeamName = teamName || initialData?.teamName;
       const effectiveGroupName = groupName || initialData?.groupName;
-      let matchedTeam = teams.find(t => t.name === effectiveTeamName);
-      if (!matchedTeam && initialData?.groupId) {
-        matchedTeam = teams.find(t => t.groups?.some((g: any) => g.id === initialData.groupId));
+
+      if (!matchedTeam && effectiveTeamName) {
+        matchedTeam = teams.find((t: any) => t.name?.trim().toLowerCase() === effectiveTeamName.trim().toLowerCase());
+        if (matchedTeam) {
+          if (effectiveGroupName) {
+            matchedGroup = matchedTeam.groups?.find((g: any) => g.name?.trim().toLowerCase() === effectiveGroupName.trim().toLowerCase());
+          }
+          if (!matchedGroup && targetGroupId) {
+            matchedGroup = matchedTeam.groups?.find((g: any) => g.id === targetGroupId || String(g.id) === String(targetGroupId));
+          }
+          if (!matchedGroup && matchedTeam.groups?.length > 0) {
+            matchedGroup = matchedTeam.groups[0];
+          }
+        }
       }
+
       if (matchedTeam) {
         setSelectedTeamId(matchedTeam.id);
-        let matchedGroup = matchedTeam.groups?.find((g: any) => g.name === effectiveGroupName || g.id === initialData?.groupId);
-        if (!matchedGroup && matchedTeam.groups?.length > 0) {
-          matchedGroup = matchedTeam.groups[0];
-        }
-        setSelectedGroupId(matchedGroup ? matchedGroup.id : null);
+        setSelectedGroupId(matchedGroup ? matchedGroup.id : (matchedTeam.groups?.[0]?.id || null));
       } else if (teams.length > 0) {
         setSelectedTeamId(teams[0].id);
         setSelectedGroupId(teams[0].groups?.[0]?.id || null);
