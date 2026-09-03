@@ -149,11 +149,9 @@ export class PeriodService {
 
         const d = new Date(nextStart);
         const day = d.getDay();
-        let diff = (day - startDayOfWeek + 7) % 7;
+        const diff = (day - startDayOfWeek + 7) % 7;
 
-        const pStart = new Date(
-          d.getTime() - diff * 24 * 60 * 60 * 1000,
-        );
+        const pStart = new Date(d.getTime() - diff * 24 * 60 * 60 * 1000);
         pStart.setHours(0, 0, 0, 0);
         const pEnd = new Date(pStart.getTime() + 6 * 24 * 60 * 60 * 1000);
         pEnd.setHours(23, 59, 59, 999);
@@ -290,11 +288,9 @@ export class PeriodService {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     const day = d.getDay();
-    let diff = (day - startDayOfWeek + 7) % 7;
+    const diff = (day - startDayOfWeek + 7) % 7;
 
-    const startDate = new Date(
-      d.getTime() - diff * 24 * 60 * 60 * 1000,
-    );
+    const startDate = new Date(d.getTime() - diff * 24 * 60 * 60 * 1000);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
     endDate.setHours(23, 59, 59, 999);

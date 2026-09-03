@@ -53,7 +53,8 @@ export class ImpactService {
             assiduityWeight: mostRecent?.assiduityWeight ?? 0.0,
             annualMultiplierWeight: mostRecent?.annualMultiplierWeight ?? 1.0,
             difficultyFactor: mostRecent?.difficultyFactor ?? 2.0,
-            worldProjectionMultiplier: mostRecent?.worldProjectionMultiplier ?? 1.0,
+            worldProjectionMultiplier:
+              mostRecent?.worldProjectionMultiplier ?? 1.0,
             isCustomized: false,
           },
         });
@@ -68,7 +69,9 @@ export class ImpactService {
       if (instanceId !== null) {
         nbChildrenTotal =
           (await this.prisma.child.count({
-            where: { group: { team: { instanceYear: { instanceId, schoolYear: sy } } } },
+            where: {
+              group: { team: { instanceYear: { instanceId, schoolYear: sy } } },
+            },
           })) || 1;
       } else {
         nbChildrenTotal =
@@ -131,7 +134,9 @@ export class ImpactService {
           select: { gamePeriodsCount: true },
         });
         if (configs.length > 0) {
-          gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+          gameDuration =
+            configs.reduce((a, b) => a + b.gamePeriodsCount, 0) /
+            configs.length;
         }
       }
 
@@ -153,10 +158,14 @@ export class ImpactService {
       const avgWastePerChild =
         nbChildrenTotal > 0 ? realWaste / nbChildrenTotal : 0;
 
-      const worldProjectionMultiplier = annualData.worldProjectionMultiplier ?? 1.0;
-      const effortCo2Indiv = (avgCo2PerChild / 1000) * annualRatio * worldProjectionMultiplier; // Tonnes/an par joueur pondéré
-      const effortWaterIndiv = avgWaterPerChild * annualRatio * worldProjectionMultiplier; // Litres/an par joueur pondéré
-      const effortWasteIndiv = avgWastePerChild * annualRatio * worldProjectionMultiplier; // kg/an par joueur pondéré
+      const worldProjectionMultiplier =
+        annualData.worldProjectionMultiplier ?? 1.0;
+      const effortCo2Indiv =
+        (avgCo2PerChild / 1000) * annualRatio * worldProjectionMultiplier; // Tonnes/an par joueur pondéré
+      const effortWaterIndiv =
+        avgWaterPerChild * annualRatio * worldProjectionMultiplier; // Litres/an par joueur pondéré
+      const effortWasteIndiv =
+        avgWastePerChild * annualRatio * worldProjectionMultiplier; // kg/an par joueur pondéré
 
       // 6. Projection Mondiale
       // Le facteur ambassadeur de 4 (foyer) et le diviseur de population de 4 (nombre de foyers) s'annulant mutuellement,
@@ -176,7 +185,9 @@ export class ImpactService {
 
       // Application du poids de l'assiduité
       const assiduityWeight = annualData.assiduityWeight ?? 0.0;
-      const weightedEffortRatio = rawEffortRatio * (1 - assiduityWeight) + (rawEffortRatio * assiduiteRatio) * assiduityWeight;
+      const weightedEffortRatio =
+        rawEffortRatio * (1 - assiduityWeight) +
+        rawEffortRatio * assiduiteRatio * assiduityWeight;
       const safeEffortRatio = Math.min(weightedEffortRatio, 0.99);
 
       // 8. Calcul des Planètes et Jour J (Modèle Asymptotique 25%)
@@ -215,7 +226,9 @@ export class ImpactService {
           name = inst.schoolName;
           // Compter les enfants via instanceYear
           nbChildren = await this.prisma.child.count({
-            where: { group: { team: { instanceYear: { instanceId, schoolYear: sy } } } },
+            where: {
+              group: { team: { instanceYear: { instanceId, schoolYear: sy } } },
+            },
           });
         }
       }
@@ -399,7 +412,7 @@ export class ImpactService {
     }
 
     const catalogSize = (await this.prisma.actionRef.count()) || 62;
-    
+
     let gameDuration = 52; // Default for global
     if (instanceId) {
       const config = await this.prisma.gameConfig.findUnique({
@@ -412,7 +425,8 @@ export class ImpactService {
         select: { gamePeriodsCount: true },
       });
       if (configs.length > 0) {
-        gameDuration = configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
+        gameDuration =
+          configs.reduce((a, b) => a + b.gamePeriodsCount, 0) / configs.length;
       }
     }
 

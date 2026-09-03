@@ -45,9 +45,10 @@ describe('EvoeService', () => {
         findFirst: jest
           .fn()
           .mockResolvedValue({ avgActionsPerChildPerPeriod: 8 }),
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({ avgActionsPerChildPerPeriod: 8, gamePeriodsCount: 40 }),
+        findUnique: jest.fn().mockResolvedValue({
+          avgActionsPerChildPerPeriod: 8,
+          gamePeriodsCount: 40,
+        }),
       },
       evoeChallenge: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -181,7 +182,7 @@ describe('EvoeService', () => {
     const result = await service.getMissions(1, '2024-2025');
     expect(result.length).toBe(1);
     expect(result[0].evoeMission).toBeDefined();
-    expect(result[0].evoeMission!.titreSF).toBe('Mission : Bouclier');
+    expect(result[0].evoeMission.titreSF).toBe('Mission : Bouclier');
     expect(result[0].categorySF).toBe('Energie');
   });
 
@@ -236,7 +237,9 @@ describe('EvoeService', () => {
     });
     const resultStart = await service.getDashboardStatus(1, '2024-2025');
     expect(resultStart.topPlayers.length).toBeGreaterThan(0);
-    const guardianStartHealth = resultStart.playersHealth.find(p => p.childId === 300)?.health;
+    const guardianStartHealth = resultStart.playersHealth.find(
+      (p) => p.childId === 300,
+    )?.health;
     expect(guardianStartHealth).toBe(100); // capped at 100
 
     // 2. Fin de période (ratio = 1.0)
@@ -247,13 +250,17 @@ describe('EvoeService', () => {
       endDate: new Date(Date.now()),
     });
     const resultEnd = await service.getDashboardStatus(1, '2024-2025');
-    const guardianEndHealth = resultEnd.playersHealth.find(p => p.childId === 300)?.health;
+    const guardianEndHealth = resultEnd.playersHealth.find(
+      (p) => p.childId === 300,
+    )?.health;
     // With max decay (85) and some regen from actions, it should be lower than 100
     expect(guardianEndHealth).toBeLessThan(100);
   });
 
   it('should return empty list when no game period exists', async () => {
-    (legacyApiService.getOpenPeriod as jest.Mock).mockRejectedValue(new Error('No open period'));
+    (legacyApiService.getOpenPeriod as jest.Mock).mockRejectedValue(
+      new Error('No open period'),
+    );
     (prisma.period.findFirst as jest.Mock).mockResolvedValue(null);
 
     const result = await service.getChallenges('Bearer token', '1');
@@ -261,7 +268,10 @@ describe('EvoeService', () => {
   });
 
   it('should return challenges when period is open', async () => {
-    (legacyApiService.getOpenPeriod as jest.Mock).mockResolvedValue({ id: 50, isOpen: true });
+    (legacyApiService.getOpenPeriod as jest.Mock).mockResolvedValue({
+      id: 50,
+      isOpen: true,
+    });
     (prisma.evoeChallenge.findMany as jest.Mock).mockResolvedValue([
       {
         id: 1,
@@ -272,7 +282,11 @@ describe('EvoeService', () => {
         localActionId: 1,
         localAction: {
           label: 'Action 1',
-          evoeMission: { titreSF: 'Mission SF 1', descriptionSF: 'Desc SF 1', amplitude: 15 },
+          evoeMission: {
+            titreSF: 'Mission SF 1',
+            descriptionSF: 'Desc SF 1',
+            amplitude: 15,
+          },
         },
         pledge: 'Pledge test',
         durationHours: 24,

@@ -17,8 +17,15 @@ export class LegacyApiController {
 
   @Get('check_auth')
   async checkAuth(@Headers('authorization') auth: string) {
-    if (!auth || !auth.startsWith('Basic ')) {
-      throw new UnauthorizedException('Basic auth required');
+    if (!auth) {
+      throw new UnauthorizedException('Authorization header required');
+    }
+    if (auth.startsWith('Bearer ')) {
+      const token = auth.replace('Bearer ', '').trim();
+      return this.legacyApiService.checkAuthByToken(token);
+    }
+    if (!auth.startsWith('Basic ')) {
+      throw new UnauthorizedException('Basic or Bearer auth required');
     }
     const decoded = Buffer.from(auth.replace('Basic ', ''), 'base64').toString(
       'utf8',

@@ -11,8 +11,20 @@ import { ChatGateway } from './chat.gateway';
 
 @Module({
   imports: [PrismaModule, CategoryRefModule, AuthModule],
-  providers: [StimulationService, AnimalUnlockService, EcoBarRaceService, WhatsAppService, ChatGateway],
+  providers: [
+    StimulationService,
+    AnimalUnlockService,
+    EcoBarRaceService,
+    WhatsAppService,
+    ChatGateway,
+  ],
   controllers: [StimulationController],
-  exports: [StimulationService, AnimalUnlockService, EcoBarRaceService, WhatsAppService, ChatGateway],
+  exports: [
+    StimulationService,
+    AnimalUnlockService,
+    EcoBarRaceService,
+    WhatsAppService,
+    ChatGateway,
+  ],
 })
 export class StimulationModule {}

@@ -130,11 +130,13 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
     const userKey = userId ? `evoe_has_seen_onboarding_v2_${userId}` : 'evoe_has_seen_onboarding_v2';
     localStorage.setItem(userKey, 'true');
     try {
+      const savedToken = localStorage.getItem('evoe_token') || sessionStorage.getItem('evoe_token');
       const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
       const savedInstanceId = localStorage.getItem('instanceId') || sessionStorage.getItem('instanceId');
-      if (savedAuth) {
+      if (savedToken || savedAuth) {
         const evoeApiUrl = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
-        const headers: Record<string, string> = { Authorization: `Basic ${savedAuth}` };
+        const authHeader = savedToken ? `Bearer ${savedToken}` : `Basic ${savedAuth}`;
+        const headers: Record<string, string> = { Authorization: authHeader };
         if (savedInstanceId) headers['x-instance-id'] = savedInstanceId;
         await fetch(`${evoeApiUrl}/onboarding/seen`, { method: 'POST', headers });
       }
@@ -147,13 +149,15 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
   useEffect(() => {
     const fetchSteps = async () => {
       try {
+        const savedToken = localStorage.getItem('evoe_token') || sessionStorage.getItem('evoe_token');
         const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
         const savedInstanceId = localStorage.getItem('instanceId') || sessionStorage.getItem('instanceId');
-        if (!savedAuth) return;
+        if (!savedToken && !savedAuth) return;
 
         const evoeApiUrl = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
+        const authHeader = savedToken ? `Bearer ${savedToken}` : `Basic ${savedAuth}`;
         const headers: Record<string, string> = {
-          Authorization: `Basic ${savedAuth}`,
+          Authorization: authHeader,
         };
         if (savedInstanceId) {
           headers['x-instance-id'] = savedInstanceId;

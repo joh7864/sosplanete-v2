@@ -53,12 +53,21 @@ export class WhatsAppService {
     try {
       const config = await this.getActiveConfig(schoolYear);
       if (!config || !config.whatsappGeneralUrl || !config.whatsappGeneralId) {
-        this.logger.warn('[WhatsApp] Aucune configuration générale WhatsApp active trouvée pour envoyer la notification.');
+        this.logger.warn(
+          '[WhatsApp] Aucune configuration générale WhatsApp active trouvée pour envoyer la notification.',
+        );
         return { ok: false, reason: 'missing_config' };
       }
-      return await this.sendMessageToGateway(config.whatsappGeneralUrl, config.whatsappGeneralId, message);
+      return await this.sendMessageToGateway(
+        config.whatsappGeneralUrl,
+        config.whatsappGeneralId,
+        message,
+      );
     } catch (e: any) {
-      this.logger.error('[WhatsApp] Erreur lors de l\'envoi de la notification générale :', e);
+      this.logger.error(
+        "[WhatsApp] Erreur lors de l'envoi de la notification générale :",
+        e,
+      );
       return { ok: false, error: e.message };
     }
   }
@@ -170,7 +179,8 @@ export class WhatsAppService {
     schoolYear?: string,
   ) {
     const medal = rankNumber === 1 ? '🥇' : rankNumber === 2 ? '🥈' : '🥉';
-    const rankLabel = rankNumber === 1 ? '1ère place (LEADER)' : `${rankNumber}e place`;
+    const rankLabel =
+      rankNumber === 1 ? '1ère place (LEADER)' : `${rankNumber}e place`;
     const msg =
       `${medal} *NOUVEL AGENT SUR LE PODIUM !*\n` +
       `─────────────────────────\n\n` +
@@ -189,7 +199,9 @@ export class WhatsAppService {
     if (activeConfig) {
       await this.sendReport(activeConfig.schoolYear);
     } else {
-      this.logger.warn('[CRON WhatsApp] Aucun SystemConfig avec WhatsApp actif trouvé.');
+      this.logger.warn(
+        '[CRON WhatsApp] Aucun SystemConfig avec WhatsApp actif trouvé.',
+      );
     }
   }
 
@@ -199,9 +211,18 @@ export class WhatsAppService {
   async sendReport(schoolYear?: string) {
     try {
       const systemConfig = await this.getActiveConfig(schoolYear);
-      if (!systemConfig || !systemConfig.whatsappGeneralUrl || !systemConfig.whatsappGeneralId) {
-        this.logger.warn(`[WhatsApp] Configuration générale non définie pour l'année ${schoolYear || 'active'}. Annulation du rapport.`);
-        return { success: false, message: 'Configuration générale WhatsApp manquante.' };
+      if (
+        !systemConfig ||
+        !systemConfig.whatsappGeneralUrl ||
+        !systemConfig.whatsappGeneralId
+      ) {
+        this.logger.warn(
+          `[WhatsApp] Configuration générale non définie pour l'année ${schoolYear || 'active'}. Annulation du rapport.`,
+        );
+        return {
+          success: false,
+          message: 'Configuration générale WhatsApp manquante.',
+        };
       }
 
       const sy = systemConfig.schoolYear;
@@ -218,7 +239,9 @@ export class WhatsAppService {
         });
       }
       if (!instanceYear) {
-        this.logger.warn(`[WhatsApp] Aucune InstanceYear active trouvée pour l'année ${sy}.`);
+        this.logger.warn(
+          `[WhatsApp] Aucune InstanceYear active trouvée pour l'année ${sy}.`,
+        );
         return { success: false, message: 'Aucun espace actif.' };
       }
 
@@ -230,7 +253,9 @@ export class WhatsAppService {
         });
       }
       if (!activePeriod) {
-        this.logger.warn(`[WhatsApp] Aucune période ouverte trouvée pour l'espace.`);
+        this.logger.warn(
+          `[WhatsApp] Aucune période ouverte trouvée pour l'espace.`,
+        );
         return { success: false, message: 'Aucune période ouverte.' };
       }
 
@@ -253,7 +278,10 @@ export class WhatsAppService {
         },
       });
 
-      const totalChildren = teams.reduce((acc, t) => acc + t.groups.reduce((ag, g) => ag + g.children.length, 0), 0);
+      const totalChildren = teams.reduce(
+        (acc, t) => acc + t.groups.reduce((ag, g) => ag + g.children.length, 0),
+        0,
+      );
       if (totalChildren === 0) {
         return { success: false, message: 'Aucun joueur enregistré.' };
       }
@@ -271,7 +299,10 @@ export class WhatsAppService {
           for (const child of group.children) {
             const hasActions = child.actionsDone.length > 0;
             if (hasActions) {
-              const childCo2 = child.actionsDone.reduce((sum, ad) => sum + ad.savedCo2, 0);
+              const childCo2 = child.actionsDone.reduce(
+                (sum, ad) => sum + ad.savedCo2,
+                0,
+              );
               teamCo2 += childCo2;
               totalCo2Saved += childCo2;
             } else {
@@ -301,13 +332,16 @@ export class WhatsAppService {
       });
       const actionsTarget = gameConfig?.avgActionsPerChildPerPeriod || 8;
       const targetCo2 = totalChildren * actionsTarget * 5.0; // 5 kg par action en moyenne
-      const stability = Math.min(100, Math.round((totalCo2Saved / (targetCo2 || 1)) * 100));
+      const stability = Math.min(
+        100,
+        Math.round((totalCo2Saved / (targetCo2 || 1)) * 100),
+      );
 
       // 5. Générer le message général de type SF
       let globalMessage = `🔮 *RAPPORT TEMPOREL EVOE — NEXUS 2070*\n`;
       globalMessage += `─────────────────────────\n\n`;
       globalMessage += `🛡️ *Stabilité de la Timeline* : ${stability}% (Nexus central ${stability >= 80 ? '🟢 Stable' : stability >= 50 ? '🟠 Vacillant' : '🚨 Déstabilisé'})\n\n`;
-      
+
       globalMessage += `🚀 *CLASSEMENT DES VAISSEAUX & PROPULSIONS* :\n`;
       const PROPULSION_THRESHOLDS = [
         { level: 1, name: 'Friction Thermique' },
@@ -318,19 +352,25 @@ export class WhatsAppService {
       ];
       for (let i = 0; i < teamScores.length; i++) {
         const t = teamScores[i];
-        const teamObj = teams.find(team => team.id === t.id);
+        const teamObj = teams.find((team) => team.id === t.id);
         const techLevel = teamObj?.evoeTechnology?.maxLevel || 1;
-        const propName = PROPULSION_THRESHOLDS.find(p => p.level === techLevel)?.name || 'Friction Thermique';
-        const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🛸';
+        const propName =
+          PROPULSION_THRESHOLDS.find((p) => p.level === techLevel)?.name ||
+          'Friction Thermique';
+        const rankEmoji =
+          i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🛸';
         globalMessage += `${rankEmoji} *Équipe ${t.name}* : Propulsion N${techLevel} (${propName}) — ${t.co2.toFixed(1)} kg CO2e\n`;
       }
       globalMessage += `\n`;
 
       // Lister tous les glitchs
-      const allGlitchPseudos = Array.from(glitchingPlayersByTeam.values()).flat();
+      const allGlitchPseudos = Array.from(
+        glitchingPlayersByTeam.values(),
+      ).flat();
       if (allGlitchPseudos.length > 0) {
         globalMessage += `⚠️ *Alerte Paradoxe Ancestral* : Certains Watchmen n'ont pas synchronisé leur Codex cette semaine. Leurs descendants glitcheront bientôt en 2070 :\n`;
-        globalMessage += allGlitchPseudos.map((p) => `• @${p}`).join('\n') + `\n\n`;
+        globalMessage +=
+          allGlitchPseudos.map((p) => `• @${p}`).join('\n') + `\n\n`;
       } else {
         globalMessage += `✨ Aucun paradoxe temporel détecté. Tous les descendants d'équipage sont physiquement complets ! 🧬\n\n`;
       }
@@ -338,11 +378,24 @@ export class WhatsAppService {
       globalMessage += `🔗 _Consultez vos missions et propulsez votre vaisseau sur Evoe !_`;
 
       // Envoyer le message unique au groupe WhatsApp EVOE
-      const result = await this.sendMessageToGateway(systemConfig.whatsappGeneralUrl, systemConfig.whatsappGeneralId, globalMessage);
+      const result = await this.sendMessageToGateway(
+        systemConfig.whatsappGeneralUrl,
+        systemConfig.whatsappGeneralId,
+        globalMessage,
+      );
 
-      return { success: result.ok, stability, leadingTeam, glitchCount: allGlitchPseudos.length, result };
+      return {
+        success: result.ok,
+        stability,
+        leadingTeam,
+        glitchCount: allGlitchPseudos.length,
+        result,
+      };
     } catch (e: any) {
-      this.logger.error('Erreur lors de la génération du rapport WhatsApp :', e);
+      this.logger.error(
+        'Erreur lors de la génération du rapport WhatsApp :',
+        e,
+      );
       return { success: false, message: e.message };
     }
   }
@@ -360,21 +413,23 @@ export class WhatsAppService {
 
     const gatewayUrl = customGatewayUrl || systemConfig?.whatsappGeneralUrl;
     const chatId = customChatId || systemConfig?.whatsappGeneralId;
-    const communityName = systemConfig?.whatsappCommunityName || 'Communauté SOS Planète';
+    const communityName =
+      systemConfig?.whatsappCommunityName || 'Communauté SOS Planète';
 
     const testMsg =
       customMessage ||
       `🧪 *TEST DU CANAL TEMPOREL — ${communityName.toUpperCase()}*\n` +
-      `─────────────────────────\n\n` +
-      `✅ Connexion établie avec succès entre le serveur EVOE et ce canal WhatsApp.\n` +
-      `📢 Les alertes de jeu, duels et bilans hebdo seront transmis ici.\n\n` +
-      `🚀 _Transmission test réussie !_`;
+        `─────────────────────────\n\n` +
+        `✅ Connexion établie avec succès entre le serveur EVOE et ce canal WhatsApp.\n` +
+        `📢 Les alertes de jeu, duels et bilans hebdo seront transmis ici.\n\n` +
+        `🚀 _Transmission test réussie !_`;
 
     if (!gatewayUrl || !chatId) {
       return {
         success: false,
         simulated: true,
-        message: 'URL de passerelle ou Identifiant de canal non configuré. Mode simulation actif.',
+        message:
+          'URL de passerelle ou Identifiant de canal non configuré. Mode simulation actif.',
         previewText: testMsg,
       };
     }
@@ -383,7 +438,9 @@ export class WhatsAppService {
     return {
       success: result.ok,
       simulated: false,
-      message: result.ok ? 'Message de test transmis à la passerelle WhatsApp.' : `Échec de la transmission (Erreur HTTP ${result.status || 'Interne'})`,
+      message: result.ok
+        ? 'Message de test transmis à la passerelle WhatsApp.'
+        : `Échec de la transmission (Erreur HTTP ${result.status || 'Interne'})`,
       previewText: testMsg,
       result,
     };
@@ -392,14 +449,19 @@ export class WhatsAppService {
   /**
    * Envoi de message HTTP POST vers l'API / passerelle WhatsApp configurée.
    */
-  private async sendMessageToGateway(gatewayUrl: string, chatId: string, message: string) {
+  private async sendMessageToGateway(
+    gatewayUrl: string,
+    chatId: string,
+    message: string,
+  ) {
     try {
-      const apiKey = process.env.EVOLUTION_API_KEY || 'evoe4=SecretWhatsappAPI07!';
+      const apiKey =
+        process.env.EVOLUTION_API_KEY || 'evoe4=SecretWhatsappAPI07!';
       const response = await fetch(gatewayUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': apiKey,
+          apikey: apiKey,
         },
         body: JSON.stringify({
           number: chatId,
@@ -408,14 +470,21 @@ export class WhatsAppService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`[WhatsApp API] Échec de l'envoi du message à ${chatId}. Code: ${response.status}`);
+        this.logger.warn(
+          `[WhatsApp API] Échec de l'envoi du message à ${chatId}. Code: ${response.status}`,
+        );
         return { ok: false, status: response.status };
       } else {
-        this.logger.log(`[WhatsApp API] Message envoyé avec succès à ${chatId}.`);
+        this.logger.log(
+          `[WhatsApp API] Message envoyé avec succès à ${chatId}.`,
+        );
         return { ok: true, status: response.status };
       }
     } catch (error: any) {
-      this.logger.error(`[WhatsApp API] Erreur d'appel de passerelle pour ${chatId} :`, error);
+      this.logger.error(
+        `[WhatsApp API] Erreur d'appel de passerelle pour ${chatId} :`,
+        error,
+      );
       return { ok: false, error: error.message };
     }
   }

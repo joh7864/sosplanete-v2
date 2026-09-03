@@ -86,7 +86,9 @@ export class LocalActionController {
   }
 
   @Post('import-csv')
-  @ApiOperation({ summary: "Importation personnalisée d'actions via un tableau JSON" })
+  @ApiOperation({
+    summary: "Importation personnalisée d'actions via un tableau JSON",
+  })
   async importCsv(
     @Body()
     body: {
@@ -149,7 +151,8 @@ export class LocalActionController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, _file, cb) => {
-          const folder = req.query.folder === 'missions' ? 'missions' : 'actions';
+          const folder =
+            req.query.folder === 'missions' ? 'missions' : 'actions';
           const basePath =
             process.env.UPLOADS_DIR ||
             join(__dirname, '..', '..', '..', '..', '..', 'uploads');
@@ -192,17 +195,21 @@ export class LocalActionController {
     if (!file) throw new BadRequestException('Aucun fichier envoyé.');
     const targetFolder = folder === 'missions' ? 'missions' : 'actions';
     const imageUrl = file.filename;
-    
+
     if (targetFolder === 'missions') {
-      await this.localActionService.update(id, { imageEvoe: imageUrl }, req.user);
+      await this.localActionService.update(
+        id,
+        { imageEvoe: imageUrl },
+        req.user,
+      );
     } else {
       await this.localActionService.update(id, { image: imageUrl }, req.user);
     }
 
-    return { 
-      filename: imageUrl, 
+    return {
+      filename: imageUrl,
       url: `/uploads/${targetFolder}/${imageUrl}`,
-      folder: targetFolder 
+      folder: targetFolder,
     };
   }
 

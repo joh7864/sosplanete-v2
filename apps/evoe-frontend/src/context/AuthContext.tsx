@@ -44,12 +44,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [players, setPlayers] = useState<any[]>([]);
 
   const refreshContext = async () => {
+    const savedToken = localStorage.getItem("evoe_token") || sessionStorage.getItem("evoe_token");
     const savedAuth = localStorage.getItem("evoe_auth") || sessionStorage.getItem("evoe_auth");
     const savedInstanceId = localStorage.getItem("instanceId") || sessionStorage.getItem("instanceId");
-    if (savedAuth && savedInstanceId) {
+
+    if ((savedToken || savedAuth) && savedInstanceId) {
+      const authHeader = savedToken ? `Bearer ${savedToken}` : `Basic ${savedAuth}`;
       const headers = {
         "content-type": "application/json",
-        Authorization: "Basic " + savedAuth,
+        Authorization: authHeader,
         "x-instance-id": savedInstanceId
       };
       try {
@@ -67,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     headers["x-instance-id"] = instId;
     
     setInstanceId(instId);
-    // On sauvegarde l'instanceId pour le checkUserStatus
+    // Sauvegarder l'instanceId pour checkUserStatus
     localStorage.setItem("instanceId", instId);
     sessionStorage.setItem("instanceId", instId);
     
@@ -95,8 +98,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setErrorAuthentification("");
 
-    // Si on est au 2e appel (choix d'instance), les credentials locaux de Login
-    // peuvent être vides car le composant a été remonté. On utilise le cache du contexte.
     const resolvedUname = (userInfo.pseudo && userInfo.password)
       ? userInfo.pseudo + ":" + userInfo.password
       : (pendingAuth ? atob(pendingAuth) : "");
@@ -123,29 +124,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // 2e appel : on sélectionne l'instance
           const choice = choices.find((c: any) => c.instanceId.toString() === selectedInstanceId.toString());
           if (choice) {
-            setUser(encodedAuth);
+            const token = choice.token || choice.access_token || encodedAuth;
+            setUser(token);
             setPseudo(resolvedPseudo);
             setInstanceChoices(null);
             setPendingAuth(null); // On efface le cache des credentials
+
+            // Nettoyage de l'ancien basic auth
+            localStorage.removeItem("evoe_auth");
+            sessionStorage.removeItem("evoe_auth");
+
             if (userInfo.keepLogged) {
-              localStorage.setItem("evoe_auth", encodedAuth);
+              localStorage.setItem("evoe_token", token);
+              sessionStorage.removeItem("evoe_token");
             } else {
-              sessionStorage.setItem("evoe_auth", encodedAuth);
+              sessionStorage.setItem("evoe_token", token);
+              localStorage.removeItem("evoe_token");
             }
-            finishLogin(choice.instanceId, choice.schoolName, headers, resolvedPseudo);
+            
+            const authHeader = token.includes('.') ? `Bearer ${token}` : `Basic ${token}`;
+            finishLogin(choice.instanceId, choice.schoolName, { ...headers, Authorization: authHeader }, resolvedPseudo);
             navigate("/");
           }
         }
       } else if (result.data.instanceId) {
-        setUser(encodedAuth);
+        const token = result.data.token || result.data.access_token || encodedAuth;
+        setUser(token);
         setPseudo(resolvedPseudo);
         setPendingAuth(null);
+
+        // Nettoyage de l'ancien basic auth
+        localStorage.removeItem("evoe_auth");
+        sessionStorage.removeItem("evoe_auth");
+
         if (userInfo.keepLogged) {
-          localStorage.setItem("evoe_auth", encodedAuth);
+          localStorage.setItem("evoe_token", token);
+          sessionStorage.removeItem("evoe_token");
         } else {
-          sessionStorage.setItem("evoe_auth", encodedAuth);
+          sessionStorage.setItem("evoe_token", token);
+          localStorage.removeItem("evoe_token");
         }
-        finishLogin(result.data.instanceId, result.data.schoolName, headers, resolvedPseudo);
+
+        const authHeader = token.includes('.') ? `Bearer ${token}` : `Basic ${token}`;
+        finishLogin(result.data.instanceId, result.data.schoolName, { ...headers, Authorization: authHeader }, resolvedPseudo);
         navigate("/");
       }
     } catch (error) {
@@ -163,8 +184,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setChildInfos(null);
     setInstanceId(null);
     setTeamId(null);
+    localStorage.removeItem("evoe_token");
     localStorage.removeItem("evoe_auth");
     localStorage.removeItem("instanceId");
+    sessionStorage.removeItem("evoe_token");
     sessionStorage.removeItem("evoe_auth");
     sessionStorage.removeItem("instanceId");
     delete evoeClient.defaults.headers.common['Authorization'];
@@ -173,10 +196,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const checkUserStatus = async () => {
+    const savedToken = localStorage.getItem("evoe_token") || sessionStorage.getItem("evoe_token");
     const savedAuth = localStorage.getItem("evoe_auth") || sessionStorage.getItem("evoe_auth");
     const savedInstanceId = localStorage.getItem("instanceId") || sessionStorage.getItem("instanceId");
 
-    if (savedAuth && savedInstanceId) {
+    // 1. Session avec JWT Bearer token
+    if (savedToken && savedInstanceId) {
+      try {
+        const headers = {
+          "content-type": "application/json",
+          Authorization: `Bearer ${savedToken}`,
+          "x-instance-id": savedInstanceId
+        };
+        
+        const result = await evoeClient.get(`${API_URL}/check_auth`, { headers });
+        if (result.data.status === 'success' || result.data.instanceId) {
+          setUser(savedToken);
+          setPseudo(result.data.pseudo);
+          finishLogin(savedInstanceId, result.data.schoolName || "", headers, result.data.pseudo);
+        } else {
+          logoutUser();
+        }
+      } catch (e) {
+        logoutUser();
+      }
+    } 
+    // 2. Migration automatique transparente pour les anciens comptes Basic Auth
+    else if (savedAuth && savedInstanceId) {
       try {
         const headers = {
           "content-type": "application/json",
@@ -184,19 +230,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           "x-instance-id": savedInstanceId
         };
         
-        // On décode le pseudo depuis le token basic
         const decoded = atob(savedAuth);
         const savedPseudo = decoded.split(":")[0];
         
-        // Vérifier que le token est toujours valide
         const result = await evoeClient.get(`${API_URL}/check_auth`, { headers });
-        if (result.data.instanceId || result.data.status === 'multiple_choices') {
-           setUser(savedAuth);
-           setPseudo(savedPseudo);
-           // On utilise finishLogin pour recharger les infos (qui configure aussi axios)
-           finishLogin(savedInstanceId, result.data.schoolName || "", headers, savedPseudo);
+        if (result.data.instanceId || result.data.status === 'multiple_choices' || result.data.status === 'success') {
+          const newToken = result.data.token || result.data.access_token;
+          if (newToken) {
+            // Migrer vers evoe_token
+            if (localStorage.getItem("evoe_auth")) {
+              localStorage.setItem("evoe_token", newToken);
+              localStorage.removeItem("evoe_auth");
+            } else {
+              sessionStorage.setItem("evoe_token", newToken);
+              sessionStorage.removeItem("evoe_auth");
+            }
+            setUser(newToken);
+            setPseudo(result.data.pseudo || savedPseudo);
+            finishLogin(savedInstanceId, result.data.schoolName || "", { ...headers, Authorization: `Bearer ${newToken}` }, result.data.pseudo || savedPseudo);
+          } else {
+            setUser(savedAuth);
+            setPseudo(savedPseudo);
+            finishLogin(savedInstanceId, result.data.schoolName || "", headers, savedPseudo);
+          }
         } else {
-           logoutUser();
+          logoutUser();
         }
       } catch (e) {
         logoutUser();

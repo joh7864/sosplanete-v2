@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { CategoryService } from '../category/category.service';
@@ -29,7 +33,8 @@ export class LocalActionService {
     const actionRef = await this.prisma.actionRef.findUnique({
       where: { id: data.actionRefId },
     });
-    if (!actionRef) throw new NotFoundException('Action de référence non trouvée');
+    if (!actionRef)
+      throw new NotFoundException('Action de référence non trouvée');
 
     return this.prisma.localAction.create({
       data: {
@@ -62,8 +67,8 @@ export class LocalActionService {
         actionRef: true,
         evoeMission: true,
         _count: {
-          select: { actionsDone: true }
-        }
+          select: { actionsDone: true },
+        },
       },
     });
   }
@@ -124,14 +129,18 @@ export class LocalActionService {
       let categoryId: number | null = null;
       if (actionInput.category) {
         try {
-          const instanceYearId = await this.categoryService.resolveInstanceYearId(
-            instanceId,
-            schoolYear,
-          );
+          const instanceYearId =
+            await this.categoryService.resolveInstanceYearId(
+              instanceId,
+              schoolYear,
+            );
           let cat = await this.prisma.category.findFirst({
             where: {
               instanceYearId,
-              name: { equals: actionInput.category.trim(), mode: 'insensitive' },
+              name: {
+                equals: actionInput.category.trim(),
+                mode: 'insensitive',
+              },
             },
           });
           if (!cat) {
@@ -215,25 +224,42 @@ export class LocalActionService {
       where: { id },
       data: {
         ...(data.label !== undefined && { label: data.label }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(data.image !== undefined && { image: data.image }),
         ...(data.imageEvoe !== undefined && { imageEvoe: data.imageEvoe }),
         ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
-        ...(data.specificCo2 !== undefined && { specificCo2: data.specificCo2 }),
-        ...(data.specificWater !== undefined && { specificWater: data.specificWater }),
-        ...(data.specificWaste !== undefined && { specificWaste: data.specificWaste }),
-        ...(data.specificEnergy !== undefined && { specificEnergy: data.specificEnergy }),
+        ...(data.specificCo2 !== undefined && {
+          specificCo2: data.specificCo2,
+        }),
+        ...(data.specificWater !== undefined && {
+          specificWater: data.specificWater,
+        }),
+        ...(data.specificWaste !== undefined && {
+          specificWaste: data.specificWaste,
+        }),
+        ...(data.specificEnergy !== undefined && {
+          specificEnergy: data.specificEnergy,
+        }),
       },
     });
 
     // 2. Handle EvoeMissionTranslation update/upsert if SF fields provided
-    const itPoints = data.pointsIT !== undefined ? data.pointsIT : data.pointsGagnes;
-    if (data.titreSF !== undefined || data.descriptionSF !== undefined || itPoints !== undefined) {
+    const itPoints =
+      data.pointsIT !== undefined ? data.pointsIT : data.pointsGagnes;
+    if (
+      data.titreSF !== undefined ||
+      data.descriptionSF !== undefined ||
+      itPoints !== undefined
+    ) {
       await this.prisma.evoeMissionTranslation.upsert({
         where: { localActionId: id },
         update: {
           ...(data.titreSF !== undefined && { titreSF: data.titreSF }),
-          ...(data.descriptionSF !== undefined && { descriptionSF: data.descriptionSF }),
+          ...(data.descriptionSF !== undefined && {
+            descriptionSF: data.descriptionSF,
+          }),
           ...(itPoints !== undefined && { pointsGagnes: itPoints }),
         },
         create: {

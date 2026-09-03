@@ -3,6 +3,11 @@ import { LegacyApiService } from './legacy-api.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ImpactService } from '../impact/impact.service';
 import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
+import { TrackingService } from '../tracking/tracking.service';
+import { EcoBarRaceService } from '../stimulation/eco-bar-race.service';
+import { JwtService } from '@nestjs/jwt';
+import { WhatsAppService } from '../stimulation/whatsapp.service';
+import { ChatGateway } from '../stimulation/chat.gateway';
 
 describe('LegacyApiService', () => {
   let service: LegacyApiService;
@@ -21,6 +26,17 @@ describe('LegacyApiService', () => {
               .mockResolvedValue({ animalsUnlocked: 0 }),
           },
         },
+        { provide: TrackingService, useValue: {} },
+        { provide: EcoBarRaceService, useValue: {} },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn().mockReturnValue('mock_token'),
+            verify: jest.fn(),
+          },
+        },
+        { provide: WhatsAppService, useValue: {} },
+        { provide: ChatGateway, useValue: {} },
       ],
     }).compile();
 

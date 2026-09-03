@@ -36,7 +36,11 @@ export function useChatSocket({
   const [unreadMps, setUnreadMps] = useState<Record<string, number>>({});
   const [unreadTeams, setUnreadTeams] = useState<Record<string, number>>({});
 
-  const savedAuth = localStorage.getItem('evoe_auth') || sessionStorage.getItem('evoe_auth');
+  const savedToken =
+    localStorage.getItem('evoe_token') ||
+    sessionStorage.getItem('evoe_token') ||
+    localStorage.getItem('evoe_auth') ||
+    sessionStorage.getItem('evoe_auth');
   const myPseudo = childInfos?.pseudo || '';
   const myPseudoRef = useRef(myPseudo);
   const myTeamNameRef = useRef('');
@@ -70,12 +74,12 @@ export function useChatSocket({
   }, [activeTab]);
 
   useEffect(() => {
-    if (!savedAuth) return;
+    if (!savedToken) return;
 
     const socketUrl = getSocketUrl();
     const isStealthSaved = localStorage.getItem('evoe_stealth_mode') === 'true';
     const socketInstance = io(`${socketUrl}/chat`, {
-      auth: { token: savedAuth, isStealth: isStealthSaved },
+      auth: { token: savedToken, isStealth: isStealthSaved },
       query: { instanceId: instanceId || '', isStealth: String(isStealthSaved) }
     });
 
@@ -237,7 +241,7 @@ export function useChatSocket({
       socketInstance.off('disconnect');
       socketInstance.disconnect();
     };
-  }, [savedAuth, onOnlineUsersChange, instanceId]);
+  }, [savedToken, onOnlineUsersChange, instanceId]);
 
   const emitStealthMode = (isStealth: boolean) => {
     if (socket) {

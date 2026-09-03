@@ -48,7 +48,7 @@ export class TrackingController {
   }
 
   @Get('export-actions-csv')
-  @ApiOperation({ summary: 'Exporter les saisies d\'actions en CSV' })
+  @ApiOperation({ summary: "Exporter les saisies d'actions en CSV" })
   @ApiQuery({ name: 'instanceId', type: Number })
   @ApiQuery({ name: 'schoolYear', type: String, required: false })
   @ApiQuery({ name: 'instanceYearId', type: Number, required: false })

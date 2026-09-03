@@ -46,10 +46,7 @@ export class ImpactController {
   @Post('annual-tuning/:year')
   @Roles(Role.AS)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async updateAnnualTuning(
-    @Param('year') year: string,
-    @Body() body: any,
-  ) {
+  async updateAnnualTuning(@Param('year') year: string, @Body() body: any) {
     return this.impactService.updateAnnualTuning(parseInt(year, 10), body);
   }
 
@@ -60,7 +57,10 @@ export class ImpactController {
   ) {
     const sy = schoolYear || '2024-2025';
     const instId = instanceId ? parseInt(instanceId, 10) : undefined;
-    return this.impactService.getSimulationBase(sy, isNaN(instId as number) ? undefined : instId);
+    return this.impactService.getSimulationBase(
+      sy,
+      isNaN(instId as number) ? undefined : instId,
+    );
   }
 
   @Get('history')

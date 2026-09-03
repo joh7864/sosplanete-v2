@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Param, Query, Headers, Body, Patch, UploadedFile, UseInterceptors, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Headers,
+  Body,
+  Patch,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+} from '@nestjs/common';
 import { EvoeService } from './evoe.service';
 import { ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -64,7 +76,8 @@ export class EvoeController {
 
   @Get('onboarding-steps')
   @ApiOperation({
-    summary: "Récupère les étapes de l'On-Boarding sécurisées pour le joueur connecté",
+    summary:
+      "Récupère les étapes de l'On-Boarding sécurisées pour le joueur connecté",
   })
   getOnboardingSteps(
     @Headers('authorization') auth: string,
@@ -112,7 +125,8 @@ export class EvoeController {
   createChallenge(
     @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr: string,
-    @Body() data: { targetTeamId: number; localActionId: number; pledge: string },
+    @Body()
+    data: { targetTeamId: number; localActionId: number; pledge: string },
   ) {
     return this.evoeService.createChallenge(auth, instanceIdStr, data);
   }
@@ -127,7 +141,12 @@ export class EvoeController {
     @Headers('x-instance-id') instanceIdStr: string,
     @Body() body: { accept: boolean },
   ) {
-    return this.evoeService.respondChallenge(auth, instanceIdStr, +challengeId, body.accept);
+    return this.evoeService.respondChallenge(
+      auth,
+      instanceIdStr,
+      +challengeId,
+      body.accept,
+    );
   }
 
   @Get('profile/:childId')
@@ -209,7 +228,12 @@ export class EvoeController {
         if (allowed.includes(extname(file.originalname).toLowerCase())) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('Format de fichier non supporté (PNG, JPG, GIF, WEBP acceptés)'), false);
+          cb(
+            new BadRequestException(
+              'Format de fichier non supporté (PNG, JPG, GIF, WEBP acceptés)',
+            ),
+            false,
+          );
         }
       },
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo max
@@ -222,11 +246,11 @@ export class EvoeController {
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     await this.evoeService.verifyAuth(auth, instanceIdStr);
-    return { 
+    return {
       imageUrl: `/static/chat/${file.filename}`,
       filename: file.filename,
       originalName: file.originalname,
-      size: file.size
+      size: file.size,
     };
   }
 
@@ -235,13 +259,23 @@ export class EvoeController {
   async updateProfile(
     @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr: string,
-    @Body() body: { pseudo?: string; password?: string; gender?: string | null; birthDate?: string | null; avatar?: string | null },
+    @Body()
+    body: {
+      pseudo?: string;
+      password?: string;
+      gender?: string | null;
+      birthDate?: string | null;
+      avatar?: string | null;
+    },
   ) {
     return this.evoeService.updateProfile(auth, instanceIdStr, body);
   }
 
   @Post('briefing/seen')
-  @ApiOperation({ summary: 'Enregistre que le joueur a visionné ou passé le briefing temporel' })
+  @ApiOperation({
+    summary:
+      'Enregistre que le joueur a visionné ou passé le briefing temporel',
+  })
   async markBriefingSeen(
     @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr?: string,
@@ -250,7 +284,9 @@ export class EvoeController {
   }
 
   @Post('onboarding/seen')
-  @ApiOperation({ summary: "Enregistre que le joueur a complété le guide d'onboarding" })
+  @ApiOperation({
+    summary: "Enregistre que le joueur a complété le guide d'onboarding",
+  })
   async markOnboardingSeen(
     @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr?: string,

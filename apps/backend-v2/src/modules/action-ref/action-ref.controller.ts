@@ -71,7 +71,10 @@ export class ActionRefController {
   @Post('sync-images')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Scanner et synchroniser automatiquement les images depuis uploads' })
+  @ApiOperation({
+    summary:
+      'Scanner et synchroniser automatiquement les images depuis uploads',
+  })
   async syncImages() {
     return this.actionRefService.syncImagesFromDisk();
   }
@@ -89,7 +92,7 @@ export class ActionRefController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Récupérer une action du référentiel par son ID" })
+  @ApiOperation({ summary: 'Récupérer une action du référentiel par son ID' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.actionRefService.findOne(id);
   }
@@ -98,7 +101,7 @@ export class ActionRefController {
   @Roles(Role.AS)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Modifier une action du référentiel global (AS)" })
+  @ApiOperation({ summary: 'Modifier une action du référentiel global (AS)' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body()
@@ -122,7 +125,7 @@ export class ActionRefController {
   @Roles(Role.AS)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Supprimer une action du référentiel global (AS)" })
+  @ApiOperation({ summary: 'Supprimer une action du référentiel global (AS)' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.actionRefService.remove(id);
   }
@@ -135,7 +138,8 @@ export class ActionRefController {
     FileInterceptor('file', {
       storage: diskStorage({
         destination: (req, _file, cb) => {
-          const folder = req.query.folder === 'missions' ? 'missions' : 'actions';
+          const folder =
+            req.query.folder === 'missions' ? 'missions' : 'actions';
           const basePath =
             process.env.UPLOADS_DIR ||
             join(__dirname, '..', '..', '..', '..', '..', 'uploads');
@@ -169,7 +173,7 @@ export class ActionRefController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @ApiOperation({ summary: "Uploader une image pour SOS Planète ou Évoé" })
+  @ApiOperation({ summary: 'Uploader une image pour SOS Planète ou Évoé' })
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @Query('folder') folder?: string,
@@ -177,10 +181,10 @@ export class ActionRefController {
     if (!file) throw new BadRequestException('Aucun fichier envoyé.');
     const targetFolder = folder === 'missions' ? 'missions' : 'actions';
     const imageUrl = file.filename;
-    return { 
-      filename: imageUrl, 
+    return {
+      filename: imageUrl,
       url: `/uploads/${targetFolder}/${imageUrl}`,
-      folder: targetFolder 
+      folder: targetFolder,
     };
   }
 }

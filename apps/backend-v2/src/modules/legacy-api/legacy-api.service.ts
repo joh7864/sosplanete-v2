@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { Request } from 'express';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 import { ImpactService } from '../impact/impact.service';
 import { AnimalUnlockService } from '../stimulation/animal-unlock.service';
 import { TrackingService } from '../tracking/tracking.service';
@@ -42,6 +43,7 @@ export class LegacyApiService {
     private animalUnlockService: AnimalUnlockService,
     private trackingService: TrackingService,
     private ecoBarRaceService: EcoBarRaceService,
+    private jwtService: JwtService,
     private whatsAppService?: WhatsAppService,
     private chatGateway?: ChatGateway,
   ) {}
@@ -113,8 +115,20 @@ export class LegacyApiService {
 
     if (currentYearChildren.length === 1) {
       const child = currentYearChildren[0];
+      const payload = {
+        sub: child.id,
+        pseudo: child.pseudo,
+        instanceId: child.group.team.instanceYear.instanceId,
+        groupId: child.groupId,
+        teamId: child.group.teamId,
+        role: 'CHILD',
+      };
+      const token = this.jwtService.sign(payload);
+
       return {
         status: 'success',
+        token,
+        access_token: token,
         childId: child.id,
         pseudo: child.pseudo,
         instanceId: child.group.team.instanceYear.instanceId,
@@ -128,15 +142,70 @@ export class LegacyApiService {
     return {
       status: 'multiple_choices',
       pseudo,
-      choices: currentYearChildren.map((child) => ({
+      choices: currentYearChildren.map((child) => {
+        const payload = {
+          sub: child.id,
+          pseudo: child.pseudo,
+          instanceId: child.group.team.instanceYear.instanceId,
+          groupId: child.groupId,
+          teamId: child.group.teamId,
+          role: 'CHILD',
+        };
+        const token = this.jwtService.sign(payload);
+
+        return {
+          token,
+          access_token: token,
+          childId: child.id,
+          instanceId: child.group.team.instanceYear.instanceId,
+          schoolName: child.group.team.instanceYear.instance.schoolName,
+          schoolYear: child.group.team.instanceYear.schoolYear,
+          isDelegate: child.isDelegate,
+          allowAllDelegate: child.group.team.instanceYear.allowAllDelegate,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Vérifier et restaurer la session d'un élève via son jeton JWT sécurisé
+   */
+  async checkAuthByToken(token: string) {
+    try {
+      const payload: any = this.jwtService.verify(token);
+      const childId = payload.sub || payload.childId;
+      const child = await this.prisma.child.findUnique({
+        where: { id: childId },
+        include: {
+          group: {
+            include: {
+              team: {
+                include: { instanceYear: { include: { instance: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!child) {
+        throw new UnauthorizedException('Enfant introuvable');
+      }
+
+      return {
+        status: 'success',
+        token,
+        access_token: token,
         childId: child.id,
+        pseudo: child.pseudo,
         instanceId: child.group.team.instanceYear.instanceId,
         schoolName: child.group.team.instanceYear.instance.schoolName,
         schoolYear: child.group.team.instanceYear.schoolYear,
         isDelegate: child.isDelegate,
         allowAllDelegate: child.group.team.instanceYear.allowAllDelegate,
-      })),
-    };
+      };
+    } catch {
+      throw new UnauthorizedException('Jeton de session invalide ou expiré');
+    }
   }
 
   /**
@@ -315,7 +384,9 @@ export class LegacyApiService {
 
     const child = await this.prisma.child.findUnique({
       where: { id: parsedChildId },
-      include: { group: { include: { team: { include: { instanceYear: true } } } } },
+      include: {
+        group: { include: { team: { include: { instanceYear: true } } } },
+      },
     });
     if (!child) throw new NotFoundException('Élève introuvable');
 
@@ -397,7 +468,10 @@ export class LegacyApiService {
         }
       }
     } catch (e: any) {
-      this.logger.error('Erreur lors de la résolution de défi post-action :', e);
+      this.logger.error(
+        'Erreur lors de la résolution de défi post-action :',
+        e,
+      );
     }
 
     // 2. Vérifier l'évolution technologique du vaisseau (palier propulsion)
@@ -409,7 +483,10 @@ export class LegacyApiService {
         child.group.team.instanceYear.schoolYear,
       );
     } catch (e: any) {
-      this.logger.error('Erreur lors de la vérification de niveau de vaisseau :', e);
+      this.logger.error(
+        'Erreur lors de la vérification de niveau de vaisseau :',
+        e,
+      );
     }
 
     // 3. Vérifier l'entrée ou la progression sur le podium (Top 3)
@@ -418,7 +495,10 @@ export class LegacyApiService {
       const playerInTopAfter = topAfter.find((p) => p.childId === child.id);
       if (playerInTopAfter) {
         const playerInTopBefore = topBefore.find((p) => p.childId === child.id);
-        if (!playerInTopBefore || playerInTopAfter.rank < playerInTopBefore.rank) {
+        if (
+          !playerInTopBefore ||
+          playerInTopAfter.rank < playerInTopBefore.rank
+        ) {
           if (this.whatsAppService) {
             await this.whatsAppService.sendPodiumArrivalNotification(
               child.pseudo,
@@ -467,7 +547,13 @@ export class LegacyApiService {
         });
       });
 
-      const list: Array<{ childId: number; pseudo: string; teamName: string; score: number; count: number }> = [];
+      const list: Array<{
+        childId: number;
+        pseudo: string;
+        teamName: string;
+        score: number;
+        count: number;
+      }> = [];
       teams.forEach((t) => {
         t.groups.forEach((g) => {
           g.children.forEach((c) => {
@@ -515,7 +601,8 @@ export class LegacyApiService {
     });
     if (!team) return;
 
-    const totalChildren = team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
+    const totalChildren =
+      team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
     const gameConfig = await this.prisma.gameConfig.findFirst({
       where: { instanceId: team.instanceYear.instanceId, schoolYear },
     });
@@ -541,11 +628,20 @@ export class LegacyApiService {
     const avgWaterChildPeriod = teamWater / totalChildren;
     const avgWasteChildPeriod = teamWaste / totalChildren;
 
-    const rCo2 = refCo2Target > 0 ? Math.min(1, avgCo2ChildPeriod / refCo2Target) : 0;
-    const rWater = refWaterTarget > 0 ? Math.min(1, avgWaterChildPeriod / refWaterTarget) : 0;
-    const rWaste = refWasteTarget > 0 ? Math.min(1, avgWasteChildPeriod / refWasteTarget) : 0;
+    const rCo2 =
+      refCo2Target > 0 ? Math.min(1, avgCo2ChildPeriod / refCo2Target) : 0;
+    const rWater =
+      refWaterTarget > 0
+        ? Math.min(1, avgWaterChildPeriod / refWaterTarget)
+        : 0;
+    const rWaste =
+      refWasteTarget > 0
+        ? Math.min(1, avgWasteChildPeriod / refWasteTarget)
+        : 0;
 
-    const position = Number(((rCo2 * 0.6 + rWater * 0.2 + rWaste * 0.2) * 100).toFixed(1));
+    const position = Number(
+      ((rCo2 * 0.6 + rWater * 0.2 + rWaste * 0.2) * 100).toFixed(1),
+    );
 
     const PROPULSION_THRESHOLDS = [
       { level: 1, percentRequired: 0, name: 'Friction Thermique' },
@@ -900,8 +996,36 @@ export class LegacyApiService {
   }
 
   async getChildFromAuth(authHeader: string, instanceIdStr?: string) {
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-      throw new UnauthorizedException('Basic auth required');
+    if (!authHeader) {
+      throw new UnauthorizedException('Authorization header required');
+    }
+
+    // 1. Support Bearer JWT token (Nouvelle méthode sécurisée & rapide sans recalcul bcrypt)
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '').trim();
+      try {
+        const payload: any = this.jwtService.verify(token);
+        const childId = payload.sub || payload.childId;
+        const child = await this.prisma.child.findUnique({
+          where: { id: childId },
+          include: {
+            group: { include: { team: { include: { instanceYear: true } } } },
+          },
+        });
+
+        if (!child) {
+          throw new UnauthorizedException('Enfant introuvable');
+        }
+
+        return child;
+      } catch {
+        throw new UnauthorizedException('Jeton de session invalide ou expiré');
+      }
+    }
+
+    // 2. Support Legacy Basic Auth (pour rétrocompatibilité sosplanete-v1)
+    if (!authHeader.startsWith('Basic ')) {
+      throw new UnauthorizedException('Basic or Bearer auth required');
     }
     const decoded = Buffer.from(
       authHeader.replace('Basic ', ''),
@@ -928,9 +1052,6 @@ export class LegacyApiService {
       }
       const parsedInstanceId = parseInt(instanceIdStr, 10);
       const choices: any[] = result.choices ?? [];
-      this.logger.log(
-        `getChildFromAuth: choices=${JSON.stringify(choices.map((c) => ({ childId: c.childId, instanceId: c.instanceId })))}, looking for instanceId=${parsedInstanceId}`,
-      );
       const choice = choices.find(
         (c: any) => c.instanceId === parsedInstanceId,
       );

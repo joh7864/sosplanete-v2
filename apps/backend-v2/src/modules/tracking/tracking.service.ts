@@ -440,7 +440,8 @@ export class TrackingService {
       const dateFormatted = `${day}/${month}/${year}`;
 
       return {
-        'Action ref': a.localAction?.actionRef?.code || a.localAction?.label || '',
+        'Action ref':
+          a.localAction?.actionRef?.code || a.localAction?.label || '',
         Action: a.localAction?.label || '',
         Team: a.child?.group?.team?.name || '',
         Group: a.child?.group?.name || '',
@@ -459,7 +460,8 @@ export class TrackingService {
       quotes: true,
     });
 
-    const rawName = instanceYear.instance?.schoolName || `instance_${instanceId}`;
+    const rawName =
+      instanceYear.instance?.schoolName || `instance_${instanceId}`;
     const instanceName = rawName.replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `actions_done_${instanceName}_${schoolYear}.csv`;
 

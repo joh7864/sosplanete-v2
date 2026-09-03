@@ -84,7 +84,9 @@ export class YearService {
         where: { instanceId, schoolYear: targetYear },
       });
       const existingIy = await tx.instanceYear.findUnique({
-        where: { instanceId_schoolYear: { instanceId, schoolYear: targetYear } },
+        where: {
+          instanceId_schoolYear: { instanceId, schoolYear: targetYear },
+        },
       });
       if (existingIy) {
         await tx.child.deleteMany({
@@ -575,10 +577,7 @@ export class YearService {
       );
 
       // --- F. GESTION DE LA PERIODE COURANTE ---
-      await this.periodService.handleCurrentPeriodActivation(
-        newIy.id,
-        tx,
-      );
+      await this.periodService.handleCurrentPeriodActivation(newIy.id, tx);
 
       return { success: true, fromYear, toYear, instanceYearId: newIy.id };
     });
@@ -604,13 +603,17 @@ export class YearService {
             assiduityWeight: mostRecent?.assiduityWeight ?? 0.0,
             annualMultiplierWeight: mostRecent?.annualMultiplierWeight ?? 1.0,
             difficultyFactor: mostRecent?.difficultyFactor ?? 2.0,
-            worldProjectionMultiplier: mostRecent?.worldProjectionMultiplier ?? 1.0,
+            worldProjectionMultiplier:
+              mostRecent?.worldProjectionMultiplier ?? 1.0,
             isCustomized: false,
           },
         });
       }
     } catch (e) {
-      console.warn(`[duplicateYear] Note: AnnualImpactData initialization check failed:`, e);
+      console.warn(
+        `[duplicateYear] Note: AnnualImpactData initialization check failed:`,
+        e,
+      );
     }
 
     await this.triggerYearInitializationNotifications(

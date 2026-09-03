@@ -47,7 +47,9 @@ export class StimulationController {
   ) {}
 
   @Post('whatsapp/send-report')
-  @ApiOperation({ summary: 'Déclencher manuellement l\'envoi du rapport WhatsApp' })
+  @ApiOperation({
+    summary: "Déclencher manuellement l'envoi du rapport WhatsApp",
+  })
   sendWhatsAppReport(@Query('schoolYear') schoolYear: string) {
     return this.whatsAppService.sendReport(schoolYear);
   }

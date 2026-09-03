@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 import { ImpactService } from '../../impact/impact.service';
@@ -6,9 +10,36 @@ import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const UPLOADS_DIR = (process.env.NODE_ENV === 'production' && process.env.UPLOADS_DIR)
-  ? process.env.UPLOADS_DIR
-  : path.join(process.cwd(), '..', '..', 'uploads');
+function getUploadsDir(): string {
+  if (process.env.UPLOADS_DIR && fs.existsSync(process.env.UPLOADS_DIR)) {
+    return process.env.UPLOADS_DIR;
+  }
+  const candidates = [
+    path.resolve(__dirname, '../../../../../../uploads'),
+    path.resolve(__dirname, '../../../../../uploads'),
+    path.resolve(__dirname, '../../../../uploads'),
+    path.resolve(__dirname, '../../../uploads'),
+    path.resolve(process.cwd(), 'uploads'),
+    path.resolve(process.cwd(), '..', '..', 'uploads'),
+    path.resolve(process.cwd(), '..', 'uploads'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      const missionsSub = path.join(c, 'missions');
+      if (fs.existsSync(missionsSub) && fs.readdirSync(missionsSub).length > 5) {
+        return c;
+      }
+    }
+  }
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return c;
+    }
+  }
+  return path.resolve(process.cwd(), 'uploads');
+}
+
+const UPLOADS_DIR = getUploadsDir();
 
 function getAvatarUrl(avatarPath: string | null): string | null {
   if (!avatarPath || avatarPath === 'avatars/default.png') return null;
@@ -16,7 +47,7 @@ function getAvatarUrl(avatarPath: string | null): string | null {
   const fullPath = path.join(UPLOADS_DIR, avatarPath);
   try {
     if (fs.existsSync(fullPath)) return avatarPath;
-  } catch(e) {}
+  } catch (e) {}
   return null;
 }
 
@@ -58,7 +89,7 @@ const CATEGORY_SF_MAP: Record<string, string> = {
   Numérique: 'Numérique',
   Numerique: 'Numérique',
   Ecole: 'Académie Temporelle',
-  'École': 'Académie Temporelle',
+  École: 'Académie Temporelle',
 };
 
 const PROPULSION_THRESHOLDS = [
@@ -113,11 +144,11 @@ export class EvoeService {
   ) {}
 
   async getMissions(instanceId: number, schoolYear: string) {
-    const basePath =
-      process.env.UPLOADS_DIR ||
-      path.join(__dirname, '..', '..', '..', '..', '..', 'uploads');
+    const basePath = getUploadsDir();
     const missionsDir = path.join(basePath, 'missions');
-    const missionsFiles = fs.existsSync(missionsDir) ? fs.readdirSync(missionsDir) : [];
+    const missionsFiles = fs.existsSync(missionsDir)
+      ? fs.readdirSync(missionsDir)
+      : [];
 
     // Fetch all LocalActions for this instance and join with EvoeMissionTranslation
     const localActions = await this.prisma.localAction.findMany({
@@ -188,9 +219,7 @@ export class EvoeService {
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
         catSF =
-          CATEGORY_SF_MAP[cleanCat] ||
-          CATEGORY_SF_MAP[unaccented] ||
-          cleanCat;
+          CATEGORY_SF_MAP[cleanCat] || CATEGORY_SF_MAP[unaccented] || cleanCat;
       }
 
       let descSF =
@@ -243,7 +272,7 @@ export class EvoeService {
       const water = action.specificWater ?? action.actionRef?.defaultWater ?? 0;
       const waste = action.specificWaste ?? action.actionRef?.defaultWaste ?? 0;
       // Formule de pondération 60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT
-      const calculated = 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      const calculated = 10 + Math.round(12 * co2 + 4 * waste + 0.04 * water);
       const amplitude = calculated;
 
       // Fusion of physical action and SF mapping
@@ -482,10 +511,13 @@ export class EvoeService {
       _count: { id: true },
       _sum: { savedCo2: true, savedWater: true, savedWaste: true },
       where: {
-        period: { instanceYear: { instanceId, schoolYear } }
-      }
+        period: { instanceYear: { instanceId, schoolYear } },
+      },
     });
-    const childImpactMap = new Map<number, { count: number; co2: number; water: number; waste: number }>();
+    const childImpactMap = new Map<
+      number,
+      { count: number; co2: number; water: number; waste: number }
+    >();
     (childImpacts || []).forEach((ci: any) => {
       childImpactMap.set(ci.childId, {
         count: ci._count?.id ?? (typeof ci._count === 'number' ? ci._count : 0),
@@ -521,7 +553,13 @@ export class EvoeService {
         team.groups.reduce((acc, g) => acc + g.children.length, 0) || 1;
 
       const teamActionsCount = (team.groups || []).reduce((acc, g) => {
-        return acc + g.children.reduce((cAcc, c) => cAcc + (childImpactMap.get(c.id)?.count || 0), 0);
+        return (
+          acc +
+          g.children.reduce(
+            (cAcc, c) => cAcc + (childImpactMap.get(c.id)?.count || 0),
+            0,
+          )
+        );
       }, 0);
 
       const totalPoints = this.calculateNormalizedScore(
@@ -638,7 +676,12 @@ export class EvoeService {
       const teamPlayersHealth = [];
       for (const child of children) {
         const health = healthMap.get(child.id) ?? 0;
-        const impact = childImpactMap.get(child.id) || { count: 0, co2: 0, water: 0, waste: 0 };
+        const impact = childImpactMap.get(child.id) || {
+          count: 0,
+          co2: 0,
+          water: 0,
+          waste: 0,
+        };
         const score = this.calculateNormalizedScore(
           impact.co2,
           impact.water,
@@ -687,7 +730,8 @@ export class EvoeService {
         name: team.name,
         color: team.color,
         icon: team.icon,
-        whatsappInviteUrl: team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+        whatsappInviteUrl:
+          team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
         whatsappGroupId: null,
         level: currentMaxLevel,
         propulsionType: propTech.name,
@@ -715,9 +759,12 @@ export class EvoeService {
 
     const topPlayers = [...allPlayersHealth]
       .sort((a, b) => {
-        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
-        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0)) return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
-        if ((b.health ?? 0) !== (a.health ?? 0)) return (b.health ?? 0) - (a.health ?? 0);
+        if ((b.score ?? 0) !== (a.score ?? 0))
+          return (b.score ?? 0) - (a.score ?? 0);
+        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0))
+          return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
+        if ((b.health ?? 0) !== (a.health ?? 0))
+          return (b.health ?? 0) - (a.health ?? 0);
         return (a.pseudo || '').localeCompare(b.pseudo || '');
       })
       .slice(0, 10);
@@ -770,8 +817,10 @@ export class EvoeService {
       const isYearly = (a.actionRef?.co2Year ?? 0) > 0;
       const factor = isYearly ? 52 / gamePeriodsCount : 1;
       catMaxCo2 += (a.specificCo2 ?? a.actionRef?.defaultCo2 ?? 0) * factor;
-      catMaxWater += (a.specificWater ?? a.actionRef?.defaultWater ?? 0) * factor;
-      catMaxWaste += (a.specificWaste ?? a.actionRef?.defaultWaste ?? 0) * factor;
+      catMaxWater +=
+        (a.specificWater ?? a.actionRef?.defaultWater ?? 0) * factor;
+      catMaxWaste +=
+        (a.specificWaste ?? a.actionRef?.defaultWaste ?? 0) * factor;
     });
 
     const actionCount = localActionsCtx.length || 1;
@@ -779,9 +828,12 @@ export class EvoeService {
     const avgWaterCatalog = catMaxWater / actionCount;
     const avgWasteCatalog = catMaxWaste / actionCount;
 
-    const targetCo2 = avgCo2Catalog * avgActions > 0 ? avgCo2Catalog * avgActions : 1;
-    const targetWater = avgWaterCatalog * avgActions > 0 ? avgWaterCatalog * avgActions : 1;
-    const targetWaste = avgWasteCatalog * avgActions > 0 ? avgWasteCatalog * avgActions : 1;
+    const targetCo2 =
+      avgCo2Catalog * avgActions > 0 ? avgCo2Catalog * avgActions : 1;
+    const targetWater =
+      avgWaterCatalog * avgActions > 0 ? avgWaterCatalog * avgActions : 1;
+    const targetWaste =
+      avgWasteCatalog * avgActions > 0 ? avgWasteCatalog * avgActions : 1;
 
     const childIds = children.map((c) => c.id);
     const actionsDone = await this.prisma.actionDone.findMany({
@@ -808,9 +860,11 @@ export class EvoeService {
     });
     let decay = 0;
     if (period) {
-      const totalDuration = period.endDate.getTime() - period.startDate.getTime();
+      const totalDuration =
+        period.endDate.getTime() - period.startDate.getTime();
       const elapsed = Math.max(0, Date.now() - period.startDate.getTime());
-      const elapsedRatio = totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
+      const elapsedRatio =
+        totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
       decay = Math.round(elapsedRatio * 85); // Perte max de 85 IT (finit à 15 IT si aucune action)
     }
 
@@ -823,7 +877,7 @@ export class EvoeService {
 
     for (const child of children) {
       const childActions = childActionsMap.get(child.id) || [];
-      
+
       let childCo2 = 0;
       let childWater = 0;
       let childWaste = 0;
@@ -847,7 +901,9 @@ export class EvoeService {
       let challengeBonus = 0;
       activeChallenges.forEach((ch) => {
         if (ch.targetTeamId === child.teamId) {
-          const didIt = childActions.some((ad) => ad.localActionId === ch.localActionId);
+          const didIt = childActions.some(
+            (ad) => ad.localActionId === ch.localActionId,
+          );
           if (didIt) {
             challengeBonus += 15;
           } else {
@@ -893,7 +949,7 @@ export class EvoeService {
     });
 
     const now = new Date();
-    let activePeriod = await this.prisma.period.findFirst({
+    const activePeriod = await this.prisma.period.findFirst({
       where: {
         instanceYearId,
         startDate: { lte: now },
@@ -937,10 +993,13 @@ export class EvoeService {
       _count: { id: true },
       _sum: { savedCo2: true, savedWater: true, savedWaste: true },
       where: {
-        period: { instanceYear: { instanceId, schoolYear } }
-      }
+        period: { instanceYear: { instanceId, schoolYear } },
+      },
     });
-    const childImpactMap = new Map<number, { count: number; co2: number; water: number; waste: number }>();
+    const childImpactMap = new Map<
+      number,
+      { count: number; co2: number; water: number; waste: number }
+    >();
     childImpacts.forEach((ci: any) => {
       childImpactMap.set(ci.childId, {
         count: ci._count?.id ?? (typeof ci._count === 'number' ? ci._count : 0),
@@ -958,7 +1017,12 @@ export class EvoeService {
         teamCount += g.children.length;
         g.children.forEach((c) => {
           const health = healthMap.get(c.id) ?? 0;
-          const impact = childImpactMap.get(c.id) || { count: 0, co2: 0, water: 0, waste: 0 };
+          const impact = childImpactMap.get(c.id) || {
+            count: 0,
+            co2: 0,
+            water: 0,
+            waste: 0,
+          };
           const score = this.calculateNormalizedScore(
             impact.co2,
             impact.water,
@@ -1025,9 +1089,12 @@ export class EvoeService {
 
     const topPlayers = [...players]
       .sort((a, b) => {
-        if ((b.score ?? 0) !== (a.score ?? 0)) return (b.score ?? 0) - (a.score ?? 0);
-        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0)) return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
-        if ((b.health ?? 0) !== (a.health ?? 0)) return (b.health ?? 0) - (a.health ?? 0);
+        if ((b.score ?? 0) !== (a.score ?? 0))
+          return (b.score ?? 0) - (a.score ?? 0);
+        if ((b.actionsCount ?? 0) !== (a.actionsCount ?? 0))
+          return (b.actionsCount ?? 0) - (a.actionsCount ?? 0);
+        if ((b.health ?? 0) !== (a.health ?? 0))
+          return (b.health ?? 0) - (a.health ?? 0);
         return (a.pseudo || '').localeCompare(b.pseudo || '');
       })
       .slice(0, 10);
@@ -1050,13 +1117,19 @@ export class EvoeService {
         youtubeBriefingUrl: systemConfig?.youtubeBriefingUrl ?? null,
         whatsappCommunityName: systemConfig?.whatsappCommunityName ?? null,
         whatsappCommunityUrl: systemConfig?.whatsappCommunityUrl ?? null,
-        whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+        whatsappInviteUrl:
+          child.group.team.whatsappInviteUrl ||
+          systemConfig?.whatsappCommunityUrl ||
+          null,
         group: {
           team: {
             id: child.group.team.id,
             name: child.group.team.name,
             color: child.group.team.color,
-            whatsappInviteUrl: child.group.team.whatsappInviteUrl || systemConfig?.whatsappCommunityUrl || null,
+            whatsappInviteUrl:
+              child.group.team.whatsappInviteUrl ||
+              systemConfig?.whatsappCommunityUrl ||
+              null,
           },
         },
       },
@@ -1090,14 +1163,18 @@ export class EvoeService {
     return this.resetPropulsionLevels(instanceId, schoolYear);
   }
 
-  async calculateTeamStabilityForPeriod(teamId: number, periodId: number, instanceYearId: number): Promise<number> {
+  async calculateTeamStabilityForPeriod(
+    teamId: number,
+    periodId: number,
+    instanceYearId: number,
+  ): Promise<number> {
     const team = await this.prisma.team.findUnique({
       where: { id: teamId },
       include: { groups: { include: { children: true } } },
     });
     if (!team) return 100;
     const children: any[] = [];
-    team.groups.forEach(g => children.push(...g.children));
+    team.groups.forEach((g) => children.push(...g.children));
     if (children.length === 0) return 100;
 
     const instanceYearObj = await this.prisma.instanceYear.findUnique({
@@ -1127,7 +1204,10 @@ export class EvoeService {
   }
 
   async getChallenges(authHeader: string, instanceIdStr?: string) {
-    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
     const teamId = child.group.teamId;
     const instanceYearId = child.group.team.instanceYearId;
 
@@ -1188,7 +1268,11 @@ export class EvoeService {
         }
       }
 
-      if ((currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') && ch.expiresAt && ch.expiresAt < new Date()) {
+      if (
+        (currentStatus === 'PENDING' || currentStatus === 'ACCEPTED') &&
+        ch.expiresAt &&
+        ch.expiresAt < new Date()
+      ) {
         currentStatus = 'FAILED';
         await this.prisma.evoeChallenge.update({
           where: { id: ch.id },
@@ -1212,8 +1296,12 @@ export class EvoeService {
         targetTeamColor: ch.targetTeam.color,
         localActionId: ch.localActionId,
         actionLabel: ch.localAction.label,
-        actionTitle: (ch.localAction as any).evoeMission?.titreSF || ch.localAction.label,
-        actionDescription: (ch.localAction as any).evoeMission?.descriptionSF || ch.localAction.description || ch.localAction.actionRef?.description,
+        actionTitle:
+          (ch.localAction as any).evoeMission?.titreSF || ch.localAction.label,
+        actionDescription:
+          (ch.localAction as any).evoeMission?.descriptionSF ||
+          ch.localAction.description ||
+          ch.localAction.actionRef?.description,
         amplitude: (ch.localAction as any).evoeMission?.amplitude || 10,
         pledge: ch.pledge,
         durationHours: ch.durationHours,
@@ -1229,12 +1317,22 @@ export class EvoeService {
   async createChallenge(
     authHeader: string,
     instanceIdStr: string,
-    data: { targetTeamId: number; localActionId: number; pledge: string; durationHours?: number },
+    data: {
+      targetTeamId: number;
+      localActionId: number;
+      pledge: string;
+      durationHours?: number;
+    },
   ) {
-    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
     const challengerTeamId = child.group.teamId;
     if (challengerTeamId === data.targetTeamId) {
-      throw new BadRequestException("Vous ne pouvez pas défier votre propre équipe.");
+      throw new BadRequestException(
+        'Vous ne pouvez pas défier votre propre équipe.',
+      );
     }
     const instanceYearId = child.group.team.instanceYearId;
     const now = new Date();
@@ -1248,7 +1346,9 @@ export class EvoeService {
     });
 
     if (!activePeriod) {
-      throw new BadRequestException('Aucune période ouverte, contactez votre administrateur.');
+      throw new BadRequestException(
+        'Aucune période ouverte, contactez votre administrateur.',
+      );
     }
     const period = activePeriod;
 
@@ -1262,7 +1362,11 @@ export class EvoeService {
     });
 
     const stability = previousPeriod
-      ? await this.calculateTeamStabilityForPeriod(challengerTeamId, previousPeriod.id, instanceYearId)
+      ? await this.calculateTeamStabilityForPeriod(
+          challengerTeamId,
+          previousPeriod.id,
+          instanceYearId,
+        )
       : 100; // 100% de stabilité pour la première période si pas d'historique
 
     let maxChallenges = 0;
@@ -1286,13 +1390,21 @@ export class EvoeService {
       );
     }
 
-    const challengerTeam = await this.prisma.team.findUnique({ where: { id: challengerTeamId } });
-    const targetTeam = await this.prisma.team.findUnique({ where: { id: data.targetTeamId } });
-    const localAction = await this.prisma.localAction.findUnique({ where: { id: data.localActionId } });
+    const challengerTeam = await this.prisma.team.findUnique({
+      where: { id: challengerTeamId },
+    });
+    const targetTeam = await this.prisma.team.findUnique({
+      where: { id: data.targetTeamId },
+    });
+    const localAction = await this.prisma.localAction.findUnique({
+      where: { id: data.localActionId },
+    });
 
     let expiresAt: Date | null = null;
     if (data.durationHours && Number(data.durationHours) > 0) {
-      expiresAt = new Date(Date.now() + Number(data.durationHours) * 3600 * 1000);
+      expiresAt = new Date(
+        Date.now() + Number(data.durationHours) * 3600 * 1000,
+      );
     } else if (period.endDate) {
       expiresAt = new Date(period.endDate);
     }
@@ -1312,7 +1424,7 @@ export class EvoeService {
 
     if (this.chatGateway && challengerTeam && targetTeam && localAction) {
       this.chatGateway.sendSystemAlert(
-        `🚨 DÉFI SPATIO-TEMPOREL ! L'équipe "${challengerTeam.name}" défie l'équipe "${targetTeam.name}" sur la mission "${localAction.label}". Gage : "${data.pledge || 'aucun'}"`
+        `🚨 DÉFI SPATIO-TEMPOREL ! L'équipe "${challengerTeam.name}" défie l'équipe "${targetTeam.name}" sur la mission "${localAction.label}". Gage : "${data.pledge || 'aucun'}"`,
       );
     }
     if (this.whatsAppService && challengerTeam && targetTeam && localAction) {
@@ -1337,7 +1449,10 @@ export class EvoeService {
     challengeId: number,
     accept: boolean,
   ) {
-    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
     const teamId = child.group.teamId;
 
     const challenge = await this.prisma.evoeChallenge.findUnique({
@@ -1347,13 +1462,17 @@ export class EvoeService {
       throw new NotFoundException('Défi non trouvé.');
     }
     if (challenge.targetTeamId !== teamId) {
-      throw new BadRequestException("Vous ne pouvez répondre qu'aux défis adressés à votre équipe.");
+      throw new BadRequestException(
+        "Vous ne pouvez répondre qu'aux défis adressés à votre équipe.",
+      );
     }
     if (challenge.status !== 'PENDING') {
       throw new BadRequestException('Ce défi a déjà été traité.');
     }
 
-    let newStatus: 'ACCEPTED' | 'DECLINED' | 'SUCCESS' = accept ? 'ACCEPTED' : 'DECLINED';
+    let newStatus: 'ACCEPTED' | 'DECLINED' | 'SUCCESS' = accept
+      ? 'ACCEPTED'
+      : 'DECLINED';
 
     if (accept) {
       const countDone = await this.prisma.actionDone.count({
@@ -1377,15 +1496,15 @@ export class EvoeService {
     if (this.chatGateway) {
       if (newStatus === 'ACCEPTED') {
         this.chatGateway.sendSystemAlert(
-          `⚔️ DÉFI ACCEPTÉ ! L'équipe "${updated.targetTeam.name}" relève officiellement le gant lancé par l'équipe "${updated.challengerTeam.name}" sur la mission "${updated.localAction.label}".`
+          `⚔️ DÉFI ACCEPTÉ ! L'équipe "${updated.targetTeam.name}" relève officiellement le gant lancé par l'équipe "${updated.challengerTeam.name}" sur la mission "${updated.localAction.label}".`,
         );
       } else if (newStatus === 'DECLINED') {
         this.chatGateway.sendSystemAlert(
-          `🛡️ DÉFI ESQUIVÉ ! L'équipe "${updated.targetTeam.name}" a décliné le défi de l'équipe "${updated.challengerTeam.name}".`
+          `🛡️ DÉFI ESQUIVÉ ! L'équipe "${updated.targetTeam.name}" a décliné le défi de l'équipe "${updated.challengerTeam.name}".`,
         );
       } else if (newStatus === 'SUCCESS') {
         this.chatGateway.sendSystemAlert(
-          `⚡ DÉFI REMPORTÉ ! L'équipe "${updated.targetTeam.name}" a accompli sa mission rétroactivement et triomphe du défi de l'équipe "${updated.challengerTeam.name}" !`
+          `⚡ DÉFI REMPORTÉ ! L'équipe "${updated.targetTeam.name}" a accompli sa mission rétroactivement et triomphe du défi de l'équipe "${updated.challengerTeam.name}" !`,
         );
       }
     }
@@ -1445,7 +1564,7 @@ export class EvoeService {
     });
 
     if (!child) {
-      throw new NotFoundException("Joueur non trouvé");
+      throw new NotFoundException('Joueur non trouvé');
     }
 
     const team = child.group.team;
@@ -1500,7 +1619,7 @@ export class EvoeService {
       instanceId,
       schoolYear,
       activePeriodId,
-      teamChildren.map(c => ({ ...c, teamId: team.id })),
+      teamChildren.map((c) => ({ ...c, teamId: team.id })),
     );
     const health = healthMap.get(child.id) ?? 100;
 
@@ -1572,7 +1691,10 @@ export class EvoeService {
           localActionId: item.localActionId,
           count: item._count.id,
           label: getMissionLabel(localAction),
-          description: localAction.evoeMission?.descriptionSF || localAction.description || '',
+          description:
+            localAction.evoeMission?.descriptionSF ||
+            localAction.description ||
+            '',
         });
       }
     }
@@ -1582,10 +1704,7 @@ export class EvoeService {
       ? await this.prisma.evoeChallenge.findMany({
           where: {
             periodId: activePeriodId,
-            OR: [
-              { challengerTeamId: team.id },
-              { targetTeamId: team.id },
-            ],
+            OR: [{ challengerTeamId: team.id }, { targetTeamId: team.id }],
           },
           include: {
             challengerTeam: true,
@@ -1627,8 +1746,14 @@ export class EvoeService {
       mappedChallenges.push({
         id: ch.id,
         isChallenger: ch.challengerTeamId === team.id,
-        opponentName: ch.challengerTeamId === team.id ? ch.targetTeam.name : ch.challengerTeam.name,
-        opponentColor: ch.challengerTeamId === team.id ? ch.targetTeam.color : ch.challengerTeam.color,
+        opponentName:
+          ch.challengerTeamId === team.id
+            ? ch.targetTeam.name
+            : ch.challengerTeam.name,
+        opponentColor:
+          ch.challengerTeamId === team.id
+            ? ch.targetTeam.color
+            : ch.challengerTeam.color,
         actionLabel: getMissionLabel(ch.localAction),
         pledge: ch.pledge,
         status: currentStatus,
@@ -1670,7 +1795,13 @@ export class EvoeService {
   async updateProfile(
     authHeader: string,
     instanceIdStr: string,
-    data: { pseudo?: string; password?: string; gender?: string | null; birthDate?: string | null; avatar?: string | null }
+    data: {
+      pseudo?: string;
+      password?: string;
+      gender?: string | null;
+      birthDate?: string | null;
+      avatar?: string | null;
+    },
   ) {
     const child = await this.verifyAuth(authHeader, instanceIdStr);
 
@@ -1683,9 +1814,20 @@ export class EvoeService {
       let genderCode = null;
       if (data.gender) {
         const str = data.gender.trim().toLowerCase();
-        if (str === 'm' || str.startsWith('hom') || str.startsWith('gar') || str.startsWith('mal') || str === 'h') {
+        if (
+          str === 'm' ||
+          str.startsWith('hom') ||
+          str.startsWith('gar') ||
+          str.startsWith('mal') ||
+          str === 'h'
+        ) {
           genderCode = 'M';
-        } else if (str === 'f' || str.startsWith('fem') || str.startsWith('fil') || str === 'w') {
+        } else if (
+          str === 'f' ||
+          str.startsWith('fem') ||
+          str.startsWith('fil') ||
+          str === 'w'
+        ) {
           genderCode = 'F';
         }
       }
@@ -1703,11 +1845,17 @@ export class EvoeService {
     }
     if (data.avatar !== undefined) updateData.avatar = data.avatar;
 
-    return this.prisma.child.update({ where: { id: child.id }, data: updateData });
+    return this.prisma.child.update({
+      where: { id: child.id },
+      data: updateData,
+    });
   }
 
   async markBriefingSeen(authHeader: string, instanceIdStr?: string) {
-    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
     await this.prisma.child.update({
       where: { id: child.id },
       data: { hasSeenBriefing: true },
@@ -1716,7 +1864,10 @@ export class EvoeService {
   }
 
   async markOnboardingSeen(authHeader: string, instanceIdStr?: string) {
-    const child = await this.legacyApiService.getChildFromAuth(authHeader, instanceIdStr);
+    const child = await this.legacyApiService.getChildFromAuth(
+      authHeader,
+      instanceIdStr,
+    );
     await this.prisma.child.update({
       where: { id: child.id },
       data: { hasSeenOnboarding: true },
