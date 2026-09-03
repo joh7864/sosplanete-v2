@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import { MessageSquare, Video, ExternalLink, Info, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, Video, CheckCircle2 } from 'lucide-react';
 import { StepHeader } from '../StepHeader';
 import { WizardDraftState } from '@/types/wizard';
 
@@ -27,7 +25,7 @@ export const Step7Communication: React.FC<Step7CommunicationProps> = ({ state, o
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-2">
             <MessageSquare size={16} className="text-emerald-600" />
-            Lien d'Invitation de la Communauté WhatsApp Générale
+            Lien d&apos;Invitation de la Communauté WhatsApp Générale
           </label>
           <input
             type="url"
@@ -45,7 +43,7 @@ export const Step7Communication: React.FC<Step7CommunicationProps> = ({ state, o
             }
           />
           <p className="mt-1 text-[11px] text-slate-500">
-            Regroupe l'ensemble des encadrants et parents d'élèves pour les annonces hebdomadaires.
+            Regroupe l&apos;ensemble des encadrants et parents d&apos;élèves pour les annonces hebdomadaires.
           </p>
         </div>
 
@@ -71,14 +69,14 @@ export const Step7Communication: React.FC<Step7CommunicationProps> = ({ state, o
             }
           />
           <p className="mt-1 text-[11px] text-slate-500">
-            Vidéo projetée en classe ou vue par les élèves pour lancer l'aventure SOS Planète / Évoé.
+            Vidéo projetée en classe ou vue par les élèves pour lancer l&apos;aventure SOS Planète / Évoé.
           </p>
         </div>
 
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5">
           <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
           <span>
-            Ces réglages sont purement optionnels. Vous pouvez passer directement à l'étape suivante.
+            Ces réglages sont purement optionnels. Vous pouvez passer directement à l&apos;étape suivante.
           </span>
         </div>
       </div>

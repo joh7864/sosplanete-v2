@@ -1,10 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Trophy, Compass, Heart, Shield, Globe, Sparkles, Sliders, Info } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Globe, Sparkles, Sliders } from 'lucide-react';
 import { StepHeader } from '../StepHeader';
 import { WizardDraftState } from '@/types/wizard';
 import { getAuthData } from '@/utils/storage';
+
+interface AnnualImpactDataType {
+  moyCo2Monde?: number;
+  moyEauMonde?: number;
+  moyDechetsMonde?: number;
+  dActuel?: number;
+  difficultyFactor?: number;
+  annualMultiplierWeight?: number;
+  assiduityWeight?: number;
+}
 
 interface Step6GamificationProps {
   state: WizardDraftState;
@@ -12,15 +22,9 @@ interface Step6GamificationProps {
 }
 
 export const Step6Gamification: React.FC<Step6GamificationProps> = ({ state, onChange }) => {
-  const [annualData, setAnnualData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [annualData, setAnnualData] = useState<AnnualImpactDataType | null>(null);
 
-  useEffect(() => {
-    fetchGlobalImpactData();
-  }, [state.identity.schoolYear]);
-
-  const fetchGlobalImpactData = async () => {
-    setLoading(true);
+  const fetchGlobalImpactData = useCallback(async () => {
     try {
       const yearInt = parseInt(state.identity.schoolYear?.split('-')[0] || '2025', 10);
       const resp = await fetch(
@@ -32,10 +36,12 @@ export const Step6Gamification: React.FC<Step6GamificationProps> = ({ state, onC
       }
     } catch (e) {
       console.warn('Fetch global annual impact data error:', e);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [state.identity.schoolYear]);
+
+  useEffect(() => {
+    fetchGlobalImpactData();
+  }, [fetchGlobalImpactData]);
 
   return (
     <div>
@@ -95,7 +101,7 @@ export const Step6Gamification: React.FC<Step6GamificationProps> = ({ state, onC
             <div className="mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Marge d'Avance de l'Animal Mascotte
+                  Marge d&apos;Avance de l&apos;Animal Mascotte
                 </label>
                 <span className="px-3 py-1 rounded-full bg-blue-600 text-white font-black text-sm shadow-sm">
                   +{state.gamification.animalAdvanceMargin} paliers
@@ -119,7 +125,7 @@ export const Step6Gamification: React.FC<Step6GamificationProps> = ({ state, onC
                 className="w-full accent-blue-600 cursor-pointer"
               />
               <p className="text-[11px] text-slate-500 mt-2">
-                Détermine l'avance prise par la mascotte en début de période. Les enfants doivent la rattraper.
+                Détermine l&apos;avance prise par la mascotte en début de période. Les enfants doivent la rattraper.
               </p>
             </div>
 
@@ -151,7 +157,7 @@ export const Step6Gamification: React.FC<Step6GamificationProps> = ({ state, onC
                 className="w-full accent-amber-600 cursor-pointer"
               />
               <p className="text-[11px] text-slate-500 mt-2">
-                Pourcentage de participation minimal requis pour déclencher un palier d'encouragement collectif.
+                Pourcentage de participation minimal requis pour déclencher un palier d&apos;encouragement collectif.
               </p>
             </div>
           </div>

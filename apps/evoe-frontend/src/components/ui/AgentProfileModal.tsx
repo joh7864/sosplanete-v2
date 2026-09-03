@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film } from 'lucide-react';
+import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film, Zap } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -500,6 +500,41 @@ export function AgentProfileModal({
 
           {/* Section Statistiques, Missions et Défis */}
           <div className="agent-profile-content">
+            {/* Hero Card : Énergie IT Cumulée (Total Carrière) */}
+            <div className="profile-it-hero-card">
+              <div className="profile-it-hero-left">
+                <div className="profile-it-icon-badge">
+                  <Zap size={22} className="it-hero-icon" />
+                </div>
+                <div className="profile-it-details">
+                  <div className="profile-it-title">Énergie IT Cumulée</div>
+                  <div className="profile-it-subtitle">
+                    Total Carrière • {profileData.totalMissionsCount ?? profileData.personalMetrics?.totalActionsCount ?? 0} éco-missions synchronisées
+                  </div>
+                </div>
+              </div>
+              <div className="profile-it-score-wrapper">
+                <span className="profile-it-score-val">
+                  {(() => {
+                    const raw = profileData.totalIT ?? profileData.personalMetrics?.totalIT;
+                    if (typeof raw === 'number' && raw > 0) return raw.toLocaleString('fr-FR');
+                    const m = profileData.personalMetrics;
+                    const count = profileData.totalMissionsCount ?? m?.totalActionsCount ?? 0;
+                    if (m && (count > 0 || m.co2 > 0 || m.waste > 0 || m.water > 0)) {
+                      const pCo2 = (m.co2 || 0) / 4700;
+                      const pWater = (m.water || 0) / 1385000;
+                      const pWaste = (m.waste || 0) / 270;
+                      const rawImpact = (pCo2 * 0.5 + pWater * 0.2 + pWaste * 0.2) * 1000;
+                      const bonusActions = Math.min(100, count * 2);
+                      return Math.round(rawImpact + bonusActions).toLocaleString('fr-FR');
+                    }
+                    return (0).toLocaleString('fr-FR');
+                  })()}
+                </span>
+                <span className="profile-it-score-unit">IT</span>
+              </div>
+            </div>
+
             {/* Grille des 3 indicateurs personnels */}
             <div className="profile-metrics-grid">
               <div className="profile-metric-card">

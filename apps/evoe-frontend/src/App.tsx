@@ -58,6 +58,23 @@ const fmtVolume = (litres: number): string => {
   return `${litres.toFixed(0)} L`;
 };
 
+const getVibrantTeamColor = (colorStr: string | null | undefined): string => {
+  if (!colorStr) return '#00ffcc';
+  const c = colorStr.trim().toLowerCase();
+  if (
+    c.includes('40916c') ||
+    c.includes('2d6a4f') ||
+    c.includes('52b788') ||
+    c.includes('74c69d') ||
+    c.includes('green') ||
+    c.includes('2e7d32') ||
+    c.includes('388e3c')
+  ) {
+    return '#10b981';
+  }
+  return colorStr;
+};
+
 function MainApp() {
   const {
     era, handleSwitchEra,
@@ -1879,40 +1896,83 @@ function MainApp() {
                 </div>
                 {dashboardStatus ? (
                   <div className="vessels-list">
-                    {[...dashboardStatus.teams].sort((a, b) => b.position - a.position).map((t: any) => (
-                      <div 
-                        key={t.id} 
-                        id={`radar-team-${t.id}`}
-                        className={`vessel-row ${selectedRadarTeamId === t.id ? 'highlighted-vessel' : ''}`} 
-                        style={{ 
-                          borderLeftColor: t.color || '#00ffcc',
-                          ...(selectedRadarTeamId === t.id ? {
-                            background: 'rgba(0, 255, 204, 0.1)',
-                            boxShadow: '0 0 15px rgba(0, 255, 204, 0.2)',
-                            transform: 'scale(1.02)',
-                            transition: 'all 0.3s ease'
-                          } : {
-                            transition: 'all 0.3s ease'
-                          })
-                        }}
-                      >
-                        <div className="vessel-row-header">
-                          <span className="vessel-team-name" style={{ color: t.color || '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {t.icon ? (
-                              <img 
-                                src={`${EVOE_IMG_URL}teams/${t.icon.split('/').pop()}`} 
-                                alt="" 
-                                style={{ width: '24px', height: '24px', objectFit: 'contain', background: 'rgba(0,0,0,0.15)', borderRadius: '4px', padding: '2px' }} 
-                              />
-                            ) : (
-                              <span style={{ fontSize: '1.2rem', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🛸</span>
-                            )}
-                            {t.name}
-                          </span>
-                          <span className="vessel-tech" title={t.propulsionDesc}>
-                            {t.propulsionType}
-                          </span>
-                        </div>
+                    {[...dashboardStatus.teams].sort((a, b) => b.position - a.position).map((t: any) => {
+                      const isSelected = selectedRadarTeamId === t.id;
+                      const vibrantColor = getVibrantTeamColor(t.color);
+                      return (
+                        <div 
+                          key={t.id} 
+                          id={`radar-team-${t.id}`}
+                          className={`vessel-row ${isSelected ? 'highlighted-vessel' : ''}`} 
+                          style={{ 
+                            borderLeftColor: vibrantColor,
+                            ...(isSelected ? {
+                              border: `2px solid ${vibrantColor}`,
+                              borderLeft: `6px solid ${vibrantColor}`,
+                              background: `linear-gradient(135deg, ${vibrantColor}35 0%, rgba(8, 20, 24, 0.95) 60%, rgba(10, 16, 30, 0.98) 100%)`,
+                              boxShadow: `0 0 28px ${vibrantColor}60, inset 0 0 16px ${vibrantColor}25`,
+                              transform: 'scale(1.03)',
+                              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                            } : {
+                              transition: 'all 0.3s ease'
+                            })
+                          }}
+                        >
+                          <div className="vessel-row-header">
+                            <span 
+                              className="vessel-team-name" 
+                              style={{ 
+                                color: isSelected ? vibrantColor : (t.color || '#fff'), 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                textShadow: isSelected ? `0 0 12px ${vibrantColor}` : 'none'
+                              }}
+                            >
+                              {t.icon ? (
+                                <img 
+                                  src={`${EVOE_IMG_URL}teams/${t.icon.split('/').pop()}`} 
+                                  alt="" 
+                                  style={{ 
+                                    width: '24px', 
+                                    height: '24px', 
+                                    objectFit: 'contain', 
+                                    background: isSelected ? `${vibrantColor}30` : 'rgba(0,0,0,0.15)', 
+                                    border: isSelected ? `1px solid ${vibrantColor}` : 'none',
+                                    borderRadius: '4px', 
+                                    padding: '2px' 
+                                  }} 
+                                />
+                              ) : (
+                                <span style={{ fontSize: '1.2rem', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🛸</span>
+                              )}
+                              {t.name}
+                              {isSelected && (
+                                <span 
+                                  className="vessel-selected-badge" 
+                                  style={{ 
+                                    color: vibrantColor, 
+                                    borderColor: vibrantColor, 
+                                    background: `${vibrantColor}25` 
+                                  }}
+                                >
+                                  🎯 CIBLÉ
+                                </span>
+                              )}
+                            </span>
+                            <span 
+                              className="vessel-tech" 
+                              title={t.propulsionDesc}
+                              style={isSelected ? {
+                                background: `${vibrantColor}30`,
+                                color: vibrantColor,
+                                border: `1px solid ${vibrantColor}80`,
+                                boxShadow: `0 0 10px ${vibrantColor}40`
+                              } : {}}
+                            >
+                              {t.propulsionType}
+                            </span>
+                          </div>
                         
                         <div className="vessel-stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '1px' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#a0aec0' }} title="CO₂ évité (kg/semaine)">
@@ -1992,7 +2052,8 @@ function MainApp() {
                           }
                         })()}
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 ) : (
                   <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem' }}>Verrouillage des signatures thermiques des vaisseaux...</p>

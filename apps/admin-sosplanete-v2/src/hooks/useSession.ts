@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
-import { getAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
+import { getAuthData, clearAuthData } from '@/utils/storage';
 
 interface User {
   id: number;
@@ -15,7 +13,7 @@ interface SessionState {
   user: User | null;
   loading: boolean;
   authenticated: boolean;
-  error: any;
+  error: string | Error | null;
 }
 
 /**
@@ -31,6 +29,18 @@ export function useSession() {
     authenticated: false,
     error: null,
   });
+
+  const logout = useCallback(() => {
+    clearAuthData();
+    setSession({
+      user: null,
+      loading: false,
+      authenticated: false,
+      error: null,
+    });
+    // Forcer la redirection vers login si nécessaire (optionnel, selon l'implémentation du layout)
+    window.location.href = '/login';
+  }, []);
 
   const fetchUser = useCallback(async () => {
     const token = getAuthData('access_token');
@@ -68,23 +78,11 @@ export function useSession() {
           setSession(s => ({ ...s, loading: false, error: 'Failed to fetch user' }));
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Session fetch error:', error);
       setSession(s => ({ ...s, loading: false, error }));
     }
-  }, []);
-
-  const logout = useCallback(() => {
-    clearAuthData();
-    setSession({
-      user: null,
-      loading: false,
-      authenticated: false,
-      error: null,
-    });
-    // Forcer la redirection vers login si nécessaire (optionnel, selon l'implémentation du layout)
-    window.location.href = '/login';
-  }, []);
+  }, [logout]);
 
   useEffect(() => {
     fetchUser();

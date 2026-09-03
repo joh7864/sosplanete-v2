@@ -26,7 +26,7 @@ export function useInstanceYear(
 
   useEffect(() => {
     if (!instanceId || !schoolYear) {
-      setInstanceYearId(null);
+      setInstanceYearId((prev) => (prev !== null ? null : prev));
       return;
     }
 
@@ -34,7 +34,8 @@ export function useInstanceYear(
 
     // Cache hit — pas de fetch
     if (cache.has(key)) {
-      setInstanceYearId(cache.get(key)!);
+      const cached = cache.get(key)!;
+      setInstanceYearId((prev) => (prev !== cached ? cached : prev));
       return;
     }
 

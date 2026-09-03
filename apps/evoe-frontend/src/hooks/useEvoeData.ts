@@ -15,8 +15,6 @@ export function useEvoeData() {
   const [expandedMission, setExpandedMission] = useState<any | null>(null);
   const [popoverPos, setPopoverPos] = useState(0);
 
-  const [showBriefing, setShowBriefing] = useState<boolean>(false);
-
   // States pour les métriques
   const [extrapolation, setExtrapolation] = useState<any>(null);
   const [dashboardStatus, setDashboardStatus] = useState<any>(null);
@@ -101,12 +99,20 @@ export function useEvoeData() {
 
   const hasSeenBriefing: boolean = (childInfos as any)?.hasSeenBriefing === true;
 
+  const [showBriefing, setShowBriefing] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && childInfos?.id) {
+      const skipped = localStorage.getItem(`evoe_skip_briefing_${childInfos.id}`) === 'true';
+      return !hasSeenBriefing && !skipped;
+    }
+    return false;
+  });
+
   useEffect(() => {
     if (childInfos?.id) {
       const skipped = localStorage.getItem(`evoe_skip_briefing_${childInfos.id}`) === 'true';
-      setShowBriefing(!hasSeenBriefing && !skipped);
+      const shouldShow = !hasSeenBriefing && !skipped;
+      setShowBriefing(prev => (prev !== shouldShow ? shouldShow : prev));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childInfos?.id, hasSeenBriefing]);
 
   const handleCompleteBriefing = async (skipNextTime: boolean) => {
@@ -121,17 +127,24 @@ export function useEvoeData() {
     }
   };
 
-  const fetchEvoeData = () => {
+  const fetchEvoeData = async () => {
     if (!instanceId) return;
     refreshContext();
 
-    evoeClient.get(`${EVOE_API_URL}/extrapolation/metrics`)
-      .then(res => setExtrapolation(res.data))
-      .catch(err => console.error("Erreur extrapolation:", err));
-
-    evoeClient.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`)
-      .then(res => setDashboardStatus(res.data))
-      .catch(err => console.error("Erreur dashboard status:", err));
+    try {
+      const [metricsRes, dashboardRes] = await Promise.allSettled([
+        evoeClient.get(`${EVOE_API_URL}/extrapolation/metrics`),
+        evoeClient.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`),
+      ]);
+      if (metricsRes.status === 'fulfilled') {
+        setExtrapolation(metricsRes.value.data);
+      }
+      if (dashboardRes.status === 'fulfilled') {
+        setDashboardStatus(dashboardRes.value.data);
+      }
+    } catch (err) {
+      console.error("Erreur récupération données Evoe:", err);
+    }
   };
 
   const fetchChallenges = async () => {

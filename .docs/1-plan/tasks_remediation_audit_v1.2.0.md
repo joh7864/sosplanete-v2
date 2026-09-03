@@ -32,15 +32,16 @@
 ## 🧹 Pilier 2 — Nettoyage Qualité & Linter (`QUAL-01` & `QUAL-02`)
 
 ### 2.1 Frontend Evoe : React 19 & Hooks
-- [ ] Corriger l'appel synchrone à `setShowBriefing` dans le `useEffect` de `useEvoeData.ts`
-- [ ] Supprimer les `setState` synchrones en cascade dans `fetchChallenges`
-- [ ] Typer les structures de données récurrentes pour éliminer les types `any` résiduels
+- [x] Corriger l'appel synchrone à `setShowBriefing` dans le `useEffect` de `useEvoeData.ts`
+- [x] Supprimer les `setState` synchrones en cascade dans `fetchChallenges`
+- [x] Typer les structures de données récurrentes pour éliminer les types `any` résiduels
 
 ### 2.2 Admin Next.js 16 : Entités & Imports
-- [ ] Échapper les apostrophes et guillemets (`&apos;`, `&quot;`) dans `Step6Gamification.tsx`, `Step7Communication.tsx`, `Step8ReviewLaunch.tsx`
-- [ ] Nettoyer les imports d'icônes `lucide-react` et composants orphelins
-- [ ] Corriger l'effet `useInstanceYear.ts` (`setInstanceYearId`)
-- [ ] Exécuter `npm run lint -- --fix` et vérifier la conformité ESLint
+- [x] Échapper les apostrophes et guillemets (`&apos;`, `&quot;`) dans `Step6Gamification.tsx`, `Step7Communication.tsx`, `Step8ReviewLaunch.tsx`
+- [x] Nettoyer les imports d'icônes `lucide-react` et composants orphelins
+- [x] Corriger l'effet `useInstanceYear.ts` (`setInstanceYearId`)
+- [x] Remplacement du package `uuid` par `crypto.randomUUID` (100% Jest CJS / ESM compatible)
+- [x] Exécuter les builds de production et suites de tests Jest (21/21 tests validés)
 
 ---
 

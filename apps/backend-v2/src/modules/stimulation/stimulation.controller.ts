@@ -16,7 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { StimulationService } from './stimulation.service';
 import { AnimalUnlockService } from './animal-unlock.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -102,7 +102,7 @@ export class StimulationController {
           cb(null, path);
         },
         filename: (_req, file, cb) => {
-          const uniqueSuffix = uuidv4();
+          const uniqueSuffix = randomUUID();
           cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
         },
       }),

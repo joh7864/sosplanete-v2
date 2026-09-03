@@ -1623,22 +1623,50 @@ export class EvoeService {
     );
     const health = healthMap.get(child.id) ?? 100;
 
-    // 3. Calculer l'empreinte totale depuis le début du jeu (CO2, eau, déchets personnels)
-    const personalImpact = await this.prisma.actionDone.aggregate({
-      where: {
-        childId,
-      },
-      _sum: {
+    // 3. Calculer l'empreinte totale et les IT depuis le début du jeu
+    const allActionsDone = await this.prisma.actionDone.findMany({
+      where: { childId },
+      select: {
         savedCo2: true,
         savedWater: true,
         savedWaste: true,
       },
     });
 
+    let totalCo2 = 0;
+    let totalWater = 0;
+    let totalWaste = 0;
+
+    for (const a of allActionsDone) {
+      totalCo2 += a.savedCo2 ?? 0;
+      totalWater += a.savedWater ?? 0;
+      totalWaste += a.savedWaste ?? 0;
+    }
+
+    const year = parseInt(schoolYear.split('-')[0], 10);
+    const annualData = await this.prisma.annualImpactData.findUnique({
+      where: { year },
+    });
+    const moyCo2Monde = annualData?.moyCo2Monde ?? 4.7;
+    const moyEauMonde = annualData?.moyEauMonde ?? 1385000;
+    const moyDechetsMonde = annualData?.moyDechetsMonde ?? 270;
+
+    const totalIT = this.calculateNormalizedScore(
+      totalCo2,
+      totalWater,
+      totalWaste,
+      allActionsDone.length,
+      moyCo2Monde * 1000,
+      moyEauMonde,
+      moyDechetsMonde,
+    );
+
     const personalMetrics = {
-      co2: personalImpact._sum?.savedCo2 || 0,
-      water: personalImpact._sum?.savedWater || 0,
-      waste: personalImpact._sum?.savedWaste || 0,
+      co2: totalCo2,
+      water: totalWater,
+      waste: totalWaste,
+      totalIT,
+      totalActionsCount: allActionsDone.length,
     };
 
     // 4. Éco-missions réalisées sur la période active
@@ -1780,10 +1808,11 @@ export class EvoeService {
         whatsappCommunityUrl,
       },
       health,
+      totalIT,
       personalMetrics,
       periodMissions,
       top5Missions,
-      totalMissionsCount,
+      totalMissionsCount: allActionsDone.length,
       challenges: mappedChallenges,
     };
   }

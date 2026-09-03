@@ -1,25 +1,15 @@
-'use client';
-
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   CheckCircle2, 
   AlertCircle, 
-  School, 
-  Calendar, 
-  Users, 
-  Leaf, 
-  Trophy, 
   Printer, 
-  Loader2, 
   ArrowRight, 
   ShieldCheck, 
-  FileSpreadsheet,
   Lock,
   Unlock
 } from 'lucide-react';
 import { StepHeader } from '../StepHeader';
 import { WizardDraftState } from '@/types/wizard';
-import { getAuthData, setAuthData } from '@/utils/storage';
 
 interface Step8ReviewLaunchProps {
   state: WizardDraftState;
@@ -32,8 +22,6 @@ export const Step8ReviewLaunch: React.FC<Step8ReviewLaunchProps> = ({
   onFinalize,
   isSubmitting,
 }) => {
-  const [createdSuccess, setCreatedSuccess] = useState(false);
-
   // Quality Pre-flight checks
   const checks = [
     {
@@ -155,7 +143,7 @@ export const Step8ReviewLaunch: React.FC<Step8ReviewLaunchProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    L'espace est créé en sécurité. Les élèves ne peuvent pas encore s'y connecter tant que vous ne cliquez pas sur "Ouvrir".
+                    L&apos;espace est créé en sécurité. Les élèves ne peuvent pas encore s&apos;y connecter tant que vous ne cliquez pas sur &quot;Ouvrir&quot;.
                   </p>
                 </button>
 
@@ -169,12 +157,12 @@ export const Step8ReviewLaunch: React.FC<Step8ReviewLaunchProps> = ({
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-black flex items-center gap-2">
                       <Unlock size={16} />
-                      Ouvrir l'Espace dès maintenant
+                      Ouvrir l&apos;Espace dès maintenant
                     </span>
                     <ArrowRight size={16} />
                   </div>
                   <p className="text-xs text-emerald-100">
-                    Active l'espace immédiatement pour permettre aux enfants de se connecter dès aujourd'hui.
+                    Active l&apos;espace immédiatement pour permettre aux enfants de se connecter dès aujourd&apos;hui.
                   </p>
                 </button>
               </div>

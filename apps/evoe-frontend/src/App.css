@@ -888,6 +888,36 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.vessel-row.highlighted-vessel {
+  position: relative;
+  border-radius: 10px;
+  animation: vesselTargetPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes vesselTargetPulse {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 2px rgba(0, 255, 204, 0.2));
+  }
+  100% {
+    filter: brightness(1.18) drop-shadow(0 0 10px rgba(0, 255, 204, 0.4));
+  }
+}
+
+.vessel-selected-badge {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border-width: 1px;
+  border-style: solid;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
 .vessel-row-header {
   display: flex;
   justify-content: space-between;
@@ -1081,7 +1111,7 @@ body {
   position: relative;
   background: rgba(10, 16, 30, 0.94);
   border-radius: 16px;
-  width: 850px;
+  width: 900px;
   max-width: 95vw;
   height: 600px;
   max-height: 85vh;
@@ -1094,8 +1124,8 @@ body {
 
 .agent-profile-close {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 18px;
+  right: 18px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -1590,14 +1620,14 @@ body {
   box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
 }
 
-/* Right Content Area — padding-top/right augmentés pour dégager le bouton fermer */
+/* Right Content Area */
 .agent-profile-content {
   flex: 1;
-  padding: 55px 50px 25px 20px;
+  padding: 18px 58px 20px 22px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   overflow-y: auto;
 }
 
@@ -1606,6 +1636,28 @@ body {
     padding: 15px;
     gap: 15px;
     overflow-y: visible;
+  }
+  .profile-it-hero-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .profile-it-icon-badge {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+  .profile-it-title {
+    font-size: 0.85rem;
+  }
+  .profile-it-subtitle {
+    font-size: 0.68rem;
+  }
+  .profile-it-score-val {
+    font-size: 1.15rem;
+  }
+  .profile-it-score-wrapper {
+    padding: 4px 10px;
   }
   .profile-metrics-grid {
     gap: 6px;
@@ -1639,6 +1691,108 @@ body {
     font-size: 0.8rem;
     white-space: nowrap;
   }
+}
+
+/* Hero Card : Énergie IT Cumulée */
+.profile-it-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(217, 70, 239, 0.12) 0%, rgba(13, 20, 36, 0.9) 60%, rgba(0, 255, 204, 0.08) 100%);
+  border: 1.5px solid rgba(217, 70, 239, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 0 24px rgba(217, 70, 239, 0.15), inset 0 0 16px rgba(217, 70, 239, 0.06);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.profile-it-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #d946ef, #00ffcc);
+  opacity: 0.8;
+}
+
+.profile-it-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profile-it-icon-badge {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 10px;
+  background: rgba(217, 70, 239, 0.18);
+  border: 1px solid rgba(217, 70, 239, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0abfc;
+  box-shadow: 0 0 12px rgba(217, 70, 239, 0.3);
+}
+
+.it-hero-icon {
+  filter: drop-shadow(0 0 6px rgba(217, 70, 239, 0.6));
+}
+
+.profile-it-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-it-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.profile-it-subtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-it-score-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-shrink: 0;
+  background: rgba(217, 70, 239, 0.15);
+  border: 1px solid rgba(217, 70, 239, 0.4);
+  padding: 6px 14px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.2);
+}
+
+.profile-it-score-val {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #f0abfc;
+  text-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
+}
+
+.profile-it-score-unit {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #d946ef;
 }
 
 .profile-metrics-grid {
