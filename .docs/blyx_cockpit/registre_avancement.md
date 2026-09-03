@@ -28,6 +28,8 @@
 | **30/08** | US-EVOE-01 à 35 | Antigravity (IA) | Reverse Engineering, Backlog 35 US, Recette 62 Tests, Blyx Sync | 1.0h | done |
 
 
+| **02/09 - 03/09** | US 12.1, 12.2, 12.3, 12.4 | Dev & Antigravity | Rééquilibrage Catalogue, Recalcul 47k actions, EOD Fix, Release 1.2.0 | 4.5h | done |
+
 ## 💰 Synthèse Effort Humain
 - **Temps IA (Gemini/Antigravity)** : 0.0h
 - **Cognition Humaine (Celer 2.0)** : 15.70h (Fibo + Assets)
@@ -78,3 +80,7 @@
 | US 11.2 | User | Rôle d'Arbitre d'Équipe & Interface de Modération | 8 | M | [ ] | **0** | **0** | 0h00 |
 | US 11.3 | User | Notifications WhatsApp & Auto-Validation au Timeout | 5 | S | [ ] | **0** | **0** | 0h00 |
 | US 11.4 | User | Mascotte Gribouille & Scan Holographique Humoristique | 5 | C | [ ] | **0** | **0** | 0h00 |
+| US 12.1 | Admin | Rééquilibrage scientifique du catalogue & Hypothèses de calcul | 5 | M | [x] | **5** | **13** | 0h00 |
+| US 12.2 | Dev | Script de recalcul global de l'historique des actions & Leaderboard | 8 | M | [x] | **8** | **21** | 0h00 |
+| US 12.3 | Admin | Harmonisation EOD & Simulateur d'algorithme multi-espaces | 5 | M | [x] | **5** | **13** | 0h00 |
+| US 12.4 | Dev | Release Monorepo v1.2.0 & Déploiement Production Docker | 3 | M | [x] | **3** | **8** | 0h00 |

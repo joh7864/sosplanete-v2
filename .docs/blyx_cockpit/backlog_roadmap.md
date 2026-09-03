@@ -56,3 +56,8 @@
 | US 11.2 | Arbitrage d'Équipe & Interface Modération | Arbitre | US 11.2 - Arbitrage Équipe : En tant qu'arbitre, je veux valider ou rejeter les preuves avec motif | M | Validation & Preuves | Evoe | 8 | 21 | todo |
 | US 11.3 | Notifications WhatsApp & Auto-Validation Timeout | Arbitre | US 11.3 - Notifications & Timeout : En tant qu'arbitre/joueur, je veux une alerte WhatsApp et timeout 120min | S | Validation & Preuves | Evoe | 5 | 13 | todo |
 | US 11.4 | Mascotte Gribouille & Scan Holographique | Joueur | US 11.4 - Mascotte Gribouille : En tant qu'agent, je veux un scan holographique et réplique IA | C | Validation & Preuves | Evoe | 5 | 8 | todo |
+| **Epic 12 - Administration, Catalogue & Métriques Globales** | | | | | | | | |
+| US 12.1 | Rééquilibrage scientifique du catalogue & Hypothèses de calcul | Admin | US 12.1 - Catalogue : En tant qu'admin, je veux des barèmes CO2/Eau/Déchets réalistes et un champ hypothèse de calcul | M | Admin & Catalogue | Core | 5 | 13 | done |
+| US 12.2 | Script de recalcul global de l'historique des actions & Leaderboard | Dev | US 12.2 - Recalcul : En tant que dev, je veux recalculer l'historique ActionDone et fiabiliser les scores joueurs | M | Admin & Catalogue | Core | 8 | 21 | done |
+| US 12.3 | Harmonisation EOD & Simulateur d'algorithme multi-espaces | Admin | US 12.3 - EOD Simulator : En tant qu'admin, je veux tester l'algorithme d'impact par établissement et avoir un EOD juste | M | Admin & Catalogue | Core | 5 | 13 | done |
+| US 12.4 | Release Monorepo v1.2.0 & Déploiement Production Docker | Dev | US 12.4 - Release : En tant que dev, je veux packager et déployer la v1.2.0 avec migrations Prisma automatisées | M | Release & Ops | Core | 3 | 8 | done |
