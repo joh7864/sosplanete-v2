@@ -10,6 +10,7 @@ interface EvoeRadarMeterProps {
   tooltipText?: string;
   tooltip?: string;
   displayValue?: string;
+  placement?: 'left' | 'right' | 'center';
 }
 
 export function EvoeRadarMeter({
@@ -20,7 +21,8 @@ export function EvoeRadarMeter({
   tooltipTitle,
   tooltipText,
   tooltip,
-  displayValue
+  displayValue,
+  placement = 'center'
 }: EvoeRadarMeterProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const normalizedValue = Math.min(Math.max(value, 0), 100);
@@ -35,6 +37,12 @@ export function EvoeRadarMeter({
       className="evoe-radar-meter-container"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
+      onClick={(e) => {
+        if (text) {
+          e.stopPropagation();
+          setShowTooltip(prev => !prev);
+        }
+      }}
       style={{ 
         width: '90px', 
         height: '90px', 
@@ -133,7 +141,7 @@ export function EvoeRadarMeter({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="evoe-radar-hud-tooltip"
+            className={`evoe-radar-hud-tooltip placement-${placement}`}
             style={{
               borderColor: `${color}60`,
               boxShadow: `0 8px 24px rgba(0, 0, 0, 0.8), 0 0 14px ${color}30`
@@ -141,7 +149,25 @@ export function EvoeRadarMeter({
           >
             <div className="evoe-radar-hud-title" style={{ color }}>
               <span className="hud-indicator-dot" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
-              {title}
+              <span style={{ flex: 1 }}>{title}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTooltip(false);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.6)',
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  lineHeight: 1,
+                  padding: '0 2px'
+                }}
+              >
+                ✕
+              </button>
             </div>
             <div className="evoe-radar-hud-desc">
               {text}

@@ -1998,6 +1998,7 @@ function MainApp() {
                             displayValue={`${Math.round(t.position || 0)}%`}
                             tooltipTitle="Régénération Planétaire"
                             tooltipText="Progression globale de l'arche vers 2070. Mesure l'énergie régénérée par les éco-actions du Codex (CO₂, Eau, Déchets)."
+                            placement="left"
                           />
                           <EvoeRadarMeter 
                             value={t.crewBioStability || 0} 
@@ -2006,6 +2007,7 @@ function MainApp() {
                             id={`stability-${t.id}`} 
                             tooltipTitle="Bio-Stabilité Temporelle"
                             tooltipText="Cohésion quantique et assiduité de l'équipage. Un score élevé protège le vaisseau contre les anomalies de stase."
+                            placement="right"
                           />
                         </div>
 
