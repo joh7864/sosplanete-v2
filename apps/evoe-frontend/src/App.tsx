@@ -129,7 +129,7 @@ function MainApp() {
 
   const handleVesselClick = (teamId: number | string) => {
     setShowRadar(true);
-    setSelectedRadarTeamId(teamId);
+    setSelectedRadarTeamId((prev) => (prev === teamId ? null : teamId));
   };
 
   useEffect(() => {
@@ -518,7 +518,7 @@ function MainApp() {
     return `${EVOE_IMG_URL}avatars_3D/${file}`;
   };
 
-  // Calcul du pourcentage de l'année pour la jauge EOD
+  // Calcul du pourcentage de la période d'été (1er Juillet - 30 Septembre / ~3 mois) pour la jauge EOD
   const getEodPercent = (dateStr: string) => {
     if (!dateStr) return 50;
     const parts = dateStr.split('/');
@@ -531,13 +531,18 @@ function MainApp() {
       const diff = date.getTime() - start.getTime();
       const oneDay = 1000 * 60 * 60 * 24;
       const dayOfYear = Math.floor(diff / oneDay);
-      return Math.min(100, Math.max(0, (dayOfYear / 365) * 100));
+      
+      // Fenêtre zoomée sur 3 mois : 1er Juillet (jour 182) au 30 Septembre (jour 273)
+      const winStart = 182;
+      const winSpan = 91;
+      const percent = ((dayOfYear - winStart) / winSpan) * 100;
+      return Math.min(96, Math.max(4, percent));
     }
     return 50;
   };
 
-  const eodN1Percent = extrapolation ? getEodPercent(extrapolation.dateDepassementSans) : 58.6;
-  const eodNPercent = extrapolation ? getEodPercent(extrapolation.dateDepassement) : 70.7;
+  const eodN1Percent = extrapolation ? getEodPercent(extrapolation.dateDepassementSans) : 35.2;
+  const eodNPercent = extrapolation ? getEodPercent(extrapolation.dateDepassement) : 48.4;
 
   const handleSelectPlayer = (player: any) => {
     const isMe = player.childId === childInfos?.id || player.id === childInfos?.id || player.isCurrent;
@@ -699,6 +704,7 @@ function MainApp() {
           ) : (
             <Portal2070 
               dashboardStatus={dashboardStatus} 
+              selectedTeamId={selectedRadarTeamId}
               onEarthClick={handleEarthClick} 
               onVesselClick={handleVesselClick}
               isMobile={isMobile}
@@ -1798,9 +1804,9 @@ function MainApp() {
                         />
                       </div>
                       <div className="jauge-eod-labels">
-                        <span>1er Janvier</span>
+                        <span>1er Juillet</span>
                         <span style={{ color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.2)' }}>Timeline Reculée !</span>
-                        <span>31 Décembre</span>
+                        <span>30 Septembre</span>
                       </div>
                     </div>
 
@@ -1904,18 +1910,19 @@ function MainApp() {
                           key={t.id} 
                           id={`radar-team-${t.id}`}
                           className={`vessel-row ${isSelected ? 'highlighted-vessel' : ''}`} 
+                          onClick={() => setSelectedRadarTeamId((prev) => (prev === t.id ? null : t.id))}
                           style={{ 
-                            borderLeftColor: vibrantColor,
-                            ...(isSelected ? {
-                              border: `2px solid ${vibrantColor}`,
-                              borderLeft: `6px solid ${vibrantColor}`,
-                              background: `linear-gradient(135deg, ${vibrantColor}35 0%, rgba(8, 20, 24, 0.95) 60%, rgba(10, 16, 30, 0.98) 100%)`,
-                              boxShadow: `0 0 28px ${vibrantColor}60, inset 0 0 16px ${vibrantColor}25`,
-                              transform: 'scale(1.03)',
-                              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                            } : {
-                              transition: 'all 0.3s ease'
-                            })
+                            cursor: 'pointer',
+                            border: isSelected ? `1.5px solid ${vibrantColor}` : '1px solid rgba(255, 255, 255, 0.06)',
+                            borderLeft: isSelected ? `5px solid ${vibrantColor}` : `4px solid ${vibrantColor}`,
+                            background: isSelected 
+                              ? `linear-gradient(135deg, ${vibrantColor}28 0%, rgba(10, 16, 28, 0.95) 60%, rgba(12, 18, 32, 0.98) 100%)`
+                              : 'rgba(255, 255, 255, 0.02)',
+                            boxShadow: isSelected 
+                              ? `0 0 22px ${vibrantColor}55, 0 0 45px ${vibrantColor}25, inset 0 0 14px ${vibrantColor}20`
+                              : 'none',
+                            transform: isSelected ? 'scale(1.025)' : 'none',
+                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                           }}
                         >
                           <div className="vessel-row-header">
@@ -1947,28 +1954,20 @@ function MainApp() {
                                 <span style={{ fontSize: '1.2rem', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🛸</span>
                               )}
                               {t.name}
-                              {isSelected && (
-                                <span 
-                                  className="vessel-selected-badge" 
-                                  style={{ 
-                                    color: vibrantColor, 
-                                    borderColor: vibrantColor, 
-                                    background: `${vibrantColor}25` 
-                                  }}
-                                >
-                                  🎯 CIBLÉ
-                                </span>
-                              )}
                             </span>
                             <span 
                               className="vessel-tech" 
                               title={t.propulsionDesc}
-                              style={isSelected ? {
-                                background: `${vibrantColor}30`,
-                                color: vibrantColor,
-                                border: `1px solid ${vibrantColor}80`,
-                                boxShadow: `0 0 10px ${vibrantColor}40`
-                              } : {}}
+                              style={{
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                ...(isSelected ? {
+                                  background: `${vibrantColor}25`,
+                                  color: vibrantColor,
+                                  border: `1px solid ${vibrantColor}80`,
+                                  boxShadow: `0 0 10px ${vibrantColor}40`
+                                } : {})
+                              }}
                             >
                               {t.propulsionType}
                             </span>
@@ -1997,14 +1996,16 @@ function MainApp() {
                             color="#00ffcc" 
                             id={`timeline-${t.id}`} 
                             displayValue={`${Math.round(t.position || 0)}%`}
-                            tooltip="Taux de régénération planétaire apporté par ce vaisseau (60% CO₂, 20% Eau, 20% Déchets)."
+                            tooltipTitle="Régénération Planétaire"
+                            tooltipText="Progression globale de l'arche vers 2070. Mesure l'énergie régénérée par les éco-actions du Codex (CO₂, Eau, Déchets)."
                           />
                           <EvoeRadarMeter 
                             value={t.crewBioStability || 0} 
                             label="STABILITÉ" 
                             color={t.crewBioStability < 40 ? '#ff3b3b' : (t.crewBioStability < 80 ? '#ff9f43' : '#10b981')} 
                             id={`stability-${t.id}`} 
-                            tooltip="Score de bio-stabilité de l'équipage. Mesure la synchronisation et la santé temporelle des agents du vaisseau."
+                            tooltipTitle="Bio-Stabilité Temporelle"
+                            tooltipText="Cohésion quantique et assiduité de l'équipage. Un score élevé protège le vaisseau contre les anomalies de stase."
                           />
                         </div>
 

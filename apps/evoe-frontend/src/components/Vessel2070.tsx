@@ -7,9 +7,19 @@ import { EngineN1, EngineN2, EngineN3, EngineN4, EngineN5 } from './3d/VesselEng
 
 
 // =========================================================
-// COMPOSANT PRINCIPAL VESSEL
-// =========================================================
-export default function Vessel2070({ team, index, total, onClick }: { team: any; index: number; total: number; onClick?: (teamId: number) => void }) {
+export default function Vessel2070({ 
+  team, 
+  index, 
+  total, 
+  isSelected = false,
+  onClick 
+}: { 
+  team: any; 
+  index: number; 
+  total: number; 
+  isSelected?: boolean;
+  onClick?: (teamId: number) => void;
+}) {
   const outerGroupRef = useRef<THREE.Group>(null);
   const innerGroupRef = useRef<THREE.Group>(null);
   
@@ -186,6 +196,38 @@ export default function Vessel2070({ team, index, total, onClick }: { team: any;
         {level === 3 && <EngineN3 />}
         {level === 4 && <EngineN4 />}
         {level === 5 && <EngineN5 />}
+
+        {/* Halo / Anneau de Sélection Holographique 3D */}
+        {isSelected && (
+          <group position={[0, -0.15, -0.2]}>
+            {/* Anneau principal */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.55, 0.62, 36]} />
+              <meshBasicMaterial 
+                color={colorHex} 
+                transparent 
+                opacity={0.85} 
+                blending={THREE.AdditiveBlending} 
+                side={THREE.DoubleSide} 
+                depthWrite={false} 
+              />
+            </mesh>
+            {/* Halo externe diffus */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.7, 0.76, 36]} />
+              <meshBasicMaterial 
+                color={colorHex} 
+                transparent 
+                opacity={0.4} 
+                blending={THREE.AdditiveBlending} 
+                side={THREE.DoubleSide} 
+                depthWrite={false} 
+              />
+            </mesh>
+            {/* Point lumineux d'ambiance */}
+            <pointLight color={colorHex} intensity={2.5} distance={3.5} />
+          </group>
+        )}
 
         {/* Panneau holographique au-dessus du vaisseau */}
         <Billboard position={[0, 0.6, 0]} follow={true}>

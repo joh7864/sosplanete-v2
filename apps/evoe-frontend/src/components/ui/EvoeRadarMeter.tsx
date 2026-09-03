@@ -1,10 +1,13 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface EvoeRadarMeterProps {
   value: number;
   label: string;
   color: string;
   id: string;
+  tooltipTitle?: string;
+  tooltipText?: string;
   tooltip?: string;
   displayValue?: string;
 }
@@ -14,16 +17,24 @@ export function EvoeRadarMeter({
   label,
   color,
   id,
+  tooltipTitle,
+  tooltipText,
   tooltip,
   displayValue
 }: EvoeRadarMeterProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const normalizedValue = Math.min(Math.max(value, 0), 100);
   const angle = -135 + (normalizedValue / 100) * 270;
   const strokeDashOffset = 400.5 - (400.5 * normalizedValue) / 100;
 
+  const title = tooltipTitle || (label === 'REGEN.' ? 'Régénération Planétaire' : 'Bio-Stabilité Temporelle');
+  const text = tooltipText || tooltip;
+
   return (
     <div 
-      title={tooltip}
+      className="evoe-radar-meter-container"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
       style={{ 
         width: '90px', 
         height: '90px', 
@@ -32,7 +43,7 @@ export function EvoeRadarMeter({
         flexDirection: 'column', 
         alignItems: 'center', 
         justifyContent: 'center',
-        cursor: tooltip ? 'help' : 'default'
+        cursor: text ? 'help' : 'default'
       }}
     >
       <svg viewBox="0 0 200 200" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
@@ -113,6 +124,31 @@ export function EvoeRadarMeter({
           {label}
         </text>
       </svg>
+
+      {/* Tooltip HUD Cyberpunk Multi-Lignes */}
+      <AnimatePresence>
+        {showTooltip && text && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            className="evoe-radar-hud-tooltip"
+            style={{
+              borderColor: `${color}60`,
+              boxShadow: `0 8px 24px rgba(0, 0, 0, 0.8), 0 0 14px ${color}30`
+            }}
+          >
+            <div className="evoe-radar-hud-title" style={{ color }}>
+              <span className="hud-indicator-dot" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+              {title}
+            </div>
+            <div className="evoe-radar-hud-desc">
+              {text}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

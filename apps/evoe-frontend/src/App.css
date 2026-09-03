@@ -873,14 +873,13 @@ body {
 
 .vessel-row {
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-left: 4px solid #fff;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 6px 12px 4px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
 .vessel-row:hover {
@@ -899,29 +898,16 @@ body {
     filter: brightness(1) drop-shadow(0 0 2px rgba(0, 255, 204, 0.2));
   }
   100% {
-    filter: brightness(1.18) drop-shadow(0 0 10px rgba(0, 255, 204, 0.4));
+    filter: brightness(1.15) drop-shadow(0 0 8px rgba(0, 255, 204, 0.35));
   }
-}
-
-.vessel-selected-badge {
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  border-width: 1px;
-  border-style: solid;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 .vessel-row-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .vessel-team-name {
@@ -930,16 +916,23 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vessel-tech {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #00ffcc;
   background: rgba(0, 255, 204, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .vessel-stats-grid {
@@ -987,6 +980,53 @@ body {
   font-style: italic;
   margin-top: 2px;
   animation: blinkWarn 1.5s infinite;
+}
+
+/* Radar Meter Container & Tooltip HUD Cyberpunk */
+.evoe-radar-meter-container {
+  position: relative;
+}
+
+.evoe-radar-hud-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: rgba(10, 16, 30, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(0, 255, 204, 0.4);
+  border-radius: 10px;
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evoe-radar-hud-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.evoe-radar-hud-desc {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+  font-weight: 500;
 }
 
 @keyframes blinkWarn {
