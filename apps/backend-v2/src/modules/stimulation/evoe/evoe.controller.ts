@@ -8,12 +8,13 @@ import {
   Body,
   Patch,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
   BadRequestException,
 } from '@nestjs/common';
 import { EvoeService } from './evoe.service';
 import { ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 
@@ -161,7 +162,7 @@ export class EvoeController {
   @ApiOperation({ summary: "Upload d'un avatar pour un agent temporel" })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FileInterceptor('file', {
+    AnyFilesInterceptor({
       storage: diskStorage({
         destination: (req, file, cb) => {
           const basePath =
@@ -193,12 +194,14 @@ export class EvoeController {
   async uploadAvatar(
     @Headers('authorization') auth: string,
     @Headers('x-instance-id') instanceIdStr: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
+    const file = files?.[0];
     if (!file) throw new BadRequestException('Aucun fichier reçu');
     // Validation de l'authentification
     await this.evoeService.verifyAuth(auth, instanceIdStr);
-    return { filename: `avatars/${file.filename}` };
+    const relPath = `avatars/${file.filename}`;
+    return { filename: relPath, avatarPath: relPath };
   }
 
   @Post('chat/upload-image')
