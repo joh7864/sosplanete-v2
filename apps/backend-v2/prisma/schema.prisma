@@ -110,6 +110,11 @@ model InstanceYear {
   periods          Period[]
   teams            Team[]
   categories       Category[]
+  easterEggInstances      EvoeEasterEggInstance[]
+  easterEggsEnabled       Boolean @default(true)
+  easterEggFrequency      Int     @default(2)
+  easterEggRequiredPlayers Int    @default(2)
+  easterEggMaxWinningTeams Int    @default(0)
 
   @@unique([instanceId, schoolYear])
   @@unique([hostUrl, schoolYear])
@@ -128,6 +133,7 @@ model Team {
   evoeTechnology     EvoeTeamTechnology?
   challengesSent     EvoeChallenge[]     @relation("ChallengerTeam")
   challengesReceived EvoeChallenge[]     @relation("TargetTeam")
+  easterEggRewards   EvoeEasterEggTeamReward[]
 }
 
 model Group {
@@ -151,6 +157,7 @@ model Child {
   gender          String?
   birthDate       DateTime?
   actionsDone     ActionDone[]
+  easterEggProgress EvoeEasterEggPlayerProgress[]
   group           Group        @relation(fields: [groupId], references: [id])
 
   @@unique([pseudo, groupId])
@@ -227,6 +234,10 @@ model GameConfig {
   gameEndDate                 DateTime?
   gamePeriodsCount            Int       @default(24)
   periodStartDay              Int       @default(3)
+  easterEggsEnabled           Boolean   @default(true)
+  easterEggFrequency          Int       @default(2)
+  easterEggRequiredPlayers    Int       @default(2)
+  easterEggMaxWinningTeams    Int       @default(0)
   instance                    Instance  @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, schoolYear])
@@ -352,3 +363,100 @@ enum ChallengeStatus {
   SUCCESS
   FAILED
 }
+
+enum EasterEggTriggerType {
+  RIDDLE_ANSWER_INPUT
+  KONAMI_CODE
+  COMM_LINK_COMMAND
+  CLICK_REPEATED
+  SCREEN_EDGE
+  TIMELINE_WARP
+  METRIC_SEQUENCE
+  LOGO_HOLD
+  CUSTOM_ACTION
+}
+
+enum EasterEggDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  LEGENDARY
+}
+
+model EvoeEasterEgg {
+  id              Int                  @id @default(autoincrement())
+  code            String               @unique
+  title           String
+  senderLore      String
+  clues           Json
+  imageUrl        String?
+  triggerType     EasterEggTriggerType @default(RIDDLE_ANSWER_INPUT)
+  expectedAnswer  String?
+  caseSensitive   Boolean              @default(false)
+  triggerConfig   Json?
+  complexity      EasterEggDifficulty  @default(MEDIUM)
+  rewardPointsIT  Int                  @default(50)
+  orderIndex      Int                  @default(0)
+  isActive        Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  instances       EvoeEasterEggInstance[]
+  playerProgress  EvoeEasterEggPlayerProgress[]
+  teamRewards     EvoeEasterEggTeamReward[]
+
+  @@map("evoe_easter_egg")
+}
+
+model EvoeEasterEggInstance {
+  id                  Int           @id @default(autoincrement())
+  instanceYearId      Int
+  easterEggId         Int
+  periodStartId       Int
+  periodEndId         Int
+  isClosed            Boolean       @default(false)
+  unlockedAt          DateTime      @default(now())
+  closedAt            DateTime?
+
+  easterEgg           EvoeEasterEgg @relation(fields: [easterEggId], references: [id], onDelete: Cascade)
+  instanceYear        InstanceYear  @relation(fields: [instanceYearId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceYearId, easterEggId, periodStartId])
+  @@map("evoe_easter_egg_instance")
+}
+
+model EvoeEasterEggPlayerProgress {
+  id                    Int           @id @default(autoincrement())
+  easterEggId           Int
+  childId               Int
+  periodId              Int
+  discoveredAt          DateTime      @default(now())
+  resolutionTimeSeconds Int?
+  answerSubmitted       String?
+  metadata              Json?
+
+  easterEgg             EvoeEasterEgg @relation(fields: [easterEggId], references: [id], onDelete: Cascade)
+  child                 Child         @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([easterEggId, childId, periodId])
+  @@map("evoe_easter_egg_player_progress")
+}
+
+model EvoeEasterEggTeamReward {
+  id                Int           @id @default(autoincrement())
+  easterEggId       Int
+  teamId            Int
+  periodId          Int
+  awardedPointsIT   Int
+  rank              Int           @default(1)
+  completedAt       DateTime      @default(now())
+  playersCount      Int           @default(0)
+  teamTotalPlayers  Int           @default(0)
+
+  easterEgg         EvoeEasterEgg @relation(fields: [easterEggId], references: [id], onDelete: Cascade)
+  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([easterEggId, teamId, periodId])
+  @@map("evoe_easter_egg_team_reward")
+}
+

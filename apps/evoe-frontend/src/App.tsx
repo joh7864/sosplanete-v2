@@ -24,6 +24,9 @@ import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
+import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
+import { EasterEggModal } from './components/ui/EasterEggModal';
+import { useEasterEgg } from './hooks/useEasterEgg';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
@@ -126,6 +129,16 @@ function MainApp() {
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+
+  // Easter Egg System
+  const {
+    activeEggData,
+    hasUnread: hasUnreadEasterEgg,
+    markEnigmaAsSeen,
+    verifyAnswer: verifyEasterEggAnswer,
+    shareInCommLink: shareEasterEggInCommLink,
+  } = useEasterEgg();
+  const [showEasterEggModal, setShowEasterEggModal] = useState(false);
 
   const handleVesselClick = (teamId: number | string) => {
     setShowRadar(true);
@@ -818,6 +831,15 @@ function MainApp() {
                     <Mail size={8} color="#fff" />
                   </div>
                 )}
+                {/* Badge Œuf de Pâques SF 2070 */}
+                <SciFiEggBadge
+                  eggData={activeEggData}
+                  hasUnread={hasUnreadEasterEgg}
+                  onClick={() => {
+                    markEnigmaAsSeen();
+                    setShowEasterEggModal(true);
+                  }}
+                />
               </div>
             )}
 
@@ -2209,6 +2231,16 @@ function MainApp() {
           </Suspense>
         )}
       </AnimatePresence>
+
+      {/* Modale d'Énigme Easter Egg SF 2070 */}
+      <EasterEggModal
+        isOpen={showEasterEggModal}
+        onClose={() => setShowEasterEggModal(false)}
+        eggData={activeEggData}
+        onVerifyAnswer={verifyEasterEggAnswer}
+        onShare={shareEasterEggInCommLink}
+        players={players}
+      />
 
 
 
