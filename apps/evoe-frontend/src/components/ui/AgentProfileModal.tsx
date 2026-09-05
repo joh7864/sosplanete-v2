@@ -108,15 +108,17 @@ export function AgentProfileModal({
     if (!file) return;
 
     const formData = new FormData();
+    formData.append('file', file);
     formData.append('avatar', file);
 
     try {
       setSaving(true);
       const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
-      const resp = await evoeClient.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setAvatar(resp.data.avatarPath);
+      const resp = await evoeClient.post(`${BASE_API_URL}/evoe/profile/upload-avatar`, formData);
+      const newPath = resp.data.avatarPath || resp.data.filename;
+      if (newPath) {
+        setAvatar(newPath);
+      }
     } catch (err) {
       console.error("Erreur d'upload d'avatar:", err);
     } finally {
