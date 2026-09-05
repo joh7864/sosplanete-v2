@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Clock,
-  ShieldCheck,
+  Radio,
   Send,
 } from 'lucide-react';
 import type { ActiveEasterEggResponse } from '../../types/easterEgg';
@@ -103,117 +103,399 @@ export const EasterEggModal: React.FC<EasterEggModalProps> = ({
     );
     if (res?.success) {
       setShareSent(true);
-      setTimeout(() => setShareSent(false), 3000);
+      setTimeout(() => setShareSent(false), 3500);
     }
   };
 
+  const progressPercent = teamProg
+    ? Math.min(100, Math.round((teamProg.discoveredCount / teamProg.requiredPlayers) * 100))
+    : 0;
+
   return (
     <AnimatePresence>
-      <div
-        className="fixed inset-0 z-[600] flex items-center justify-center p-4"
-        style={{
-          backgroundColor: 'rgba(5, 8, 16, 0.85)',
-          backdropFilter: 'blur(12px)',
-        }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(2, 6, 18, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          zIndex: 99999,
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
       >
         <motion.div
-          className="relative w-full max-w-2xl rounded-2xl border border-cyan-500/30 bg-slate-950/95 text-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-          style={{
-            boxShadow: '0 0 40px rgba(56, 189, 248, 0.18)',
-          }}
-          onClick={(e) => e.stopPropagation()}
-          initial={{ scale: 0.92, opacity: 0, y: 20 }}
+          initial={{ scale: 0.94, opacity: 0, y: 16 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.92, opacity: 0, y: 20 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
+          exit={{ scale: 0.94, opacity: 0, y: 16 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: '780px',
+            maxHeight: '88vh',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'linear-gradient(175deg, rgba(8, 16, 32, 0.98) 0%, rgba(3, 8, 18, 0.99) 100%)',
+            border: '1px solid rgba(0, 240, 255, 0.25)',
+            borderRadius: '24px',
+            boxShadow: '0 30px 100px rgba(0, 0, 0, 0.95), 0 0 50px rgba(0, 240, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+            color: '#e2e8f0',
+            overflow: 'hidden',
+          }}
         >
-          {/* Header */}
-          <div className="relative border-b border-cyan-500/20 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-slate-950">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.3)]">
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest font-mono text-cyan-400 bg-cyan-950/70 border border-cyan-500/30 px-2 py-0.5 rounded">
-                    Transmission 2070
-                  </span>
-                  <span className="text-xs font-mono text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded flex items-center gap-1">
-                    +{egg.rewardPointsIT} IT
-                  </span>
+          {/* Ligne néon lumineuse supérieure */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: '10%',
+              right: '10%',
+              height: '2px',
+              background: 'linear-gradient(90deg, transparent, #00f0ff, transparent)',
+              boxShadow: '0 0 18px #00f0ff',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* ═════════════════════════════════════════════════════════════════════════
+              1. EN-TÊTE PREMIUM AVEC OBJECTIF D'ÉQUIPE INTÉGRÉ
+             ═════════════════════════════════════════════════════════════════════════ */}
+          <div
+            style={{
+              padding: '22px 26px 18px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+              background: 'linear-gradient(180deg, rgba(0, 240, 255, 0.04) 0%, transparent 100%)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+              {/* Titre & Hologramme */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '13px',
+                    background: 'radial-gradient(circle, rgba(0, 240, 255, 0.2) 0%, rgba(6, 18, 38, 0.8) 100%)',
+                    border: '1.5px solid rgba(0, 240, 255, 0.4)',
+                    boxShadow: '0 0 18px rgba(0, 240, 255, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#00f0ff',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={22} />
                 </div>
-                <h2 className="text-lg font-bold text-slate-100 mt-0.5 flex items-center gap-2">
-                  {egg.title}
-                </h2>
+
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                    <span
+                      style={{
+                        fontSize: '0.66rem',
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '1.2px',
+                        color: '#00f0ff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Radio size={10} style={{ animation: 'pulse 2s infinite' }} /> Transmission 2070
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontFamily: 'monospace',
+                        fontWeight: 800,
+                        color: '#fbbf24',
+                        background: 'rgba(251, 191, 36, 0.12)',
+                        border: '1px solid rgba(251, 191, 36, 0.35)',
+                        padding: '1px 7px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      +{egg.rewardPointsIT} IT
+                    </span>
+                    
+                    {/* MINI-HUD PROGRESSION ÉQUIPE */}
+                    {teamProg && (
+                      <div
+                        title={`Équipe ${teamProg.teamName} : ${teamProg.discoveredCount}/${teamProg.requiredPlayers} agents nécessaires`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: teamProg.isTeamRewarded ? 'rgba(251, 191, 36, 0.15)' : 'rgba(0, 240, 255, 0.1)',
+                          border: `1px solid ${teamProg.isTeamRewarded ? 'rgba(251, 191, 36, 0.3)' : 'rgba(0, 240, 255, 0.25)'}`,
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.64rem',
+                          fontFamily: 'monospace',
+                          fontWeight: 800,
+                          color: teamProg.isTeamRewarded ? '#fbbf24' : '#00f0ff',
+                          marginLeft: '2px',
+                        }}
+                      >
+                        <Users size={11} />
+                        {teamProg.discoveredCount}/{teamProg.requiredPlayers}
+                        {teamProg.isTeamRewarded && ' ✓'}
+                      </div>
+                    )}
+                  </div>
+
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: '1.25rem',
+                      fontWeight: 800,
+                      color: '#ffffff',
+                      letterSpacing: '0.3px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {egg.title}
+                  </h2>
+                </div>
               </div>
+
+              {/* Bouton de Fermeture */}
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                  e.currentTarget.style.borderColor = '#ef4444';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                }}
+              >
+                <X size={17} />
+              </button>
             </div>
 
-            <button
-              onClick={onClose}
-              className="rounded-lg p-2 text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
-            >
-              <X size={20} />
-            </button>
+
           </div>
 
-          {/* Body Scrollable */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Lore Narratif 2070 */}
-            <div className="relative rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-4 font-mono text-xs leading-relaxed text-cyan-200">
-              <div className="flex items-center gap-2 text-cyan-400 font-bold mb-1.5 uppercase tracking-wider">
-                <ShieldCheck size={14} /> Message des Humains de l’Arche (2070) :
+          {/* ═════════════════════════════════════════════════════════════════════════
+              2. CORPS FLUIDE : LORE & INDICES SANS PANELS LOURDS
+             ═════════════════════════════════════════════════════════════════════════ */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '24px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(0, 240, 255, 0.2) transparent',
+            }}
+          >
+            {/* LORE NARRATIF (Design Épuré avec Accent Gauche Néon) */}
+            <div
+              style={{
+                position: 'relative',
+                paddingLeft: '18px',
+                borderLeft: '3px solid #00f0ff',
+                background: 'linear-gradient(90deg, rgba(0, 240, 255, 0.05) 0%, transparent 100%)',
+                paddingTop: '6px',
+                paddingBottom: '6px',
+                borderRadius: '0 8px 8px 0',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.68rem',
+                  fontFamily: 'monospace',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.2px',
+                  color: '#00f0ff',
+                  marginBottom: '6px',
+                }}
+              >
+                Message des Humains de l’Arche (2070)
               </div>
-              <p className="italic text-slate-300">"{egg.senderLore}"</p>
+              <p
+                style={{
+                  margin: 0,
+                  fontStyle: 'italic',
+                  fontSize: '0.98rem',
+                  lineHeight: '1.6',
+                  color: '#e2e8f0',
+                  fontFamily: 'Georgia, serif',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                }}
+              >
+                "{egg.senderLore}"
+              </p>
             </div>
 
-            {/* Image / Infographie Visuelle */}
+            {/* SCHÉMA / IMAGE (Si présente) */}
             {egg.imageUrl && (
-              <div className="relative rounded-xl border border-slate-700/60 bg-slate-900/60 p-2 overflow-hidden flex flex-col items-center">
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  borderRadius: '16px',
+                  padding: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                }}
+              >
                 <img
                   src={egg.imageUrl}
-                  alt="Schéma énigme 2070"
-                  className="max-h-56 w-auto rounded-lg object-contain cursor-pointer transition-transform hover:scale-105"
+                  alt="Schéma 2070"
+                  style={{
+                    maxHeight: isImageZoomed ? '400px' : '200px',
+                    width: '100%',
+                    objectFit: 'contain',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                  }}
                   onClick={() => setIsImageZoomed(!isImageZoomed)}
                 />
                 <button
                   type="button"
                   onClick={() => setIsImageZoomed(!isImageZoomed)}
-                  className="mt-2 text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                  style={{
+                    marginTop: '8px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#38bdf8',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontWeight: 600,
+                  }}
                 >
-                  <Eye size={12} /> {isImageZoomed ? 'Réduire' : 'Agrandir le schéma'}
+                  <Eye size={13} /> {isImageZoomed ? 'Réduire' : 'Agrandir le schéma'}
                 </button>
               </div>
             )}
 
-            {/* Saisie de Réponse / Cadenas à 4 Chiffres */}
+            {/* SAISIE DU CADENAS (Si énigme à code et non résolue) */}
             {isAnswerInput && !isDiscovered && (
               <form
                 onSubmit={handleSubmitAnswer}
-                className="rounded-xl border border-amber-500/30 bg-gradient-to-b from-amber-950/20 to-slate-900/40 p-4 space-y-3"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  paddingTop: '6px',
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <KeyRound size={15} /> Saisie du Code Cadenas (4 Chiffres) :
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      color: '#fbbf24',
+                      textTransform: 'uppercase',
+                      letterSpacing: '1px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                    }}
+                  >
+                    <KeyRound size={15} /> Saisie du Code Cadenas :
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Testez votre déduction
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                    4 CHIFFRES ATTENDUS
                   </span>
                 </div>
 
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <input
                     type="text"
                     value={answerInput}
                     onChange={(e) => setAnswerInput(e.target.value)}
                     placeholder="Ex: 4207"
                     maxLength={10}
-                    className="flex-1 rounded-lg border border-amber-500/40 bg-slate-950 px-4 py-2.5 font-mono text-base font-bold text-amber-300 placeholder-slate-600 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1.5px solid rgba(251, 191, 36, 0.4)',
+                      borderRadius: '12px',
+                      padding: '10px 16px',
+                      fontFamily: 'monospace',
+                      fontSize: '1.1rem',
+                      fontWeight: 800,
+                      letterSpacing: '3px',
+                      color: '#fbbf24',
+                      outline: 'none',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#fbbf24';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(251, 191, 36, 0.3)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.4)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
                   />
+
                   <button
                     type="submit"
                     disabled={isVerifying || !answerInput.trim()}
-                    className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 font-semibold text-slate-950 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 transition-all font-mono shadow-md"
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      padding: '0 22px',
+                      color: '#020617',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      cursor: isVerifying || !answerInput.trim() ? 'not-allowed' : 'pointer',
+                      opacity: isVerifying || !answerInput.trim() ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)',
+                    }}
                   >
                     {isVerifying ? (
                       'Analyse...'
@@ -229,11 +511,20 @@ export const EasterEggModal: React.FC<EasterEggModalProps> = ({
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-lg p-2.5 text-xs font-mono ${
-                      verificationFeedback.success
-                        ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300'
-                        : 'bg-rose-950/60 border border-rose-500/40 text-rose-300'
-                    }`}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      background: verificationFeedback.success
+                        ? 'rgba(16, 185, 129, 0.15)'
+                        : 'rgba(239, 68, 68, 0.15)',
+                      border: `1px solid ${
+                        verificationFeedback.success ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+                      }`,
+                      color: verificationFeedback.success ? '#6ee7b7' : '#fca5a5',
+                    }}
                   >
                     {verificationFeedback.message}
                   </motion.div>
@@ -241,189 +532,270 @@ export const EasterEggModal: React.FC<EasterEggModalProps> = ({
               </form>
             )}
 
-            {/* Statut de découverte de l'agent */}
+            {/* STATUT RÉSOLU PAR L'AGENT */}
             {isDiscovered && (
-              <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/30 p-4 flex items-center justify-between text-emerald-300">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-400/50">
-                    <CheckCircle2 size={22} className="text-emerald-400" />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  borderLeft: '3px solid #10b981',
+                }}
+              >
+                <CheckCircle2 size={20} style={{ color: '#10b981', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff' }}>
+                    Énigme Résolue par vous !
                   </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-100">
-                      Anomalie Résolue par vous !
-                    </h4>
-                    <p className="text-xs text-emerald-400 font-mono">
-                      Vous avez percé le secret de cette transmission 2070.
-                    </p>
+                  <div style={{ fontSize: '0.74rem', color: '#6ee7b7', fontFamily: 'monospace' }}>
+                    Vous avez découvert et validé le secret de cette transmission.
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Progression de l'Équipe */}
-            {teamProg && (
-              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Users size={16} className="text-cyan-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                      Objectif Équipe ({teamProg.teamName})
-                    </span>
-                  </div>
-                  <span className="font-mono text-xs font-bold text-cyan-300">
-                    {teamProg.discoveredCount} / {teamProg.requiredPlayers} joueurs requis
-                  </span>
+            {/* LISTE DES DÉTECTIVES DE L'ÉQUIPE (Déplacé depuis l'en-tête pour épurer) */}
+            {teamProg && teamProg.discoveredPlayers?.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 240, 255, 0.03)',
+                  border: '1px solid rgba(0, 240, 255, 0.1)',
+                }}
+              >
+                <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', marginRight: '4px' }}>
+                  <Users size={12} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '4px' }} />
+                  Détectives ({teamProg.discoveredCount}/{teamProg.requiredPlayers}) :
                 </div>
-
-                {/* Barre de progression */}
-                <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden border border-slate-800 p-0.5">
-                  <motion.div
-                    className={`h-full rounded-full ${
-                      teamProg.isTeamRewarded
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 shadow-[0_0_10px_#fbbf24]'
-                        : 'bg-gradient-to-r from-cyan-400 to-emerald-400'
-                    }`}
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${Math.min(
-                        100,
-                        (teamProg.discoveredCount / teamProg.requiredPlayers) * 100,
-                      )}%`,
+                {teamProg.discoveredPlayers.map((p) => (
+                  <span
+                    key={p.childId}
+                    style={{
+                      fontSize: '0.68rem',
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      background: 'rgba(0, 240, 255, 0.1)',
+                      color: '#00f0ff',
+                      border: '1px solid rgba(0, 240, 255, 0.25)',
                     }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                </div>
-
-                {/* Statut Récompense */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
-                  <span>
-                    Effectif total équipe : {teamProg.totalPlayers} agents
+                  >
+                    ✓ @{p.pseudo}
                   </span>
-                  {teamProg.isTeamRewarded ? (
-                    <span className="text-amber-400 font-bold flex items-center gap-1">
-                      🏆 Récompense validée (+{teamProg.awardedPointsIT} IT)
-                    </span>
-                  ) : (
-                    <span className="text-cyan-400">
-                      Encore {Math.max(0, teamProg.requiredPlayers - teamProg.discoveredCount)} découverte(s) pour propulser le vaisseau
-                    </span>
-                  )}
-                </div>
-
-                {/* Liste des découvreurs de l'équipe */}
-                {teamProg.discoveredPlayers?.length > 0 && (
-                  <div className="pt-2 border-t border-slate-800 flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">
-                      Détectives de l’escouade :
-                    </span>
-                    {teamProg.discoveredPlayers.map((p) => (
-                      <span
-                        key={p.childId}
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 font-mono"
-                      >
-                        ✓ @{p.pseudo}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             )}
 
-            {/* Indices Débloquables */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
-                <HelpCircle size={15} className="text-amber-400" />
-                Indices Détectés ({revealedClues.length} / {egg.clues?.length || 1}) :
+            {/* ── SECTION DES INDICES (LIGNES ÉPURÉES SANS GROS CADRES) ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  fontFamily: 'monospace',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <HelpCircle size={14} style={{ color: '#fbbf24' }} /> Indices Détectés ({revealedClues.length} / {egg.clues?.length || 1})
               </div>
 
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {(egg.clues || []).map((clue, idx) => {
                   const isRevealed = revealedClues.includes(idx);
                   return (
                     <div
                       key={idx}
-                      className={`rounded-xl border p-3.5 transition-all text-xs font-mono leading-relaxed ${
-                        isRevealed
-                          ? 'border-slate-700 bg-slate-900/60 text-slate-200'
-                          : 'border-slate-800/80 bg-slate-950/40 text-slate-500'
-                      }`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        background: isRevealed ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.25)',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                        fontSize: '0.86rem',
+                        lineHeight: '1.5',
+                        fontFamily: 'monospace',
+                        color: isRevealed ? '#e2e8f0' : 'rgba(255, 255, 255, 0.35)',
+                      }}
                     >
-                      {isRevealed ? (
-                        <div>
-                          <span className="font-bold text-cyan-400 mr-2">
-                            [Indice #{idx + 1}]
-                          </span>
-                          {clue}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <span>[Indice #{idx + 1}] — Données chiffrées</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRevealClue(idx)}
-                            className="rounded bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-slate-700 transition-colors"
-                          >
-                            Décrypter
-                          </button>
-                        </div>
-                      )}
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '5px',
+                          background: isRevealed ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                          color: isRevealed ? '#00f0ff' : 'rgba(255, 255, 255, 0.4)',
+                          flexShrink: 0,
+                          marginTop: '2px',
+                        }}
+                      >
+                        #{idx + 1}
+                      </span>
+
+                      <div style={{ flex: 1 }}>
+                        {isRevealed ? (
+                          clue
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontStyle: 'italic' }}>Données chiffrées…</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRevealClue(idx)}
+                              style={{
+                                background: 'rgba(0, 240, 255, 0.12)',
+                                border: '1px solid rgba(0, 240, 255, 0.3)',
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                fontFamily: 'monospace',
+                                color: '#00f0ff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#00f0ff';
+                                e.currentTarget.style.color = '#020617';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(0, 240, 255, 0.12)';
+                                e.currentTarget.style.color = '#00f0ff';
+                              }}
+                            >
+                              <Unlock size={11} /> Décrypter
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Partage Post-Découverte */}
+            {/* PARTAGE POST-RÉSOLUTION DANS LE COMM-LINK */}
             {isDiscovered && (
-              <div className="rounded-xl border border-cyan-500/20 bg-slate-900/80 p-4 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-300">
-                  <Share2 size={15} /> Partager un indice ou le code dans le Comm-Link :
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '14px 16px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(0, 240, 255, 0.05) 0%, rgba(10, 20, 40, 0.5) 100%)',
+                  border: '1px solid rgba(0, 240, 255, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    fontFamily: 'monospace',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    color: '#00f0ff',
+                  }}
+                >
+                  <Share2 size={14} /> Partager dans le Comm-Link :
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', fontFamily: 'monospace', marginBottom: '4px' }}>
                       Destinataire :
                     </label>
                     <select
                       value={shareTarget}
                       onChange={(e) => setShareTarget(e.target.value as any)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        border: '1px solid rgba(0, 240, 255, 0.25)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                        outline: 'none',
+                      }}
                     >
-                      <option value="TEAM">Mon Équipe (Par défaut)</option>
-                      <option value="ALL">Tous les Joueurs (Canal Global)</option>
-                      <option value="PLAYER">Un Joueur Spécifique</option>
+                      <option value="TEAM" style={{ background: '#0a1020', color: '#fff' }}>Mon Équipe</option>
+                      <option value="ALL" style={{ background: '#0a1020', color: '#fff' }}>Canal Global</option>
+                      <option value="PLAYER" style={{ background: '#0a1020', color: '#fff' }}>Agent Spécifique</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Contenu de la transmission :
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', fontFamily: 'monospace', marginBottom: '4px' }}>
+                      Contenu :
                     </label>
                     <select
                       value={shareType}
                       onChange={(e) => setShareType(e.target.value as any)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        border: '1px solid rgba(0, 240, 255, 0.25)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                        outline: 'none',
+                      }}
                     >
-                      <option value="CLUE">Indice Cryptique</option>
-                      <option value="SOLUTION">Solution / Code déverrouillé</option>
+                      <option value="CLUE" style={{ background: '#0a1020', color: '#fff' }}>Indice Cryptique</option>
+                      <option value="SOLUTION" style={{ background: '#0a1020', color: '#fff' }}>Solution / Code Déverrouillé</option>
                     </select>
                   </div>
                 </div>
 
                 {shareTarget === 'PLAYER' && (
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">
-                      Sélectionnez l'agent :
+                    <label style={{ display: 'block', fontSize: '0.68rem', color: '#94a3b8', fontFamily: 'monospace', marginBottom: '4px' }}>
+                      Agent Récepteur :
                     </label>
                     <select
                       value={targetPlayerId}
                       onChange={(e) => setTargetPlayerId(e.target.value ? +e.target.value : '')}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-200 font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        border: '1px solid rgba(0, 240, 255, 0.25)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontFamily: 'monospace',
+                        outline: 'none',
+                      }}
                     >
-                      <option value="">-- Choisir un agent --</option>
+                      <option value="" style={{ background: '#0a1020', color: '#fff' }}>-- Choisir un agent --</option>
                       {players.map((p) => (
-                        <option key={p.id || p.childId} value={p.childId || p.id}>
+                        <option key={p.id || p.childId} value={p.childId || p.id} style={{ background: '#0a1020', color: '#fff' }}>
                           @{p.pseudo} ({p.teamName || 'Équipe'})
                         </option>
                       ))}
@@ -431,37 +803,85 @@ export const EasterEggModal: React.FC<EasterEggModalProps> = ({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {shareSent ? '✓ Transmission envoyée au Comm-Link !' : ''}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+                  <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#10b981' }}>
+                    {shareSent ? '✓ Transmission envoyée !' : ''}
                   </span>
                   <button
                     type="button"
                     onClick={handleSendShare}
-                    className="flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-500 transition-colors font-mono"
+                    style={{
+                      background: 'linear-gradient(135deg, #00f0ff 0%, #0284c7 100%)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '7px 16px',
+                      color: '#020617',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
                   >
-                    <Send size={14} /> Envoyer la Transmission
+                    <Send size={13} /> Émettre
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-slate-800 px-6 py-3 bg-slate-950 flex items-center justify-between text-xs font-mono text-slate-500">
-            <span className="flex items-center gap-1">
-              <Clock size={12} /> Cycle en cours : Période #{eggData.period?.periodIndex}
+          {/* ═════════════════════════════════════════════════════════════════════════
+              3. PIED DE PAGE ÉPURÉ
+             ═════════════════════════════════════════════════════════════════════════ */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 26px',
+              background: 'rgba(2, 6, 18, 0.95)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              fontSize: '0.72rem',
+              fontFamily: 'monospace',
+              color: 'rgba(255, 255, 255, 0.4)',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={13} /> Cycle Période #{eggData.period?.periodIndex}
             </span>
+
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-slate-800 px-4 py-1.5 text-xs text-slate-300 hover:bg-slate-700 transition-colors"
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '6px 14px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                fontFamily: 'monospace',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+              }}
             >
               Fermer le Terminal
             </button>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </AnimatePresence>
   );
 };

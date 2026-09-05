@@ -42,10 +42,13 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       className="hud-easter-egg-badge"
       onClick={(e) => {
         e.stopPropagation();
+        if (!eggData.easterEgg.isInteractable) return; // Silent if not interactable
         onClick();
       }}
       title={
-        isTeamRewarded
+        !eggData.easterEgg.isInteractable
+          ? "Anomalie détectée..."
+          : isTeamRewarded
           ? `Énigme 2070 : Validée par votre équipe (+${eggData.teamProgress?.awardedPointsIT || eggData.easterEgg.rewardPointsIT} IT)`
           : isDiscovered
           ? 'Énigme 2070 : Découverte par vous (En attente de l’équipe)'
@@ -68,9 +71,7 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       whileHover={{ scale: 1.2, filter: `drop-shadow(0 0 10px ${primaryColor})` }}
       whileTap={{ scale: 0.92 }}
       style={{
-        position: 'absolute',
-        bottom: '-4px',
-        right: '-6px',
+        position: 'relative',
         width: '24px',
         height: '28px',
         padding: 0,

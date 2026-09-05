@@ -36,10 +36,18 @@ export interface ShareEasterEggDto {
 export interface CreateEasterEggDto {
   code: string;
   title: string;
-  senderLore: string;
-  clues: string[];
+  prerequisiteType?: string;
+  prerequisiteConfig?: any;
+  crypticMessage: string;
+  explicitHint?: string | null;
+  hintDelayMinutes?: number;
+  mascotDurationSeconds?: number;
+  triggerAction?: string | null;
+
+  senderLore?: string | null;
+  clues?: string[];
   imageUrl?: string | null;
-  triggerType: EasterEggTriggerType;
+  triggerType?: EasterEggTriggerType;
   expectedAnswer?: string | null;
   caseSensitive?: boolean;
   triggerConfig?: any;
@@ -62,7 +70,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_CADENAS_4CH_ARCHE',
     title: "Le Cadenas à 4 Chiffres de l'Arche",
-    senderLore:
+    crypticMessage:
       "Transmission prioritaire 2070 : Nos scientifiques ont scellé une capsule d'énergie pure dans l'Arche. Pour l'ouvrir, déduisez le code secret à 4 chiffres grâce aux règles d'exclusion de l'hologramme !",
     clues: [
       'Le code est composé de 4 chiffres uniques.',
@@ -80,7 +88,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_KONAMI_80S',
     title: 'Le Protocole des Anciens',
-    senderLore:
+    crypticMessage:
       "Depuis l'an 2070, nos archivistes ont exhumé un antique code de commande pré-spatial : une danse sacrée de 10 touches directionnelles et de lettres...",
     clues: [
       'Une célèbre séquence de jeu vidéo des années 80.',
@@ -95,7 +103,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_MATRIX_COMM_LINK',
     title: "La Matrice de l'Arche",
-    senderLore:
+    crypticMessage:
       'Nos liaisons subissent une interférence quantique verte. Tapez le protocole d’infiltration dans la console du Comm-Link pour stabiliser le flux...',
     clues: [
       'Une commande commençant par un slash dans le Comm-Link.',
@@ -111,7 +119,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_OVERHEAT_EARTH_2026',
     title: 'Le Réveil du Cœur 2026',
-    senderLore:
+    crypticMessage:
       'Les capteurs de l’Arche captent une onde de résonance lorsque l’on stimule avec insistance le globe terrestre de votre camp de base 2026...',
     clues: [
       'Le globe terrestre en 3D au centre du camp de base 2026.',
@@ -127,7 +135,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_ANTIGRAVITY',
     title: 'L’Apesanteur Artificielle',
-    senderLore:
+    crypticMessage:
       'Un mot de passe inverse temporairement les générateurs gravitationnels de la station pour faire flotter l’équipage...',
     clues: [
       'Une commande dans le Comm-Link en rapport avec la gravité zéro.',
@@ -143,7 +151,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_FIVE_NOTES_PROFILE',
     title: 'La Fréquence des 5 Échos',
-    senderLore:
+    crypticMessage:
       'Un schéma d’ondes harmoniques relie vos 3 bilans de ressources vitales dans votre fiche profil d’agent...',
     clues: [
       'Ouvrez votre fiche profil d’agent.',
@@ -161,7 +169,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_LOGO_ROCKET',
     title: 'L’Impulsion du Grand Décollage',
-    senderLore:
+    crypticMessage:
       'Le sceau supérieur d’EVOE renferme une poussée d’urgence : maintenez la pression pour libérer la propulsion...',
     clues: [
       'Le logo EVOE en haut de l’écran.',
@@ -177,7 +185,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_CENTRAL_CONSOLE_2026',
     title: 'Le Spectre de la Console Centrale',
-    senderLore:
+    crypticMessage:
       'La console holographique du Codex renferme un diagnostic crypté si vous l’interrogez 5 fois de suite avec persistance...',
     clues: [
       'Au centre du QG 2026, la console holographique du Codex.',
@@ -193,7 +201,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_TEMPORAL_1985',
     title: 'Le Paradoxe Temporel 1985',
-    senderLore:
+    crypticMessage:
       'Doc et Marty ont laissé une commande légendaire dans nos ordinateurs, ou un défi de vitesse entre les époques...',
     clues: [
       'Saisissez /1985 dans le Comm-Link, ou basculez 5 fois entre 2026 et 2070 en moins de 15 secondes.',
@@ -208,7 +216,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_CONSTELLATION_3D',
     title: 'Le Message de la Constellation',
-    senderLore:
+    crypticMessage:
       'Une anomalie stellaire triangulaire clignote dans les coordonnées de l’espace profond...',
     clues: [
       'Dans le ciel étoilé en 3D, 3 étoiles scintillantes forment un triangle.',
@@ -224,7 +232,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_PARTY_DISCO',
     title: 'La Fête Orbitale',
-    senderLore:
+    crypticMessage:
       'Même à 400 km d’altitude, nos équipages célèbrent vos victoires avec un mot de passe festif...',
     clues: ['Tapez /party dans le Comm-Link pour allumer la boule à facettes.'],
     triggerType: EasterEggTriggerType.COMM_LINK_COMMAND,
@@ -256,8 +264,8 @@ export class EasterEggService implements OnModuleInit {
             data: {
               code: egg.code,
               title: egg.title,
-              senderLore: egg.senderLore,
-              clues: egg.clues,
+              crypticMessage: egg.crypticMessage || '',
+              explicitHint: egg.explicitHint || null,
               imageUrl: egg.imageUrl || null,
               triggerType: egg.triggerType,
               expectedAnswer: egg.expectedAnswer || null,
@@ -434,6 +442,32 @@ export class EasterEggService implements OnModuleInit {
       winningTeamsCount >= maxWinningTeams &&
       !teamReward;
 
+    // --- Immersive Scenario Logic ---
+    const nowTime = new Date();
+    let isInteractable = true;
+    
+    if (currentEgg.prerequisiteType === 'MISSIONS_COUNT' && currentEgg.prerequisiteConfig) {
+      const config = currentEgg.prerequisiteConfig as any;
+      const countReq = config.count || 3;
+      const sectorsReq = config.distinctSectors || 2;
+      
+      const childActions = await this.prisma.actionDone.findMany({
+        where: { childId: child.id, periodId: currentPeriod ? currentPeriod.id : 0 },
+        include: { localAction: true }
+      });
+      
+      const distinctSectors = new Set(childActions.map(a => a.localAction.categoryId));
+      isInteractable = childActions.length >= countReq && distinctSectors.size >= sectorsReq;
+    }
+
+    let isExplicitHintVisible = false;
+    if (playerProgress?.firstInteractionAt) {
+      const delayMs = (currentEgg.hintDelayMinutes || 120) * 60 * 1000;
+      if (nowTime.getTime() - playerProgress.firstInteractionAt.getTime() >= delayMs) {
+        isExplicitHintVisible = true;
+      }
+    }
+
     return {
       enabled: true,
       hasActiveEgg: true,
@@ -441,7 +475,12 @@ export class EasterEggService implements OnModuleInit {
         id: currentEgg.id,
         code: currentEgg.code,
         title: currentEgg.title,
-        senderLore: currentEgg.senderLore,
+        crypticMessage: currentEgg.crypticMessage,
+        explicitHint: currentEgg.explicitHint,
+        mascotDurationSeconds: currentEgg.mascotDurationSeconds,
+        triggerAction: currentEgg.triggerAction,
+        isInteractable,
+        isExplicitHintVisible,
         clues: currentEgg.clues,
         imageUrl: currentEgg.imageUrl,
         triggerType: currentEgg.triggerType,
@@ -463,6 +502,7 @@ export class EasterEggService implements OnModuleInit {
       },
       playerProgress: {
         isDiscovered: !!playerProgress,
+        firstInteractionAt: playerProgress?.firstInteractionAt || null,
         discoveredAt: playerProgress?.discoveredAt || null,
         resolutionTimeSeconds: playerProgress?.resolutionTimeSeconds || null,
       },
@@ -487,6 +527,38 @@ export class EasterEggService implements OnModuleInit {
         })),
       },
     };
+  }
+
+  async recordInteraction(childId: number, easterEggId: number) {
+    const { child, currentPeriod } = await this.getPlayerContext(childId);
+    
+    let playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+      where: {
+        easterEggId,
+        childId: child.id,
+        periodId: currentPeriod ? currentPeriod.id : 0,
+      },
+    });
+
+    if (playerProgress) {
+      if (!playerProgress.firstInteractionAt) {
+        playerProgress = await this.prisma.evoeEasterEggPlayerProgress.update({
+          where: { id: playerProgress.id },
+          data: { firstInteractionAt: new Date() },
+        });
+      }
+    } else {
+      playerProgress = await this.prisma.evoeEasterEggPlayerProgress.create({
+        data: {
+          easterEggId,
+          childId: child.id,
+          periodId: currentPeriod ? currentPeriod.id : 0,
+          firstInteractionAt: new Date(),
+        },
+      });
+    }
+
+    return { success: true, firstInteractionAt: playerProgress.firstInteractionAt };
   }
 
   async verifyAnswer(childId: number, dto: SubmitAnswerDto) {
@@ -831,8 +903,12 @@ export class EasterEggService implements OnModuleInit {
       data: {
         code: dto.code,
         title: dto.title,
+        crypticMessage: dto.crypticMessage || dto.senderLore || '',
+        explicitHint: dto.explicitHint || null,
+        mascotDurationSeconds: dto.mascotDurationSeconds,
+        hintDelayMinutes: dto.hintDelayMinutes,
+        triggerAction: dto.triggerAction,
         senderLore: dto.senderLore,
-        clues: dto.clues,
         imageUrl: dto.imageUrl || null,
         triggerType: dto.triggerType,
         expectedAnswer: dto.expectedAnswer || null,
@@ -851,7 +927,11 @@ export class EasterEggService implements OnModuleInit {
       where: { id },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.senderLore !== undefined && { senderLore: dto.senderLore }),
+        ...((dto.crypticMessage != null) ? { crypticMessage: dto.crypticMessage } : (dto.senderLore != null) ? { crypticMessage: dto.senderLore } : {}),
+        ...(dto.explicitHint !== undefined && { explicitHint: dto.explicitHint }),
+        ...(dto.mascotDurationSeconds !== undefined && { mascotDurationSeconds: dto.mascotDurationSeconds }),
+        ...(dto.hintDelayMinutes !== undefined && { hintDelayMinutes: dto.hintDelayMinutes }),
+        ...(dto.triggerAction !== undefined && { triggerAction: dto.triggerAction }),
         ...(dto.clues !== undefined && { clues: dto.clues }),
         ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
         ...(dto.triggerType !== undefined && { triggerType: dto.triggerType }),

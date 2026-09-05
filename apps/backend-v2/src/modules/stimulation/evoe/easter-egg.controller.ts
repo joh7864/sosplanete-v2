@@ -89,6 +89,19 @@ export class EasterEggController {
     return this.easterEggService.validateTrigger(child.id, dto);
   }
 
+  @Post('interact')
+  @ApiOperation({
+    summary: 'Enregistre la première interaction avec l’œuf (démarre le timer pour l’indice explicite)',
+  })
+  async recordInteraction(
+    @Headers('authorization') auth: string,
+    @Body('easterEggId') easterEggId: number,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+    return this.easterEggService.recordInteraction(child.id, easterEggId);
+  }
+
   @Post('share')
   @ApiOperation({
     summary: 'Partage un indice ou la solution dans le Comm-Link',

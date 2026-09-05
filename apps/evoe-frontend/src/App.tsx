@@ -25,7 +25,7 @@ import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
-import { EasterEggModal } from './components/ui/EasterEggModal';
+import { MascotBubble3D } from './components/ui/MascotBubble3D';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
@@ -137,8 +137,9 @@ function MainApp() {
     markEnigmaAsSeen,
     verifyAnswer: verifyEasterEggAnswer,
     shareInCommLink: shareEasterEggInCommLink,
+    interactWithEgg,
   } = useEasterEgg();
-  const [showEasterEggModal, setShowEasterEggModal] = useState(false);
+  const [showMascotBubble, setShowMascotBubble] = useState(false);
 
   const handleVesselClick = (teamId: number | string) => {
     setShowRadar(true);
@@ -831,20 +832,27 @@ function MainApp() {
                     <Mail size={8} color="#fff" />
                   </div>
                 )}
-                {/* Badge Œuf de Pâques SF 2070 */}
-                <SciFiEggBadge
-                  eggData={activeEggData}
-                  hasUnread={hasUnreadEasterEgg}
-                  onClick={() => {
-                    markEnigmaAsSeen();
-                    setShowEasterEggModal(true);
-                  }}
-                />
               </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
-              <h1 style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap' }}>EVOE {era}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap' }}>EVOE {era}</h1>
+                {/* Badge Œuf de Pâques SF 2070 */}
+                {childInfos && (
+                  <SciFiEggBadge
+                    eggData={activeEggData}
+                    hasUnread={hasUnreadEasterEgg}
+                    onClick={async () => {
+                      markEnigmaAsSeen();
+                      setShowMascotBubble(true);
+                      if (activeEggData?.easterEgg?.isInteractable && !activeEggData?.playerProgress?.firstInteractionAt) {
+                        interactWithEgg();
+                      }
+                    }}
+                  />
+                )}
+              </div>
               {childInfos && (
                 <span style={{ 
                   fontSize: '0.75rem', 
@@ -2232,14 +2240,14 @@ function MainApp() {
         )}
       </AnimatePresence>
 
-      {/* Modale d'Énigme Easter Egg SF 2070 */}
-      <EasterEggModal
-        isOpen={showEasterEggModal}
-        onClose={() => setShowEasterEggModal(false)}
-        eggData={activeEggData}
-        onVerifyAnswer={verifyEasterEggAnswer}
-        onShare={shareEasterEggInCommLink}
-        players={players}
+      {/* MASCOTTE 3D (EASTER EGG) */}
+      <MascotBubble3D
+        isOpen={showMascotBubble}
+        onClose={() => setShowMascotBubble(false)}
+        crypticMessage={activeEggData?.easterEgg?.crypticMessage || ''}
+        explicitHint={activeEggData?.easterEgg?.explicitHint}
+        showExplicitHint={!!activeEggData?.easterEgg?.isExplicitHintVisible}
+        mascotDurationSeconds={activeEggData?.easterEgg?.mascotDurationSeconds || 30}
       />
 
 

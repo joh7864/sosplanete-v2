@@ -69,6 +69,21 @@ export function useEasterEgg() {
     }
   }, [childInfos, activeEggData]);
 
+  const interactWithEgg = useCallback(async () => {
+    if (!activeEggData?.easterEgg) return;
+    try {
+      await evoeClient.post(
+        `${EVOE_API_URL}/easter-eggs/interact`,
+        { easterEggId: activeEggData.easterEgg.id },
+        { headers: getHeaders() }
+      );
+      // Optional: re-fetch to get the updated timestamp immediately
+      // await fetchActiveEgg();
+    } catch (e) {
+      console.error('Failed to record interaction', e);
+    }
+  }, [activeEggData, getHeaders]);
+
   const verifyAnswer = useCallback(
     async (answer: string, resolutionTimeSeconds?: number) => {
       if (!activeEggData?.easterEgg) return { success: false };
@@ -171,6 +186,7 @@ export function useEasterEgg() {
     hasUnread,
     hasSeenEnigma,
     markEnigmaAsSeen,
+    interactWithEgg,
     fetchActiveEgg,
     verifyAnswer,
     validateTrigger,

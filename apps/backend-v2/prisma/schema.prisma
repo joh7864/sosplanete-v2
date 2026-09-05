@@ -384,22 +384,30 @@ enum EasterEggDifficulty {
 }
 
 model EvoeEasterEgg {
-  id              Int                  @id @default(autoincrement())
-  code            String               @unique
-  title           String
-  senderLore      String
-  clues           Json
-  imageUrl        String?
-  triggerType     EasterEggTriggerType @default(RIDDLE_ANSWER_INPUT)
-  expectedAnswer  String?
-  caseSensitive   Boolean              @default(false)
-  triggerConfig   Json?
-  complexity      EasterEggDifficulty  @default(MEDIUM)
-  rewardPointsIT  Int                  @default(50)
-  orderIndex      Int                  @default(0)
-  isActive        Boolean              @default(true)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                    Int                  @id @default(autoincrement())
+  code                  String               @unique
+  title                 String
+  prerequisiteType      String               @default("MISSIONS_COUNT")
+  prerequisiteConfig    Json?                @default("{\"count\": 3, \"distinctSectors\": 2}")
+  crypticMessage        String               @default("")
+  explicitHint          String?
+  hintDelayMinutes      Int                  @default(120)
+  mascotDurationSeconds Int                  @default(30)
+  triggerAction         String?
+  
+  senderLore            String?
+  clues                 Json?
+  imageUrl              String?
+  triggerType           EasterEggTriggerType @default(RIDDLE_ANSWER_INPUT)
+  expectedAnswer        String?
+  caseSensitive         Boolean              @default(false)
+  triggerConfig         Json?
+  complexity            EasterEggDifficulty  @default(MEDIUM)
+  rewardPointsIT        Int                  @default(50)
+  orderIndex            Int                  @default(0)
+  isActive              Boolean              @default(true)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   instances       EvoeEasterEggInstance[]
   playerProgress  EvoeEasterEggPlayerProgress[]
@@ -430,6 +438,7 @@ model EvoeEasterEggPlayerProgress {
   easterEggId           Int
   childId               Int
   periodId              Int
+  firstInteractionAt    DateTime?
   discoveredAt          DateTime      @default(now())
   resolutionTimeSeconds Int?
   answerSubmitted       String?
