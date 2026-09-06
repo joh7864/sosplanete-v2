@@ -76,6 +76,8 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
       'Le code est composé de 4 chiffres uniques.',
       'Croisez les règles logiques du schéma pour éliminer les faux chiffres.',
     ],
+    explicitHint:
+      "Indice Décrypté 2070 : La règle 4 est la clé de voûte : elle élimine 9, 5, 1 et 3 de toutes les combinaisons. En les barrant, croisez les règles 1, 2 et 5 pour déduire la place exacte de chaque chiffre !",
     imageUrl: '/easter-eggs/cadenas_4ch.webp',
     triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
     expectedAnswer: '4207',
@@ -385,8 +387,57 @@ export class EasterEggService implements OnModuleInit {
       };
     }
 
-    const selectedEggIndex = cycleIndex % activeEggs.length;
-    const currentEgg = activeEggs[selectedEggIndex];
+    // 1. Vérifier si une énigme est programmée explicitement pour cette instance (par l'AM)
+    const explicitInstance = await this.prisma.evoeEasterEggInstance.findFirst({
+      where: {
+        OR: [
+          { instanceYearId: instanceYear.id, isClosed: false },
+          { isClosed: false },
+        ],
+      },
+      include: { easterEgg: true },
+      orderBy: { id: 'desc' },
+    });
+
+    let currentEgg: EvoeEasterEgg | undefined;
+
+    if (explicitInstance && explicitInstance.easterEgg.isActive) {
+      currentEgg = explicitInstance.easterEgg;
+    } else {
+      // Récupération des élèves de l'instance pour vérifier les découvertes globales de la promo
+      const instanceChildren = await this.prisma.child.findMany({
+        where: {
+          group: {
+            team: {
+              instanceYearId: instanceYear.id,
+            },
+          },
+        },
+        select: { id: true },
+      });
+      const instanceChildIds = instanceChildren.map((c) => c.id);
+
+      // Reconduction automatique : si aucun joueur (même hors de son équipe) n'a découvert l'Easter Egg
+      // dans toute l'instance, cet œuf non consommé est reconduit automatiquement par défaut pour la période suivante.
+      for (const egg of activeEggs) {
+        const globalDiscoveriesCount = await this.prisma.evoeEasterEggPlayerProgress.count({
+          where: {
+            easterEggId: egg.id,
+            childId: instanceChildIds.length > 0 ? { in: instanceChildIds } : undefined,
+            discoveredAt: { not: null },
+          },
+        });
+        if (globalDiscoveriesCount === 0) {
+          currentEgg = egg;
+          break;
+        }
+      }
+
+      if (!currentEgg) {
+        const selectedEggIndex = cycleIndex % activeEggs.length;
+        currentEgg = activeEggs[selectedEggIndex];
+      }
+    }
 
     // Vérifier si le joueur a déjà découvert cette énigme dans la période actuelle
     const playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
@@ -408,6 +459,7 @@ export class EasterEggService implements OnModuleInit {
         easterEggId: currentEgg.id,
         periodId: currentPeriod ? currentPeriod.id : 0,
         childId: { in: teamChildIds },
+        discoveredAt: { not: null },
       },
       include: {
         child: {
@@ -460,8 +512,18 @@ export class EasterEggService implements OnModuleInit {
       isInteractable = childActions.length >= countReq && distinctSectors.size >= sectorsReq;
     }
 
+    // Si les prérequis ne sont plus atteints (ex: actions désimpulsées par le joueur) :
+    // On réinitialise l'interaction pour revenir strictement à l'état initial (œuf inerte, pas de 2ème indice)
+    if (!isInteractable && playerProgress?.firstInteractionAt) {
+      await this.prisma.evoeEasterEggPlayerProgress.update({
+        where: { id: playerProgress.id },
+        data: { firstInteractionAt: null },
+      });
+      playerProgress.firstInteractionAt = null;
+    }
+
     let isExplicitHintVisible = false;
-    if (playerProgress?.firstInteractionAt) {
+    if (isInteractable && playerProgress?.firstInteractionAt) {
       const delayMs = (currentEgg.hintDelayMinutes || 120) * 60 * 1000;
       if (nowTime.getTime() - playerProgress.firstInteractionAt.getTime() >= delayMs) {
         isExplicitHintVisible = true;
@@ -501,7 +563,7 @@ export class EasterEggService implements OnModuleInit {
         frequency,
       },
       playerProgress: {
-        isDiscovered: !!playerProgress,
+        isDiscovered: !!playerProgress?.discoveredAt,
         firstInteractionAt: playerProgress?.firstInteractionAt || null,
         discoveredAt: playerProgress?.discoveredAt || null,
         resolutionTimeSeconds: playerProgress?.resolutionTimeSeconds || null,
@@ -531,7 +593,29 @@ export class EasterEggService implements OnModuleInit {
 
   async recordInteraction(childId: number, easterEggId: number) {
     const { child, currentPeriod } = await this.getPlayerContext(childId);
-    
+
+    const egg = await this.prisma.evoeEasterEgg.findUnique({ where: { id: easterEggId } });
+    if (!egg || !egg.isActive) {
+      throw new NotFoundException('Énigme introuvable ou inactive');
+    }
+
+    if (egg.prerequisiteType === 'MISSIONS_COUNT' && egg.prerequisiteConfig) {
+      const config = egg.prerequisiteConfig as any;
+      const countReq = config.count || 3;
+      const sectorsReq = config.distinctSectors || 2;
+
+      const childActions = await this.prisma.actionDone.findMany({
+        where: { childId: child.id, periodId: currentPeriod ? currentPeriod.id : 0 },
+        include: { localAction: true },
+      });
+
+      const distinctSectors = new Set(childActions.map((a) => a.localAction.categoryId));
+      const isInteractable = childActions.length >= countReq && distinctSectors.size >= sectorsReq;
+      if (!isInteractable) {
+        return { success: false, message: 'Prérequis non atteints' };
+      }
+    }
+
     let playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
       where: {
         easterEggId,
@@ -655,6 +739,16 @@ export class EasterEggService implements OnModuleInit {
           easterEggId: egg.id,
           childId: child.id,
           periodId,
+          discoveredAt: new Date(),
+          resolutionTimeSeconds: resolutionTimeSeconds || null,
+          answerSubmitted,
+        },
+      });
+    } else {
+      await this.prisma.evoeEasterEggPlayerProgress.update({
+        where: { id: existingProgress.id },
+        data: {
+          discoveredAt: new Date(),
           resolutionTimeSeconds: resolutionTimeSeconds || null,
           answerSubmitted,
         },
@@ -671,6 +765,7 @@ export class EasterEggService implements OnModuleInit {
         easterEggId: egg.id,
         periodId,
         childId: { in: teamChildIds },
+        discoveredAt: { not: null },
       },
     });
 
@@ -715,16 +810,21 @@ export class EasterEggService implements OnModuleInit {
       }
     }
 
+    const isQuotaReached = teamDiscoveriesCount >= requiredPlayers;
+    const hasTeamReward = !!existingTeamReward || teamRewardEarned;
+
     return {
       success: true,
-      message: 'Félicitations ! Vous avez déverrouillé l’anomalie temporelle.',
-      pointsIT: egg.rewardPointsIT,
+      message: isQuotaReached
+        ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
+        : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`,
+      pointsIT: hasTeamReward ? egg.rewardPointsIT : 0,
       discoveredByPlayer: true,
       teamDiscoveriesCount,
       teamTotalPlayers,
       requiredPlayers,
       teamRewardEarned,
-      isTeamRewarded: !!existingTeamReward || teamRewardEarned,
+      isTeamRewarded: hasTeamReward,
       rank: existingTeamReward?.rank || (teamRewardEarned ? rank : null),
     };
   }
@@ -760,6 +860,9 @@ export class EasterEggService implements OnModuleInit {
   async getDetectiveLeaderboard(instanceYearId?: number) {
     // Joueurs avec le plus d'Easter Eggs découverts
     const allProgress = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+      where: {
+        discoveredAt: { not: null },
+      },
       include: {
         child: {
           select: {
@@ -1036,6 +1139,7 @@ export class EasterEggService implements OnModuleInit {
       where: {
         easterEggId: currentEgg.id,
         periodId: currentPeriod.id,
+        discoveredAt: { not: null },
       },
       include: {
         child: {

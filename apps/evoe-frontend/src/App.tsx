@@ -135,17 +135,27 @@ function MainApp() {
   const {
     activeEggData,
     hasUnread: hasUnreadEasterEgg,
+    hasSeenEnigma,
     markEnigmaAsSeen,
     verifyAnswer: verifyEasterEggAnswer,
     shareInCommLink: shareEasterEggInCommLink,
     interactWithEgg,
+    fetchActiveEgg,
     validateTrigger,
   } = useEasterEgg();
   const [showMascotBubble, setShowMascotBubble] = useState(false);
+  const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
 
   const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
     const result = await validateTrigger(triggerType as any, metadata);
     if (result.success) {
+      const freshEgg = await fetchActiveEgg();
+      setChatActiveTab('team');
+      if (freshEgg?.teamProgress?.isTeamRewarded) {
+        setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" et remporté les points IT ! 🎉`);
+      } else {
+        setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
+      }
       setChatOpen(true);
     }
   };
@@ -885,11 +895,16 @@ function MainApp() {
                   <SciFiEggBadge
                     eggData={activeEggData}
                     hasUnread={hasUnreadEasterEgg}
+                    hasSeenEnigma={hasSeenEnigma}
                     onClick={async () => {
+                      if (!activeEggData?.easterEgg?.isInteractable) return;
                       markEnigmaAsSeen();
                       setShowMascotBubble(true);
-                      if (activeEggData?.easterEgg?.isInteractable && !activeEggData?.playerProgress?.firstInteractionAt) {
-                        interactWithEgg();
+                      if (!activeEggData?.playerProgress?.firstInteractionAt) {
+                        await interactWithEgg();
+                        await fetchActiveEgg();
+                      } else {
+                        await fetchActiveEgg();
                       }
                     }}
                   />
@@ -2289,16 +2304,36 @@ function MainApp() {
       </AnimatePresence>
 
       {/* MASCOTTE 3D (EASTER EGG) */}
-      <MascotBubble3D
-        isOpen={showMascotBubble}
-        onClose={() => setShowMascotBubble(false)}
-        crypticMessage={activeEggData?.easterEgg?.crypticMessage || ''}
-        explicitHint={activeEggData?.easterEgg?.explicitHint}
-        showExplicitHint={!!activeEggData?.easterEgg?.isExplicitHintVisible}
-        mascotDurationSeconds={activeEggData?.easterEgg?.mascotDurationSeconds || 30}
-      />
-
-
+      {activeEggData?.easterEgg && (
+        <MascotBubble3D
+          isOpen={showMascotBubble}
+          onClose={() => setShowMascotBubble(false)}
+          title={activeEggData.easterEgg.title}
+          crypticMessage={activeEggData.easterEgg.crypticMessage || ''}
+          explicitHint={activeEggData.easterEgg.explicitHint}
+          showExplicitHint={!!activeEggData.easterEgg.isExplicitHintVisible}
+          imageUrl={activeEggData.easterEgg.imageUrl}
+          triggerType={activeEggData.easterEgg.triggerType}
+          isDiscovered={!!activeEggData.playerProgress?.isDiscovered}
+          rewardPointsIT={activeEggData.easterEgg.rewardPointsIT}
+          mascotDurationSeconds={activeEggData.easterEgg.mascotDurationSeconds || 45}
+          onVerifyAnswer={verifyEasterEggAnswer}
+          onSuccess={async () => {
+            const freshEgg = await fetchActiveEgg();
+            setChatActiveTab('team');
+            if (freshEgg?.teamProgress?.isTeamRewarded) {
+              setPrefilledChatText("Victoire ! Notre équipe a validé l'Easter Egg du Cadenas 2070 et remporté les points IT ! 🎉");
+            } else {
+              setPrefilledChatText("J'ai trouvé la solution du Cadenas 2070 ! Venez vite valider votre code pour débloquer les points IT de l'équipe ! 🚀");
+            }
+            setChatOpen(true);
+          }}
+          onOpenCommLink={() => {
+            setChatActiveTab('team');
+            setChatOpen(true);
+          }}
+        />
+      )}
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 
@@ -2314,6 +2349,8 @@ function MainApp() {
         onTabChange={(tab) => setChatActiveTab(tab)}
         isStealthMode={isStealthMode}
         onEasterEggCommand={handleCommLinkCommand}
+        prefilledText={prefilledChatText}
+        onPrefilledTextConsumed={() => setPrefilledChatText(null)}
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}

@@ -15,7 +15,13 @@ export interface EasterEggItem {
   id: number;
   code: string;
   title: string;
-  senderLore: string;
+  senderLore?: string;
+  crypticMessage?: string | null;
+  explicitHint?: string | null;
+  mascotDurationSeconds?: number;
+  triggerAction?: string | null;
+  isInteractable?: boolean;
+  isExplicitHintVisible?: boolean;
   clues: string[];
   imageUrl?: string | null;
   triggerType: EasterEggTriggerType;
@@ -47,6 +53,7 @@ export interface ActiveEasterEggResponse {
   };
   playerProgress?: {
     isDiscovered: boolean;
+    firstInteractionAt?: string | null;
     discoveredAt: string | null;
     resolutionTimeSeconds: number | null;
   };

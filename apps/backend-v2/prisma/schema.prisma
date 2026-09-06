@@ -439,7 +439,7 @@ model EvoeEasterEggPlayerProgress {
   childId               Int
   periodId              Int
   firstInteractionAt    DateTime?
-  discoveredAt          DateTime      @default(now())
+  discoveredAt          DateTime?
   resolutionTimeSeconds Int?
   answerSubmitted       String?
   metadata              Json?

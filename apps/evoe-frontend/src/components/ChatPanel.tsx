@@ -27,6 +27,8 @@ interface ChatPanelProps {
   onTabChange?: (tab: string) => void;
   isStealthMode?: boolean;
   onEasterEggCommand?: (command: string) => void;
+  prefilledText?: string | null;
+  onPrefilledTextConsumed?: () => void;
 }
 
 export default function ChatPanel({ 
@@ -41,14 +43,22 @@ export default function ChatPanel({
   onOpen,
   onTabChange,
   isStealthMode,
-  onEasterEggCommand
+  onEasterEggCommand,
+  prefilledText,
+  onPrefilledTextConsumed
 }: ChatPanelProps) {
   const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
   const isOpen = isOpenProp ?? false;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('global');
+  const [activeTab, setActiveTab] = useState<string>(activeTabProp || 'global');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTabProp) {
+      setActiveTab(activeTabProp);
+    }
+  }, [activeTabProp]);
 
   // Fermer : on délègue entièrement à App.tsx via onClose
   const changeIsOpen = (open: boolean) => {
@@ -85,6 +95,14 @@ export default function ChatPanel({
   };
 
   const [inputText, setInputText] = useState('');
+
+  useEffect(() => {
+    if (prefilledText) {
+      setInputText(prefilledText);
+      onPrefilledTextConsumed?.();
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [prefilledText, onPrefilledTextConsumed]);
 
   const {
     socket,
