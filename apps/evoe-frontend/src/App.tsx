@@ -27,6 +27,7 @@ import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
 import { MascotBubble3D } from './components/ui/MascotBubble3D';
 import { useEasterEgg } from './hooks/useEasterEgg';
+import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
@@ -80,7 +81,7 @@ const getVibrantTeamColor = (colorStr: string | null | undefined): string => {
 
 function MainApp() {
   const {
-    era, handleSwitchEra,
+    era, handleSwitchEra: baseHandleSwitchEra,
     isTransitioning,
     selectedSector, setSelectedSector,
     isCodexCollapsed, setIsCodexCollapsed,
@@ -138,8 +139,37 @@ function MainApp() {
     verifyAnswer: verifyEasterEggAnswer,
     shareInCommLink: shareEasterEggInCommLink,
     interactWithEgg,
+    validateTrigger,
   } = useEasterEgg();
   const [showMascotBubble, setShowMascotBubble] = useState(false);
+
+  const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
+    const result = await validateTrigger(triggerType as any, metadata);
+    if (result.success) {
+      setChatOpen(true);
+    }
+  };
+
+  const {
+    handleLogoMouseDown,
+    handleLogoMouseUpOrLeave,
+    handleGlobeClick,
+    handleCodexConsoleClick,
+    handleCommLinkCommand,
+    handleEraSwitch,
+    handleMetricClick,
+    handleStarClick,
+  } = useEasterEggTriggers({
+    activeTriggerType: activeEggData?.easterEgg?.triggerType,
+    triggerConfig: activeEggData?.easterEgg?.triggerConfig,
+    activeEggCode: activeEggData?.easterEgg?.code,
+    onTrigger: handleEasterEggTrigger,
+  });
+
+  const handleSwitchEra = () => {
+    handleEraSwitch();
+    baseHandleSwitchEra();
+  };
 
   const handleVesselClick = (teamId: number | string) => {
     setShowRadar(true);
@@ -665,6 +695,9 @@ function MainApp() {
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={handleSelectSector} 
               onSelectPlayer={handleSelectPlayer}
+              onGlobeClick={handleGlobeClick}
+              onCodexConsoleClick={handleCodexConsoleClick}
+              onStarClick={handleStarClick}
               onSelectChallenges={() => {
                 if (childInfos && childInfos.isPeriodOpen === false) {
                   setShowNoPeriodModal(true);
@@ -837,7 +870,16 @@ function MainApp() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap' }}>EVOE {era}</h1>
+                <h1 
+                  style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                  onMouseDown={handleLogoMouseDown}
+                  onMouseUp={handleLogoMouseUpOrLeave}
+                  onMouseLeave={handleLogoMouseUpOrLeave}
+                  onTouchStart={handleLogoMouseDown}
+                  onTouchEnd={handleLogoMouseUpOrLeave}
+                >
+                  EVOE {era}
+                </h1>
                 {/* Badge Œuf de Pâques SF 2070 */}
                 {childInfos && (
                   <SciFiEggBadge
@@ -1415,7 +1457,12 @@ function MainApp() {
             className={`codex-panel ${isCodexCollapsed ? 'collapsed' : ''}`}
             onScroll={() => setExpandedMission(null)} // Ferme le pop-over au scroll
           >
-            <div className="codex-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isCodexCollapsed ? 'column' : 'row', gap: '8px', padding: '10px 15px' }}>
+            <div 
+              className="codex-header" 
+              onClick={handleCodexConsoleClick}
+              title="Console Centrale du Codex"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isCodexCollapsed ? 'column' : 'row', gap: '8px', padding: '10px 15px', cursor: 'pointer' }}
+            >
               {!isCodexCollapsed && <h2 style={{ margin: 0 }}>Codex Temporel {childInfos?.pseudo ? `- ${childInfos.pseudo}` : ''}</h2>}
               <div style={{ display: 'flex', flexDirection: isCodexCollapsed ? 'column' : 'row', alignItems: 'center', gap: '8px', marginLeft: isCodexCollapsed ? 'auto' : '0', marginRight: isCodexCollapsed ? 'auto' : '0' }}>
                 <button 
@@ -2231,6 +2278,7 @@ function MainApp() {
               refreshData={fetchEvoeData}
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
+              onMetricClick={handleMetricClick}
               onOpenBriefing={() => {
                 setSelectedProfileId(null);
                 setShowBriefing(true);
@@ -2265,6 +2313,7 @@ function MainApp() {
         onClose={() => setChatOpen(false)}
         onTabChange={(tab) => setChatActiveTab(tab)}
         isStealthMode={isStealthMode}
+        onEasterEggCommand={handleCommLinkCommand}
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}

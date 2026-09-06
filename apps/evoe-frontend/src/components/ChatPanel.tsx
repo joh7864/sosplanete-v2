@@ -26,6 +26,7 @@ interface ChatPanelProps {
   onOpen?: () => void;
   onTabChange?: (tab: string) => void;
   isStealthMode?: boolean;
+  onEasterEggCommand?: (command: string) => void;
 }
 
 export default function ChatPanel({ 
@@ -39,7 +40,8 @@ export default function ChatPanel({
   onClose,
   onOpen,
   onTabChange,
-  isStealthMode
+  isStealthMode,
+  onEasterEggCommand
 }: ChatPanelProps) {
   const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
@@ -292,10 +294,15 @@ export default function ChatPanel({
     if (!inputText.trim() && !pendingImageUrl) return;
     if (isUploadingImage) return;
 
-    // Détecter si le message commence par une commande de type /destinataire
+    // Détecter si le message commence par une commande de type /destinataire ou Easter Egg
     let shouldSend = true;
     if (inputText.startsWith('/')) {
       const parts = inputText.trim().split(/\s+/);
+      const rawCmd = parts[0].toLowerCase();
+      if (onEasterEggCommand) {
+        onEasterEggCommand(rawCmd);
+      }
+
       const command = parts[0].substring(1).toLowerCase(); // ex: 'isabeller' ou 'alpha'
       
       const targetPlayer = (players || []).find(p => p.pseudo.toLowerCase() === command);
