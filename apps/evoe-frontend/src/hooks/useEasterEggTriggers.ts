@@ -19,15 +19,15 @@ export function useEasterEggTriggers({
   const konamiIndex = useRef(0);
 
   // 2. LOGO HOLD STATE
-  const logoHoldTimer = useRef<NodeJS.Timeout | null>(null);
+  const logoHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 3. TARGET REPEATED CLICKS (Generic: globe2026, codexConsole, etc.)
   const clickCounts = useRef<Record<string, number>>({});
-  const clickTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const clickTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // 4. METRIC SEQUENCE STATE (Agent Profile 5 notes)
   const metricSequenceRef = useRef<string[]>([]);
-  const metricSequenceTimer = useRef<NodeJS.Timeout | null>(null);
+  const metricSequenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 5. TIMELINE WARP STATE (Rapid era switches)
   const eraSwitchesRef = useRef<number[]>([]);

@@ -26,6 +26,7 @@ import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
 import { MascotBubble3D } from './components/ui/MascotBubble3D';
+import { EasterEggCelebrationOverlay } from './components/ui/EasterEggCelebrationOverlay';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { lazy, Suspense } from 'react';
@@ -138,25 +139,25 @@ function MainApp() {
     hasSeenEnigma,
     markEnigmaAsSeen,
     verifyAnswer: verifyEasterEggAnswer,
-    shareInCommLink: shareEasterEggInCommLink,
     interactWithEgg,
     fetchActiveEgg,
     validateTrigger,
   } = useEasterEgg();
   const [showMascotBubble, setShowMascotBubble] = useState(false);
+  const [showEggCelebration, setShowEggCelebration] = useState(false);
   const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
 
   const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
     const result = await validateTrigger(triggerType as any, metadata);
     if (result.success) {
       const freshEgg = await fetchActiveEgg();
+      setShowEggCelebration(true);
       setChatActiveTab('team');
-      if (freshEgg?.teamProgress?.isTeamRewarded) {
+      if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
         setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" et remporté les points IT ! 🎉`);
       } else {
         setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
       }
-      setChatOpen(true);
     }
   };
 
@@ -2320,13 +2321,13 @@ function MainApp() {
           onVerifyAnswer={verifyEasterEggAnswer}
           onSuccess={async () => {
             const freshEgg = await fetchActiveEgg();
+            setShowEggCelebration(true);
             setChatActiveTab('team');
-            if (freshEgg?.teamProgress?.isTeamRewarded) {
+            if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
               setPrefilledChatText("Victoire ! Notre équipe a validé l'Easter Egg du Cadenas 2070 et remporté les points IT ! 🎉");
             } else {
               setPrefilledChatText("J'ai trouvé la solution du Cadenas 2070 ! Venez vite valider votre code pour débloquer les points IT de l'équipe ! 🚀");
             }
-            setChatOpen(true);
           }}
           onOpenCommLink={() => {
             setChatActiveTab('team');
@@ -2334,6 +2335,21 @@ function MainApp() {
           }}
         />
       )}
+
+      {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT + SFX + PARTICULES) */}
+      <EasterEggCelebrationOverlay
+        isOpen={showEggCelebration}
+        onClose={() => setShowEggCelebration(false)}
+        eggTitle={activeEggData?.easterEgg?.title || 'Cadenas Crypté 2070'}
+        pointsIT={activeEggData?.easterEgg?.rewardPointsIT || 60}
+        isTeamRewarded={!!activeEggData?.teamProgress?.isTeamRewarded}
+        onOpenCommLink={() => {
+          setShowEggCelebration(false);
+          setShowMascotBubble(false);
+          setChatActiveTab('team');
+          setChatOpen(true);
+        }}
+      />
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 

@@ -208,4 +208,39 @@ export class EasterEggController {
   ) {
     return this.easterEggService.updateSettings(+instanceYearId, dto);
   }
+
+  @Post('admin/open-instance')
+  @ApiOperation({ summary: 'Déclenche/Ouvre manuellement un Easter Egg pour l’instance sur la période active' })
+  async openInstanceEgg(
+    @Body('instanceYearId') instanceYearId: number,
+    @Body('easterEggId') easterEggId: number,
+    @Body('closePrevious') closePrevious?: boolean,
+  ) {
+    if (!instanceYearId || !easterEggId) {
+      throw new BadRequestException('instanceYearId et easterEggId sont requis');
+    }
+    return this.easterEggService.openInstanceEgg(
+      +instanceYearId,
+      +easterEggId,
+      closePrevious !== false,
+    );
+  }
+
+  @Post('admin/close-instance')
+  @ApiOperation({ summary: 'Clôture manuellement l’Easter Egg actif pour l’instance' })
+  async closeInstanceEgg(@Body('instanceYearId') instanceYearId: number) {
+    if (!instanceYearId) {
+      throw new BadRequestException('instanceYearId est requis');
+    }
+    return this.easterEggService.closeInstanceEgg(+instanceYearId);
+  }
+
+  @Post('admin/force-hint')
+  @ApiOperation({ summary: 'Force l’affichage immédiat du 2ème indice pour tous les joueurs' })
+  async forceInstanceHint(@Body('instanceYearId') instanceYearId: number) {
+    if (!instanceYearId) {
+      throw new BadRequestException('instanceYearId est requis');
+    }
+    return this.easterEggService.forceInstanceHint(+instanceYearId);
+  }
 }

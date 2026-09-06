@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, CheckCircle2, AlertCircle, Lock, Unlock, Sparkles, MessageSquare } from 'lucide-react';
+import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare } from 'lucide-react';
+import { playUnlockCadenasSound, preloadUnlockAudio } from '../../utils/easterEggAudio';
 
 interface MascotBubble3DProps {
   isOpen: boolean;
@@ -70,6 +71,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       setIsInteracting(false);
       return;
     }
+
+    // Précharge le son SFX dédié dès l'ouverture de la mascotte
+    preloadUnlockAudio();
 
     let i = 0;
     setDisplayedText('');
@@ -163,6 +167,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       setErrorMessage(null);
       const res = await onVerifyAnswer(answer);
       if (res.success) {
+        // Déclenche immédiatement le son SFX (clic métallique + carillon quantique)
+        playUnlockCadenasSound();
         setLocalSuccess(true);
         onSuccess?.();
       } else {
@@ -459,29 +465,100 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     }}
                   >
                     {isDiscovered || localSuccess ? (
-                      /* État Succès : Énigme résolue */
+                      /* État Succès : Énigme résolue avec animation wow */
                       <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
+                        initial={{ scale: 0.85, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        style={{ textAlign: 'center', padding: '6px 0' }}
+                        transition={{ type: 'spring', stiffness: 180, damping: 14 }}
+                        style={{ textAlign: 'center', padding: '8px 0' }}
                       >
+                        {/* Mini Cadenas Déverrouillé Animé */}
+                        <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px' }}>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                            style={{
+                              position: 'absolute',
+                              inset: '-4px',
+                              borderRadius: '50%',
+                              border: '1.5px dashed rgba(56, 189, 248, 0.45)',
+                            }}
+                          />
+                          <motion.div
+                            initial={{ y: 0, rotate: 0 }}
+                            animate={{ y: -10, rotate: -25 }}
+                            transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+                            style={{
+                              position: 'absolute',
+                              top: '6px',
+                              left: '16px',
+                              width: '28px',
+                              height: '28px',
+                              borderTop: '5px solid #e2e8f0',
+                              borderLeft: '5px solid #e2e8f0',
+                              borderRight: '5px solid #94a3b8',
+                              borderTopLeftRadius: '16px',
+                              borderTopRightRadius: '16px',
+                              transformOrigin: 'bottom left',
+                            }}
+                          />
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '4px',
+                              left: '8px',
+                              width: '48px',
+                              height: '38px',
+                              borderRadius: '10px',
+                              background: 'linear-gradient(135deg, #10b981, #047857)',
+                              border: '2px solid #34d399',
+                              boxShadow: '0 0 16px rgba(16, 185, 129, 0.6)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Unlock size={20} color="#ffffff" />
+                          </div>
+                        </div>
+
                         <div
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '8px',
-                            color: '#10b981',
-                            fontWeight: 800,
-                            fontSize: '0.98rem',
+                            color: '#34d399',
+                            fontWeight: 900,
+                            fontSize: '1.05rem',
                             marginBottom: '6px',
+                            textShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
                           }}
                         >
-                          <Unlock size={20} />
-                          Cadenas Déverrouillé !
+                          Cadenas 2070 Déverrouillé !
                         </div>
-                        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: '#94a3b8' }}>
-                          Anomalie neutralisée (+{rewardPointsIT} IT). Partagez la découverte avec votre équipe pour remporter le bonus collectif !
+
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(245, 158, 11, 0.18)',
+                            border: '1px solid #f59e0b',
+                            borderRadius: '12px',
+                            padding: '4px 12px',
+                            color: '#fbbf24',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <Sparkles size={14} />
+                          +{rewardPointsIT} IT remportés
+                        </div>
+
+                        <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                          Anomalie temporelle neutralisée. Partagez la découverte avec votre équipe pour remporter le bonus collectif !
                         </p>
                         {onOpenCommLink && (
                           <button
@@ -493,19 +570,22 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                             style={{
                               background: 'linear-gradient(135deg, #10b981, #059669)',
                               border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 16px',
+                              borderRadius: '10px',
+                              padding: '10px 18px',
                               color: '#ffffff',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
+                              fontSize: '0.86rem',
+                              fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
+                              gap: '8px',
+                              boxShadow: '0 0 16px rgba(16, 185, 129, 0.45)',
+                              transition: 'transform 0.15s ease',
                             }}
+                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                           >
-                            <MessageSquare size={14} />
+                            <MessageSquare size={16} />
                             Ouvrir le Comm-Link Équipe
                           </button>
                         )}

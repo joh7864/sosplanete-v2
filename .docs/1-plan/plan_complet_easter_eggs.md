@@ -58,6 +58,14 @@ graph TD
    - Si un joueur n'a pas trouvé le déclencheur avant la clôture de la période, son œuf reste **orange**.
    - **Reconduction automatique par défaut** : Si **aucun joueur de toute l'instance/promo (toutes équipes confondues, même hors de son équipe)** n'a découvert le déclencheur de l'Easter Egg, cet Easter Egg est considéré comme **non consommé**. Il est alors **automatiquement reconduit pour la période suivante par défaut** (ou selon la priorité réordonnée par l'AM dans le back-office).
 
+5. **Règles Spécifiques Périodes & Multi-Énigmes** :
+   - **Absence d'Easter Egg sur la période** : Si aucun Easter Egg n'est actif ou programmé pour la période en cours (paramètres généraux désactivés, période clôturée manuellement par l'AM sans énigme, ou catalogue inactif), **le micro-œuf n'apparaît absolument pas dans le HUD** (`SciFiEggBadge` retourne `null`, aucun artefact ni mascotte dans le DOM).
+   - **Multi-Easter Eggs sur la même période** : Si l'AM active plusieurs Easter Eggs sur une même période (ex: ajout d'une énigme supplémentaire via le cockpit), les joueurs progressent de manière **séquentielle** :
+     - Le joueur découvre et interagit avec la 1ère énigme active de la période.
+     - **Dès que la première est résolue par le joueur, le système bascule automatiquement sur la suivante** pour ce joueur.
+     - Dès que toutes les énigmes de la période sont résolues, le joueur conserve l'état résolu (œuf vert).
+   - **Fréquence de parution (Cycle de 2 périodes)** : Par défaut, on ne passe à l'Easter Egg suivant du catalogue automatique que toutes les 2 périodes (paramétrable dans l'admin), sauf demande explicite ou forçage de l'AM.
+
 ---
 
 ## 📊 2. Synthèse de l'Avancement
@@ -100,28 +108,30 @@ graph TD
 
 ### Chantier 2 : Le Cockpit d'Administration AM (`apps/admin-sosplanete-v2`)
 
-- [ ] **2.1. Page dédiée "Easter Eggs & Énigmes SF" dans l'Admin** :
-  - Entrée de menu dans l'administration (`EasterEggsManager.tsx`).
-- [ ] **2.2. Onglet 1 : Paramètres Généraux de la Saison** :
+- [x] **2.1. Page dédiée "Easter Eggs & Énigmes SF" dans l'Admin** :
+  - Entrée de menu dans l'administration (`DashboardLayout.tsx`) avec icône étincelles `Sparkles`.
+  - Page principale dédiée `apps/admin-sosplanete-v2/src/app/dashboard/easter-eggs/page.tsx` avec barre d'onglets intuitive et intégration `TopBar`.
+- [x] **2.2. Onglet 1 : Paramètres Généraux de la Saison (`EasterEggsSeasonSettings.tsx`)** :
   - Interrupteur général : Activer / Désactiver les Easter Eggs.
   - Fréquence de parution : toutes les $N$ périodes (défaut : 2).
-  - **Nombre minimum de joueurs requis par équipe** pour remporter les points IT.
-  - Limite des équipes gagnantes : *Toutes* (0), ou limité aux $M$ premières équipes.
-- [ ] **2.3. Onglet 2 : Éditeur d'Énigmes avec Drag & Drop** :
-  - Réorganisation intuitive par glisser-déposer de l'ordre de passage (permet à l'AM de choisir quel œuf non résolu passe en priorité).
-  - Formulaire de création / modification :
-    - Titre, Code unique, Niveau de difficulté, Points IT.
-    - Récit d'ambiance 2070 (message cryptique + indice 1).
-    - **2ème indice explicite** avec son délai de déblocage paramétrable en **`hh:mm`**.
-    - Upload d'infographie optionnelle.
-    - Type de déclencheur parmi les 11 disponibles.
-    - Réponse attendue (si mot-clé ou code).
+  - **Nombre minimum de joueurs requis par équipe** pour remporter les points IT (stepper interactif avec badge esprit d'équipe).
+  - Limite des équipes gagnantes : *Toutes* (0), ou limité aux $M$ premières équipes (1, 2, 3...).
+  - Synthèse visuelle de la configuration et notification de sauvegarde en direct.
+- [x] **2.3. Onglet 2 : Éditeur d'Énigmes avec Drag & Drop (`EasterEggsCatalogEditor.tsx` & `EasterEggFormModal.tsx`)** :
+  - Réorganisation fluide par glisser-déposer de l'ordre de passage avec `@dnd-kit` et mise à jour persistante via `POST /evoe/easter-eggs/admin/catalog/reorder`.
+  - Formulaire de création / modification complet :
+    - Titre, Code unique, Niveau de difficulté (4 paliers colorés), Points IT (+10 à +500).
+    - Récit d'ambiance 2070 (message cryptique).
+    - **2ème indice explicite** avec son délai de déblocage paramétrable en **`hh:mm`** (heures et minutes converties dynamiquement).
+    - Upload d'infographie / schéma visuel déductif via `POST /evoe/easter-eggs/admin/upload-image`.
+    - Type de déclencheur parmi les 11 types (avec icônes et descriptions exhaustives).
+    - Réponse attendue (code secret ou mot-clé) avec sensibilité à la casse.
     - Statut Actif / Inactif.
-- [ ] **2.4. Onglet 3 : Cockpit de Suivi en Temps Réel (AM)** :
-  - **Bouton d'ouverture manuelle** : L'AM peut ouvrir/déclencher un Easter Egg manuellement sur la période en cours.
-  - Tableau dynamique d'avancement par équipe (*Équipe Air : 1/2 min. requis - En attente*).
-  - Journal horodaté des agents découvreurs.
-  - Boutons d'action rapide : clôturer manuellement, forcer le 2ème indice, relancer.
+- [x] **2.4. Onglet 3 : Cockpit de Suivi en Temps Réel (AM) (`EasterEggsTrackingCockpit.tsx`)** :
+  - **Bouton d'ouverture manuelle** : Modale de sélection rapide pour déclencher immédiatement n'importe quelle énigme du catalogue sur la période en cours (`POST /evoe/easter-eggs/admin/open-instance`).
+  - Tableau dynamique d'avancement par équipe (*Équipe Air : 1/2 min. requis - En attente*, *Équipe Feu : 2/2 min. requis - Quota validé ! +60 IT*), avec jauge de progression animée et rang d'arrivée.
+  - Journal horodaté des agents découvreurs (avatar, pseudo, équipe avec pastille de couleur, heure exacte, temps de résolution et code soumis).
+  - Boutons d'action rapide : clôturer manuellement l'œuf en cours (`POST /evoe/easter-eggs/admin/close-instance`), forcer le 2ème indice pour toute la promo (`POST /evoe/easter-eggs/admin/force-hint`), rafraîchissement temps réel automatique toutes les 15s.
 
 ---
 

@@ -39,8 +39,8 @@ export function useEasterEgg() {
     };
   }, [instanceId]);
 
-  const fetchActiveEgg = useCallback(async () => {
-    if (!childInfos) return;
+  const fetchActiveEgg = useCallback(async (): Promise<ActiveEasterEggResponse | undefined> => {
+    if (!childInfos) return undefined;
     try {
       setLoading(true);
       setError(null);
@@ -54,8 +54,10 @@ export function useEasterEgg() {
         const seenKey = `evoe_seen_egg_${childInfos.id}_${res.data.easterEgg.id}`;
         setHasSeenEnigma(localStorage.getItem(seenKey) === 'true');
       }
+      return res.data;
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message);
+      return undefined;
     } finally {
       setLoading(false);
     }
@@ -77,8 +79,6 @@ export function useEasterEgg() {
         { easterEggId: activeEggData.easterEgg.id },
         { headers: getHeaders() }
       );
-      // Optional: re-fetch to get the updated timestamp immediately
-      // await fetchActiveEgg();
     } catch (e) {
       console.error('Failed to record interaction', e);
     }

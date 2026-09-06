@@ -107,10 +107,6 @@ export const EasterEggModal: React.FC<EasterEggModalProps> = ({
     }
   };
 
-  const progressPercent = teamProg
-    ? Math.min(100, Math.round((teamProg.discoveredCount / teamProg.requiredPlayers) * 100))
-    : 0;
-
   return (
     <AnimatePresence>
       <motion.div

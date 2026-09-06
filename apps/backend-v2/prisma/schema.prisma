@@ -423,6 +423,7 @@ model EvoeEasterEggInstance {
   periodStartId       Int
   periodEndId         Int
   isClosed            Boolean       @default(false)
+  forceHint           Boolean       @default(false)
   unlockedAt          DateTime      @default(now())
   closedAt            DateTime?
 

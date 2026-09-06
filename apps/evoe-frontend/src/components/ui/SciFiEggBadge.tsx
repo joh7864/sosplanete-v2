@@ -11,8 +11,8 @@ interface SciFiEggBadgeProps {
 
 export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
   eggData,
-  hasUnread = false,
-  hasSeenEnigma = false,
+  hasUnread: _hasUnread = false,
+  hasSeenEnigma: _hasSeenEnigma = false,
   onClick,
 }) => {
   if (!eggData || !eggData.enabled || !eggData.hasActiveEgg || !eggData.easterEgg) {

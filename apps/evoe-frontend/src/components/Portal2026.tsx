@@ -634,7 +634,7 @@ export default function Portal2026({
   onToggleStealth,
   onCloseLeaderboard: _onCloseLeaderboard,
   onGlobeClick,
-  onCodexConsoleClick,
+  onCodexConsoleClick: _onCodexConsoleClick,
   onStarClick,
 }: Portal2026Props) {
   const portalRef = useRef<THREE.Mesh>(null);
@@ -786,7 +786,7 @@ export default function Portal2026({
       <group ref={earthGroupRef}>
         <mesh 
           ref={portalRef}
-          onClick={(e) => {
+          onClick={() => {
             if (onGlobeClick) onGlobeClick();
           }}
         >
