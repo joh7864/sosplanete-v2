@@ -12,7 +12,7 @@ export interface LockWowAnimationProps {
   onClose?: () => void;
 }
 
-const LOCK_DURATION = 12;
+const LOCK_DURATION = 15;
 const SECRET = [4, 2, 0, 7];
 
 const PARTICLES = Array.from({ length: 32 }, (_, i) => {
@@ -58,20 +58,23 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
 
     const t0 = setTimeout(() => setPhase(1), 300);
     
-    // Début de la rotation des roues : lancement du son cryptex.wav
+    // Début de la rotation des roues à 800ms : lancement synchrone de cryptex.wav (durée 7.02s)
     const t1 = setTimeout(() => {
       setPhase(2);
       playCryptexSound();
-    }, 1100);
+    }, 800);
 
-    // Phase 3: amorce du verrouillage successif
+    // Phase 3: verrouillage échelonné sur les 7 secondes de rotation (800ms -> 7800ms = 7.0s)
     const t2 = setTimeout(() => {
       setPhase(3);
-    }, 2800);
+    }, 2400);
 
-    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7
-    // Parfaitement calé sur les temps forts mécaniques de cryptex.wav
-    const lockDelays = [0, 750, 1500, 2250];
+    // 4 étapes espacées pour couvrir les 7 secondes de rotation :
+    // Roue 1 (4) se verrouille à 2400ms (après 1.6s de rotation rapide)
+    // Roue 2 (2) se verrouille à 4200ms (+1.8s)
+    // Roue 3 (0) se verrouille à 6000ms (+1.8s)
+    // Roue 4 (7) se verrouille à 7800ms (+1.8s) -> Total rotation des roues = 7.0s pile !
+    const lockDelays = [0, 1800, 3600, 5400];
     const lockTimers = lockDelays.map((delay, idx) =>
       setTimeout(() => {
         setLockedWheels(prev => (prev.includes(idx) ? prev : [...prev, idx]));
@@ -81,19 +84,19 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
           return next;
         });
         playWheelClickSound();
-      }, 2800 + delay)
+      }, 2400 + delay)
     );
 
-    // Phase 4: ouverture des embouts calée sur l'enclenchement final de cryptex.wav (~4.8s d'audio)
-    const t3 = setTimeout(() => setPhase(4), 2800 + 2250 + 750);
-    // Phase 5: célébration "DÉBLOQUÉ !"
-    const t4 = setTimeout(() => setPhase(5), 2800 + 2250 + 1650);
-    // Fermeture automatique après écoute complète
+    // Phase 4: ouverture mécanique des embouts Da Vinci à 8400ms (+600ms après la dernière roue)
+    const t3 = setTimeout(() => setPhase(4), 8400);
+    // Phase 5: célébration "DÉBLOQUÉ !" à 9200ms
+    const t4 = setTimeout(() => setPhase(5), 9200);
+    // Fermeture automatique après contemplation
     const tEnd = setTimeout(() => {
       stopCryptexSound();
       setShow(false);
       onClose?.();
-    }, 11500);
+    }, LOCK_DURATION * 1000);
 
     return () => {
       stopCryptexSound();
