@@ -16,7 +16,8 @@ import {
   MousePointer,
   Gamepad2,
   Maximize2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import {
   EasterEggCatalogItem,
@@ -509,50 +510,60 @@ export function EasterEggFormModal({
 
             {/* Upload Infographie / Schéma visuel */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
-                Infographie / Schéma Visuel Déductif (Optionnel)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                  Infographie / Schéma Visuel Déductif (Optionnel)
+                </label>
+                {imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 size={13} /> Supprimer
+                  </button>
+                )}
+              </div>
 
-              {imageUrl ? (
+              {/* Champ texte modifiable avec bouton d'upload */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="/easter-eggs/cadenas_4ch.svg ou URL"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-mono text-xs focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
+                />
+                <label className="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 text-slate-700 hover:text-emerald-600 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs shrink-0">
+                  {uploading ? (
+                    <Loader2 className="animate-spin text-emerald-600" size={14} />
+                  ) : (
+                    <Upload size={14} />
+                  )}
+                  <span>{uploading ? 'Envoi...' : 'Fichier'}</span>
+                  <input
+                    type="file"
+                    accept="image/*,.svg"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Aperçu en direct */}
+              {imageUrl && (
                 <div className="flex items-center gap-4 p-3 rounded-2xl bg-white border border-slate-200 shadow-xs">
                   <div className="w-16 h-16 rounded-xl bg-slate-50 overflow-hidden border border-slate-200 shrink-0 flex items-center justify-center p-1">
                     <img
                       src={resolveEnigmaImageUrl(imageUrl)}
-                      alt="Schéma"
+                      alt="Aperçu schéma"
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold text-slate-800 truncate">{imageUrl}</div>
-                    <div className="text-[11px] text-emerald-700 mt-0.5 font-semibold">Image associée active</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl('')}
-                    className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="relative border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl p-6 bg-white text-center transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={uploading}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    {uploading ? (
-                      <Loader2 className="animate-spin text-emerald-600" size={24} />
-                    ) : (
-                      <ImageIcon className="text-slate-400" size={24} />
-                    )}
-                    <span className="text-xs font-bold text-slate-700">
-                      {uploading ? 'Téléversement en cours...' : 'Cliquer pour téléverser une image (PNG, WebP, JPG)'}
-                    </span>
-                    <span className="text-[10px] text-slate-400">Max 5 Mo</span>
+                    <div className="text-[11px] text-emerald-700 mt-0.5 font-semibold">Aperçu en direct</div>
                   </div>
                 </div>
               )}
