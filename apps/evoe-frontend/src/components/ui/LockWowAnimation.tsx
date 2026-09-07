@@ -56,51 +56,64 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
       return;
     }
 
+    const activeTimers: ReturnType<typeof setTimeout>[] = [];
+
     const t0 = setTimeout(() => setPhase(1), 300);
-    
-    // Début de la rotation des roues à 800ms : lancement synchrone de cryptex.wav (durée 7.02s)
-    const t1 = setTimeout(() => {
+    activeTimers.push(t0);
+
+    // Début de la rotation des roues à 800ms avec détection automatique de la durée audio
+    const t1 = setTimeout(async () => {
       setPhase(2);
-      playCryptexSound();
+
+      // Récupère la durée réelle du fichier audio joué (avec cache-busting)
+      const audioDuration = await playCryptexSound();
+      const spinDuration = Math.min(Math.max(audioDuration || 7.0, 4.0), 16.0);
+      const spinMs = spinDuration * 1000;
+
+      // Découpage dynamique des 4 crans sur la durée exacte de l'audio
+      const firstLockDelay = spinMs * 0.28;
+      const lockStep = spinMs * 0.24;
+
+      const p3Timer = setTimeout(() => setPhase(3), Math.max(firstLockDelay - 200, 300));
+      activeTimers.push(p3Timer);
+
+      // Verrouillage successif des 4 roues (4 - 2 - 0 - 7)
+      [0, 1, 2, 3].forEach((idx) => {
+        const delay = firstLockDelay + idx * lockStep;
+        const lockTimer = setTimeout(() => {
+          setLockedWheels((prev) => (prev.includes(idx) ? prev : [...prev, idx]));
+          setWheelDigits((prev) => {
+            const next = [...prev];
+            next[idx] = SECRET[idx];
+            return next;
+          });
+          playWheelClickSound();
+        }, delay);
+        activeTimers.push(lockTimer);
+      });
+
+      // Phase 4: ouverture mécanique des embouts Da Vinci (+600ms après la 4ème roue)
+      const openDelay = firstLockDelay + 3 * lockStep + 600;
+      const p4Timer = setTimeout(() => setPhase(4), openDelay);
+      activeTimers.push(p4Timer);
+
+      // Phase 5: célébration "DÉBLOQUÉ !" (+800ms)
+      const p5Timer = setTimeout(() => setPhase(5), openDelay + 800);
+      activeTimers.push(p5Timer);
+
+      // Fermeture automatique après contemplation
+      const endTimer = setTimeout(() => {
+        stopCryptexSound();
+        setShow(false);
+        onClose?.();
+      }, openDelay + 6000);
+      activeTimers.push(endTimer);
     }, 800);
-
-    // Phase 3: verrouillage échelonné sur les 7 secondes de rotation (800ms -> 7800ms = 7.0s)
-    const t2 = setTimeout(() => {
-      setPhase(3);
-    }, 2400);
-
-    // 4 étapes espacées pour couvrir les 7 secondes de rotation :
-    // Roue 1 (4) se verrouille à 2400ms (après 1.6s de rotation rapide)
-    // Roue 2 (2) se verrouille à 4200ms (+1.8s)
-    // Roue 3 (0) se verrouille à 6000ms (+1.8s)
-    // Roue 4 (7) se verrouille à 7800ms (+1.8s) -> Total rotation des roues = 7.0s pile !
-    const lockDelays = [0, 1800, 3600, 5400];
-    const lockTimers = lockDelays.map((delay, idx) =>
-      setTimeout(() => {
-        setLockedWheels(prev => (prev.includes(idx) ? prev : [...prev, idx]));
-        setWheelDigits(prev => {
-          const next = [...prev];
-          next[idx] = SECRET[idx];
-          return next;
-        });
-        playWheelClickSound();
-      }, 2400 + delay)
-    );
-
-    // Phase 4: ouverture mécanique des embouts Da Vinci à 8400ms (+600ms après la dernière roue)
-    const t3 = setTimeout(() => setPhase(4), 8400);
-    // Phase 5: célébration "DÉBLOQUÉ !" à 9200ms
-    const t4 = setTimeout(() => setPhase(5), 9200);
-    // Fermeture automatique après contemplation
-    const tEnd = setTimeout(() => {
-      stopCryptexSound();
-      setShow(false);
-      onClose?.();
-    }, LOCK_DURATION * 1000);
+    activeTimers.push(t1);
 
     return () => {
       stopCryptexSound();
-      [t0, t1, t2, t3, t4, tEnd, ...lockTimers].forEach(clearTimeout);
+      activeTimers.forEach(clearTimeout);
     };
   }, [show]);
 

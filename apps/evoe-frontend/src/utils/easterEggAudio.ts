@@ -169,17 +169,21 @@ export function stopCryptexSound(): void {
 
 /**
  * Joue le son officiel du Cryptex (uploads/easter-eggs/cryptex.wav)
- * déclenché dès le début de la rotation des roues.
+ * Détecte dynamiquement la durée réelle du fichier audio et applique un cache-busting
+ * pour permettre à l'utilisateur de remplacer le fichier à chaud.
+ * @returns La durée du fichier audio en secondes
  */
-export async function playCryptexSound(): Promise<void> {
-  if (typeof window === 'undefined') return;
+export async function playCryptexSound(): Promise<number> {
+  if (typeof window === 'undefined') return 7.0;
   stopCryptexSound();
 
+  // Cache-busting timestamp pour recharger instantanément si l'utilisateur change le fichier
+  const t = Date.now();
   const candidateUrls = [
-    '/uploads/easter-eggs/cryptex.wav',
-    '/uploads/audio/cryptex.wav',
-    `${getBackendOrigin()}/uploads/easter-eggs/cryptex.wav`,
-    `${getBackendOrigin()}/uploads/audio/cryptex.wav`,
+    `${getBackendOrigin()}/uploads/easter-eggs/cryptex.wav?t=${t}`,
+    `/uploads/easter-eggs/cryptex.wav?t=${t}`,
+    `${getBackendOrigin()}/uploads/audio/cryptex.wav?t=${t}`,
+    `/uploads/audio/cryptex.wav?t=${t}`,
   ];
 
   for (const url of candidateUrls) {
@@ -187,8 +191,29 @@ export async function playCryptexSound(): Promise<void> {
       const audio = new Audio(url);
       audio.volume = 0.9;
       activeCryptexAudio = audio;
-      await audio.play();
-      return;
+
+      // Détection de la durée réelle du fichier audio
+      const durationPromise = new Promise<number>((resolve) => {
+        if (!isNaN(audio.duration) && audio.duration > 0) {
+          resolve(audio.duration);
+          return;
+        }
+        audio.addEventListener(
+          'loadedmetadata',
+          () => {
+            resolve(audio.duration && !isNaN(audio.duration) ? audio.duration : 7.0);
+          },
+          { once: true }
+        );
+        // Timeout de sécurité au cas où les métadonnées tardent
+        setTimeout(() => {
+          resolve(audio.duration && !isNaN(audio.duration) ? audio.duration : 7.0);
+        }, 250);
+      });
+
+      const playPromise = audio.play();
+      const [duration] = await Promise.all([durationPromise, playPromise]);
+      return duration;
     } catch {
       // Essayer le candidat suivant
     }
@@ -196,6 +221,7 @@ export async function playCryptexSound(): Promise<void> {
 
   // Si le fichier audio est inaccessible, utiliser la synthèse Web Audio API
   playFallbackSynthesis();
+  return 7.0;
 }
 
 /**
