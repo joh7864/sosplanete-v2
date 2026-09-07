@@ -15,10 +15,10 @@ export interface LockWowAnimationProps {
 const LOCK_DURATION = 12;
 const SECRET = [4, 2, 0, 7];
 
-const PARTICLES = Array.from({ length: 28 }, (_, i) => {
-  const angle = (i / 28) * 360;
-  const dist = 160 + (i % 6) * 30;
-  const colors = ['#FFD700', '#FF7F50', '#00FFCC', '#FFD700', '#FBBF24', '#34D399'];
+const PARTICLES = Array.from({ length: 32 }, (_, i) => {
+  const angle = (i / 32) * 360;
+  const dist = 170 + (i % 6) * 32;
+  const colors = ['#FFD700', '#FF8C00', '#00FFCC', '#FFD700', '#FBBF24', '#34D399', '#FFE082'];
   return { id: i, angle, dist, color: colors[i % colors.length], size: 6 + (i % 4) * 3 };
 });
 
@@ -65,8 +65,8 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
       playCryptexSound();
     }, 3200);
 
-    // Verrouillage successif des 4 roues avec clic métallique
-    const lockDelays = [0, 750, 1500, 2250];
+    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7 avec clic métallique
+    const lockDelays = [0, 850, 1700, 2550];
     const lockTimers = lockDelays.map((delay, idx) =>
       setTimeout(() => {
         setLockedWheels(prev => (prev.includes(idx) ? prev : [...prev, idx]));
@@ -79,10 +79,10 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
       }, 3200 + delay + 400)
     );
 
-    // Phase 4: ouverture des embouts du Cryptex et libération
-    const t3 = setTimeout(() => setPhase(4), 3200 + 2250 + 750);
+    // Phase 4: ouverture des embouts Da Vinci et libération du parchemin doré
+    const t3 = setTimeout(() => setPhase(4), 3200 + 2550 + 800);
     // Phase 5: célébration "DÉBLOQUÉ !"
-    const t4 = setTimeout(() => setPhase(5), 3200 + 2250 + 1600);
+    const t4 = setTimeout(() => setPhase(5), 3200 + 2550 + 1750);
     // Fermeture automatique
     const tEnd = setTimeout(() => {
       stopCryptexSound();
@@ -96,14 +96,14 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
     };
   }, [show]);
 
-  // Rotation ultra-rapide des roues encore non verrouillées
+  // Rotation des roues non verrouillées
   useEffect(() => {
     if (phase !== 2 && phase !== 3) return;
     const id = setInterval(() => {
       setWheelDigits(prev =>
         prev.map((d, i) => (lockedWheels.includes(i) ? SECRET[i] : (d + 1) % 10))
       );
-    }, 70);
+    }, 65);
     return () => clearInterval(id);
   }, [phase, lockedWheels]);
 
@@ -118,13 +118,13 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
           transition={{ duration: 0.35 }}
           onClick={handleClose}
         >
-          {/* Badge statut cryptographique */}
+          {/* Badge statut cryptographique Da Vinci */}
           <AnimatePresence mode="wait">
             {phase >= 2 && phase <= 3 && (
               <motion.div
                 key="decrypting"
                 className={styles.label}
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
               >
@@ -135,47 +135,65 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
               <motion.div
                 key="accepted"
                 className={styles.label}
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                style={{ color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.55)', boxShadow: '0 0 24px rgba(52, 211, 153, 0.3)' }}
+                style={{
+                  color: '#34d399',
+                  borderColor: 'rgba(52, 211, 153, 0.55)',
+                  boxShadow: '0 0 26px rgba(52, 211, 153, 0.35)',
+                }}
               >
                 ✅ CODE 4-2-0-7 VALIDE
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ═══ SCÈNE DU CRYPTEX ═══ */}
+          {/* ═══ SCÈNE 3D DU CRYPTEX ═══ */}
           <motion.div
             className={styles.cryptexScene}
-            initial={{ scale: 0.25, opacity: 0, rotateY: -45, rotateX: 10 }}
-            animate={phase >= 1 ? { scale: 1, opacity: 1, rotateY: 0, rotateX: 0 } : { scale: 0.25, opacity: 0, rotateY: -45, rotateX: 10 }}
-            transition={{ type: 'spring', stiffness: 140, damping: 20 }}
+            initial={{ scale: 0.2, opacity: 0, rotateY: -35, rotateX: 15 }}
+            animate={phase >= 1 ? { scale: 1, opacity: 1, rotateY: 0, rotateX: 0 } : { scale: 0.2, opacity: 0, rotateY: -35, rotateX: 15 }}
+            transition={{ type: 'spring', stiffness: 130, damping: 18 }}
           >
-            {/* Légère oscillation 3D pendant le décryptage */}
+            {/* Inclinaison 3D caractéristique de la photo de référence */}
             <motion.div
-              animate={phase === 2 || phase === 3 ? { rotateY: [-4, 4, -4], rotateX: [-2, 2, -2] } : { rotateY: 0, rotateX: 0 }}
-              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              className={styles.cryptexTilt}
+              animate={
+                phase === 2 || phase === 3
+                  ? { rotateZ: [-6, -4, -6], rotateY: [-8, -4, -8] }
+                  : { rotateZ: -5, rotateY: -6 }
+              }
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
               <div className={styles.cryptex}>
-                {/* Cœur interne visible lors de l'écartement des embouts */}
+                {/* Cœur interne (parchemin / tube doré) révélé à l'ouverture */}
                 {phase >= 4 && (
                   <motion.div
                     className={styles.innerCore}
-                    initial={{ opacity: 0, scaleX: 0.6 }}
+                    initial={{ opacity: 0, scaleX: 0.5 }}
                     animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ duration: 0.4 }}
-                  />
+                    transition={{ duration: 0.45 }}
+                  >
+                    <span className={styles.innerCoreRune}>✦ 4 ✦ 2 ✦ 0 ✦ 7 ✦</span>
+                    <span className={styles.innerCoreRune}>DA VINCI CIPHER</span>
+                  </motion.div>
                 )}
 
-                {/* ── Embout gauche Da Vinci ── */}
+                {/* ── Embout gauche Da Vinci (avec finial conique et flèche ▶) ── */}
                 <motion.div
-                  className={`${styles.cap} ${styles.capLeft}`}
-                  animate={phase >= 4 ? { x: -80 } : { x: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', zIndex: 6 }}
+                  animate={phase >= 4 ? { x: -95 } : { x: 0 }}
                   transition={{ type: 'spring', stiffness: 130, damping: 17 }}
-                />
+                >
+                  <div className={styles.finialLeft} />
+                  <div className={`${styles.cap} ${styles.capLeft}`}>
+                    <div className={styles.capFiligree} />
+                    <div className={styles.capArrowLeft}>▶</div>
+                  </div>
+                </motion.div>
 
-                {/* ── 4 Roues de code (4 - 2 - 0 - 7) ── */}
+                {/* ── 4 Roues de code rotatives (4 - 2 - 0 - 7) ── */}
                 {[0, 1, 2, 3].map(idx => {
                   const isLocked = lockedWheels.includes(idx);
                   const digit = wheelDigits[idx];
@@ -186,35 +204,37 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
                       key={idx}
                       className={styles.wheel}
                       style={{
-                        borderTopColor: isLocked ? 'rgba(255, 215, 0, 0.95)' : 'rgba(212, 175, 55, 0.85)',
-                        borderBottomColor: isLocked ? 'rgba(255, 215, 0, 0.95)' : 'rgba(212, 175, 55, 0.85)',
+                        borderTopColor: isLocked ? 'rgba(255, 215, 0, 0.98)' : 'rgba(212, 175, 55, 0.9)',
+                        borderBottomColor: isLocked ? 'rgba(255, 215, 0, 0.98)' : 'rgba(212, 175, 55, 0.9)',
                         boxShadow: isLocked
-                          ? '0 0 32px rgba(255, 215, 0, 0.75), inset 0 0 16px rgba(255, 215, 0, 0.25)'
-                          : '0 10px 22px rgba(0, 0, 0, 0.55)',
+                          ? '0 0 35px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 215, 0, 0.3)'
+                          : '0 12px 26px rgba(0, 0, 0, 0.65)',
                       }}
-                      animate={isLocked ? { scale: [1, 1.08, 1] } : {}}
-                      transition={{ duration: 0.3 }}
+                      animate={isLocked ? { scale: [1, 1.09, 1] } : {}}
+                      transition={{ duration: 0.32 }}
                     >
-                      {/* Chiffre supérieur */}
-                      <div className={styles.digitAbove}>{prev}</div>
+                      {/* Facette supérieure */}
+                      <div className={styles.facetSlot}>
+                        <div className={styles.digitAbove}>{prev}</div>
+                      </div>
 
-                      {/* Chiffre central actif */}
+                      {/* Facette centrale active (Ligne d'alignement Da Vinci) */}
                       <div className={styles.digitCenterWrapper}>
                         <AnimatePresence mode="popLayout">
                           <motion.div
                             key={`${idx}-${digit}`}
                             className={styles.digitCenter}
                             style={{
-                              color: isLocked ? '#FFE57F' : '#ffffff',
+                              color: isLocked ? '#FFE885' : '#ffffff',
                               textShadow: isLocked
-                                ? '0 0 18px rgba(255, 215, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.9)'
-                                : '0 2px 6px rgba(0, 0, 0, 0.9)',
+                                ? '0 0 20px rgba(255, 215, 0, 0.95), 0 2px 6px rgba(0, 0, 0, 0.95)'
+                                : '0 2px 6px rgba(0, 0, 0, 0.95)',
                             }}
-                            initial={{ y: -30, opacity: 0 }}
+                            initial={{ y: -32, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 30, opacity: 0 }}
+                            exit={{ y: 32, opacity: 0 }}
                             transition={{
-                              duration: isLocked ? 0.26 : 0.065,
+                              duration: isLocked ? 0.28 : 0.065,
                               ease: 'easeOut',
                             }}
                           >
@@ -223,29 +243,37 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
                         </AnimatePresence>
                       </div>
 
-                      {/* Chiffre inférieur */}
-                      <div className={styles.digitBelow}>{next}</div>
+                      {/* Facette inférieure */}
+                      <div className={styles.facetSlot}>
+                        <div className={styles.digitBelow}>{next}</div>
+                      </div>
 
-                      {/* Masques de courbure 3D */}
+                      {/* Masques de courbure cylindrique 3D */}
                       <div className={styles.maskTop} />
                       <div className={styles.maskBottom} />
 
-                      {/* Lignes de visée dorées */}
+                      {/* Lignes de visée dorées d'alignement */}
                       <div className={styles.lineTop} />
                       <div className={styles.lineBottom} />
 
-                      {/* Rayures mécaniques de préhension */}
+                      {/* Nervures de préhension métalliques */}
                       <div className={styles.ribs} />
                     </motion.div>
                   );
                 })}
 
-                {/* ── Embout droit Da Vinci ── */}
+                {/* ── Embout droit Da Vinci (avec flèche ◀ et finial conique) ── */}
                 <motion.div
-                  className={`${styles.cap} ${styles.capRight}`}
-                  animate={phase >= 4 ? { x: 80 } : { x: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', zIndex: 6 }}
+                  animate={phase >= 4 ? { x: 95 } : { x: 0 }}
                   transition={{ type: 'spring', stiffness: 130, damping: 17 }}
-                />
+                >
+                  <div className={`${styles.cap} ${styles.capRight}`}>
+                    <div className={styles.capFiligree} />
+                    <div className={styles.capArrowRight}>◀</div>
+                  </div>
+                  <div className={styles.finialRight} />
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>
@@ -254,7 +282,7 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
           {phase >= 1 && (
             <motion.div
               className={styles.codeDisplay}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.45 }}
             >
@@ -267,7 +295,7 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
                     style={{
                       color: isLocked ? '#FFD700' : 'rgba(255, 255, 255, 0.25)',
                       textShadow: isLocked ? '0 0 24px rgba(255, 215, 0, 0.95)' : 'none',
-                      borderColor: isLocked ? 'rgba(255, 215, 0, 0.8)' : 'rgba(212, 175, 55, 0.35)',
+                      borderColor: isLocked ? 'rgba(255, 215, 0, 0.85)' : 'rgba(212, 175, 55, 0.45)',
                     }}
                     animate={isLocked ? { scale: [1, 1.35, 1] } : {}}
                     transition={{ duration: 0.32 }}

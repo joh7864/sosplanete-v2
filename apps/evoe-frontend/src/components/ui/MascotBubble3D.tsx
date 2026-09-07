@@ -8,7 +8,7 @@ import LockVideoWowAnimation from './LockVideoWowAnimation';
 import type { LockWowAnimationHandles } from './LockWowAnimation';
 
 // Flag permettant de basculer entre la version Vidéo Cryptex et la version 3D CSS
-const USE_VIDEO_ANIMATION = true;
+const USE_VIDEO_ANIMATION = false;
 
 interface MascotBubble3DProps {
   isOpen: boolean;

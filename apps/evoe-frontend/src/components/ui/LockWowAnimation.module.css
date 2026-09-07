@@ -8,43 +8,53 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 45%, rgba(20, 14, 5, 0.52) 0%, rgba(5, 7, 14, 0.72) 100%);
-  backdrop-filter: blur(22px) saturate(1.25);
-  -webkit-backdrop-filter: blur(22px) saturate(1.25);
-  z-index: 99999;
+  background: radial-gradient(circle at 50% 50%, rgba(18, 12, 4, 0.46) 0%, rgba(4, 6, 12, 0.72) 100%);
+  backdrop-filter: blur(24px) saturate(1.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
+  z-index: 999999;
   overflow: hidden;
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
 }
 
-/* ─── Badge statut supérieur ─── */
+/* ─── Badge statut Da Vinci ─── */
 .label {
-  padding: 8px 22px;
+  padding: 8px 24px;
   border-radius: 999px;
   font-family: 'Outfit', 'Cinzel', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 3px;
   text-transform: uppercase;
   color: #fbbf24;
-  background: rgba(28, 18, 6, 0.75);
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.28), inset 0 0 14px rgba(245, 158, 11, 0.12);
-  margin-bottom: 24px;
-  backdrop-filter: blur(10px);
+  background: rgba(26, 17, 5, 0.78);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 26px rgba(245, 158, 11, 0.3), inset 0 0 14px rgba(245, 158, 11, 0.15);
+  margin-bottom: 22px;
+  backdrop-filter: blur(12px);
 }
 
-/* ─── Scène 3D Cryptex ─── */
+/* ─── Scène 3D Cryptex avec perspective ─── */
 .cryptexScene {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1200px;
+  perspective: 1400px;
   transform-style: preserve-3d;
-  margin: 18px 0;
-  filter: drop-shadow(0 28px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.3));
+  margin: 16px 0;
+  filter: drop-shadow(0 32px 55px rgba(0, 0, 0, 0.88)) drop-shadow(0 0 50px rgba(212, 175, 55, 0.35));
+}
+
+/* ─── Inclinaison 3D réaliste (identique à la photo de référence) ─── */
+.cryptexTilt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotateZ(-5deg) rotateX(10deg) rotateY(-6deg);
+  transform-style: preserve-3d;
 }
 
 /* ─── Corps cylindrique du Cryptex ─── */
@@ -53,30 +63,75 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 168px;
-  padding: 0 6px;
+  height: 180px;
+  padding: 0 4px;
 }
 
-/* ─── Cœur interne révélé à l'ouverture ─── */
+/* ─── Cœur interne révélé à l'ouverture (Parchemin ancien Da Vinci) ─── */
 .innerCore {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 440px;
-  height: 120px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #8a6519 0%, #ecd078 25%, #fff6cf 50%, #ecd078 75%, #8a6519 100%);
-  box-shadow: 0 0 45px rgba(255, 215, 0, 0.8), inset 0 0 25px rgba(255, 255, 255, 0.6);
+  width: 520px;
+  height: 130px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    #6d4e13 0%,
+    #d4af37 15%,
+    #fff5d1 35%,
+    #f2d585 50%,
+    #fff5d1 65%,
+    #d4af37 85%,
+    #6d4e13 100%
+  );
+  box-shadow:
+    0 0 55px rgba(255, 215, 0, 0.85),
+    inset 0 0 30px rgba(255, 255, 255, 0.7),
+    inset 0 0 10px rgba(100, 70, 15, 0.6);
   z-index: 1;
   pointer-events: none;
-  opacity: 0.95;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  overflow: hidden;
 }
 
-/* ─── Embouts de fermeture (Caps Da Vinci) ─── */
+.innerCoreRune {
+  font-family: 'Cinzel', serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #5a3c0a;
+  opacity: 0.35;
+  letter-spacing: 8px;
+}
+
+/* ─── Embouts extérieurs coniques (Finials) ─── */
+.finialLeft {
+  width: 22px;
+  height: 80px;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(180deg, #2b1805, #7a5418, #ffd700, #7a5418, #180c02);
+  border: 1px solid #c89c36;
+  border-right: none;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.finialRight {
+  width: 22px;
+  height: 80px;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(180deg, #2b1805, #7a5418, #ffd700, #7a5418, #180c02);
+  border: 1px solid #c89c36;
+  border-left: none;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Embouts Da Vinci avec collerette sculptée ─── */
 .cap {
-  width: 60px;
-  height: 154px;
+  width: 68px;
+  height: 166px;
   position: relative;
   z-index: 5;
   display: flex;
@@ -84,61 +139,98 @@
   justify-content: center;
   background: linear-gradient(
     180deg,
-    #2a1805 0%,
-    #5a3a10 12%,
-    #987228 26%,
-    #cfa545 40%,
-    #fae58f 50%,
-    #c49735 60%,
-    #704a14 76%,
-    #301b05 92%,
-    #140b01 100%
+    #241403 0%,
+    #4e320d 10%,
+    #88611f 22%,
+    #c4983a 36%,
+    #ffec9e 50%,
+    #ba8d30 62%,
+    #694412 78%,
+    #2c1704 92%,
+    #120800 100%
   );
-  border: 1.5px solid #d4af37;
+  border: 2px solid #d4af37;
   box-shadow:
-    inset 0 3px 6px rgba(255, 255, 255, 0.45),
-    inset 0 -3px 8px rgba(0, 0, 0, 0.85),
-    0 8px 20px rgba(0, 0, 0, 0.6);
+    inset 0 4px 8px rgba(255, 255, 255, 0.5),
+    inset 0 -4px 10px rgba(0, 0, 0, 0.9),
+    0 12px 28px rgba(0, 0, 0, 0.7);
   overflow: hidden;
 }
 
 .capLeft {
-  border-radius: 24px 6px 6px 24px;
+  border-radius: 18px 4px 4px 18px;
   margin-right: 4px;
 }
 
-.capLeft::after {
-  content: '▶';
-  position: absolute;
-  right: 8px;
-  font-size: 1.15rem;
-  color: #2b1704;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-  font-weight: 900;
-}
-
 .capRight {
-  border-radius: 6px 24px 24px 6px;
+  border-radius: 4px 18px 18px 4px;
   margin-left: 4px;
 }
 
-.capRight::after {
-  content: '◀';
+/* Frise gravée sur les embouts */
+.capFiligree {
   position: absolute;
-  left: 8px;
-  font-size: 1.15rem;
-  color: #2b1704;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
-  font-weight: 900;
+  top: 14px;
+  bottom: 14px;
+  left: 6px;
+  right: 6px;
+  border: 1px solid rgba(80, 50, 10, 0.7);
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 8px,
+    rgba(30, 16, 3, 0.3) 9px,
+    rgba(255, 225, 120, 0.15) 10px
+  );
+  pointer-events: none;
 }
 
-/* ─── Roues rotatives (4 anneaux de chiffrement) ─── */
+/* Flèches indicatrices en relief (comme sur la photo de référence) */
+.capArrowLeft {
+  position: absolute;
+  right: 8px;
+  width: 22px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #241302;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #d4af37, #fff0a0, #b8860b);
+  border: 1px solid #5a3c0a;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.5);
+  z-index: 6;
+}
+
+.capArrowRight {
+  position: absolute;
+  left: 8px;
+  width: 22px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #241302;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: linear-gradient(180deg, #d4af37, #fff0a0, #b8860b);
+  border: 1px solid #5a3c0a;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.5);
+  z-index: 6;
+}
+
+/* ─── Roues rotatives (4 anneaux à facettes Da Vinci) ─── */
 .wheel {
   position: relative;
-  width: 74px;
-  height: 154px;
-  margin: 0 2.5px;
-  border-radius: 8px;
+  width: 78px;
+  height: 166px;
+  margin: 0 3px;
+  border-radius: 10px;
   z-index: 3;
   overflow: hidden;
   display: flex;
@@ -147,62 +239,80 @@
   justify-content: center;
   background: linear-gradient(
     180deg,
-    #221203 0%,
-    #4a300c 10%,
-    #8f6a24 22%,
-    #c99e3a 38%,
-    #fff09e 50%,
-    #be9031 60%,
-    #694411 78%,
-    #2c1704 92%,
-    #120800 100%
+    #1d0e02 0%,
+    #462b08 8%,
+    #855e1c 20%,
+    #c49735 36%,
+    #fff3a6 50%,
+    #b88a2a 62%,
+    #64400e 78%,
+    #291503 92%,
+    #0f0600 100%
   );
-  border-top: 3px solid rgba(212, 175, 55, 0.85);
-  border-bottom: 3px solid rgba(212, 175, 55, 0.85);
-  border-left: 1.5px solid rgba(35, 18, 4, 0.85);
-  border-right: 1.5px solid rgba(35, 18, 4, 0.85);
+  border-top: 3.5px solid rgba(212, 175, 55, 0.9);
+  border-bottom: 3.5px solid rgba(212, 175, 55, 0.9);
+  border-left: 2px solid rgba(30, 15, 3, 0.9);
+  border-right: 2px solid rgba(30, 15, 3, 0.9);
   box-shadow:
-    inset 0 6px 12px rgba(255, 255, 255, 0.35),
-    inset 0 -6px 14px rgba(0, 0, 0, 0.85),
-    0 10px 22px rgba(0, 0, 0, 0.55);
+    inset 0 8px 14px rgba(255, 255, 255, 0.4),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.9),
+    0 12px 26px rgba(0, 0, 0, 0.65);
   transition: box-shadow 0.35s ease, border-color 0.35s ease;
 }
 
-/* ─── Chiffres du dessus et dessous (défilement cylindrique) ─── */
-.digitAbove,
-.digitBelow {
-  height: 30px;
+/* ─── Facettes rectangulaires en relief (comme sur la photo) ─── */
+.facetSlot {
+  width: 90%;
+  border-radius: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.6);
+  background: rgba(50, 30, 8, 0.2);
+  margin: 2px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+}
+
+/* ─── Chiffres supérieur et inférieur ─── */
+.digitAbove,
+.digitBelow {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
   font-weight: 800;
   font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
-  color: #3b2408;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  opacity: 0.55;
+  color: #382206;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  opacity: 0.5;
   user-select: none;
 }
 
-/* ─── Slot central actif aligné ─── */
+/* ─── Facette centrale active (Ligne d'alignement) ─── */
 .digitCenterWrapper {
-  height: 56px;
-  width: 100%;
+  height: 60px;
+  width: 92%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   z-index: 3;
   overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.15) 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.65);
 }
 
 .digitCenter {
-  font-size: 2.85rem;
+  font-size: 3rem;
   font-weight: 900;
   font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
   line-height: 1;
   user-select: none;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 -1px 1px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 -1px 1px rgba(255, 255, 255, 0.6);
 }
 
 /* ─── Masques de courbure cylindrique 3D ─── */
@@ -211,8 +321,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
-  background: linear-gradient(180deg, rgba(14, 7, 1, 0.92) 0%, rgba(14, 7, 1, 0.45) 60%, transparent 100%);
+  height: 44px;
+  background: linear-gradient(180deg, rgba(12, 6, 1, 0.94) 0%, rgba(12, 6, 1, 0.45) 60%, transparent 100%);
   pointer-events: none;
   z-index: 4;
 }
@@ -222,8 +332,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40px;
-  background: linear-gradient(0deg, rgba(14, 7, 1, 0.95) 0%, rgba(14, 7, 1, 0.5) 60%, transparent 100%);
+  height: 44px;
+  background: linear-gradient(0deg, rgba(12, 6, 1, 0.96) 0%, rgba(12, 6, 1, 0.5) 60%, transparent 100%);
   pointer-events: none;
   z-index: 4;
 }
@@ -231,49 +341,49 @@
 /* ─── Lignes de mire dorées ─── */
 .lineTop {
   position: absolute;
-  top: 48px;
+  top: 52px;
   left: 0;
   right: 0;
-  height: 1.5px;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.2));
-  box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+  height: 2px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.3));
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
   pointer-events: none;
   z-index: 5;
 }
 
 .lineBottom {
   position: absolute;
-  bottom: 48px;
+  bottom: 52px;
   left: 0;
   right: 0;
-  height: 1.5px;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.2));
-  box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+  height: 2px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.3));
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
   pointer-events: none;
   z-index: 5;
 }
 
-/* ─── Nervures mécaniques tactiles Da Vinci ─── */
+/* ─── Nervures mécaniques tactiles ─── */
 .ribs {
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
     180deg,
     transparent 0px,
-    transparent 11px,
-    rgba(0, 0, 0, 0.14) 12px,
-    rgba(255, 255, 255, 0.08) 13px
+    transparent 12px,
+    rgba(0, 0, 0, 0.16) 13px,
+    rgba(255, 255, 255, 0.08) 14px
   );
   pointer-events: none;
   z-index: 2;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
-/* ─── Affichage du code en bas du cryptex ─── */
+/* ─── Affichage des 4 chiffres sous le Cryptex ─── */
 .codeDisplay {
   display: flex;
-  gap: 14px;
-  margin-top: 22px;
+  gap: 16px;
+  margin-top: 24px;
   align-items: center;
   justify-content: center;
 }
@@ -282,15 +392,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 52px;
-  border-radius: 9px;
-  background: rgba(16, 10, 4, 0.75);
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  width: 48px;
+  height: 56px;
+  border-radius: 10px;
+  background: rgba(14, 9, 3, 0.82);
+  border: 1.5px solid rgba(212, 175, 55, 0.45);
   font-family: 'Cinzel', 'JetBrains Mono', monospace;
-  font-size: 1.7rem;
+  font-size: 1.85rem;
   font-weight: 900;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.65);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7);
 }
 
 /* ─── Particules d'éclatement ─── */
@@ -307,7 +417,7 @@
 /* ─── Texte DÉBLOQUÉ ! ─── */
 .unlockText {
   margin-top: 26px;
-  font-size: 3.2rem;
+  font-size: 3.4rem;
   font-weight: 900;
   background: linear-gradient(135deg, #ffd700 0%, #ff8c00 45%, #00ffcc 100%);
   -webkit-background-clip: text;
@@ -315,20 +425,20 @@
   background-clip: text;
   letter-spacing: 6px;
   text-align: center;
-  filter: drop-shadow(0 0 32px rgba(255, 215, 0, 0.8));
+  filter: drop-shadow(0 0 35px rgba(255, 215, 0, 0.85));
   font-family: 'Outfit', 'Cinzel', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ─── Sous-texte explicatif ─── */
 .subText {
   margin-top: 10px;
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 4px;
   text-transform: uppercase;
   font-weight: 600;
   text-align: center;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
 }
 
 /* ─── Indication de fermeture ─── */
