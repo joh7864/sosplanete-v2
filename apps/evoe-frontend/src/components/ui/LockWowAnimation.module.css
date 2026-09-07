@@ -1,0 +1,344 @@
+/* src/components/ui/LockWowAnimation.module.css */
+
+/* ─── Plein écran avec fond flouté (AUCUN popup) ─── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(20, 14, 5, 0.52) 0%, rgba(5, 7, 14, 0.72) 100%);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  z-index: 99999;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* ─── Badge statut supérieur ─── */
+.label {
+  padding: 8px 22px;
+  border-radius: 999px;
+  font-family: 'Outfit', 'Cinzel', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: rgba(28, 18, 6, 0.75);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.28), inset 0 0 14px rgba(245, 158, 11, 0.12);
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+/* ─── Scène 3D Cryptex ─── */
+.cryptexScene {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+  margin: 18px 0;
+  filter: drop-shadow(0 28px 45px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.3));
+}
+
+/* ─── Corps cylindrique du Cryptex ─── */
+.cryptex {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 168px;
+  padding: 0 6px;
+}
+
+/* ─── Cœur interne révélé à l'ouverture ─── */
+.innerCore {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 440px;
+  height: 120px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #8a6519 0%, #ecd078 25%, #fff6cf 50%, #ecd078 75%, #8a6519 100%);
+  box-shadow: 0 0 45px rgba(255, 215, 0, 0.8), inset 0 0 25px rgba(255, 255, 255, 0.6);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* ─── Embouts de fermeture (Caps Da Vinci) ─── */
+.cap {
+  width: 60px;
+  height: 154px;
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    #2a1805 0%,
+    #5a3a10 12%,
+    #987228 26%,
+    #cfa545 40%,
+    #fae58f 50%,
+    #c49735 60%,
+    #704a14 76%,
+    #301b05 92%,
+    #140b01 100%
+  );
+  border: 1.5px solid #d4af37;
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.85),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.capLeft {
+  border-radius: 24px 6px 6px 24px;
+  margin-right: 4px;
+}
+
+.capLeft::after {
+  content: '▶';
+  position: absolute;
+  right: 8px;
+  font-size: 1.15rem;
+  color: #2b1704;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  font-weight: 900;
+}
+
+.capRight {
+  border-radius: 6px 24px 24px 6px;
+  margin-left: 4px;
+}
+
+.capRight::after {
+  content: '◀';
+  position: absolute;
+  left: 8px;
+  font-size: 1.15rem;
+  color: #2b1704;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  font-weight: 900;
+}
+
+/* ─── Roues rotatives (4 anneaux de chiffrement) ─── */
+.wheel {
+  position: relative;
+  width: 74px;
+  height: 154px;
+  margin: 0 2.5px;
+  border-radius: 8px;
+  z-index: 3;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    180deg,
+    #221203 0%,
+    #4a300c 10%,
+    #8f6a24 22%,
+    #c99e3a 38%,
+    #fff09e 50%,
+    #be9031 60%,
+    #694411 78%,
+    #2c1704 92%,
+    #120800 100%
+  );
+  border-top: 3px solid rgba(212, 175, 55, 0.85);
+  border-bottom: 3px solid rgba(212, 175, 55, 0.85);
+  border-left: 1.5px solid rgba(35, 18, 4, 0.85);
+  border-right: 1.5px solid rgba(35, 18, 4, 0.85);
+  box-shadow:
+    inset 0 6px 12px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.85),
+    0 10px 22px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+/* ─── Chiffres du dessus et dessous (défilement cylindrique) ─── */
+.digitAbove,
+.digitBelow {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
+  color: #3b2408;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+  opacity: 0.55;
+  user-select: none;
+}
+
+/* ─── Slot central actif aligné ─── */
+.digitCenterWrapper {
+  height: 56px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+  overflow: hidden;
+}
+
+.digitCenter {
+  font-size: 2.85rem;
+  font-weight: 900;
+  font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
+  line-height: 1;
+  user-select: none;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 -1px 1px rgba(255, 255, 255, 0.5);
+}
+
+/* ─── Masques de courbure cylindrique 3D ─── */
+.maskTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, rgba(14, 7, 1, 0.92) 0%, rgba(14, 7, 1, 0.45) 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.maskBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(0deg, rgba(14, 7, 1, 0.95) 0%, rgba(14, 7, 1, 0.5) 60%, transparent 100%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ─── Lignes de mire dorées ─── */
+.lineTop {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.2));
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.lineBottom {
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.2), rgba(255, 225, 120, 0.95), rgba(212, 175, 55, 0.2));
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* ─── Nervures mécaniques tactiles Da Vinci ─── */
+.ribs {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 11px,
+    rgba(0, 0, 0, 0.14) 12px,
+    rgba(255, 255, 255, 0.08) 13px
+  );
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.7;
+}
+
+/* ─── Affichage du code en bas du cryptex ─── */
+.codeDisplay {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+  align-items: center;
+  justify-content: center;
+}
+
+.codeDigit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 52px;
+  border-radius: 9px;
+  background: rgba(16, 10, 4, 0.75);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  font-family: 'Cinzel', 'JetBrains Mono', monospace;
+  font-size: 1.7rem;
+  font-weight: 900;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.65);
+}
+
+/* ─── Particules d'éclatement ─── */
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ─── Texte DÉBLOQUÉ ! ─── */
+.unlockText {
+  margin-top: 26px;
+  font-size: 3.2rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd700 0%, #ff8c00 45%, #00ffcc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 6px;
+  text-align: center;
+  filter: drop-shadow(0 0 32px rgba(255, 215, 0, 0.8));
+  font-family: 'Outfit', 'Cinzel', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─── Sous-texte explicatif ─── */
+.subText {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* ─── Indication de fermeture ─── */
+.hint {
+  position: absolute;
+  bottom: 32px;
+  margin: 0;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: 500;
+}

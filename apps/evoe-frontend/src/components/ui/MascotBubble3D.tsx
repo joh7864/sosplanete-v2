@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare } from 'lucide-react';
-import { playUnlockCadenasSound, preloadUnlockAudio } from '../../utils/easterEggAudio';
+import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw } from 'lucide-react';
+import { preloadUnlockAudio } from '../../utils/easterEggAudio';
+import LockWowAnimation from './LockWowAnimation';
+import type { LockWowAnimationHandles } from './LockWowAnimation';
 
 interface MascotBubble3DProps {
   isOpen: boolean;
@@ -15,7 +18,7 @@ interface MascotBubble3DProps {
   isDiscovered?: boolean;
   rewardPointsIT?: number;
   mascotImageUrl?: string;
-  mascotDurationSeconds?: number;
+    mascotDurationSeconds?: number;
   onVerifyAnswer?: (answer: string) => Promise<{ success: boolean; message?: string }>;
   onSuccess?: () => void;
   onOpenCommLink?: () => void;
@@ -47,6 +50,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const [localSuccess, setLocalSuccess] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
+  const [isCryptexActive, setIsCryptexActive] = useState(false);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const lockAnimRef = useRef<LockWowAnimationHandles>(null);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -69,6 +75,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       setLocalSuccess(false);
       setShowLightbox(false);
       setIsInteracting(false);
+      setIsCryptexActive(false);
+      setActiveTooltip(null);
       return;
     }
 
@@ -167,9 +175,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       setErrorMessage(null);
       const res = await onVerifyAnswer(answer);
       if (res.success) {
-        // Déclenche immédiatement le son SFX (clic métallique + carillon quantique)
-        playUnlockCadenasSound();
         setLocalSuccess(true);
+        setIsCryptexActive(true);
         onSuccess?.();
       } else {
         setErrorMessage(res.message || 'Code erroné. Croisez bien les 5 règles du schéma !');
@@ -192,7 +199,15 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay Conteneur Mascotte */}
+          {/* Animation Cryptex Da Vinci flottante sans boîte, floutant directement le dashboard 2026 */}
+          {isCryptexActive &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <LockWowAnimation onClose={() => setIsCryptexActive(false)} />,
+              document.body
+            )}
+
+          {/* Overlay Conteneur Mascotte (masqué pendant l'animation du cryptex) */}
           <div
             id="mascot-bubble-overlay"
             style={{
@@ -204,7 +219,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              pointerEvents: 'auto',
+              pointerEvents: isCryptexActive ? 'none' : 'auto',
+              opacity: isCryptexActive ? 0 : 1,
+              transition: 'opacity 0.25s ease',
               maxWidth: '92vw',
             }}
           >
@@ -560,35 +577,166 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.45 }}>
                           Anomalie temporelle neutralisée. Partagez la découverte avec votre équipe pour remporter le bonus collectif !
                         </p>
-                        {onOpenCommLink && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onClose();
-                              onOpenCommLink();
-                            }}
-                            style={{
-                              background: 'linear-gradient(135deg, #10b981, #059669)',
-                              border: 'none',
-                              borderRadius: '10px',
-                              padding: '10px 18px',
-                              color: '#ffffff',
-                              fontSize: '0.86rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              boxShadow: '0 0 16px rgba(16, 185, 129, 0.45)',
-                              transition: 'transform 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                          >
-                            <MessageSquare size={16} />
-                            Ouvrir le Comm-Link Équipe
-                          </button>
-                        )}
+                        
+                        {/* Actions bar : boutons d'actions carrés premium avec tooltips */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '14px',
+                            marginTop: '16px',
+                          }}
+                        >
+                          {/* Bouton Revoir l'animation */}
+                          <div style={{ position: 'relative' }}>
+                            <motion.button
+                              type="button"
+                              onClick={() => setIsCryptexActive(true)}
+                              onMouseEnter={() => setActiveTooltip('replay')}
+                              onMouseLeave={() => setActiveTooltip(null)}
+                              onFocus={() => setActiveTooltip('replay')}
+                              onBlur={() => setActiveTooltip(null)}
+                              whileHover={{ scale: 1.08, filter: 'brightness(1.2)' }}
+                              whileTap={{ scale: 0.94 }}
+                              aria-label="Revoir l'animation"
+                              style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.28))',
+                                border: '1.5px solid rgba(245, 158, 11, 0.55)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                                color: '#fbbf24',
+                                transition: 'border-color 0.2s, box-shadow 0.2s',
+                              }}
+                            >
+                              <RotateCcw size={20} />
+                            </motion.button>
+
+                            <AnimatePresence>
+                              {activeTooltip === 'replay' && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 6, scale: 0.92 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                  transition={{ duration: 0.15 }}
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 'calc(100% + 8px)',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    padding: '5px 10px',
+                                    borderRadius: '8px',
+                                    background: 'rgba(15, 23, 42, 0.95)',
+                                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                                    color: '#fef3c7',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                    pointerEvents: 'none',
+                                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.5)',
+                                    zIndex: 50,
+                                  }}
+                                >
+                                  Revoir l'animation
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      top: '100%',
+                                      left: '50%',
+                                      transform: 'translateX(-50%)',
+                                      borderLeft: '5px solid transparent',
+                                      borderRight: '5px solid transparent',
+                                      borderTop: '5px solid rgba(15, 23, 42, 0.95)',
+                                    }}
+                                  />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          {/* Bouton Comm-Link Équipe */}
+                          {onOpenCommLink && (
+                            <div style={{ position: 'relative' }}>
+                              <motion.button
+                                type="button"
+                                onClick={() => {
+                                  onClose();
+                                  onOpenCommLink();
+                                }}
+                                onMouseEnter={() => setActiveTooltip('comm')}
+                                onMouseLeave={() => setActiveTooltip(null)}
+                                onFocus={() => setActiveTooltip('comm')}
+                                onBlur={() => setActiveTooltip(null)}
+                                whileHover={{ scale: 1.08, filter: 'brightness(1.2)' }}
+                                whileTap={{ scale: 0.94 }}
+                                aria-label="Ouvrir le Comm-Link Équipe"
+                                style={{
+                                  width: '44px',
+                                  height: '44px',
+                                  borderRadius: '10px',
+                                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(5, 150, 105, 0.32))',
+                                  border: '1.5px solid rgba(16, 185, 129, 0.55)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                                  color: '#34d399',
+                                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                                }}
+                              >
+                                <MessageSquare size={20} />
+                              </motion.button>
+
+                              <AnimatePresence>
+                                {activeTooltip === 'comm' && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 6, scale: 0.92 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: 'calc(100% + 8px)',
+                                      left: '50%',
+                                      transform: 'translateX(-50%)',
+                                      padding: '5px 10px',
+                                      borderRadius: '8px',
+                                      background: 'rgba(15, 23, 42, 0.95)',
+                                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                                      color: '#d1fae5',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 700,
+                                      whiteSpace: 'nowrap',
+                                      pointerEvents: 'none',
+                                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.5)',
+                                      zIndex: 50,
+                                    }}
+                                  >
+                                    Ouvrir le Comm-Link Équipe
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        top: '100%',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        borderLeft: '5px solid transparent',
+                                        borderRight: '5px solid transparent',
+                                        borderTop: '5px solid rgba(15, 23, 42, 0.95)',
+                                      }}
+                                    />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     ) : (
                       /* Formulaire de saisie des 4 chiffres */

@@ -148,3 +148,77 @@ export async function playUnlockCadenasSound(): Promise<void> {
     }
   }
 }
+
+// Instance active du son cryptex pour permettre l'arrêt immédiat à la fermeture
+let activeCryptexAudio: HTMLAudioElement | null = null;
+
+/**
+ * Arrête immédiatement la lecture sonore du Cryptex si active.
+ */
+export function stopCryptexSound(): void {
+  if (activeCryptexAudio) {
+    try {
+      activeCryptexAudio.pause();
+      activeCryptexAudio.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    activeCryptexAudio = null;
+  }
+}
+
+/**
+ * Joue le son d'ouverture du Cryptex (unlock-cadenas-v4.wav)
+ * déclenché au début de la séquence de verrouillage des roues.
+ */
+export async function playCryptexSound(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  stopCryptexSound();
+
+  const candidateUrls = [
+    '/uploads/audio/unlock-cadenas-v4.wav',
+    `${getBackendOrigin()}/uploads/audio/unlock-cadenas-v4.wav`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const audio = new Audio(url);
+      audio.volume = 0.85;
+      activeCryptexAudio = audio;
+      await audio.play();
+      return;
+    } catch {
+      // Essayer le candidat suivant
+    }
+  }
+
+  // Si le fichier audio est inaccessible, utiliser la synthèse Web Audio API
+  playFallbackSynthesis();
+}
+
+/**
+ * Joue un clic métallique court pour chaque roue du Cryptex qui se verrouille.
+ * Son synthétisé via Web Audio API.
+ */
+export function playWheelClickSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(2200, now);
+    osc.frequency.exponentialRampToValueAtTime(350, now + 0.045);
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  } catch (err) {
+    console.warn('[EasterEgg Audio] Wheel click error:', err);
+  }
+}
