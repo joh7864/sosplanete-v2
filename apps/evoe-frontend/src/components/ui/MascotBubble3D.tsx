@@ -4,7 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw } from 'lucide-react';
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
+import LockVideoWowAnimation from './LockVideoWowAnimation';
 import type { LockWowAnimationHandles } from './LockWowAnimation';
+
+// Flag permettant de basculer entre la version Vidéo Cryptex et la version 3D CSS
+const USE_VIDEO_ANIMATION = true;
 
 interface MascotBubble3DProps {
   isOpen: boolean;
@@ -203,7 +207,11 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
           {isCryptexActive &&
             typeof document !== 'undefined' &&
             createPortal(
-              <LockWowAnimation onClose={() => setIsCryptexActive(false)} />,
+              USE_VIDEO_ANIMATION ? (
+                <LockVideoWowAnimation onClose={() => setIsCryptexActive(false)} />
+              ) : (
+                <LockWowAnimation onClose={() => setIsCryptexActive(false)} />
+              ),
               document.body
             )}
 
