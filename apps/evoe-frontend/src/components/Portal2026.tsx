@@ -542,6 +542,79 @@ function AnimatedAvatar({
   );
 }
 
+interface Portal2026Props {
+  categories?: string[];
+  onSelectSector?: (c: string) => void;
+  onSelectPlayer?: (player: any) => void;
+  onSelectChallenges?: () => void;
+  onSelectChallengeBadge?: (player: any) => void;
+  onSelectMissionsWeek?: (player: any) => void;
+  onlineUsers?: Set<string>;
+  unreadTeam?: number;
+  unreadMps?: Record<string, number>;
+  isMobile?: boolean;
+  view?: 'codex' | 'leaderboard';
+  dashboardStatus?: any;
+  challenges?: any[];
+  missionsWeekCount?: number;
+  isStealthMode?: boolean;
+  onToggleStealth?: () => void;
+  onCloseLeaderboard?: () => void;
+  activeRadar?: boolean;
+  selectedRadarTeamId?: number | string | null;
+  onGlobeClick?: () => void;
+  onCodexConsoleClick?: () => void;
+  onStarClick?: (starId: number) => void;
+}
+
+function ConstellationStars({ onStarClick }: { onStarClick?: (id: number) => void }) {
+  const [clickedStars, setClickedStars] = useState<Set<number>>(new Set());
+  const starRefs = useRef<(THREE.Mesh | null)[]>([]);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    starRefs.current.forEach((mesh, idx) => {
+      if (mesh) {
+        const pulse = Math.sin(t * 3.2 + idx * 1.8) * 0.25 + 0.95;
+        mesh.scale.set(pulse, pulse, pulse);
+      }
+    });
+  });
+
+  const stars = [
+    { id: 1, pos: [-6.5, 8.2, -7] as [number, number, number] },
+    { id: 2, pos: [-4.2, 11.0, -7] as [number, number, number] },
+    { id: 3, pos: [-2.1, 8.6, -7] as [number, number, number] },
+  ];
+
+  return (
+    <group>
+      {stars.map((s, idx) => {
+        const isDone = clickedStars.has(s.id);
+        return (
+          <mesh
+            key={s.id}
+            ref={(el) => { starRefs.current[idx] = el; }}
+            position={s.pos}
+            onClick={(e) => {
+              e.stopPropagation();
+              setClickedStars((prev) => new Set([...prev, s.id]));
+              onStarClick?.(s.id);
+            }}
+          >
+            <sphereGeometry args={[0.22, 16, 16]} />
+            <meshBasicMaterial
+              color={isDone ? '#00ffcc' : '#ffd166'}
+              transparent
+              opacity={isDone ? 1 : 0.85}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 export default function Portal2026({ 
   categories = [], 
   onSelectSector,
@@ -560,25 +633,10 @@ export default function Portal2026({
   isStealthMode = false,
   onToggleStealth,
   onCloseLeaderboard: _onCloseLeaderboard,
-}: { 
-  categories?: string[];
-  onSelectSector?: (c: string) => void;
-  onSelectPlayer?: (player: any) => void;
-  onSelectChallenges?: () => void;
-  onSelectChallengeBadge?: (player: any) => void;
-  onSelectMissionsWeek?: (player: any) => void;
-  onlineUsers?: Set<string>;
-  unreadTeam?: number;
-  unreadMps?: Record<string, number>;
-  isMobile?: boolean;
-  view?: 'codex' | 'leaderboard';
-  dashboardStatus?: any;
-  challenges?: any[];
-  missionsWeekCount?: number;
-  isStealthMode?: boolean;
-  onToggleStealth?: () => void;
-  onCloseLeaderboard?: () => void;
-}) {
+  onGlobeClick,
+  onCodexConsoleClick: _onCodexConsoleClick,
+  onStarClick,
+}: Portal2026Props) {
   const portalRef = useRef<THREE.Mesh>(null);
   const earthGroupRef = useRef<THREE.Group>(null);
   const podiumGroupRef = useRef<THREE.Group>(null);
@@ -709,6 +767,9 @@ export default function Portal2026({
 
   return (
     <group>
+      {/* Constellation Anomaly (Easter Egg #10) */}
+      <ConstellationStars onStarClick={onStarClick} />
+
       <RadialShockwave pulseTime={pulseTime} />
       <OrbitControls 
         enableZoom={false} 
@@ -723,7 +784,12 @@ export default function Portal2026({
       
       {/* Terre Centrale (Codex) */}
       <group ref={earthGroupRef}>
-        <mesh ref={portalRef}>
+        <mesh 
+          ref={portalRef}
+          onClick={() => {
+            if (onGlobeClick) onGlobeClick();
+          }}
+        >
           <sphereGeometry args={[2, isMobile ? 16 : 64, isMobile ? 16 : 64]} />
           <meshStandardMaterial
             key={earthTexture?.uuid || 'no-tex'}

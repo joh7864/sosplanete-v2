@@ -26,6 +26,9 @@ interface ChatPanelProps {
   onOpen?: () => void;
   onTabChange?: (tab: string) => void;
   isStealthMode?: boolean;
+  onEasterEggCommand?: (command: string) => void;
+  prefilledText?: string | null;
+  onPrefilledTextConsumed?: () => void;
 }
 
 export default function ChatPanel({ 
@@ -39,14 +42,23 @@ export default function ChatPanel({
   onClose,
   onOpen,
   onTabChange,
-  isStealthMode
+  isStealthMode,
+  onEasterEggCommand,
+  prefilledText,
+  onPrefilledTextConsumed
 }: ChatPanelProps) {
   const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
   const isOpen = isOpenProp ?? false;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('global');
+  const [activeTab, setActiveTab] = useState<string>(activeTabProp || 'global');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTabProp) {
+      setActiveTab(activeTabProp);
+    }
+  }, [activeTabProp]);
 
   // Fermer : on délègue entièrement à App.tsx via onClose
   const changeIsOpen = (open: boolean) => {
@@ -83,6 +95,14 @@ export default function ChatPanel({
   };
 
   const [inputText, setInputText] = useState('');
+
+  useEffect(() => {
+    if (prefilledText) {
+      setInputText(prefilledText);
+      onPrefilledTextConsumed?.();
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [prefilledText, onPrefilledTextConsumed]);
 
   const {
     socket,
@@ -292,10 +312,15 @@ export default function ChatPanel({
     if (!inputText.trim() && !pendingImageUrl) return;
     if (isUploadingImage) return;
 
-    // Détecter si le message commence par une commande de type /destinataire
+    // Détecter si le message commence par une commande de type /destinataire ou Easter Egg
     let shouldSend = true;
     if (inputText.startsWith('/')) {
       const parts = inputText.trim().split(/\s+/);
+      const rawCmd = parts[0].toLowerCase();
+      if (onEasterEggCommand) {
+        onEasterEggCommand(rawCmd);
+      }
+
       const command = parts[0].substring(1).toLowerCase(); // ex: 'isabeller' ou 'alpha'
       
       const targetPlayer = (players || []).find(p => p.pseudo.toLowerCase() === command);

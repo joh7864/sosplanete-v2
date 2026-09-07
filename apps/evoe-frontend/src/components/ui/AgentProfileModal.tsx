@@ -29,6 +29,7 @@ interface AgentProfileModalProps {
   isStealthMode?: boolean;
   onToggleStealth?: () => void;
   onOpenBriefing?: () => void;
+  onMetricClick?: (metric: 'carbon' | 'water' | 'waste') => void;
 }
 
 export function AgentProfileModal({
@@ -38,7 +39,8 @@ export function AgentProfileModal({
   refreshData,
   isStealthMode = false,
   onToggleStealth,
-  onOpenBriefing
+  onOpenBriefing,
+  onMetricClick
 }: AgentProfileModalProps) {
   const { refreshContext } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
@@ -537,23 +539,38 @@ export function AgentProfileModal({
               </div>
             </div>
 
-            {/* Grille des 3 indicateurs personnels */}
+            {/* Grille des 3 indicateurs personnels (Échos harmoniques 2070) */}
             <div className="profile-metrics-grid">
-              <div className="profile-metric-card">
+              <div 
+                className="profile-metric-card" 
+                onClick={() => onMetricClick?.('carbon')}
+                style={{ cursor: onMetricClick ? 'pointer' : 'default', transition: 'transform 0.15s, border-color 0.15s' }}
+                title="Bilan Carbone"
+              >
                 <Shield size={20} className="metric-icon co2" />
                 <div className="metric-info">
                   <span className="label">Carbone Évité</span>
                   <span className="value">{fmtMass(profileData.personalMetrics.co2)}</span>
                 </div>
               </div>
-              <div className="profile-metric-card">
+              <div 
+                className="profile-metric-card" 
+                onClick={() => onMetricClick?.('water')}
+                style={{ cursor: onMetricClick ? 'pointer' : 'default', transition: 'transform 0.15s, border-color 0.15s' }}
+                title="Bilan Eau"
+              >
                 <Droplet size={20} className="metric-icon water" />
                 <div className="metric-info">
                   <span className="label">Eau Épargnée</span>
                   <span className="value">{fmtVolume(profileData.personalMetrics.water)}</span>
                 </div>
               </div>
-              <div className="profile-metric-card">
+              <div 
+                className="profile-metric-card" 
+                onClick={() => onMetricClick?.('waste')}
+                style={{ cursor: onMetricClick ? 'pointer' : 'default', transition: 'transform 0.15s, border-color 0.15s' }}
+                title="Bilan Déchets"
+              >
                 <Trash2 size={20} className="metric-icon waste" />
                 <div className="metric-info">
                   <span className="label">Déchets Évités</span>

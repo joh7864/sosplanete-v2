@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Building2,
   Search,
-  Bell
+  Bell,
+  Sparkles
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { getAssetUrl } from '@/utils/assets';
@@ -219,7 +220,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
     return (
       <nav className={`flex flex-col gap-2 ${mobile ? 'mt-2' : ''}`}>
         <SidebarDashboardDropdown
-          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/catalog', '/dashboard/organization', '/dashboard/settings'].every(forbidden => !isLinkActive(forbidden))}
+          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/catalog', '/dashboard/organization', '/dashboard/settings', '/dashboard/easter-eggs'].every(forbidden => !isLinkActive(forbidden))}
           instances={managedInstances}
           activeId={activeInstanceId}
           onDashboardClick={closeMenu}
@@ -238,6 +239,14 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           label="Mon Établissement" 
           href={getAmLink('/dashboard/organization')}
           active={isLinkActive('/dashboard/organization')}
+          onClick={closeMenu}
+          collapsed={collapsed}
+        />
+        <SidebarItem 
+          icon={<Sparkles size={20} />} 
+          label="Easter Eggs SF" 
+          href={getAmLink('/dashboard/easter-eggs')}
+          active={isLinkActive('/dashboard/easter-eggs')}
           onClick={closeMenu}
           collapsed={collapsed}
         />

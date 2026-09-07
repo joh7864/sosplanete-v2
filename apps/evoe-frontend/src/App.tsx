@@ -24,6 +24,11 @@ import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
+import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
+import { MascotBubble3D } from './components/ui/MascotBubble3D';
+import { EasterEggCelebrationOverlay } from './components/ui/EasterEggCelebrationOverlay';
+import { useEasterEgg } from './hooks/useEasterEgg';
+import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
@@ -77,7 +82,7 @@ const getVibrantTeamColor = (colorStr: string | null | undefined): string => {
 
 function MainApp() {
   const {
-    era, handleSwitchEra,
+    era, handleSwitchEra: baseHandleSwitchEra,
     isTransitioning,
     selectedSector, setSelectedSector,
     isCodexCollapsed, setIsCodexCollapsed,
@@ -126,6 +131,56 @@ function MainApp() {
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+
+  // Easter Egg System
+  const {
+    activeEggData,
+    hasUnread: hasUnreadEasterEgg,
+    hasSeenEnigma,
+    markEnigmaAsSeen,
+    verifyAnswer: verifyEasterEggAnswer,
+    interactWithEgg,
+    fetchActiveEgg,
+    validateTrigger,
+  } = useEasterEgg();
+  const [showMascotBubble, setShowMascotBubble] = useState(false);
+  const [showEggCelebration, setShowEggCelebration] = useState(false);
+  const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
+
+  const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
+    const result = await validateTrigger(triggerType as any, metadata);
+    if (result.success) {
+      const freshEgg = await fetchActiveEgg();
+      setShowEggCelebration(true);
+      setChatActiveTab('team');
+      if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
+        setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" et remporté les points IT ! 🎉`);
+      } else {
+        setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
+      }
+    }
+  };
+
+  const {
+    handleLogoMouseDown,
+    handleLogoMouseUpOrLeave,
+    handleGlobeClick,
+    handleCodexConsoleClick,
+    handleCommLinkCommand,
+    handleEraSwitch,
+    handleMetricClick,
+    handleStarClick,
+  } = useEasterEggTriggers({
+    activeTriggerType: activeEggData?.easterEgg?.triggerType,
+    triggerConfig: activeEggData?.easterEgg?.triggerConfig,
+    activeEggCode: activeEggData?.easterEgg?.code,
+    onTrigger: handleEasterEggTrigger,
+  });
+
+  const handleSwitchEra = () => {
+    handleEraSwitch();
+    baseHandleSwitchEra();
+  };
 
   const handleVesselClick = (teamId: number | string) => {
     setShowRadar(true);
@@ -651,6 +706,9 @@ function MainApp() {
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={handleSelectSector} 
               onSelectPlayer={handleSelectPlayer}
+              onGlobeClick={handleGlobeClick}
+              onCodexConsoleClick={handleCodexConsoleClick}
+              onStarClick={handleStarClick}
               onSelectChallenges={() => {
                 if (childInfos && childInfos.isPeriodOpen === false) {
                   setShowNoPeriodModal(true);
@@ -822,7 +880,37 @@ function MainApp() {
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
-              <h1 style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap' }}>EVOE {era}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 
+                  style={{ margin: 0, fontSize: '1.25rem', lineHeight: '1.1', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                  onMouseDown={handleLogoMouseDown}
+                  onMouseUp={handleLogoMouseUpOrLeave}
+                  onMouseLeave={handleLogoMouseUpOrLeave}
+                  onTouchStart={handleLogoMouseDown}
+                  onTouchEnd={handleLogoMouseUpOrLeave}
+                >
+                  EVOE {era}
+                </h1>
+                {/* Badge Œuf de Pâques SF 2070 */}
+                {childInfos && (
+                  <SciFiEggBadge
+                    eggData={activeEggData}
+                    hasUnread={hasUnreadEasterEgg}
+                    hasSeenEnigma={hasSeenEnigma}
+                    onClick={async () => {
+                      if (!activeEggData?.easterEgg?.isInteractable) return;
+                      markEnigmaAsSeen();
+                      setShowMascotBubble(true);
+                      if (!activeEggData?.playerProgress?.firstInteractionAt) {
+                        await interactWithEgg();
+                        await fetchActiveEgg();
+                      } else {
+                        await fetchActiveEgg();
+                      }
+                    }}
+                  />
+                )}
+              </div>
               {childInfos && (
                 <span style={{ 
                   fontSize: '0.75rem', 
@@ -1385,7 +1473,12 @@ function MainApp() {
             className={`codex-panel ${isCodexCollapsed ? 'collapsed' : ''}`}
             onScroll={() => setExpandedMission(null)} // Ferme le pop-over au scroll
           >
-            <div className="codex-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isCodexCollapsed ? 'column' : 'row', gap: '8px', padding: '10px 15px' }}>
+            <div 
+              className="codex-header" 
+              onClick={handleCodexConsoleClick}
+              title="Console Centrale du Codex"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexDirection: isCodexCollapsed ? 'column' : 'row', gap: '8px', padding: '10px 15px', cursor: 'pointer' }}
+            >
               {!isCodexCollapsed && <h2 style={{ margin: 0 }}>Codex Temporel {childInfos?.pseudo ? `- ${childInfos.pseudo}` : ''}</h2>}
               <div style={{ display: 'flex', flexDirection: isCodexCollapsed ? 'column' : 'row', alignItems: 'center', gap: '8px', marginLeft: isCodexCollapsed ? 'auto' : '0', marginRight: isCodexCollapsed ? 'auto' : '0' }}>
                 <button 
@@ -2201,6 +2294,7 @@ function MainApp() {
               refreshData={fetchEvoeData}
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
+              onMetricClick={handleMetricClick}
               onOpenBriefing={() => {
                 setSelectedProfileId(null);
                 setShowBriefing(true);
@@ -2210,7 +2304,52 @@ function MainApp() {
         )}
       </AnimatePresence>
 
+      {/* MASCOTTE 3D (EASTER EGG) */}
+      {activeEggData?.easterEgg && (
+        <MascotBubble3D
+          isOpen={showMascotBubble}
+          onClose={() => setShowMascotBubble(false)}
+          title={activeEggData.easterEgg.title}
+          crypticMessage={activeEggData.easterEgg.crypticMessage || ''}
+          explicitHint={activeEggData.easterEgg.explicitHint}
+          showExplicitHint={!!activeEggData.easterEgg.isExplicitHintVisible}
+          imageUrl={activeEggData.easterEgg.imageUrl}
+          triggerType={activeEggData.easterEgg.triggerType}
+          isDiscovered={!!activeEggData.playerProgress?.isDiscovered}
+          rewardPointsIT={activeEggData.easterEgg.rewardPointsIT}
+          mascotDurationSeconds={activeEggData.easterEgg.mascotDurationSeconds || 45}
+          onVerifyAnswer={verifyEasterEggAnswer}
+          onSuccess={async () => {
+            const freshEgg = await fetchActiveEgg();
+            setShowEggCelebration(true);
+            setChatActiveTab('team');
+            if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
+              setPrefilledChatText("Victoire ! Notre équipe a validé l'Easter Egg du Cadenas 2070 et remporté les points IT ! 🎉");
+            } else {
+              setPrefilledChatText("J'ai trouvé la solution du Cadenas 2070 ! Venez vite valider votre code pour débloquer les points IT de l'équipe ! 🚀");
+            }
+          }}
+          onOpenCommLink={() => {
+            setChatActiveTab('team');
+            setChatOpen(true);
+          }}
+        />
+      )}
 
+      {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT + SFX + PARTICULES) */}
+      <EasterEggCelebrationOverlay
+        isOpen={showEggCelebration}
+        onClose={() => setShowEggCelebration(false)}
+        eggTitle={activeEggData?.easterEgg?.title || 'Cadenas Crypté 2070'}
+        pointsIT={activeEggData?.easterEgg?.rewardPointsIT || 60}
+        isTeamRewarded={!!activeEggData?.teamProgress?.isTeamRewarded}
+        onOpenCommLink={() => {
+          setShowEggCelebration(false);
+          setShowMascotBubble(false);
+          setChatActiveTab('team');
+          setChatOpen(true);
+        }}
+      />
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 
@@ -2225,6 +2364,9 @@ function MainApp() {
         onClose={() => setChatOpen(false)}
         onTabChange={(tab) => setChatActiveTab(tab)}
         isStealthMode={isStealthMode}
+        onEasterEggCommand={handleCommLinkCommand}
+        prefilledText={prefilledChatText}
+        onPrefilledTextConsumed={() => setPrefilledChatText(null)}
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}
