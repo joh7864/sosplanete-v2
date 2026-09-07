@@ -262,4 +262,21 @@ export async function fetchAdminLeaderboard(instanceYearId?: number): Promise<De
   return resp.json();
 }
 
+export interface ActionRefSummary {
+  id: number;
+  code: string;
+  referenceName: string;
+  category?: string | null;
+  image?: string | null;
+  imageEvoe?: string | null;
+}
+
+export async function fetchActionRefs(): Promise<ActionRefSummary[]> {
+  const resp = await fetch(`${getApiUrl()}/action-ref`, {
+    headers: getHeaders(),
+  });
+  if (!resp.ok) throw new Error(`Erreur récupération référentiel actions (${resp.status})`);
+  return resp.json();
+}
+
 

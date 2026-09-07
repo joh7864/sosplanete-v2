@@ -17,7 +17,12 @@ import {
   Gamepad2,
   Maximize2,
   Image as ImageIcon,
-  Upload
+  Upload,
+  Target,
+  Layers,
+  Search,
+  Unlock,
+  Check,
 } from 'lucide-react';
 import {
   EasterEggCatalogItem,
@@ -25,6 +30,8 @@ import {
   updateAdminEgg,
   uploadEnigmaImage,
   resolveEnigmaImageUrl,
+  fetchActionRefs,
+  ActionRefSummary,
 } from '@/utils/easterEggApi';
 
 interface EasterEggFormModalProps {
@@ -118,9 +125,32 @@ export function EasterEggFormModal({
   const [imageUrl, setImageUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
 
+  // Prérequis de déblocage
+  const [prerequisiteType, setPrerequisiteType] = useState<'MISSIONS_COUNT' | 'SPECIFIC_MISSIONS' | 'NONE'>('MISSIONS_COUNT');
+  const [reqCount, setReqCount] = useState(3);
+  const [reqDistinctSectors, setReqDistinctSectors] = useState(2);
+  const [selectedMissionCodes, setSelectedMissionCodes] = useState<string[]>([]);
+  const [matchMode, setMatchMode] = useState<'ALL' | 'ANY'>('ALL');
+
+  // Référentiel des missions
+  const [actionRefs, setActionRefs] = useState<ActionRefSummary[]>([]);
+  const [loadingActionRefs, setLoadingActionRefs] = useState(false);
+  const [searchMissionText, setSearchMissionText] = useState('');
+  const [isMissionDropdownOpen, setIsMissionDropdownOpen] = useState(false);
+
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && actionRefs.length === 0) {
+      setLoadingActionRefs(true);
+      fetchActionRefs()
+        .then((data) => setActionRefs(data))
+        .catch((err) => console.error('Erreur chargement action-refs:', err))
+        .finally(() => setLoadingActionRefs(false));
+    }
+  }, [isOpen, actionRefs.length]);
 
   useEffect(() => {
     if (enigmaToEdit) {
@@ -146,6 +176,28 @@ export function EasterEggFormModal({
       } else {
         setCommandConfig('');
       }
+
+      // Initialiser les prérequis
+      const prereqType = (enigmaToEdit.prerequisiteType as any) || 'MISSIONS_COUNT';
+      setPrerequisiteType(prereqType);
+
+      const prereqConfig = (enigmaToEdit.prerequisiteConfig as any) || {};
+      if (prereqType === 'MISSIONS_COUNT') {
+        setReqCount(prereqConfig.count != null ? Number(prereqConfig.count) : 3);
+        setReqDistinctSectors(prereqConfig.distinctSectors != null ? Number(prereqConfig.distinctSectors) : 2);
+        setSelectedMissionCodes([]);
+        setMatchMode('ALL');
+      } else if (prereqType === 'SPECIFIC_MISSIONS') {
+        setSelectedMissionCodes(Array.isArray(prereqConfig.missionCodes) ? prereqConfig.missionCodes : []);
+        setMatchMode(prereqConfig.matchMode === 'ANY' ? 'ANY' : 'ALL');
+        setReqCount(3);
+        setReqDistinctSectors(2);
+      } else if (prereqType === 'NONE') {
+        setSelectedMissionCodes([]);
+        setMatchMode('ALL');
+        setReqCount(0);
+        setReqDistinctSectors(0);
+      }
     } else {
       setTitle('');
       setCode(`EE_${Date.now().toString().slice(-6)}`);
@@ -161,8 +213,15 @@ export function EasterEggFormModal({
       setCommandConfig('');
       setImageUrl('');
       setIsActive(true);
+      setPrerequisiteType('MISSIONS_COUNT');
+      setReqCount(3);
+      setReqDistinctSectors(2);
+      setSelectedMissionCodes([]);
+      setMatchMode('ALL');
     }
     setError(null);
+    setSearchMissionText('');
+    setIsMissionDropdownOpen(false);
   }, [enigmaToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -193,15 +252,41 @@ export function EasterEggFormModal({
       setError('Le code d’identification unique est requis.');
       return;
     }
+    if (prerequisiteType === 'SPECIFIC_MISSIONS' && selectedMissionCodes.length === 0) {
+      setError('Veuillez sélectionner au moins une mission spécifique pour ce mode de prérequis.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
+
+    let configPayload: any = {};
+    if (prerequisiteType === 'MISSIONS_COUNT') {
+      configPayload = {
+        count: Math.max(1, Number(reqCount) || 1),
+        distinctSectors: Math.max(1, Number(reqDistinctSectors) || 1),
+      };
+    } else if (prerequisiteType === 'SPECIFIC_MISSIONS') {
+      const selectedIds = actionRefs
+        .filter((ar) => selectedMissionCodes.includes(ar.code))
+        .map((ar) => ar.id);
+
+      configPayload = {
+        missionCodes: selectedMissionCodes,
+        missionIds: selectedIds,
+        matchMode,
+      };
+    } else if (prerequisiteType === 'NONE') {
+      configPayload = {};
+    }
 
     const payload: Partial<EasterEggCatalogItem> = {
       title: title.trim(),
       code: code.trim().toUpperCase(),
       complexity,
       rewardPointsIT,
+      prerequisiteType,
+      prerequisiteConfig: configPayload,
       crypticMessage: crypticMessage.trim(),
       explicitHint: explicitHint.trim() || null,
       hintDelayMinutes: delayHours * 60 + delayMinutes,
@@ -344,6 +429,293 @@ export function EasterEggFormModal({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Condition de Déblocage / Prérequis */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <Target size={16} />
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    Condition de Déblocage (Prérequis de l'Énigme)
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-slate-400">
+                  Déclencheur d'interaction du joueur
+                </span>
+              </div>
+
+              {/* 3 modes de prérequis */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPrerequisiteType('MISSIONS_COUNT')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    prerequisiteType === 'MISSIONS_COUNT'
+                      ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Layers size={15} className={prerequisiteType === 'MISSIONS_COUNT' ? 'text-indigo-600' : 'text-slate-400'} />
+                    <span className={`text-xs font-bold ${prerequisiteType === 'MISSIONS_COUNT' ? 'text-indigo-950' : 'text-slate-700'}`}>
+                      Volume & Diversité
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Nombre d'actions et secteurs distincts requis.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrerequisiteType('SPECIFIC_MISSIONS')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    prerequisiteType === 'SPECIFIC_MISSIONS'
+                      ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target size={15} className={prerequisiteType === 'SPECIFIC_MISSIONS' ? 'text-indigo-600' : 'text-slate-400'} />
+                    <span className={`text-xs font-bold ${prerequisiteType === 'SPECIFIC_MISSIONS' ? 'text-indigo-950' : 'text-slate-700'}`}>
+                      Missions Spécifiques
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    1 ou plusieurs éco-gestes précis ciblés.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrerequisiteType('NONE')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    prerequisiteType === 'NONE'
+                      ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Unlock size={15} className={prerequisiteType === 'NONE' ? 'text-emerald-600' : 'text-slate-400'} />
+                    <span className={`text-xs font-bold ${prerequisiteType === 'NONE' ? 'text-emerald-950' : 'text-slate-700'}`}>
+                      Accès Libre
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 line-clamp-2">
+                    Directement interactif, sans mission requise.
+                  </p>
+                </button>
+              </div>
+
+              {/* Mode 1 : Volume & Diversité */}
+              {prerequisiteType === 'MISSIONS_COUNT' && (
+                <div className="pt-2 border-t border-slate-200/60 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Missions complétées requises
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={reqCount}
+                        onChange={(e) => setReqCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 font-bold text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Secteurs distincts minimum
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={reqDistinctSectors}
+                        onChange={(e) => setReqDistinctSectors(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-800 font-bold text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-xs"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-indigo-700/90 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 flex items-center gap-1.5">
+                    💡 <span>L'élève devra valider au moins <strong>{reqCount} mission{reqCount > 1 ? 's' : ''}</strong> sur au moins <strong>{reqDistinctSectors} secteur{reqDistinctSectors > 1 ? 's' : ''} distinct{reqDistinctSectors > 1 ? 's' : ''}</strong> lors de la période pour activer l'énigme.</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Mode 2 : Missions Spécifiques */}
+              {prerequisiteType === 'SPECIFIC_MISSIONS' && (
+                <div className="pt-2 border-t border-slate-200/60 space-y-3">
+                  {/* Condition ET / OU si plus d'une mission */}
+                  {selectedMissionCodes.length > 1 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                      <span className="text-xs font-bold text-slate-700">Condition entre les missions :</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setMatchMode('ALL')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            matchMode === 'ALL'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Toutes requises (ET)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMatchMode('ANY')}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            matchMode === 'ANY'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          Au moins une (OU)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sélecteur de recherche de mission */}
+                  <div className="relative">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Ajouter une mission requise
+                    </label>
+                    <div className="relative">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Rechercher une mission par nom ou code (ex: douche, vélo, ampoule...)"
+                        value={searchMissionText}
+                        onChange={(e) => setSearchMissionText(e.target.value)}
+                        onFocus={() => setIsMissionDropdownOpen(true)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-xs"
+                      />
+                    </div>
+
+                    {/* Menu déroulant de résultats */}
+                    {isMissionDropdownOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setIsMissionDropdownOpen(false)}
+                        />
+                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl p-1 space-y-0.5">
+                          {loadingActionRefs ? (
+                            <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                              <Loader2 size={14} className="animate-spin" /> Chargement du référentiel...
+                            </div>
+                          ) : actionRefs.filter((ar) => !selectedMissionCodes.includes(ar.code) && (!searchMissionText.trim() || ar.code.toLowerCase().includes(searchMissionText.toLowerCase()) || ar.referenceName.toLowerCase().includes(searchMissionText.toLowerCase()) || (ar.category && ar.category.toLowerCase().includes(searchMissionText.toLowerCase())))).length === 0 ? (
+                            <div className="p-3 text-center text-xs text-slate-400">
+                              Aucune mission correspondante trouvée.
+                            </div>
+                          ) : (
+                            actionRefs
+                              .filter((ar) => !selectedMissionCodes.includes(ar.code) && (!searchMissionText.trim() || ar.code.toLowerCase().includes(searchMissionText.toLowerCase()) || ar.referenceName.toLowerCase().includes(searchMissionText.toLowerCase()) || (ar.category && ar.category.toLowerCase().includes(searchMissionText.toLowerCase()))))
+                              .slice(0, 20)
+                              .map((ar) => (
+                                <button
+                                  key={ar.code || ar.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedMissionCodes((prev) => [...prev, ar.code]);
+                                    setSearchMissionText('');
+                                    setIsMissionDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50/70 transition-colors flex items-center justify-between group cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                                    <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-700 shrink-0">
+                                      {ar.code}
+                                    </span>
+                                    <span className="text-xs font-semibold text-slate-800 truncate">
+                                      {ar.referenceName}
+                                    </span>
+                                  </div>
+                                  {ar.category && (
+                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                                      {ar.category}
+                                    </span>
+                                  )}
+                                </button>
+                              ))
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Liste des badges de missions sélectionnées */}
+                  {selectedMissionCodes.length > 0 ? (
+                    <div className="space-y-1.5">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        Missions sélectionnées ({selectedMissionCodes.length}) :
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMissionCodes.map((code) => {
+                          const action = actionRefs.find((a) => a.code === code);
+                          return (
+                            <div
+                              key={code}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50/80 border border-indigo-200/80 rounded-xl text-xs font-medium text-indigo-950 shadow-2xs"
+                            >
+                              <span className="font-mono font-bold text-[10px] bg-indigo-200/70 text-indigo-900 px-1.5 py-0.5 rounded">
+                                {code}
+                              </span>
+                              <span className="font-bold text-slate-800 max-w-[220px] truncate">
+                                {action ? action.referenceName : code}
+                              </span>
+                              {action?.category && (
+                                <span className="text-[10px] text-indigo-600 bg-indigo-100/60 px-1.5 py-0.5 rounded font-bold">
+                                  {action.category}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedMissionCodes((prev) => prev.filter((c) => c !== code))
+                                }
+                                className="text-slate-400 hover:text-red-500 transition-colors p-0.5 rounded-full hover:bg-red-50 cursor-pointer"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-indigo-700/90 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100 mt-2">
+                        💡 L'énigme sera accessible dès que l'élève aura validé{' '}
+                        <strong>
+                          {selectedMissionCodes.length === 1
+                            ? 'la mission sélectionnée'
+                            : matchMode === 'ALL'
+                            ? `TOUTES les ${selectedMissionCodes.length} missions sélectionnées`
+                            : `AU MOINS L'UNE des ${selectedMissionCodes.length} missions sélectionnées`}
+                        </strong>{' '}
+                        au cours de la période.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-2">
+                      <AlertTriangle size={15} className="shrink-0" />
+                      <span>Veuillez sélectionner au moins 1 mission dans la liste ci-dessus.</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Mode 3 : Accès Libre */}
+              {prerequisiteType === 'NONE' && (
+                <div className="pt-2 border-t border-slate-200/60">
+                  <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80 flex items-center gap-2.5 text-emerald-800 text-xs font-medium">
+                    <Unlock size={16} className="text-emerald-600 shrink-0" />
+                    <span>L'énigme sera immédiatement disponible pour tous les joueurs dès le début de la période, sans mission préalable requise.</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Lore 2070 / Message cryptique */}

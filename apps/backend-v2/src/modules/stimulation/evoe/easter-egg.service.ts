@@ -651,21 +651,11 @@ export class EasterEggService implements OnModuleInit {
 
     // --- Immersive Scenario Logic ---
     const nowTime = new Date();
-    let isInteractable = true;
-    
-    if (currentEgg.prerequisiteType === 'MISSIONS_COUNT' && currentEgg.prerequisiteConfig) {
-      const config = currentEgg.prerequisiteConfig as any;
-      const countReq = config.count || 3;
-      const sectorsReq = config.distinctSectors || 2;
-      
-      const childActions = await this.prisma.actionDone.findMany({
-        where: { childId: child.id, periodId: currentPeriod ? currentPeriod.id : 0 },
-        include: { localAction: true }
-      });
-      
-      const distinctSectors = new Set(childActions.map(a => a.localAction.categoryId));
-      isInteractable = childActions.length >= countReq && distinctSectors.size >= sectorsReq;
-    }
+    const isInteractable = await this.checkPrerequisites(
+      currentEgg,
+      child.id,
+      currentPeriod ? currentPeriod.id : 0,
+    );
 
     // Si les prérequis ne sont plus atteints (ex: actions désimpulsées par le joueur) :
     // On réinitialise l'interaction pour revenir strictement à l'état initial (œuf inerte, pas de 2ème indice)
@@ -748,6 +738,95 @@ export class EasterEggService implements OnModuleInit {
     };
   }
 
+  /**
+   * Vérifie si les prérequis de déverrouillage de l'énigme sont satisfaits par le joueur.
+   */
+  private async checkPrerequisites(
+    egg: { prerequisiteType?: string | null; prerequisiteConfig?: any },
+    childId: number,
+    periodId: number,
+  ): Promise<boolean> {
+    const type = egg.prerequisiteType || 'MISSIONS_COUNT';
+    const config = (egg.prerequisiteConfig as any) || {};
+
+    if (type === 'NONE') {
+      return true;
+    }
+
+    if (type === 'MISSIONS_COUNT') {
+      const countReq = config.count != null ? Number(config.count) : 3;
+      const sectorsReq = config.distinctSectors != null ? Number(config.distinctSectors) : 2;
+
+      const childActions = await this.prisma.actionDone.findMany({
+        where: { childId, periodId },
+        include: { localAction: true },
+      });
+
+      const distinctSectors = new Set(
+        childActions
+          .map((a) => a.localAction?.categoryId)
+          .filter((catId) => catId != null),
+      );
+
+      return childActions.length >= countReq && distinctSectors.size >= sectorsReq;
+    }
+
+    if (type === 'SPECIFIC_MISSIONS') {
+      const requiredCodes: string[] = Array.isArray(config.missionCodes) ? config.missionCodes : [];
+      const requiredIds: number[] = Array.isArray(config.missionIds) ? config.missionIds : [];
+      const matchMode: 'ALL' | 'ANY' = config.matchMode === 'ANY' ? 'ANY' : 'ALL';
+
+      if (requiredCodes.length === 0 && requiredIds.length === 0) {
+        return true;
+      }
+
+      const childActions = await this.prisma.actionDone.findMany({
+        where: { childId, periodId },
+        include: {
+          localAction: {
+            include: { actionRef: true },
+          },
+        },
+      });
+
+      const doneCodes = new Set(
+        childActions
+          .map((a) => a.localAction?.actionRef?.code)
+          .filter(Boolean),
+      );
+      const doneIds = new Set(
+        childActions
+          .map((a) => a.localAction?.actionRefId)
+          .filter((id) => id != null),
+      );
+
+      const isItemCompleted = (code?: string, id?: number) => {
+        if (code && doneCodes.has(code)) return true;
+        if (id != null && doneIds.has(id)) return true;
+        return false;
+      };
+
+      const targetItems: Array<{ code?: string; id?: number }> = [];
+      if (requiredCodes.length > 0) {
+        requiredCodes.forEach((code, idx) => {
+          targetItems.push({ code, id: requiredIds[idx] });
+        });
+      } else {
+        requiredIds.forEach((id) => {
+          targetItems.push({ id });
+        });
+      }
+
+      if (matchMode === 'ALL') {
+        return targetItems.every((item) => isItemCompleted(item.code, item.id));
+      } else {
+        return targetItems.some((item) => isItemCompleted(item.code, item.id));
+      }
+    }
+
+    return true;
+  }
+
   async recordInteraction(childId: number, easterEggId: number) {
     const { child, currentPeriod } = await this.getPlayerContext(childId);
 
@@ -756,21 +835,13 @@ export class EasterEggService implements OnModuleInit {
       throw new NotFoundException('Énigme introuvable ou inactive');
     }
 
-    if (egg.prerequisiteType === 'MISSIONS_COUNT' && egg.prerequisiteConfig) {
-      const config = egg.prerequisiteConfig as any;
-      const countReq = config.count || 3;
-      const sectorsReq = config.distinctSectors || 2;
-
-      const childActions = await this.prisma.actionDone.findMany({
-        where: { childId: child.id, periodId: currentPeriod ? currentPeriod.id : 0 },
-        include: { localAction: true },
-      });
-
-      const distinctSectors = new Set(childActions.map((a) => a.localAction.categoryId));
-      const isInteractable = childActions.length >= countReq && distinctSectors.size >= sectorsReq;
-      if (!isInteractable) {
-        return { success: false, message: 'Prérequis non atteints' };
-      }
+    const isInteractable = await this.checkPrerequisites(
+      egg,
+      child.id,
+      currentPeriod ? currentPeriod.id : 0,
+    );
+    if (!isInteractable) {
+      return { success: false, message: 'Prérequis non atteints' };
     }
 
     let playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
@@ -1184,6 +1255,8 @@ export class EasterEggService implements OnModuleInit {
         rewardPointsIT: dto.rewardPointsIT || 50,
         orderIndex: dto.orderIndex || 0,
         isActive: dto.isActive ?? true,
+        prerequisiteType: dto.prerequisiteType || 'MISSIONS_COUNT',
+        prerequisiteConfig: dto.prerequisiteConfig ?? { count: 3, distinctSectors: 2 },
       },
     });
   }
@@ -1208,6 +1281,8 @@ export class EasterEggService implements OnModuleInit {
         ...(dto.rewardPointsIT !== undefined && { rewardPointsIT: dto.rewardPointsIT }),
         ...(dto.orderIndex !== undefined && { orderIndex: dto.orderIndex }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.prerequisiteType !== undefined && { prerequisiteType: dto.prerequisiteType }),
+        ...(dto.prerequisiteConfig !== undefined && { prerequisiteConfig: dto.prerequisiteConfig }),
       },
     });
   }
