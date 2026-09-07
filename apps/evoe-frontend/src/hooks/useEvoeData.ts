@@ -127,11 +127,14 @@ export function useEvoeData() {
     }
   };
 
+  const [isEvoeDataLoading, setIsEvoeDataLoading] = useState(true);
+
   const fetchEvoeData = async () => {
     if (!instanceId) return;
     refreshContext();
 
     try {
+      setIsEvoeDataLoading(true);
       const [metricsRes, dashboardRes] = await Promise.allSettled([
         evoeClient.get(`${EVOE_API_URL}/extrapolation/metrics`),
         evoeClient.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`),
@@ -144,6 +147,8 @@ export function useEvoeData() {
       }
     } catch (err) {
       console.error("Erreur récupération données Evoe:", err);
+    } finally {
+      setIsEvoeDataLoading(false);
     }
   };
 
@@ -321,6 +326,7 @@ export function useEvoeData() {
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,
     chatActiveTab, setChatActiveTab,
+    isEvoeDataLoading,
     fetchEvoeData, fetchChallenges,
     handleImpulseMission, handleCancelMission,
     handleSendChallenge, handleRespondChallenge,

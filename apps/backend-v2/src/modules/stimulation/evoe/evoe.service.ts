@@ -1548,6 +1548,15 @@ export class EvoeService {
       return titreSF;
     };
 
+    const getMissionAmplitude = (localAction: any) => {
+      if (!localAction) return 10;
+      const co2 = localAction.specificCo2 ?? localAction.actionRef?.defaultCo2 ?? 0;
+      const water = localAction.specificWater ?? localAction.actionRef?.defaultWater ?? 0;
+      const waste = localAction.specificWaste ?? localAction.actionRef?.defaultWaste ?? 0;
+      // Formule de pondération officielle EVOE (60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT)
+      return 10 + Math.round(12 * co2 + 4 * waste + 0.04 * water);
+    };
+
     const child = await this.prisma.child.findUnique({
       where: { id: childId },
       include: {
@@ -1690,7 +1699,7 @@ export class EvoeService {
       id: ad.id,
       date: ad.createdAt,
       label: getMissionLabel(ad.localAction),
-      amplitude: Math.round(ad.savedCo2 + ad.savedWater + ad.savedWaste) || 10,
+      amplitude: getMissionAmplitude(ad.localAction),
     }));
 
     // 5. Top 5 des éco-missions réalisées depuis le début du jeu

@@ -1,0 +1,339 @@
+/* Dashboard2026Loader.module.css */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 45%, rgba(6, 16, 38, 0.96) 0%, rgba(3, 7, 18, 0.98) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  z-index: 99999;
+  overflow: hidden;
+  user-select: none;
+  padding: 20px;
+}
+
+/* Grille holographique animée en fond */
+.gridBg {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 255, 204, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Balayage de scanline */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.25)
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Carte centrale HUD */
+.card {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  background: rgba(8, 18, 42, 0.82);
+  border: 1px solid rgba(0, 255, 204, 0.22);
+  border-radius: 24px;
+  padding: 36px 32px 30px;
+  box-shadow: 
+    0 0 50px rgba(0, 180, 255, 0.15),
+    0 25px 60px rgba(0, 0, 0, 0.7),
+    inset 0 0 30px rgba(0, 255, 204, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  backdrop-filter: blur(16px);
+}
+
+/* Coins angulaires technologiques */
+.cornerTL, .cornerTR, .cornerBL, .cornerBR {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #00ffcc;
+  pointer-events: none;
+}
+.cornerTL {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid #00ffcc;
+  border-left: 2px solid #00ffcc;
+  border-top-left-radius: 6px;
+}
+.cornerTR {
+  top: -1px;
+  right: -1px;
+  border-top: 2px solid #00ffcc;
+  border-right: 2px solid #00ffcc;
+  border-top-right-radius: 6px;
+}
+.cornerBL {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 2px solid #00ffcc;
+  border-left: 2px solid #00ffcc;
+  border-bottom-left-radius: 6px;
+}
+.cornerBR {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid #00ffcc;
+  border-right: 2px solid #00ffcc;
+  border-bottom-right-radius: 6px;
+}
+
+/* Gyroscope Holo Central */
+.gyroscopeContainer {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.outerRing {
+  position: absolute;
+  inset: 0;
+  border: 1.5px dashed rgba(0, 255, 204, 0.45);
+  border-radius: 50%;
+  animation: rotateClockwise 12s linear infinite;
+}
+
+.middleRing {
+  position: absolute;
+  inset: 12px;
+  border: 2px solid transparent;
+  border-top-color: #00b3ff;
+  border-bottom-color: #00b3ff;
+  border-radius: 50%;
+  animation: rotateCounterClockwise 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.innerCore {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: radial-gradient(circle, rgba(0, 255, 204, 0.4) 0%, rgba(0, 120, 255, 0.15) 70%, transparent 100%);
+  border: 1px solid rgba(0, 255, 204, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+  animation: pulseGlow 2.5s ease-in-out infinite;
+}
+
+.pulseDot {
+  width: 10px;
+  height: 10px;
+  background: #00ffcc;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #00ffcc;
+}
+
+/* Badge Lore Supérieur */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0, 255, 204, 0.08);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  border-radius: 999px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #00ffcc;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  box-shadow: 0 0 14px rgba(0, 255, 204, 0.15);
+}
+
+.liveIndicator {
+  width: 6px;
+  height: 6px;
+  background: #00ffcc;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00ffcc;
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+/* Titre Principal */
+.title {
+  margin: 0 0 18px;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  text-transform: uppercase;
+  text-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+}
+
+/* Message de Lore Évolutif */
+.loreContainer {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.loreText {
+  margin: 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: all 0.3s ease;
+}
+
+.highlightText {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* Barre de progression Néon */
+.progressSection {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.progressBarTrack {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(4, 10, 26, 0.9);
+  border: 1px solid rgba(0, 255, 204, 0.4);
+  border-radius: 8px;
+  padding: 2px;
+  box-shadow: 
+    0 0 15px rgba(0, 255, 204, 0.12),
+    inset 0 2px 6px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+/* Remplissage de la barre */
+.progressBarFill {
+  position: relative;
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #0052cc 0%, #00aaff 45%, #00ffcc 100%);
+  box-shadow: 0 0 18px rgba(0, 255, 204, 0.6);
+  transition: width 0.18s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+}
+
+/* Faisceau lumineux animée en boucle */
+.progressBarFill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    transparent 100%
+  );
+  animation: shineStreak 1.8s infinite;
+}
+
+/* Étincelle photonique à la pointe */
+.progressSpark {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 
+    0 0 10px #ffffff,
+    0 0 20px #00ffcc,
+    0 0 30px #00b3ff;
+  filter: blur(0.5px);
+}
+
+/* Footer Télémétrie */
+.footerTelemetry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.percentBadge {
+  color: #00ffcc;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+}
+
+.dataRate {
+  color: #0284c7;
+}
+
+/* Animations Keyframes */
+@keyframes rotateClockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateCounterClockwise {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 16px rgba(0, 255, 204, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 26px rgba(0, 255, 204, 0.7);
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes shineStreak {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}

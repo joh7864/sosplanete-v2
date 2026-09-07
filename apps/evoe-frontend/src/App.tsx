@@ -22,6 +22,7 @@ import pkg from '../package.json';
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
 import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
+import { Dashboard2026Loader } from './components/ui/Dashboard2026Loader';
 
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
@@ -119,11 +120,14 @@ function MainApp() {
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,
     chatActiveTab, setChatActiveTab,
+    isEvoeDataLoading,
     fetchEvoeData, fetchChallenges,
     handleImpulseMission, handleCancelMission,
     handleSendChallenge, handleRespondChallenge,
     handleResetPropulsion, handleCompleteBriefing
   } = useEvoeData();
+
+  const [loader2026Dismissed, setLoader2026Dismissed] = useState(false);
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
@@ -355,6 +359,14 @@ function MainApp() {
 
   const { user, childInfos, pseudo, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
   const currentUserId = childInfos?.id || childInfos?.childId || pseudo || user || 'default_agent';
+
+  const isDashboard2026Ready = Boolean(
+    !isEvoeDataLoading &&
+    dashboardStatus &&
+    childInfos &&
+    missions &&
+    missions.length > 0
+  );
 
   const impulsedMissionsCount = useMemo(() => {
     return missions?.filter((m: any) => m.evoeMission?.isImpulsed)?.length || 0;
@@ -697,6 +709,16 @@ function MainApp() {
 
       {/* Glitch Écran Temporel */}
       {isGlitching && <div className="screen-glitch" />}
+
+      {/* Écran de Chargement Haute Définition / Barre de progression Dashboard 2026 */}
+      <AnimatePresence>
+        {era === '2026' && !loader2026Dismissed && (
+          <Dashboard2026Loader
+            isReady={isDashboard2026Ready}
+            onComplete={() => setLoader2026Dismissed(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
