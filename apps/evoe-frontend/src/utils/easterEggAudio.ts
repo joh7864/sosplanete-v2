@@ -168,22 +168,24 @@ export function stopCryptexSound(): void {
 }
 
 /**
- * Joue le son d'ouverture du Cryptex (unlock-cadenas-v4.wav)
- * déclenché au début de la séquence de verrouillage des roues.
+ * Joue le son officiel du Cryptex (uploads/easter-eggs/cryptex.wav)
+ * déclenché dès le début de la rotation des roues.
  */
 export async function playCryptexSound(): Promise<void> {
   if (typeof window === 'undefined') return;
   stopCryptexSound();
 
   const candidateUrls = [
-    '/uploads/audio/unlock-cadenas-v4.wav',
-    `${getBackendOrigin()}/uploads/audio/unlock-cadenas-v4.wav`,
+    '/uploads/easter-eggs/cryptex.wav',
+    '/uploads/audio/cryptex.wav',
+    `${getBackendOrigin()}/uploads/easter-eggs/cryptex.wav`,
+    `${getBackendOrigin()}/uploads/audio/cryptex.wav`,
   ];
 
   for (const url of candidateUrls) {
     try {
       const audio = new Audio(url);
-      audio.volume = 0.85;
+      audio.volume = 0.9;
       activeCryptexAudio = audio;
       await audio.play();
       return;

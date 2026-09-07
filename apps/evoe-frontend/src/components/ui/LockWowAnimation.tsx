@@ -58,7 +58,7 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
 
     const t0 = setTimeout(() => setPhase(1), 300);
     
-    // Début de la rotation des roues : lancement immédiat du son mécanique synchronisé
+    // Début de la rotation des roues : lancement du son cryptex.wav
     const t1 = setTimeout(() => {
       setPhase(2);
       playCryptexSound();
@@ -67,10 +67,11 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
     // Phase 3: amorce du verrouillage successif
     const t2 = setTimeout(() => {
       setPhase(3);
-    }, 3000);
+    }, 2800);
 
-    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7 avec le son de cran mécanique ("clic-clac")
-    const lockDelays = [0, 850, 1700, 2550];
+    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7
+    // Parfaitement calé sur les temps forts mécaniques de cryptex.wav
+    const lockDelays = [0, 750, 1500, 2250];
     const lockTimers = lockDelays.map((delay, idx) =>
       setTimeout(() => {
         setLockedWheels(prev => (prev.includes(idx) ? prev : [...prev, idx]));
@@ -80,19 +81,19 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
           return next;
         });
         playWheelClickSound();
-      }, 3000 + delay + 400)
+      }, 2800 + delay)
     );
 
-    // Phase 4: ouverture mécanique des embouts Da Vinci et libération du cœur doré
-    const t3 = setTimeout(() => setPhase(4), 3000 + 2550 + 850);
+    // Phase 4: ouverture des embouts calée sur l'enclenchement final de cryptex.wav (~4.8s d'audio)
+    const t3 = setTimeout(() => setPhase(4), 2800 + 2250 + 750);
     // Phase 5: célébration "DÉBLOQUÉ !"
-    const t4 = setTimeout(() => setPhase(5), 3000 + 2550 + 1750);
-    // Fermeture automatique
+    const t4 = setTimeout(() => setPhase(5), 2800 + 2250 + 1650);
+    // Fermeture automatique après écoute complète
     const tEnd = setTimeout(() => {
       stopCryptexSound();
       setShow(false);
       onClose?.();
-    }, LOCK_DURATION * 1000);
+    }, 11500);
 
     return () => {
       stopCryptexSound();
