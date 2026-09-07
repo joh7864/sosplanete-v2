@@ -216,14 +216,16 @@ export async function forceInstanceHint(instanceYearId: number): Promise<any> {
 
 export function resolveEnigmaImageUrl(url: string | null | undefined): string {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
+  // Normaliser cadenas_4ch.webp vers .svg
+  const normalized = url.replace(/cadenas_4ch\.webp$/i, 'cadenas_4ch.svg');
+  if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:')) {
+    return normalized;
   }
-  if (url.startsWith('/uploads/')) {
+  if (normalized.startsWith('/uploads/')) {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011';
-    return `${apiBase}${url}`;
+    return `${apiBase}${normalized}`;
   }
-  return url;
+  return normalized;
 }
 
 export interface DetectiveLeaderboard {

@@ -78,7 +78,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
     ],
     explicitHint:
       "Indice Décrypté 2070 : La règle 4 est la clé de voûte : elle élimine 9, 5, 1 et 3 de toutes les combinaisons. En les barrant, croisez les règles 1, 2 et 5 pour déduire la place exacte de chaque chiffre !",
-    imageUrl: '/easter-eggs/cadenas_4ch.webp',
+    imageUrl: '/easter-eggs/cadenas_4ch.svg',
     triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
     expectedAnswer: '4207',
     caseSensitive: false,
@@ -254,6 +254,14 @@ export class EasterEggService implements OnModuleInit {
 
   async onModuleInit() {
     await this.seedDefaultEasterEggs();
+    try {
+      await this.prisma.evoeEasterEgg.updateMany({
+        where: { imageUrl: { contains: 'cadenas_4ch.webp' } },
+        data: { imageUrl: '/easter-eggs/cadenas_4ch.svg' },
+      });
+    } catch {
+      // ignore
+    }
   }
 
   async seedDefaultEasterEggs() {
