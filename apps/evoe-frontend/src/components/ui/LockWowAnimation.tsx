@@ -1,5 +1,5 @@
 /* src/components/ui/LockWowAnimation.tsx */
-import React, { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playCryptexSound, playWheelClickSound, stopCryptexSound } from '../../utils/easterEggAudio';
 import styles from './LockWowAnimation.module.css';
@@ -12,7 +12,6 @@ export interface LockWowAnimationProps {
   onClose?: () => void;
 }
 
-const LOCK_DURATION = 15;
 const SECRET = [4, 2, 0, 7];
 
 const PARTICLES = Array.from({ length: 32 }, (_, i) => {

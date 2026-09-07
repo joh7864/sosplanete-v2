@@ -74,6 +74,34 @@ export function AgentProfileModal({
   const [saving, setSaving] = useState(false);
   const [genderOpen, setGenderOpen] = useState(false);
   
+  // Mobile swipe & pagination states
+  const [mobileSlide, setMobileSlide] = useState<'profile' | 'stats'>('profile');
+  const [hoveredDot, setHoveredDot] = useState<'profile' | 'stats' | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = (e.changedTouches?.[0]?.clientX ?? 0) - touchStartX.current;
+    const deltaY = (e.changedTouches?.[0]?.clientY ?? 0) - touchStartY.current;
+
+    // Détection d'un swipe horizontal franc (seuil 40px, angle horizontal prédominant)
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      if (deltaX < 0) {
+        setMobileSlide('stats');
+      } else {
+        setMobileSlide('profile');
+      }
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -211,7 +239,11 @@ export function AgentProfileModal({
       >
         <button className="agent-profile-close" onClick={onClose}><X size={20} /></button>
 
-        <div className="agent-profile-container">
+        <div 
+          className={`agent-profile-container slide-${mobileSlide}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
           {/* Section Identité & Vitalité */}
           <div className="agent-profile-sidebar">
             <div className="agent-profile-identity-header">
@@ -504,6 +536,14 @@ export function AgentProfileModal({
 
           {/* Section Statistiques, Missions et Défis */}
           <div className="agent-profile-content">
+            {/* Header mobile rappelant l'agent et laissant respirer le bouton X */}
+            <div className="profile-stats-mobile-header">
+              <span className="profile-stats-title">Statistiques d'Impact</span>
+              <span className="profile-stats-subtitle">
+                {profileData.profile.pseudo} • {profileData.profile.teamName || 'Équipe EVOE'}
+              </span>
+            </div>
+
             {/* Hero Card : Énergie IT Cumulée (Total Carrière) */}
             <div className="profile-it-hero-card">
               <div className="profile-it-hero-left">
@@ -694,6 +734,66 @@ export function AgentProfileModal({
               )}
             </div>
           </div>
+        </div>
+
+        {/* Navigation Mobile par Points avec Tooltip Premium */}
+        <div className="agent-profile-mobile-dots">
+          {hoveredDot && (
+            <div 
+              className="agent-profile-dot-tooltip"
+              style={{
+                borderColor: teamColor,
+                boxShadow: `0 0 16px ${teamColor}66, 0 8px 24px rgba(0, 0, 0, 0.9)`
+              }}
+            >
+              <span className="dot-tooltip-icon">
+                {hoveredDot === 'profile' ? '👤' : '📊'}
+              </span>
+              <span className="dot-tooltip-text">
+                {hoveredDot === 'profile' ? "Profil de l'Agent" : "Statistiques & Missions"}
+              </span>
+              <div 
+                className="dot-tooltip-arrow" 
+                style={{ borderTopColor: teamColor }} 
+              />
+            </div>
+          )}
+
+          <button
+            type="button"
+            className={`agent-profile-dot ${mobileSlide === 'profile' ? 'active' : ''}`}
+            onClick={() => setMobileSlide('profile')}
+            onMouseEnter={() => setHoveredDot('profile')}
+            onMouseLeave={() => setHoveredDot(null)}
+            onTouchStart={() => setHoveredDot('profile')}
+            onTouchEnd={() => {
+              setMobileSlide('profile');
+              setTimeout(() => setHoveredDot(null), 1200);
+            }}
+            style={{
+              backgroundColor: mobileSlide === 'profile' ? teamColor : 'rgba(255, 255, 255, 0.3)',
+              boxShadow: mobileSlide === 'profile' ? `0 0 10px ${teamColor}, 0 0 4px #fff` : 'none'
+            }}
+            aria-label="Profil de l'Agent"
+          />
+
+          <button
+            type="button"
+            className={`agent-profile-dot ${mobileSlide === 'stats' ? 'active' : ''}`}
+            onClick={() => setMobileSlide('stats')}
+            onMouseEnter={() => setHoveredDot('stats')}
+            onMouseLeave={() => setHoveredDot(null)}
+            onTouchStart={() => setHoveredDot('stats')}
+            onTouchEnd={() => {
+              setMobileSlide('stats');
+              setTimeout(() => setHoveredDot(null), 1200);
+            }}
+            style={{
+              backgroundColor: mobileSlide === 'stats' ? teamColor : 'rgba(255, 255, 255, 0.3)',
+              boxShadow: mobileSlide === 'stats' ? `0 0 10px ${teamColor}, 0 0 4px #fff` : 'none'
+            }}
+            aria-label="Statistiques & Missions"
+          />
         </div>
       </div>
     </div>

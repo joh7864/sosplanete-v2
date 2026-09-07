@@ -5,7 +5,6 @@ import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCc
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
 import LockVideoWowAnimation from './LockVideoWowAnimation';
-import type { LockWowAnimationHandles } from './LockWowAnimation';
 
 // Flag permettant de basculer entre la version Vidéo Cryptex et la version 3D CSS
 const USE_VIDEO_ANIMATION = false;
@@ -56,7 +55,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const [isInteracting, setIsInteracting] = useState(false);
   const [isCryptexActive, setIsCryptexActive] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
-  const lockAnimRef = useRef<LockWowAnimationHandles>(null);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
