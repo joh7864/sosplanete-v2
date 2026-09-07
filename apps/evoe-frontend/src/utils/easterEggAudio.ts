@@ -197,8 +197,8 @@ export async function playCryptexSound(): Promise<void> {
 }
 
 /**
- * Joue un clic métallique court pour chaque roue du Cryptex qui se verrouille.
- * Son synthétisé via Web Audio API.
+ * Joue le son réaliste d'un cran mécanique de Cryptex qui s'enclenche ("clic-clac").
+ * Synthèse Web Audio API à double impact métallique (cliquet + encoche laiton).
  */
 export function playWheelClickSound(): void {
   if (typeof window === 'undefined') return;
@@ -207,17 +207,58 @@ export function playWheelClickSound(): void {
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
     const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(2200, now);
-    osc.frequency.exponentialRampToValueAtTime(350, now + 0.045);
-    gain.gain.setValueAtTime(0.28, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.07);
+
+    // Fonction interne pour générer un impact mécanique réaliste (bruit filtré + résonance métallique)
+    const playMechanicalImpact = (time: number, centerFreq: number, q: number, bodyFreq: number, duration: number, vol: number) => {
+      // 1. Choc métallique (bruit blanc sculpté avec atténuation exponentielle)
+      const sampleCount = Math.floor(ctx.sampleRate * duration);
+      const buffer = ctx.createBuffer(1, sampleCount, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < sampleCount; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleCount * 0.22));
+      }
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = buffer;
+
+      const bandpass = ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.setValueAtTime(centerFreq, time);
+      bandpass.Q.setValueAtTime(q, time);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(vol, time);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+      noiseSource.connect(bandpass);
+      bandpass.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+
+      noiseSource.start(time);
+      noiseSource.stop(time + duration);
+
+      // 2. Choc sourd du corps en laiton (onde triangulaire basse et courte)
+      const bodyOsc = ctx.createOscillator();
+      const bodyGain = ctx.createGain();
+      bodyOsc.type = 'triangle';
+      bodyOsc.frequency.setValueAtTime(bodyFreq, time);
+      bodyOsc.frequency.exponentialRampToValueAtTime(bodyFreq * 0.45, time + duration * 0.9);
+
+      bodyGain.gain.setValueAtTime(vol * 0.75, time);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, time + duration * 1.2);
+
+      bodyOsc.connect(bodyGain);
+      bodyGain.connect(ctx.destination);
+
+      bodyOsc.start(time);
+      bodyOsc.stop(time + duration * 1.3);
+    };
+
+    // 1er temps ("CLIC") : Le ressort propulse le cliquet contre la roue (hautes fréquences métalliques)
+    playMechanicalImpact(now, 3800, 5.0, 720, 0.022, 0.5);
+
+    // 2ème temps ("CLAC") à +28ms : Le cran s'enclenche dans la gorge en laiton (impact plus lourd et sourd)
+    playMechanicalImpact(now + 0.028, 2100, 3.5, 240, 0.042, 0.65);
+
   } catch (err) {
     console.warn('[EasterEgg Audio] Wheel click error:', err);
   }

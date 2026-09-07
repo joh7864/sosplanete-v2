@@ -57,15 +57,19 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
     }
 
     const t0 = setTimeout(() => setPhase(1), 300);
-    const t1 = setTimeout(() => setPhase(2), 1100);
+    
+    // Début de la rotation des roues : lancement immédiat du son mécanique synchronisé
+    const t1 = setTimeout(() => {
+      setPhase(2);
+      playCryptexSound();
+    }, 1100);
 
-    // Séquence d'ouverture / verrouillage : son du cryptex pendant la séquence
+    // Phase 3: amorce du verrouillage successif
     const t2 = setTimeout(() => {
       setPhase(3);
-      playCryptexSound();
-    }, 3200);
+    }, 3000);
 
-    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7 avec clic métallique
+    // Verrouillage successif des 4 roues : 4 puis 2 puis 0 puis 7 avec le son de cran mécanique ("clic-clac")
     const lockDelays = [0, 850, 1700, 2550];
     const lockTimers = lockDelays.map((delay, idx) =>
       setTimeout(() => {
@@ -76,13 +80,13 @@ const LockWowAnimation = forwardRef<LockWowAnimationHandles, LockWowAnimationPro
           return next;
         });
         playWheelClickSound();
-      }, 3200 + delay + 400)
+      }, 3000 + delay + 400)
     );
 
-    // Phase 4: ouverture des embouts Da Vinci et libération du parchemin doré
-    const t3 = setTimeout(() => setPhase(4), 3200 + 2550 + 800);
+    // Phase 4: ouverture mécanique des embouts Da Vinci et libération du cœur doré
+    const t3 = setTimeout(() => setPhase(4), 3000 + 2550 + 850);
     // Phase 5: célébration "DÉBLOQUÉ !"
-    const t4 = setTimeout(() => setPhase(5), 3200 + 2550 + 1750);
+    const t4 = setTimeout(() => setPhase(5), 3000 + 2550 + 1750);
     // Fermeture automatique
     const tEnd = setTimeout(() => {
       stopCryptexSound();
