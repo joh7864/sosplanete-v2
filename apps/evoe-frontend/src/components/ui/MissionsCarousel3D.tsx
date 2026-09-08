@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MissionCard3D } from './MissionCard3D';
+import type { EcoThemeId } from './TemporalEchoModal';
 
 interface MissionsCarousel3DProps {
   missions: any[];
@@ -11,6 +12,8 @@ interface MissionsCarousel3DProps {
   selectedSector: string;
   isSearchMode?: boolean;
   onClearSearch?: () => void;
+  onOpenVision2050?: (theme?: EcoThemeId) => void;
+  isVision2050Unlocked?: boolean;
 }
 
 export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
@@ -21,7 +24,9 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
   onOpenMissionsWeek,
   selectedSector,
   isSearchMode = false,
-  onClearSearch
+  onClearSearch,
+  onOpenVision2050,
+  isVision2050Unlocked = false,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -247,6 +252,8 @@ export const MissionsCarousel3D: React.FC<MissionsCarousel3DProps> = ({
                   onImpulse={onImpulse}
                   onCancelConfirm={onCancelConfirm}
                   onOpenMissionsWeek={onOpenMissionsWeek}
+                  onOpenVision2050={onOpenVision2050}
+                  isVision2050Unlocked={isVision2050Unlocked}
                   onClick={() => { if (!isActive) setActiveIndex(index); }}
                 />
               </motion.div>

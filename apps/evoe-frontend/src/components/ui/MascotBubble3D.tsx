@@ -21,7 +21,12 @@ interface MascotBubble3DProps {
   isDiscovered?: boolean;
   rewardPointsIT?: number;
   mascotImageUrl?: string;
-    mascotDurationSeconds?: number;
+  mascotDurationSeconds?: number;
+  multiEggProgress?: {
+    total: number;
+    solved: number;
+    currentIndex: number;
+  };
   onVerifyAnswer?: (answer: string) => Promise<{ success: boolean; message?: string }>;
   onSuccess?: () => void;
   onOpenCommLink?: () => void;
@@ -40,6 +45,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   rewardPointsIT = 60,
   mascotImageUrl = '/images/robot-mascot.png',
   mascotDurationSeconds = 45,
+  multiEggProgress,
   onVerifyAnswer,
   onSuccess,
   onOpenCommLink,
@@ -326,18 +332,37 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     marginBottom: '12px',
                   }}
                 >
-                  <h4
-                    style={{
-                      margin: 0,
-                      fontSize: '1.05rem',
-                      fontWeight: 900,
-                      color: '#0f172a',
-                      letterSpacing: '-0.2px',
-                      flex: 1,
-                    }}
-                  >
-                    {title}
-                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '1.05rem',
+                        fontWeight: 900,
+                        color: '#0f172a',
+                        letterSpacing: '-0.2px',
+                      }}
+                    >
+                      {title}
+                    </h4>
+                    {multiEggProgress && multiEggProgress.total > 1 && (
+                      <span
+                        style={{
+                          background: 'rgba(59, 130, 246, 0.12)',
+                          color: '#2563eb',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(59, 130, 246, 0.25)',
+                          whiteSpace: 'nowrap',
+                          letterSpacing: '0.3px',
+                        }}
+                        title={`Anomalie temporelle ${multiEggProgress.currentIndex} sur ${multiEggProgress.total} pour cette période`}
+                      >
+                        ⚡ Anomalie {multiEggProgress.currentIndex} / {multiEggProgress.total}
+                      </span>
+                    )}
+                  </div>
                   <span
                     style={{
                       background: '#fef3c7',

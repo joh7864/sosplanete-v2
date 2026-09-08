@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, Droplet, Trash2, Cloud, CheckCircle2, RotateCcw } from 'lucide-react';
 import { MissionCard3D } from './MissionCard3D';
+import type { EcoThemeId } from './TemporalEchoModal';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -11,6 +12,8 @@ interface MissionsWeekModalProps {
   missions: any[];
   childPseudo?: string;
   onCancelConfirm: (actionDoneId: number, label: string) => void;
+  onOpenVision2050?: (theme?: EcoThemeId) => void;
+  isVision2050Unlocked?: boolean;
 }
 
 export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
@@ -18,7 +21,9 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
   onClose,
   missions,
   childPseudo,
-  onCancelConfirm
+  onCancelConfirm,
+  onOpenVision2050,
+  isVision2050Unlocked = false,
 }) => {
   const [selectedMission, setSelectedMission] = useState<any>(null);
   if (!isOpen) return null;
@@ -466,6 +471,8 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
                       onCancelConfirm(id, label);
                       setSelectedMission(null);
                     }}
+                    onOpenVision2050={onOpenVision2050}
+                    isVision2050Unlocked={isVision2050Unlocked}
                   />
                 </div>
               </motion.div>

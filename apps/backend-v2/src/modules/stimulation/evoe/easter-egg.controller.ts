@@ -125,6 +125,44 @@ export class EasterEggController {
     );
   }
 
+  @Get('chrono-egg/archive')
+  @ApiOperation({
+    summary: 'Récupère la frise des périodes et glyphes pour le Chrono-Egg',
+  })
+  async getChronoEggArchive(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+    return this.easterEggService.getChronoEggArchive(child.id);
+  }
+
+  @Post('chrono-egg/reopen-period')
+  @ApiOperation({
+    summary: 'Relance une énigme d’une période passée pour rattrapage temporel',
+  })
+  async reopenPeriodEgg(
+    @Headers('authorization') auth: string,
+    @Body('periodId') periodId: number,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+    return this.easterEggService.reopenPeriodEgg(child.id, +periodId);
+  }
+
+  @Post('meta-enigma/submit-code')
+  @ApiOperation({
+    summary: 'Valide le mot de passe final dans le Terminal Temporel',
+  })
+  async submitMetaEnigmaCode(
+    @Headers('authorization') auth: string,
+    @Body('code') code: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+    return this.easterEggService.submitMetaEnigmaCode(child.id, code);
+  }
+
   // --- Endpoints d'Administration ---
 
   @Get('admin/catalog')
@@ -196,8 +234,14 @@ export class EasterEggController {
   @ApiOperation({
     summary: 'Suivi AM en direct de l’énigme active (avancement par équipe et journal)',
   })
-  async getAdminTracking(@Param('instanceYearId') instanceYearId: string) {
-    return this.easterEggService.getAdminTracking(+instanceYearId);
+  async getAdminTracking(
+    @Param('instanceYearId') instanceYearId: string,
+    @Query('eggId') eggId?: string,
+  ) {
+    return this.easterEggService.getAdminTracking(
+      +instanceYearId,
+      eggId ? +eggId : undefined,
+    );
   }
 
   @Put('admin/settings/:instanceYearId')
@@ -228,19 +272,25 @@ export class EasterEggController {
 
   @Post('admin/close-instance')
   @ApiOperation({ summary: 'Clôture manuellement l’Easter Egg actif pour l’instance' })
-  async closeInstanceEgg(@Body('instanceYearId') instanceYearId: number) {
+  async closeInstanceEgg(
+    @Body('instanceYearId') instanceYearId: number,
+    @Body('easterEggId') easterEggId?: number,
+  ) {
     if (!instanceYearId) {
       throw new BadRequestException('instanceYearId est requis');
     }
-    return this.easterEggService.closeInstanceEgg(+instanceYearId);
+    return this.easterEggService.closeInstanceEgg(+instanceYearId, easterEggId ? +easterEggId : undefined);
   }
 
   @Post('admin/force-hint')
   @ApiOperation({ summary: 'Force l’affichage immédiat du 2ème indice pour tous les joueurs' })
-  async forceInstanceHint(@Body('instanceYearId') instanceYearId: number) {
+  async forceInstanceHint(
+    @Body('instanceYearId') instanceYearId: number,
+    @Body('easterEggId') easterEggId?: number,
+  ) {
     if (!instanceYearId) {
       throw new BadRequestException('instanceYearId est requis');
     }
-    return this.easterEggService.forceInstanceHint(+instanceYearId);
+    return this.easterEggService.forceInstanceHint(+instanceYearId, easterEggId ? +easterEggId : undefined);
   }
 }

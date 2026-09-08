@@ -20,6 +20,7 @@ export interface EasterEggCatalogItem {
   triggerConfig: any;
   complexity: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
   rewardPointsIT: number;
+  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE';
   orderIndex: number;
   isActive: boolean;
   createdAt: string;
@@ -31,6 +32,45 @@ export interface EasterEggSettings {
   easterEggFrequency: number;
   easterEggRequiredPlayers: number;
   easterEggMaxWinningTeams: number;
+  metaEnigmaSecretWord?: string;
+  metaEnigmaPeriodGlyphs?: any;
+}
+
+export interface SolvedEggSummary {
+  easterEggId: number;
+  title: string;
+  rank: number;
+  awardedPointsIT: number;
+  completedAt: string;
+}
+
+export interface ContributingPlayer {
+  childId: number;
+  pseudo: string;
+  avatar: string | null;
+  gender?: string | null;
+}
+
+export interface TeamEggProgress {
+  eggId: number;
+  title: string;
+  code: string;
+  rewardPointsIT: number;
+  isCompleted: boolean;
+  playersCount: number;
+  requiredPlayers: number;
+  players: Array<{
+    childId: number;
+    pseudo: string;
+    avatar: string | null;
+    gender?: string | null;
+    discoveredAt: string;
+  }>;
+  reward?: {
+    rank: number;
+    awardedPointsIT: number;
+    completedAt: string;
+  } | null;
 }
 
 export interface TeamTrackingItem {
@@ -41,27 +81,67 @@ export interface TeamTrackingItem {
   totalPlayers: number;
   discoveredCount: number;
   requiredPlayers: number;
+  activeEggsTotal?: number;
+  solvedEggsCount?: number;
+  solvedEggs?: SolvedEggSummary[];
+  eggsProgress?: TeamEggProgress[];
+  totalAwardedPointsIT?: number;
   isRewarded: boolean;
   rewardRank: number | null;
   awardedPointsIT: number | null;
   completedAt: string | null;
+  contributingPlayers?: ContributingPlayer[];
+}
+
+export interface EggDiscoverer {
+  childId: number;
+  pseudo: string;
+  avatar: string | null;
+  gender?: string | null;
+  teamId?: number;
+  teamName: string;
+  teamColor: string;
+  teamIcon?: string | null;
+  discoveredAt: string;
+}
+
+export interface EggTeamCompleted {
+  teamId: number;
+  rank: number;
+  awardedPointsIT: number;
+  completedAt: string;
 }
 
 export interface DiscoveryLogItem {
   childId: number;
   pseudo: string;
   avatar: string | null;
+  gender?: string | null;
   teamName: string;
   teamColor: string;
   teamIcon?: string | null;
   discoveredAt: string;
   resolutionTimeSeconds: number | null;
-  answerSubmitted: string | null;
+  answerSubmitted?: string | null;
+  easterEggId?: number;
+  easterEggTitle?: string;
+  easterEggCode?: string;
+  rewardPointsIT?: number;
 }
 
 export interface AdminTrackingResponse {
   hasActiveEgg: boolean;
   currentEgg?: EasterEggCatalogItem;
+  periodActiveEggs?: Array<{
+    instanceId: number;
+    eggId: number;
+    code: string;
+    title: string;
+    rewardPointsIT: number;
+    forceHint: boolean;
+    discoverers?: EggDiscoverer[];
+    teamsCompleted?: EggTeamCompleted[];
+  }>;
   activeInstance?: {
     id: number;
     easterEggId: number;
@@ -159,8 +239,14 @@ export async function uploadEnigmaImage(file: File): Promise<{ imageUrl: string;
   return resp.json();
 }
 
-export async function fetchAdminTracking(instanceYearId: number): Promise<AdminTrackingResponse> {
-  const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/tracking/${instanceYearId}`, {
+export async function fetchAdminTracking(
+  instanceYearId: number,
+  eggId?: number,
+): Promise<AdminTrackingResponse> {
+  const url = eggId
+    ? `${getApiUrl()}/evoe/easter-eggs/admin/tracking/${instanceYearId}?eggId=${eggId}`
+    : `${getApiUrl()}/evoe/easter-eggs/admin/tracking/${instanceYearId}`;
+  const resp = await fetch(url, {
     headers: getHeaders(),
   });
   if (!resp.ok) throw new Error(`Erreur récupération tracking (${resp.status})`);
@@ -194,21 +280,21 @@ export async function openInstanceEgg(
   return resp.json();
 }
 
-export async function closeInstanceEgg(instanceYearId: number): Promise<any> {
+export async function closeInstanceEgg(instanceYearId: number, easterEggId?: number): Promise<any> {
   const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/close-instance`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ instanceYearId }),
+    body: JSON.stringify({ instanceYearId, easterEggId }),
   });
   if (!resp.ok) throw new Error(`Erreur clôture manuelle (${resp.status})`);
   return resp.json();
 }
 
-export async function forceInstanceHint(instanceYearId: number): Promise<any> {
+export async function forceInstanceHint(instanceYearId: number, easterEggId?: number): Promise<any> {
   const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/force-hint`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ instanceYearId }),
+    body: JSON.stringify({ instanceYearId, easterEggId }),
   });
   if (!resp.ok) throw new Error(`Erreur forçage indice (${resp.status})`);
   return resp.json();
@@ -233,6 +319,7 @@ export interface DetectiveLeaderboard {
     childId: number;
     pseudo: string;
     avatar: string | null;
+    gender?: string | null;
     teamId: number;
     teamName: string;
     teamColor: string | null;

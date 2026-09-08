@@ -115,6 +115,8 @@ model InstanceYear {
   easterEggFrequency      Int     @default(2)
   easterEggRequiredPlayers Int    @default(2)
   easterEggMaxWinningTeams Int    @default(0)
+  metaEnigmaSecretWord     String? @default("CHRONOS")
+  metaEnigmaPeriodGlyphs   Json?
 
   @@unique([instanceId, schoolYear])
   @@unique([hostUrl, schoolYear])
@@ -134,6 +136,9 @@ model Team {
   challengesSent     EvoeChallenge[]     @relation("ChallengerTeam")
   challengesReceived EvoeChallenge[]     @relation("TargetTeam")
   easterEggRewards   EvoeEasterEggTeamReward[]
+  hasChronoEgg       Boolean             @default(false)
+  hasRosettaStone    Boolean             @default(false)
+  isMetaEnigmaUnlocked Boolean           @default(false)
 }
 
 model Group {
@@ -238,6 +243,8 @@ model GameConfig {
   easterEggFrequency          Int       @default(2)
   easterEggRequiredPlayers    Int       @default(2)
   easterEggMaxWinningTeams    Int       @default(0)
+  metaEnigmaSecretWord        String?   @default("CHRONOS")
+  metaEnigmaPeriodGlyphs      Json?
   instance                    Instance  @relation(fields: [instanceId], references: [id])
 
   @@unique([instanceId, schoolYear])
@@ -404,6 +411,7 @@ model EvoeEasterEgg {
   triggerConfig         Json?
   complexity            EasterEggDifficulty  @default(MEDIUM)
   rewardPointsIT        Int                  @default(50)
+  specialReward         String?              @default("NONE")
   orderIndex            Int                  @default(0)
   isActive              Boolean              @default(true)
   createdAt             DateTime             @default(now())

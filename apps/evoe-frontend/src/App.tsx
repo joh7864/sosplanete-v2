@@ -27,7 +27,11 @@ import { Dashboard2026Loader } from './components/ui/Dashboard2026Loader';
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
 import { MascotBubble3D } from './components/ui/MascotBubble3D';
-import { EasterEggCelebrationOverlay } from './components/ui/EasterEggCelebrationOverlay';
+import { EasterEggVictoryDispatcher } from './components/ui/EasterEggVictoryDispatcher';
+import { ChronoEggModal, type ChronoPeriodItem } from './components/ui/ChronoEggModal';
+import { RosettaStoneModal } from './components/ui/RosettaStoneModal';
+import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
+import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { lazy, Suspense } from 'react';
@@ -146,10 +150,53 @@ function MainApp() {
     interactWithEgg,
     fetchActiveEgg,
     validateTrigger,
+    fetchChronoEggArchive,
+    reopenPeriodEgg,
+    submitMetaEnigmaCode,
   } = useEasterEgg();
   const [showMascotBubble, setShowMascotBubble] = useState(false);
   const [showEggCelebration, setShowEggCelebration] = useState(false);
   const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
+
+  // Méta-Énigme 2070 & Modales Spéciales
+  const [showChronoEggModal, setShowChronoEggModal] = useState(false);
+  const [showRosettaStoneModal, setShowRosettaStoneModal] = useState(false);
+  const [showTerminalModal, setShowTerminalModal] = useState(false);
+  const [showTemporalEchoModal, setShowTemporalEchoModal] = useState(false);
+  const [selectedEchoTheme, setSelectedEchoTheme] = useState<EcoThemeId>('ENERGY');
+  const [chronoPeriods, setChronoPeriods] = useState<ChronoPeriodItem[]>([]);
+  const [chronoLoading, setChronoLoading] = useState(false);
+
+  const handleOpenChronoEgg = async () => {
+    setShowChronoEggModal(true);
+    setChronoLoading(true);
+    try {
+      const res = await fetchChronoEggArchive();
+      if (res && res.periods) {
+        setChronoPeriods(res.periods);
+      }
+    } finally {
+      setChronoLoading(false);
+    }
+  };
+
+  const handleReplayPeriod = async (periodId: number) => {
+    try {
+      const res = await reopenPeriodEgg(periodId);
+      if (res.success) {
+        setShowChronoEggModal(false);
+        await fetchActiveEgg();
+        setShowMascotBubble(true);
+      }
+    } catch (err: any) {
+      console.error('Erreur rattrapage temporel:', err);
+    }
+  };
+
+  const handleOpenVision2050 = (theme?: EcoThemeId) => {
+    if (theme) setSelectedEchoTheme(theme);
+    setShowTemporalEchoModal(true);
+  };
 
   const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
     const result = await validateTrigger(triggerType as any, metadata);
@@ -855,18 +902,19 @@ function MainApp() {
           <div 
             id="hud-agent-profile"
             className="logo"
-            onClick={() => childInfos && setSelectedProfileId(childInfos.id)}
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '10px', 
-              cursor: 'pointer', 
               pointerEvents: 'auto' 
             }}
-            title="Ouvrir la fiche profil de l'Agent"
           >
             {childInfos && (
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div 
+                style={{ position: 'relative', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                onClick={() => setSelectedProfileId(childInfos.id)}
+                title="Ouvrir la fiche profil de l'Agent"
+              >
                 <img 
                   src={getAvatarUrl()} 
                   alt="" 
@@ -932,15 +980,56 @@ function MainApp() {
                     }}
                   />
                 )}
+
+                {/* Bouton Accès Chrono-Egg si débloqué */}
+                {childInfos && activeEggData?.teamProgress?.hasChronoEgg && (
+                  <button
+                    type="button"
+                    onClick={handleOpenChronoEgg}
+                    title="Chrono-Egg 2070 (Archives Temporelles)"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25))',
+                      border: '1px solid rgba(168, 85, 247, 0.5)',
+                      borderRadius: '9999px',
+                      color: '#c084fc',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                      boxShadow: '0 0 12px rgba(168, 85, 247, 0.35)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 0 18px rgba(168, 85, 247, 0.6)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.35)';
+                    }}
+                  >
+                    <Sparkles size={12} className="animate-spin" style={{ animationDuration: '6s' }} />
+                    <span>CHRONO-EGG</span>
+                  </button>
+                )}
               </div>
               {childInfos && (
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#00ffcc', 
-                  fontWeight: 'bold', 
-                  textShadow: '0 0 5px rgba(0,255,204,0.3)', 
-                  whiteSpace: 'nowrap' 
-                }}>
+                <span 
+                  onClick={() => setSelectedProfileId(childInfos.id)}
+                  title="Ouvrir la fiche profil de l'Agent"
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    color: '#00ffcc', 
+                    fontWeight: 'bold', 
+                    textShadow: '0 0 5px rgba(0,255,204,0.3)', 
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer'
+                  }}
+                >
                   Agent Temporel {childInfos.pseudo}
                 </span>
               )}
@@ -1460,6 +1549,8 @@ function MainApp() {
                     onImpulse={(id) => handleImpulseMission(id)}
                     onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({actionDoneId, label})}
                     onOpenMissionsWeek={() => setShowMissionsWeekModal(true)}
+                    onOpenVision2050={handleOpenVision2050}
+                    isVision2050Unlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
                   />
                 ) : codexTab === 'missions' ? (
                   <MissionsCarousel3D
@@ -1469,6 +1560,8 @@ function MainApp() {
                     onImpulse={(id) => handleImpulseMission(id)}
                     onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({actionDoneId, label})}
                     onOpenMissionsWeek={() => setShowMissionsWeekModal(true)}
+                    onOpenVision2050={handleOpenVision2050}
+                    isVision2050Unlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
                   />
                 ) : (
                   <ChallengesCarousel3D
@@ -2303,6 +2396,8 @@ function MainApp() {
         missions={missions || []}
         childPseudo={childInfos?.pseudo}
         onCancelConfirm={(actionDoneId, label) => setCancelMissionConfirm({ actionDoneId, label })}
+        onOpenVision2050={handleOpenVision2050}
+        isVision2050Unlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
       />
 
       {/* Modal du Profil Agent */}
@@ -2340,6 +2435,7 @@ function MainApp() {
           isDiscovered={!!activeEggData.playerProgress?.isDiscovered}
           rewardPointsIT={activeEggData.easterEgg.rewardPointsIT}
           mascotDurationSeconds={activeEggData.easterEgg.mascotDurationSeconds || 45}
+          multiEggProgress={activeEggData.multiEggProgress}
           onVerifyAnswer={verifyEasterEggAnswer}
           onSuccess={async () => {
             const freshEgg = await fetchActiveEgg();
@@ -2358,11 +2454,13 @@ function MainApp() {
         />
       )}
 
-      {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT + SFX + PARTICULES) */}
-      <EasterEggCelebrationOverlay
+      {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT DÉDIÉ + SFX + PARTICULES) */}
+      <EasterEggVictoryDispatcher
         isOpen={showEggCelebration}
         onClose={() => setShowEggCelebration(false)}
-        eggTitle={activeEggData?.easterEgg?.title || 'Cadenas Crypté 2070'}
+        eggCode={activeEggData?.easterEgg?.code}
+        triggerType={activeEggData?.easterEgg?.triggerType}
+        eggTitle={activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
         pointsIT={activeEggData?.easterEgg?.rewardPointsIT || 60}
         isTeamRewarded={!!activeEggData?.teamProgress?.isTeamRewarded}
         onOpenCommLink={() => {
@@ -2371,6 +2469,50 @@ function MainApp() {
           setChatActiveTab('team');
           setChatOpen(true);
         }}
+      />
+
+      {/* MODALE CHRONO-EGG (ARCHIVES TEMPORELLES DES PÉRIODES) */}
+      <ChronoEggModal
+        isOpen={showChronoEggModal}
+        onClose={() => setShowChronoEggModal(false)}
+        hasRosettaStone={!!activeEggData?.teamProgress?.hasRosettaStone}
+        isMetaEnigmaUnlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
+        periods={chronoPeriods}
+        loading={chronoLoading}
+        onReplayPeriod={handleReplayPeriod}
+        onOpenRosetta={() => setShowRosettaStoneModal(true)}
+        onOpenTerminal={() => setShowTerminalModal(true)}
+      />
+
+      {/* MODALE PIERRE DE ROSETTE 2070 (TABLE DE DÉCRYPTAGE) */}
+      <RosettaStoneModal
+        isOpen={showRosettaStoneModal}
+        onClose={() => setShowRosettaStoneModal(false)}
+        onOpenTerminal={() => {
+          setShowRosettaStoneModal(false);
+          setShowTerminalModal(true);
+        }}
+      />
+
+      {/* MODALE TERMINAL TEMPOREL (SAISIE DU MOT DE PASSE MÉTA-ÉNIGME) */}
+      <TemporalTerminalModal
+        isOpen={showTerminalModal}
+        onClose={() => setShowTerminalModal(false)}
+        isUnlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
+        onSubmitCode={submitMetaEnigmaCode}
+        onSuccessUnlock={() => {
+          fetchActiveEgg();
+          setShowTerminalModal(false);
+          setSelectedEchoTheme('ENERGY');
+          setShowTemporalEchoModal(true);
+        }}
+      />
+
+      {/* MODALE VISION 2050 : AVANT / APRÈS (ÉCHOS TEMPORELS RÉALISTES) */}
+      <TemporalEchoModal
+        isOpen={showTemporalEchoModal}
+        onClose={() => setShowTemporalEchoModal(false)}
+        initialTheme={selectedEchoTheme}
       />
 
       {/* Terminal de discussion instantanée (Chat) */}

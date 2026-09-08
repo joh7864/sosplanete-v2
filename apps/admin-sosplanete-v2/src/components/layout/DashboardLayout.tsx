@@ -171,6 +171,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           setUserAvatar(data.avatar || '');
           setAuthData('user_name', data.name || '');
           setAuthData('user_role', data.role);
+        } else if (resp.status === 401) {
+          clearAuthData();
+          window.location.href = '/login';
         }
       } catch (e) {
         console.error('Failed to fetch profile', e);

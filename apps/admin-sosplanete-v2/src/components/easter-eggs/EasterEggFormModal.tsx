@@ -111,6 +111,7 @@ export function EasterEggFormModal({
   const [code, setCode] = useState('');
   const [complexity, setComplexity] = useState<'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY'>('MEDIUM');
   const [rewardPointsIT, setRewardPointsIT] = useState(60);
+  const [specialReward, setSpecialReward] = useState<'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE'>('NONE');
   const [crypticMessage, setCrypticMessage] = useState('');
   const [explicitHint, setExplicitHint] = useState('');
   
@@ -158,6 +159,7 @@ export function EasterEggFormModal({
       setCode(enigmaToEdit.code || '');
       setComplexity(enigmaToEdit.complexity || 'MEDIUM');
       setRewardPointsIT(enigmaToEdit.rewardPointsIT || 50);
+      setSpecialReward((enigmaToEdit.specialReward as any) || 'NONE');
       setCrypticMessage(enigmaToEdit.crypticMessage || '');
       setExplicitHint(enigmaToEdit.explicitHint || '');
       
@@ -285,6 +287,7 @@ export function EasterEggFormModal({
       code: code.trim().toUpperCase(),
       complexity,
       rewardPointsIT,
+      specialReward: specialReward as any,
       prerequisiteType,
       prerequisiteConfig: configPayload,
       crypticMessage: crypticMessage.trim(),
@@ -428,6 +431,60 @@ export function EasterEggFormModal({
                     PTS IT
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Récompense Spéciale Méta-Jeu 2070 */}
+            <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-black uppercase tracking-wider text-amber-900">
+                  ⚡ Récompense Spéciale Méta-Jeu 2070
+                </label>
+                <span className="text-[11px] font-bold text-amber-700/80">
+                  Débloque un artefact clé de la méta-énigme
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSpecialReward('NONE')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    specialReward === 'NONE'
+                      ? 'border-amber-500 bg-white shadow-xs text-amber-950 ring-2 ring-amber-500/20'
+                      : 'border-amber-200/60 bg-white/60 text-slate-600 hover:bg-white'
+                  }`}
+                >
+                  <div className="text-xs font-black mb-0.5">Aucun artefact</div>
+                  <div className="text-[11px] text-slate-500">Points IT standards uniquement</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpecialReward('CHRONO_EGG')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    specialReward === 'CHRONO_EGG'
+                      ? 'border-amber-500 bg-amber-100/70 shadow-xs text-amber-950 ring-2 ring-amber-500/30'
+                      : 'border-amber-200/60 bg-white/60 text-slate-600 hover:bg-white'
+                  }`}
+                >
+                  <div className="text-xs font-black text-amber-800 flex items-center gap-1.5 mb-0.5">
+                    <span>⚡</span> Outil Chrono-Egg
+                  </div>
+                  <div className="text-[11px] text-slate-600">Journal d'archive des glyphes temporels</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpecialReward('ROSETTA_STONE')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    specialReward === 'ROSETTA_STONE'
+                      ? 'border-amber-500 bg-amber-100/70 shadow-xs text-amber-950 ring-2 ring-amber-500/30'
+                      : 'border-amber-200/60 bg-white/60 text-slate-600 hover:bg-white'
+                  }`}
+                >
+                  <div className="text-xs font-black text-amber-800 flex items-center gap-1.5 mb-0.5">
+                    <span>📜</span> Pierre de Rosette 2070
+                  </div>
+                  <div className="text-[11px] text-slate-600">Table de décodage des symboles runiques</div>
+                </button>
               </div>
             </div>
 

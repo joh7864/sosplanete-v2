@@ -11,6 +11,8 @@ interface MissionCard3DProps {
   onImpulse: (id: number) => void;
   onCancelConfirm: (actionDoneId: number, label: string) => void;
   onOpenMissionsWeek?: () => void;
+  onOpenVision2050?: (theme: 'ENERGY' | 'WATER' | 'BIODIVERSITY' | 'WASTE' | 'MOBILITY') => void;
+  isVision2050Unlocked?: boolean;
   onClick?: () => void;
   style?: React.CSSProperties;
 }
@@ -22,6 +24,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   onImpulse,
   onCancelConfirm,
   onOpenMissionsWeek,
+  onOpenVision2050,
+  isVision2050Unlocked = false,
   onClick,
   style
 }) => {
@@ -403,6 +407,50 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
               >
                 !
               </button>
+
+              {/* Bouton Vision 2050 (Débloqué via la Méta-Énigme) */}
+              {onOpenVision2050 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const cat = (mission.category || mission.categoryRef?.name || '').toLowerCase();
+                    let theme: 'ENERGY' | 'WATER' | 'BIODIVERSITY' | 'WASTE' | 'MOBILITY' = 'ENERGY';
+                    if (cat.includes('eau') || cat.includes('water')) theme = 'WATER';
+                    else if (cat.includes('déchet') || cat.includes('waste') || cat.includes('plastique')) theme = 'WASTE';
+                    else if (cat.includes('biodiv') || cat.includes('arbre') || cat.includes('forêt') || cat.includes('nature')) theme = 'BIODIVERSITY';
+                    else if (cat.includes('mobilité') || cat.includes('vélo') || cat.includes('transport')) theme = 'MOBILITY';
+                    onOpenVision2050(theme);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  title={
+                    isVision2050Unlocked
+                      ? 'Consulter la Vision 2050 pour cette mission'
+                      : 'Signal crypté (Résolvez la méta-énigme des œufs pour débloquer la Vision 2050)'
+                  }
+                  style={{
+                    width: '42px',
+                    borderRadius: '12px',
+                    background: isVision2050Unlocked
+                      ? 'rgba(16, 185, 129, 0.18)'
+                      : 'rgba(255, 255, 255, 0.05)',
+                    border: isVision2050Unlocked
+                      ? '1.5px solid #10b981'
+                      : '1.5px solid rgba(255, 255, 255, 0.15)',
+                    color: isVision2050Unlocked ? '#34d399' : 'rgba(255, 255, 255, 0.35)',
+                    fontSize: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    boxShadow: isVision2050Unlocked ? '0 0 12px rgba(16, 185, 129, 0.35)' : 'none',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  ⚡
+                </button>
+              )}
 
             <div style={{ flex: 1 }}>
               {isCompleted ? (

@@ -53,6 +53,7 @@ export interface CreateEasterEggDto {
   triggerConfig?: any;
   complexity?: EasterEggDifficulty;
   rewardPointsIT?: number;
+  specialReward?: string;
   orderIndex?: number;
   isActive?: boolean;
 }
@@ -64,6 +65,8 @@ export interface UpdateEasterEggSettingsDto {
   easterEggFrequency?: number;
   easterEggRequiredPlayers?: number;
   easterEggMaxWinningTeams?: number;
+  metaEnigmaSecretWord?: string;
+  metaEnigmaPeriodGlyphs?: any;
 }
 
 const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
@@ -375,6 +378,11 @@ export class EasterEggService implements OnModuleInit {
     cyclePeriodIds: number[];
     periodStart: any;
     periodEnd: any;
+    multiEggProgress?: {
+      total: number;
+      solved: number;
+      currentIndex: number;
+    };
   }> {
     const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
     const cycleStartPeriodIndex = cycleIndex * frequency;
@@ -410,12 +418,18 @@ export class EasterEggService implements OnModuleInit {
     });
 
     if (activeInstances.length > 0) {
+      const validInstances = activeInstances.filter(
+        (inst) => inst.easterEgg && inst.easterEgg.isActive,
+      );
+      const totalCount = Math.max(1, validInstances.length);
+      let solvedCount = 0;
+      let currentEgg: EvoeEasterEgg | null = null;
+      let explicitInstance: any | null = null;
+
       if (childId) {
         // S'il y a plusieurs Easter Eggs dans la période :
         // Dès que le premier est résolu par le joueur, on passe au suivant dans la période !
-        for (const inst of activeInstances) {
-          if (!inst.easterEgg || !inst.easterEgg.isActive) continue;
-
+        for (const inst of validInstances) {
           const hasDiscovered = await this.prisma.evoeEasterEggPlayerProgress.count({
             where: {
               easterEggId: inst.easterEggId,
@@ -424,28 +438,36 @@ export class EasterEggService implements OnModuleInit {
             },
           });
 
-          if (hasDiscovered === 0) {
-            return {
-              currentEgg: inst.easterEgg,
-              explicitInstance: inst,
-              cycleIndex,
-              cyclePeriodIds,
-              periodStart,
-              periodEnd,
-            };
+          if (hasDiscovered > 0) {
+            solvedCount++;
+          } else if (!currentEgg) {
+            currentEgg = inst.easterEgg;
+            explicitInstance = inst;
           }
         }
       }
 
       // Si tous sont résolus par le joueur ou pour la vue admin globale : on prend le dernier
-      const targetInst = activeInstances[activeInstances.length - 1];
+      if (!currentEgg && validInstances.length > 0) {
+        const targetInst = validInstances[validInstances.length - 1];
+        currentEgg = targetInst.easterEgg;
+        explicitInstance = targetInst;
+      }
+
+      const currentIndex = Math.min(totalCount, solvedCount + 1);
+
       return {
-        currentEgg: targetInst.easterEgg,
-        explicitInstance: targetInst,
+        currentEgg,
+        explicitInstance,
         cycleIndex,
         cyclePeriodIds,
         periodStart,
         periodEnd,
+        multiEggProgress: {
+          total: totalCount,
+          solved: solvedCount,
+          currentIndex,
+        },
       };
     }
 
@@ -530,6 +552,11 @@ export class EasterEggService implements OnModuleInit {
       cyclePeriodIds,
       periodStart,
       periodEnd,
+      multiEggProgress: {
+        total: 1,
+        solved: 0,
+        currentIndex: 1,
+      },
     };
   }
 
@@ -569,6 +596,7 @@ export class EasterEggService implements OnModuleInit {
       cyclePeriodIds,
       periodStart,
       periodEnd,
+      multiEggProgress: rawMultiProgress,
     } = await this.resolveEggForInstance(
       instanceYear.id,
       periods,
@@ -734,6 +762,26 @@ export class EasterEggService implements OnModuleInit {
           avatar: d.child.avatar,
           discoveredAt: d.discoveredAt,
         })),
+      },
+      multiEggProgress: {
+        total: rawMultiProgress?.total || 1,
+        solved:
+          rawMultiProgress && rawMultiProgress.total > 1
+            ? rawMultiProgress.solved
+            : playerProgress?.discoveredAt
+              ? 1
+              : 0,
+        currentIndex:
+          rawMultiProgress && rawMultiProgress.total > 1
+            ? rawMultiProgress.currentIndex
+            : 1,
+      },
+      metaEnigma: {
+        hasChronoEgg: !!team.hasChronoEgg,
+        hasRosettaStone: !!team.hasRosettaStone,
+        isMetaEnigmaUnlocked: !!team.isMetaEnigmaUnlocked,
+        secretWordLength: instanceYear.metaEnigmaSecretWord?.length || 7,
+        periodGlyphIndex: currentPeriodIndex,
       },
     };
   }
@@ -1041,11 +1089,36 @@ export class EasterEggService implements OnModuleInit {
     const isQuotaReached = teamDiscoveriesCount >= requiredPlayers;
     const hasTeamReward = !!existingTeamReward || teamRewardEarned;
 
+    // Déblocage éventuel d'un artefact méta-jeu pour l'équipe
+    let unlockedArtifact: string | null = null;
+    if (egg.specialReward === 'CHRONO_EGG' && !team.hasChronoEgg) {
+      await this.prisma.team.update({
+        where: { id: team.id },
+        data: { hasChronoEgg: true },
+      });
+      unlockedArtifact = 'CHRONO_EGG';
+    } else if (egg.specialReward === 'ROSETTA_STONE' && !team.hasRosettaStone) {
+      await this.prisma.team.update({
+        where: { id: team.id },
+        data: { hasRosettaStone: true },
+      });
+      unlockedArtifact = 'ROSETTA_STONE';
+    }
+
+    let customSuccessMsg = isQuotaReached
+      ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
+      : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`;
+
+    if (unlockedArtifact === 'CHRONO_EGG') {
+      customSuccessMsg += " ⚡ L'outil Chrono-Egg a été débloqué dans votre équipement temporel !";
+    } else if (unlockedArtifact === 'ROSETTA_STONE') {
+      customSuccessMsg += " 📜 La Pierre de Rosette 2070 a été découverte et décryptée !";
+    }
+
     return {
       success: true,
-      message: isQuotaReached
-        ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
-        : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`,
+      message: customSuccessMsg,
+      unlockedArtifact,
       pointsIT: hasTeamReward ? egg.rewardPointsIT : 0,
       discoveredByPlayer: true,
       teamDiscoveriesCount,
@@ -1097,6 +1170,7 @@ export class EasterEggService implements OnModuleInit {
             id: true,
             pseudo: true,
             avatar: true,
+            gender: true,
             group: {
               select: {
                 team: {
@@ -1126,6 +1200,7 @@ export class EasterEggService implements OnModuleInit {
         childId: number;
         pseudo: string;
         avatar: string | null;
+        gender: string | null;
         teamId: number;
         teamName: string;
         teamColor: string | null;
@@ -1145,6 +1220,7 @@ export class EasterEggService implements OnModuleInit {
         childId: p.child.id,
         pseudo: p.child.pseudo,
         avatar: p.child.avatar,
+        gender: p.child.gender,
         teamId: p.child.group.team.id,
         teamName: p.child.group.team.name,
         teamColor: p.child.group.team.color,
@@ -1253,6 +1329,7 @@ export class EasterEggService implements OnModuleInit {
         triggerConfig: dto.triggerConfig || null,
         complexity: dto.complexity || EasterEggDifficulty.MEDIUM,
         rewardPointsIT: dto.rewardPointsIT || 50,
+        specialReward: dto.specialReward || 'NONE',
         orderIndex: dto.orderIndex || 0,
         isActive: dto.isActive ?? true,
         prerequisiteType: dto.prerequisiteType || 'MISSIONS_COUNT',
@@ -1279,6 +1356,7 @@ export class EasterEggService implements OnModuleInit {
         ...(dto.triggerConfig !== undefined && { triggerConfig: dto.triggerConfig }),
         ...(dto.complexity !== undefined && { complexity: dto.complexity }),
         ...(dto.rewardPointsIT !== undefined && { rewardPointsIT: dto.rewardPointsIT }),
+        ...(dto.specialReward !== undefined && { specialReward: dto.specialReward }),
         ...(dto.orderIndex !== undefined && { orderIndex: dto.orderIndex }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.prerequisiteType !== undefined && { prerequisiteType: dto.prerequisiteType }),
@@ -1320,12 +1398,18 @@ export class EasterEggService implements OnModuleInit {
         ...(dto.easterEggMaxWinningTeams !== undefined && {
           easterEggMaxWinningTeams: dto.easterEggMaxWinningTeams,
         }),
+        ...(dto.metaEnigmaSecretWord !== undefined && {
+          metaEnigmaSecretWord: dto.metaEnigmaSecretWord,
+        }),
+        ...(dto.metaEnigmaPeriodGlyphs !== undefined && {
+          metaEnigmaPeriodGlyphs: dto.metaEnigmaPeriodGlyphs,
+        }),
       },
     });
     return updated;
   }
 
-  async getAdminTracking(instanceYearId: number) {
+  async getAdminTracking(instanceYearId: number, targetEggId?: number) {
     const instanceYear = await this.prisma.instanceYear.findUnique({
       where: { id: instanceYearId },
       include: {
@@ -1363,8 +1447,8 @@ export class EasterEggService implements OnModuleInit {
     });
 
     const {
-      currentEgg,
-      explicitInstance,
+      currentEgg: defaultEgg,
+      explicitInstance: defaultInstance,
       cycleIndex,
       cyclePeriodIds,
       periodStart,
@@ -1376,6 +1460,22 @@ export class EasterEggService implements OnModuleInit {
       frequency,
       activeEggs,
     );
+
+    let currentEgg = defaultEgg;
+    let explicitInstance = defaultInstance;
+
+    if (targetEggId) {
+      const foundEgg =
+        activeEggs.find(e => e.id === targetEggId) ||
+        (await this.prisma.evoeEasterEgg.findUnique({ where: { id: targetEggId } }));
+      if (foundEgg) {
+        currentEgg = foundEgg;
+        const matchingInst = await this.prisma.evoeEasterEggInstance.findFirst({
+          where: { instanceYearId, easterEggId: targetEggId, isClosed: false },
+        });
+        if (matchingInst) explicitInstance = matchingInst;
+      }
+    }
 
     if (!currentEgg || !currentPeriod) {
       return {
@@ -1394,18 +1494,27 @@ export class EasterEggService implements OnModuleInit {
     const effectivePeriodIds =
       cyclePeriodIds.length > 0 ? cyclePeriodIds : [currentPeriod.id];
 
-    const allDiscoveries = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+    // 1. Récupération de toutes les découvertes de la période (tous Easter Eggs confondus)
+    const allPeriodDiscoveries = await this.prisma.evoeEasterEggPlayerProgress.findMany({
       where: {
-        easterEggId: currentEgg.id,
         periodId: { in: effectivePeriodIds },
         discoveredAt: { not: null },
       },
       include: {
+        easterEgg: {
+          select: {
+            id: true,
+            title: true,
+            code: true,
+            rewardPointsIT: true,
+          },
+        },
         child: {
           select: {
             id: true,
             pseudo: true,
             avatar: true,
+            gender: true,
             groupId: true,
             group: {
               select: {
@@ -1428,20 +1537,151 @@ export class EasterEggService implements OnModuleInit {
       orderBy: { discoveredAt: 'asc' },
     });
 
-    const teamRewards = await this.prisma.evoeEasterEggTeamReward.findMany({
+    // 2. Récupération de toutes les récompenses d'équipe de la période (tous Easter Eggs confondus)
+    const allPeriodTeamRewards = await this.prisma.evoeEasterEggTeamReward.findMany({
       where: {
-        easterEggId: currentEgg.id,
         periodId: { in: effectivePeriodIds },
       },
+      include: {
+        easterEgg: {
+          select: {
+            id: true,
+            title: true,
+            code: true,
+          },
+        },
+      },
+      orderBy: { completedAt: 'asc' },
     });
 
+    const cyclePeriodsForAdmin = periods.slice(
+      cycleIndex * frequency,
+      cycleIndex * frequency + frequency,
+    );
+    const cyclePeriodIdsAdmin = cyclePeriodsForAdmin.map(p => p.id);
+
+    const activePeriodInstances = await this.prisma.evoeEasterEggInstance.findMany({
+      where: {
+        instanceYearId,
+        isClosed: false,
+        OR: [
+          { periodStartId: currentPeriod.id },
+          { periodStartId: { in: cyclePeriodIdsAdmin } },
+        ],
+      },
+      include: { easterEgg: true },
+      orderBy: { id: 'asc' },
+    });
+
+    const periodActiveEggs = activePeriodInstances
+      .filter(i => i.easterEgg && i.easterEgg.isActive)
+      .map(i => {
+        const eggId = i.easterEgg.id;
+        const eggDiscoveries = allPeriodDiscoveries.filter(d => d.easterEggId === eggId);
+        const eggRewards = allPeriodTeamRewards.filter(tr => tr.easterEggId === eggId);
+
+        const discoverers = eggDiscoveries.map(d => ({
+          childId: d.child.id,
+          pseudo: d.child.pseudo,
+          avatar: d.child.avatar,
+          gender: d.child.gender,
+          teamId: d.child.group?.teamId,
+          teamName: d.child.group?.team?.name || 'Équipe',
+          teamColor: d.child.group?.team?.color || '#10b981',
+          teamIcon: d.child.group?.team?.icon || null,
+          discoveredAt: d.discoveredAt,
+        }));
+
+        const teamsCompleted = eggRewards.map(tr => ({
+          teamId: tr.teamId,
+          rank: tr.rank,
+          awardedPointsIT: tr.awardedPointsIT,
+          completedAt: tr.completedAt,
+        }));
+
+        return {
+          instanceId: i.id,
+          eggId: i.easterEgg.id,
+          code: i.easterEgg.code,
+          title: i.easterEgg.title,
+          rewardPointsIT: i.easterEgg.rewardPointsIT,
+          forceHint: i.forceHint,
+          discoverers,
+          teamsCompleted,
+        };
+      });
+
+    // 3. Suivi par équipe : Global sur la période (indépendant de l'Easter Egg sélectionné)
     const teamsTracking = instanceYear.teams.map(team => {
       const teamChildren = team.groups.flatMap(g => g.children);
       const teamTotalPlayers = teamChildren.length;
-      const teamDiscoveries = allDiscoveries.filter(
+      const teamDiscoveries = allPeriodDiscoveries.filter(
         d => d.child.group?.teamId === team.id,
       );
-      const reward = teamRewards.find(tr => tr.teamId === team.id);
+
+      const uniqueContributingPlayerIds = new Set(teamDiscoveries.map(d => d.child.id));
+      const contributingPlayers = Array.from(uniqueContributingPlayerIds).map(childId => {
+        const first = teamDiscoveries.find(d => d.child.id === childId)!;
+        return {
+          childId: first.child.id,
+          pseudo: first.child.pseudo,
+          avatar: first.child.avatar,
+          gender: first.child.gender,
+        };
+      });
+
+      const teamAllRewards = allPeriodTeamRewards.filter(tr => tr.teamId === team.id);
+      const totalAwardedPointsIT = teamAllRewards.reduce((sum, tr) => sum + tr.awardedPointsIT, 0);
+
+      const solvedEggs = teamAllRewards.map(tr => ({
+        easterEggId: tr.easterEggId,
+        title: tr.easterEgg?.title || `Easter Egg #${tr.easterEggId}`,
+        rank: tr.rank,
+        awardedPointsIT: tr.awardedPointsIT,
+        completedAt: tr.completedAt,
+      }));
+
+      const activeEggsTotal = periodActiveEggs.length || 1;
+
+      // Liste des Easter Eggs actifs de la période
+      const activeEggsList = periodActiveEggs.length > 0
+        ? periodActiveEggs
+        : [{
+            eggId: currentEgg.id,
+            code: currentEgg.code,
+            title: currentEgg.title,
+            rewardPointsIT: currentEgg.rewardPointsIT,
+          }];
+
+      const eggsProgress = activeEggsList.map(egg => {
+        const eggDiscoveriesForTeam = teamDiscoveries.filter(d => d.easterEggId === egg.eggId);
+        const eggReward = teamAllRewards.find(tr => tr.easterEggId === egg.eggId);
+        const players = eggDiscoveriesForTeam.map(d => ({
+          childId: d.child.id,
+          pseudo: d.child.pseudo,
+          avatar: d.child.avatar,
+          gender: d.child.gender,
+          discoveredAt: d.discoveredAt,
+        }));
+
+        return {
+          eggId: egg.eggId,
+          title: egg.title,
+          code: egg.code,
+          rewardPointsIT: egg.rewardPointsIT,
+          isCompleted: !!eggReward,
+          playersCount: players.length,
+          requiredPlayers: instanceYear.easterEggRequiredPlayers ?? 2,
+          players,
+          reward: eggReward
+            ? {
+                rank: eggReward.rank,
+                awardedPointsIT: eggReward.awardedPointsIT,
+                completedAt: eggReward.completedAt,
+              }
+            : null,
+        };
+      });
 
       return {
         teamId: team.id,
@@ -1449,18 +1689,34 @@ export class EasterEggService implements OnModuleInit {
         teamColor: team.color,
         teamIcon: team.icon || null,
         totalPlayers: teamTotalPlayers,
-        discoveredCount: teamDiscoveries.length,
-        requiredPlayers: instanceYear.easterEggRequiredPlayers,
-        isRewarded: !!reward,
-        rewardRank: reward?.rank || null,
-        awardedPointsIT: reward?.awardedPointsIT || null,
-        completedAt: reward?.completedAt || null,
+        discoveredCount: uniqueContributingPlayerIds.size,
+        requiredPlayers: instanceYear.easterEggRequiredPlayers ?? 2,
+        activeEggsTotal,
+        solvedEggsCount: solvedEggs.length,
+        solvedEggs,
+        eggsProgress,
+        totalAwardedPointsIT,
+        isRewarded: solvedEggs.length > 0,
+        rewardRank: teamAllRewards[0]?.rank || null,
+        awardedPointsIT: totalAwardedPointsIT,
+        completedAt: teamAllRewards[teamAllRewards.length - 1]?.completedAt || null,
+        contributingPlayers,
       };
     });
 
     return {
       hasActiveEgg: true,
       currentEgg,
+      periodActiveEggs: periodActiveEggs.length > 0 ? periodActiveEggs : [{
+        instanceId: explicitInstance?.id || 0,
+        eggId: currentEgg.id,
+        code: currentEgg.code,
+        title: currentEgg.title,
+        rewardPointsIT: currentEgg.rewardPointsIT,
+        forceHint: !!explicitInstance?.forceHint,
+        discoverers: [],
+        teamsCompleted: [],
+      }],
       activeInstance: explicitInstance ? {
         id: explicitInstance.id,
         easterEggId: explicitInstance.easterEggId,
@@ -1481,15 +1737,20 @@ export class EasterEggService implements OnModuleInit {
         easterEggMaxWinningTeams: instanceYear.easterEggMaxWinningTeams ?? 0,
       },
       teamsTracking,
-      individualDiscoveries: allDiscoveries.map(d => ({
+      individualDiscoveries: allPeriodDiscoveries.map(d => ({
         childId: d.child.id,
         pseudo: d.child.pseudo,
         avatar: d.child.avatar,
+        gender: d.child.gender,
         teamName: d.child.group?.team.name,
         teamColor: d.child.group?.team.color,
         teamIcon: d.child.group?.team.icon || null,
         discoveredAt: d.discoveredAt,
         resolutionTimeSeconds: d.resolutionTimeSeconds,
+        easterEggId: d.easterEgg.id,
+        easterEggTitle: d.easterEgg.title,
+        easterEggCode: d.easterEgg.code,
+        rewardPointsIT: d.easterEgg.rewardPointsIT,
         answerSubmitted: d.answerSubmitted,
       })),
     };
@@ -1552,7 +1813,7 @@ export class EasterEggService implements OnModuleInit {
     return instance;
   }
 
-  async closeInstanceEgg(instanceYearId: number) {
+  async closeInstanceEgg(instanceYearId: number, easterEggId?: number) {
     const instanceYear = await this.prisma.instanceYear.findUnique({
       where: { id: instanceYearId },
       include: { periods: { orderBy: { startDate: 'asc' } } },
@@ -1569,23 +1830,34 @@ export class EasterEggService implements OnModuleInit {
     }
 
     const openInstances = await this.prisma.evoeEasterEggInstance.findMany({
-      where: { instanceYearId, isClosed: false },
+      where: {
+        instanceYearId,
+        isClosed: false,
+        ...(easterEggId ? { easterEggId } : {}),
+      },
     });
 
     if (openInstances.length > 0) {
       await this.prisma.evoeEasterEggInstance.updateMany({
-        where: { instanceYearId, isClosed: false },
+        where: {
+          instanceYearId,
+          isClosed: false,
+          ...(easterEggId ? { easterEggId } : {}),
+        },
         data: { isClosed: true, closedAt: new Date() },
       });
     } else if (currentPeriod) {
       // Clôture explicite d'une énigme du cycle automatique pour cette période
-      const tracking = await this.getAdminTracking(instanceYearId);
-      if (tracking?.currentEgg) {
+      const targetEgg = easterEggId
+        ? await this.prisma.evoeEasterEgg.findUnique({ where: { id: easterEggId } })
+        : (await this.getAdminTracking(instanceYearId))?.currentEgg;
+
+      if (targetEgg) {
         await this.prisma.evoeEasterEggInstance.upsert({
           where: {
             instanceYearId_easterEggId_periodStartId: {
               instanceYearId,
-              easterEggId: tracking.currentEgg.id,
+              easterEggId: targetEgg.id,
               periodStartId: currentPeriod.id,
             },
           },
@@ -1595,7 +1867,7 @@ export class EasterEggService implements OnModuleInit {
           },
           create: {
             instanceYearId,
-            easterEggId: tracking.currentEgg.id,
+            easterEggId: targetEgg.id,
             periodStartId: currentPeriod.id,
             periodEndId: currentPeriod.id,
             isClosed: true,
@@ -1608,9 +1880,13 @@ export class EasterEggService implements OnModuleInit {
     return { success: true, message: 'Easter Egg clôturé pour cette période' };
   }
 
-  async forceInstanceHint(instanceYearId: number) {
+  async forceInstanceHint(instanceYearId: number, easterEggId?: number) {
     const activeInstance = await this.prisma.evoeEasterEggInstance.findFirst({
-      where: { instanceYearId, isClosed: false },
+      where: {
+        instanceYearId,
+        isClosed: false,
+        ...(easterEggId ? { easterEggId } : {}),
+      },
       orderBy: { id: 'desc' },
     });
 
@@ -1621,22 +1897,222 @@ export class EasterEggService implements OnModuleInit {
       });
       return { success: true, message: '2ème indice forcé pour tous les joueurs' };
     } else {
+      const targetEgg = easterEggId
+        ? await this.prisma.evoeEasterEgg.findUnique({ where: { id: easterEggId } })
+        : (await this.getAdminTracking(instanceYearId))?.currentEgg;
       const tracking = await this.getAdminTracking(instanceYearId);
-      if (!tracking.currentEgg || !tracking.currentPeriod) {
-        throw new BadRequestException('Aucune énigme active à forcer');
+
+      if (!targetEgg || !tracking.currentPeriod) {
+        throw new BadRequestException('Aucun Easter Egg actif à forcer');
       }
-      await this.prisma.evoeEasterEggInstance.create({
-        data: {
+
+      await this.prisma.evoeEasterEggInstance.upsert({
+        where: {
+          instanceYearId_easterEggId_periodStartId: {
+            instanceYearId,
+            easterEggId: targetEgg.id,
+            periodStartId: tracking.currentPeriod.id,
+          },
+        },
+        update: { forceHint: true },
+        create: {
           instanceYearId,
-          easterEggId: tracking.currentEgg.id,
+          easterEggId: targetEgg.id,
           periodStartId: tracking.currentPeriod.id,
           periodEndId: tracking.currentPeriod.id,
-          isClosed: false,
           forceHint: true,
-          unlockedAt: new Date(),
+          isClosed: false,
         },
       });
-      return { success: true, message: '2ème indice forcé pour tous les joueurs' };
+
+      return { success: true, message: '2ème indice forcé pour cette période' };
     }
+  }
+
+  /**
+   * Récupère l'historique complet de la saison pour le Chrono-Egg
+   */
+  async getChronoEggArchive(childId: number) {
+    const { child: _child, team, instanceYear, periods, currentPeriodIndex } =
+      await this.getPlayerContext(childId);
+
+    const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+    const secretWord = instanceYear.metaEnigmaSecretWord || 'CHRONOS';
+
+    const elapsedPeriods = periods.slice(0, currentPeriodIndex);
+    const teamChildren = team.groups.flatMap((g: any) => g.children);
+    const teamChildIds = teamChildren.map((c: any) => c.id);
+
+    const archive = await Promise.all(
+      elapsedPeriods.map(async (period, idx) => {
+        const pIndex = idx + 1;
+        const cycleIdx = Math.floor((pIndex - 1) / frequency);
+        const cycleStart = cycleIdx * frequency;
+        const cycleEnd = Math.min(periods.length - 1, cycleStart + frequency - 1);
+        const cyclePeriodIds = periods.slice(cycleStart, cycleEnd + 1).map((p) => p.id);
+
+        const instances = await this.prisma.evoeEasterEggInstance.findMany({
+          where: {
+            instanceYearId: instanceYear.id,
+            OR: [
+              { periodStartId: period.id },
+              { periodEndId: period.id },
+              { periodStartId: { in: cyclePeriodIds } },
+            ],
+          },
+          include: { easterEgg: true },
+        });
+
+        let eggIds: number[] = [];
+        if (instances.length > 0) {
+          eggIds = instances
+            .filter((i) => i.easterEgg && i.easterEgg.isActive)
+            .map((i) => i.easterEggId);
+        } else {
+          const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
+            where: { isActive: true },
+            orderBy: { orderIndex: 'asc' },
+          });
+          if (activeCatalog.length > 0) {
+            const egg = activeCatalog[cycleIdx % activeCatalog.length];
+            if (egg) eggIds = [egg.id];
+          }
+        }
+
+        const totalEggs = Math.max(1, eggIds.length);
+
+        let solvedEggs = 0;
+        if (eggIds.length > 0) {
+          const solvedDistinct = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+            where: {
+              easterEggId: { in: eggIds },
+              childId: { in: teamChildIds },
+              discoveredAt: { not: null },
+            },
+            distinct: ['easterEggId'],
+          });
+          solvedEggs = solvedDistinct.length;
+        }
+
+        const isCurrentPeriod = pIndex === currentPeriodIndex;
+        const glyphLetter = secretWord[(pIndex - 1) % secretWord.length] || '?';
+
+        return {
+          periodId: period.id,
+          periodIndex: pIndex,
+          startDate: period.startDate,
+          endDate: period.endDate,
+          isCurrentPeriod,
+          totalEggs,
+          solvedEggs,
+          ratio: totalEggs > 0 ? solvedEggs / totalEggs : 0,
+          glyphIndex: (pIndex - 1) % 12,
+          glyphLetter,
+          isCompleted: solvedEggs >= totalEggs && totalEggs > 0,
+          canReplay: solvedEggs < totalEggs,
+        };
+      }),
+    );
+
+    return {
+      hasChronoEgg: !!team.hasChronoEgg,
+      hasRosettaStone: !!team.hasRosettaStone,
+      isMetaEnigmaUnlocked: !!team.isMetaEnigmaUnlocked,
+      secretWordLength: secretWord.length,
+      periods: archive,
+    };
+  }
+
+  /**
+   * Permet le "Rattrapage Temporel" pour une période passée
+   */
+  async reopenPeriodEgg(childId: number, periodId: number) {
+    const { child, team, instanceYear, periods } = await this.getPlayerContext(childId);
+    if (!team.hasChronoEgg) {
+      throw new BadRequestException("Vous devez posséder l'outil Chrono-Egg pour relancer une archive.");
+    }
+
+    const targetPeriod = periods.find((p) => p.id === periodId);
+    if (!targetPeriod) {
+      throw new NotFoundException('Période introuvable.');
+    }
+
+    const instances = await this.prisma.evoeEasterEggInstance.findMany({
+      where: {
+        instanceYearId: instanceYear.id,
+        OR: [{ periodStartId: periodId }, { periodEndId: periodId }],
+      },
+      include: { easterEgg: true },
+    });
+
+    let candidateEgg: EvoeEasterEgg | null = null;
+    if (instances.length > 0) {
+      for (const inst of instances) {
+        if (inst.easterEgg && inst.easterEgg.isActive) {
+          const solved = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+            where: {
+              easterEggId: inst.easterEggId,
+              childId: child.id,
+              periodId,
+              discoveredAt: { not: null },
+            },
+          });
+          if (!solved) {
+            candidateEgg = inst.easterEgg;
+            break;
+          }
+        }
+      }
+      if (!candidateEgg && instances[0]?.easterEgg) {
+        candidateEgg = instances[0].easterEgg;
+      }
+    } else {
+      const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
+        where: { isActive: true },
+        orderBy: { orderIndex: 'asc' },
+      });
+      const pIdx = periods.findIndex((p) => p.id === periodId);
+      const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+      const cycleIdx = Math.floor(Math.max(0, pIdx) / frequency);
+      candidateEgg = activeCatalog[cycleIdx % activeCatalog.length] || activeCatalog[0];
+    }
+
+    if (!candidateEgg) {
+      throw new NotFoundException('Aucune énigme trouvée pour cette période.');
+    }
+
+    return {
+      periodId,
+      periodIndex: periods.findIndex((p) => p.id === periodId) + 1,
+      easterEgg: candidateEgg,
+      isReplayMode: true,
+    };
+  }
+
+  /**
+   * Valide le mot de passe final saisi manuellement par l'élève dans le Terminal
+   */
+  async submitMetaEnigmaCode(childId: number, code: string) {
+    const { team, instanceYear } = await this.getPlayerContext(childId);
+    const expected = (instanceYear.metaEnigmaSecretWord || 'CHRONOS').trim().toUpperCase();
+    const submitted = (code || '').trim().toUpperCase();
+
+    if (submitted === expected) {
+      await this.prisma.team.update({
+        where: { id: team.id },
+        data: { isMetaEnigmaUnlocked: true },
+      });
+      return {
+        success: true,
+        message: 'Protocole Oméga validé avec succès ! La Vision 2050 est désormais déverrouillée.',
+        isMetaEnigmaUnlocked: true,
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Code temporel erroné. Vérifiez vos glyphes et la Pierre de Rosette 2070.',
+      isMetaEnigmaUnlocked: false,
+    };
   }
 }

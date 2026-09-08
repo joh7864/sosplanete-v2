@@ -22,3 +22,47 @@ export const getAssetUrl = (path: string | undefined | null, fallback?: string) 
   
   return `${baseUrl}/uploads/${cleanPath}`;
 };
+
+/**
+ * Calcule l'avatar 3D par défaut (dans uploads/avatars_3D) pour un joueur
+ * en fonction de son pseudo et de son genre.
+ */
+export const getDefaultAvatar3D = (pseudo: string, gender?: string | null): string => {
+  const cleanPseudo = pseudo || '';
+  const hash = cleanPseudo.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  let file = '';
+  const g = (gender || '').toUpperCase();
+  if (g === 'EF') {
+    file = `EF_avatar_0${(hash % 3) + 1}.png`;
+  } else if (g === 'EH') {
+    file = `EH_avatar_0${(hash % 3) + 1}.png`;
+  } else if (g === 'F') {
+    file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
+  } else if (g === 'M' || g === 'H') {
+    file = `H_avatar_0${(hash % 21) + 1}.png`;
+  } else {
+    const list = ['EF', 'EH', 'F', 'H'];
+    const sel = list[hash % 4];
+    if (sel === 'EF') file = `EF_avatar_0${(hash % 3) + 1}.png`;
+    else if (sel === 'EH') file = `EH_avatar_0${(hash % 3) + 1}.png`;
+    else if (sel === 'F') file = `F_avatar_${((hash % 12) + 1).toString().padStart(2, '0')}.png`;
+    else file = `H_avatar_0${(hash % 21) + 1}.png`;
+  }
+  return `avatars_3D/${file}`;
+};
+
+/**
+ * Résout l'avatar d'un joueur :
+ * - Si un avatar personnalisé existe dans uploads/avatars, il est retourné.
+ * - Sinon, l'avatar 3D par défaut correspondant au joueur est retourné depuis uploads/avatars_3D.
+ */
+export const resolvePlayerAvatar = (
+  avatar: string | null | undefined,
+  pseudo: string,
+  gender?: string | null,
+): string => {
+  if (avatar && avatar !== 'avatars/default.png') {
+    return getAssetUrl(avatar);
+  }
+  return getAssetUrl(getDefaultAvatar3D(pseudo, gender));
+};

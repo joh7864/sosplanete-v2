@@ -21,6 +21,7 @@ interface ManualActivationModalProps {
   onSuccess: () => void;
   instanceYearId: number;
   currentEggId?: number;
+  initialMode?: 'replace' | 'add';
 }
 
 export function ManualActivationModal({
@@ -29,10 +30,11 @@ export function ManualActivationModal({
   onSuccess,
   instanceYearId,
   currentEggId,
+  initialMode = 'replace',
 }: ManualActivationModalProps) {
   const [catalog, setCatalog] = useState<EasterEggCatalogItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(currentEggId || null);
-  const [activationMode, setActivationMode] = useState<'replace' | 'add'>('replace');
+  const [activationMode, setActivationMode] = useState<'replace' | 'add'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export function ManualActivationModal({
     if (isOpen) {
       setLoading(true);
       setError(null);
+      setActivationMode(initialMode);
       fetchAdminCatalog()
         .then((data) => {
           const actives = data.filter((e) => e.isActive);
@@ -126,11 +129,11 @@ export function ManualActivationModal({
                   }`}
                 >
                   <div className="text-xs font-black text-slate-800 flex items-center justify-between">
-                    <span>Remplacer l'actuel</span>
+                    <span>🔄 Remplacer l'actuel</span>
                     {activationMode === 'replace' && <CheckCircle2 size={14} className="text-emerald-600" />}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Clôture les énigmes en cours et active uniquement celle-ci.
+                    Clôture l'énigme en cours et active uniquement celle-ci.
                   </p>
                 </button>
 
@@ -144,11 +147,11 @@ export function ManualActivationModal({
                   }`}
                 >
                   <div className="text-xs font-black text-slate-800 flex items-center justify-between">
-                    <span>Ajouter à la période</span>
+                    <span className="text-purple-900 font-bold">➕ Ajouter à la période (Multi-Eggs)</span>
                     {activationMode === 'add' && <CheckCircle2 size={14} className="text-purple-600" />}
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Dès qu'un élève résout la 1ère, il passe automatiquement à la suivante !
+                    Ajoute un Easter Egg supplémentaire sur cette période de 2 semaines. Les élèves devront résoudre le 1er pour débloquer le 2ème !
                   </p>
                 </button>
               </div>

@@ -77,9 +77,9 @@ graph TD
 | **3. Badge HUD & Mascotte 3D** | ✅ Terminé | **100%** | `SciFiEggBadge.tsx`, `MascotBubble3D.tsx`, `App.tsx` |
 | **4. Système de Déclencheurs (11 Triggers)** | ✅ Terminé | **100%** | `useEasterEggTriggers.ts`, `Portal2026.tsx`, `ChatPanel.tsx` |
 | **5. Minuteur du 2ème Indice & Reclic Œuf** | ✅ Terminé | **100%** | Reclic joueur, timer masqué, 2ème indice non spoil, Comm-Link branché |
-| **6. Effets Visuels & Ciel d'Étoiles 3D** | 🟡 En cours | **30%** | Triggers OK, **Design étoiles & exploration à affiner** |
+| **6. Effets Visuels & Ciel d'Étoiles 3D** | ✅ Terminé | **100%** | Voûte céleste 3D, triangle d'exploration, overlays WOOOW personnalisés |
 | **7. Leaderboard Détectives (dans Leaderboard)** | 🔴 À Faire | **20%** | Endpoint backend OK, **Onglet à ajouter dans `LeaderboardModal.tsx`** |
-| **8. Administration & Cockpit AM** | 🔴 À Faire | **15%** | Endpoints backend OK, **Interface AM à coder** |
+| **8. Administration & Cockpit AM** | ✅ Terminé | **100%** | Page dédiée AM, éditeur catalogue DnD, cockpit temps réel |
 | **9. Temps Réel (Sockets & Comm-Link)** | 🟡 En cours | **60%** | Pré-remplissage Comm-Link OK, notifications Sockets équipe à finaliser |
 
 ---
@@ -137,13 +137,19 @@ graph TD
 
 ### Chantier 3 : La Voûte d'Étoiles 3D & Effets Visuels "WOOOW"
 
-- [ ] **3.1. Ciel d'Étoiles & Constellation 3D interactive (`Portal2026.tsx`)** :
+- [x] **3.1. Ciel d'Étoiles & Constellation 3D interactive (`Portal2026.tsx`)** :
   - **Positionnement vertical** : Baisser la hauteur du groupe d'étoiles pour qu'au moins une des étoiles du triangle soit immédiatement visible dans le ciel lors du premier affichage du dashboard 2026.
   - **Exploration par le joueur** : Le joueur doit faire pivoter/orienter la vue 3D pour repérer les 2 autres étoiles du triangle et les rendre cliquables.
   - **Design "Étoile" Premium** : Étoiles scintillantes avec lueur (flare/croisillons lumineux) au lieu de simples sphères.
   - **Voûte céleste naturelle** : Ajouter quelques étoiles décoratives éparses dans l'espace afin que le ciel soit riche et que le triangle d'étoiles ne soit pas excessivement flagrant.
-- [ ] **3.2. Effets Visuels de Victoire (Overlays temporaires de 3-4s)** :
-  - Pluie digitale Matrix (`/matrix`), filtre CRT rétro Synthwave 80s (Konami Code), effet apesanteur des cartes (`/antigravity`), propulsion réacteurs sous le logo (Maintien logo), flash temporel (`/1985`).
+  - **Curseur discret & Secret préservé** : Curseur `auto` naturel maintenu au survol des étoiles (aucun curseur 'main' trahissant l'emplacement au balayage souris).
+- [x] **3.2. Effets Visuels de Victoire (Overlays temporaires de 3-4s)** :
+  - Pluie digitale Matrix (`!matrix` ou `/matrix`), filtre CRT rétro Synthwave 80s (Konami Code), effet apesanteur des cartes (`!antigravity`), propulsion réacteurs sous le logo (Maintien logo), flash temporel (`!1985`), soirée disco orbitale (`!party`).
+  - Interception prioritaire dans le chat : zéro message rouge d'erreur socket, nettoyage automatique de l'input.
+- [x] **3.3. Gestion Multi-Easter Eggs sur la Période — Proposition 2 (Anneaux Orbitaux d'Énergie)** :
+  - **HUD Badge (`SciFiEggBadge.tsx`)** : Anneaux concentriques d'énergie gyroscopiques orbitant autour de l'œuf (1 anneau par énigme de la période : vert émeraude fixe pour les résolues, pointillé en rotation quantique pour l'énigme active en cours).
+  - **Bulle BD Mascotte (`MascotBubble3D.tsx`)** : Badge informatif `⚡ Anomalie X / Y` affiché dans l'en-tête de l'énigme active.
+  - **Backend (`easter-egg.service.ts`)** : Calcul et envoi synchronisé de `multiEggProgress: { total, solved, currentIndex }`.
 
 ---
 

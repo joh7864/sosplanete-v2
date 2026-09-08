@@ -13,7 +13,9 @@ import {
   Power,
   Info,
   Minus,
-  Plus
+  Plus,
+  KeyRound,
+  Binary
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { IconButtonWithTooltip } from '@/components/ui/IconButtonWithTooltip';
@@ -37,6 +39,7 @@ export function EasterEggsSeasonSettings({
   const [frequency, setFrequency] = useState(2);
   const [requiredPlayers, setRequiredPlayers] = useState(2);
   const [maxWinningTeams, setMaxWinningTeams] = useState(0);
+  const [metaEnigmaSecretWord, setMetaEnigmaSecretWord] = useState('CHRONOS');
 
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -47,6 +50,7 @@ export function EasterEggsSeasonSettings({
       setFrequency(initialSettings.easterEggFrequency ?? 2);
       setRequiredPlayers(initialSettings.easterEggRequiredPlayers ?? 2);
       setMaxWinningTeams(initialSettings.easterEggMaxWinningTeams ?? 0);
+      setMetaEnigmaSecretWord(initialSettings.metaEnigmaSecretWord || 'CHRONOS');
     }
   }, [initialSettings]);
 
@@ -59,6 +63,7 @@ export function EasterEggsSeasonSettings({
         easterEggFrequency: frequency,
         easterEggRequiredPlayers: requiredPlayers,
         easterEggMaxWinningTeams: maxWinningTeams,
+        metaEnigmaSecretWord: metaEnigmaSecretWord.trim().toUpperCase(),
       });
       setFeedback({ type: 'success', message: 'Paramètres généraux de la saison enregistrés avec succès !' });
       if (onSettingsSaved) onSettingsSaved();
@@ -315,6 +320,67 @@ export function EasterEggsSeasonSettings({
           </div>
         </div>
       </div>
+
+      {/* Card Méta-Énigme 2070 & Vision Avant / Après */}
+      <GlassCard className="p-6 bg-white/95 border-slate-200/80 shadow-sm rounded-3xl space-y-5">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+            <KeyRound size={20} />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-black text-slate-800 flex items-center gap-2">
+              Méta-Énigme 2070 & Vision Temporelle 2050
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase">
+                Artefacts
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              Paramétrez le mot de passe secret final déduit de la collection des glyphes de périodes
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              Mot de Passe Secret Final (Alphabet Contemporain)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={metaEnigmaSecretWord}
+                onChange={(e) => setMetaEnigmaSecretWord(e.target.value.toUpperCase())}
+                placeholder="Ex : CHRONOS, TERRA, FUTUR..."
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-mono font-bold text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition-all shadow-xs"
+              />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                {metaEnigmaSecretWord.length} LETTRES
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Chaque période est associée à une lettre encodée sous forme de glyphe runique de 2070 sur l'œuf.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs text-slate-600 space-y-2">
+            <div className="font-bold text-slate-800 flex items-center gap-1.5">
+              <Binary size={15} className="text-amber-600" />
+              <span>Mécanique des Artefacts Méta-Jeu :</span>
+            </div>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-500">
+              <li>
+                <strong className="text-slate-700">Chrono-Egg :</strong> Débloqué via un Easter Egg dédié dans le catalogue. Permet aux élèves de consulter l'historique de leurs glyphes et de relancer les périodes manquées.
+              </li>
+              <li>
+                <strong className="text-slate-700">Pierre de Rosette 2070 :</strong> Débloquée via un autre Easter Egg dédié. Fournit la table de correspondance pour traduire les glyphes runiques en lettres.
+              </li>
+              <li>
+                <strong className="text-slate-700">Vision 2050 (Avant/Après) :</strong> Débloquée définitivement dès que les élèves saisissent le bon mot de passe dans le Terminal Temporel.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </GlassCard>
 
       {/* Feedback Toast */}
       {feedback && (

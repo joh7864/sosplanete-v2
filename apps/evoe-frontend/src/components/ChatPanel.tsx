@@ -312,15 +312,30 @@ export default function ChatPanel({
     if (!inputText.trim() && !pendingImageUrl) return;
     if (isUploadingImage) return;
 
-    // Détecter si le message commence par une commande de type /destinataire ou Easter Egg
+    const trimmed = inputText.trim();
+
+    // 1. Interception prioritaire des commandes système d'Easter Eggs (ex: !matrix, !party, !antigravity, !1985)
+    if (trimmed.startsWith('!') || trimmed.startsWith('/')) {
+      const parts = trimmed.split(/\s+/);
+      const rawCmd = parts[0].toLowerCase();
+      const normalizedCmd = rawCmd.startsWith('!') ? rawCmd : `!${rawCmd.substring(1)}`;
+      const easterEggCommands = ['!matrix', '!antigravity', '!1985', '!party'];
+
+      if (easterEggCommands.includes(normalizedCmd) || rawCmd.startsWith('!')) {
+        if (onEasterEggCommand) {
+          onEasterEggCommand(normalizedCmd);
+        }
+        setInputText('');
+        setPendingImagePreview(null);
+        setPendingImageUrl(null);
+        return; // Stoppe net : zéro émission au serveur, zéro faux message privé, zéro erreur rouge !
+      }
+    }
+
+    // 2. Détecter si le message commence par une commande de type /destinataire (message privé d'équipe ou joueur)
     let shouldSend = true;
     if (inputText.startsWith('/')) {
       const parts = inputText.trim().split(/\s+/);
-      const rawCmd = parts[0].toLowerCase();
-      if (onEasterEggCommand) {
-        onEasterEggCommand(rawCmd);
-      }
-
       const command = parts[0].substring(1).toLowerCase(); // ex: 'isabeller' ou 'alpha'
       
       const targetPlayer = (players || []).find(p => p.pseudo.toLowerCase() === command);

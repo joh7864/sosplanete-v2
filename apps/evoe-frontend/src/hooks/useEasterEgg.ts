@@ -170,6 +170,54 @@ export function useEasterEgg() {
     [activeEggData, getHeaders],
   );
 
+  const fetchChronoEggArchive = useCallback(async () => {
+    try {
+      const res = await evoeClient.get(`${EVOE_API_URL}/easter-eggs/chrono-egg/archive`, {
+        headers: getHeaders(),
+      });
+      return res.data;
+    } catch (err: any) {
+      console.error('Erreur récupération archive Chrono-Egg:', err);
+      return null;
+    }
+  }, [getHeaders]);
+
+  const reopenPeriodEgg = useCallback(
+    async (periodId: number) => {
+      try {
+        const res = await evoeClient.post(
+          `${EVOE_API_URL}/easter-eggs/chrono-egg/reopen-period`,
+          { periodId },
+          { headers: getHeaders() },
+        );
+        return res.data;
+      } catch (err: any) {
+        throw new Error(err?.response?.data?.message || 'Erreur réouverture énigme');
+      }
+    },
+    [getHeaders],
+  );
+
+  const submitMetaEnigmaCode = useCallback(
+    async (code: string) => {
+      try {
+        const res = await evoeClient.post(
+          `${EVOE_API_URL}/easter-eggs/meta-enigma/submit-code`,
+          { code },
+          { headers: getHeaders() },
+        );
+        await fetchActiveEgg();
+        return res.data;
+      } catch (err: any) {
+        return {
+          success: false,
+          message: err?.response?.data?.message || 'Code temporel invalide',
+        };
+      }
+    },
+    [getHeaders, fetchActiveEgg],
+  );
+
   useEffect(() => {
     fetchActiveEgg();
   }, [fetchActiveEgg]);
@@ -191,5 +239,8 @@ export function useEasterEgg() {
     verifyAnswer,
     validateTrigger,
     shareInCommLink,
+    fetchChronoEggArchive,
+    reopenPeriodEgg,
+    submitMetaEnigmaCode,
   };
 }

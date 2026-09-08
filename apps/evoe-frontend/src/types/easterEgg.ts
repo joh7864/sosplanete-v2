@@ -28,6 +28,7 @@ export interface EasterEggItem {
   triggerConfig?: any;
   complexity: EasterEggDifficulty;
   rewardPointsIT: number;
+  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE';
   orderIndex: number;
 }
 
@@ -43,6 +44,18 @@ export interface ActiveEasterEggResponse {
   hasActiveEgg?: boolean;
   message?: string;
   easterEgg?: EasterEggItem;
+  multiEggProgress?: {
+    total: number;
+    solved: number;
+    currentIndex: number;
+  };
+  metaEnigma?: {
+    hasChronoEgg: boolean;
+    hasRosettaStone: boolean;
+    isMetaEnigmaUnlocked: boolean;
+    secretWordLength: number;
+    periodGlyphIndex: number;
+  };
   period?: {
     id: number;
     periodStartId?: number;

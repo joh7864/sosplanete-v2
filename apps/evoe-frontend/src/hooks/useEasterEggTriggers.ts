@@ -80,9 +80,9 @@ export function useEasterEggTriggers({
             if (shakeHits >= 3) {
               if (
                 activeTriggerType === 'COMM_LINK_COMMAND' &&
-                (triggerConfig?.command === '/antigravity' || activeEggCode === 'EE_ANTIGRAVITY')
+                (triggerConfig?.command === '!antigravity' || triggerConfig?.command === '/antigravity' || activeEggCode === 'EE_ANTIGRAVITY')
               ) {
-                onTrigger('COMM_LINK_COMMAND', { command: '/antigravity', source: 'device_shake' });
+                onTrigger('COMM_LINK_COMMAND', { command: '!antigravity', source: 'device_shake' });
               } else if (activeTriggerType === 'CUSTOM_ACTION') {
                 onTrigger('CUSTOM_ACTION', { action: 'shake' });
               }
@@ -137,25 +137,32 @@ export function useEasterEggTriggers({
     [activeTriggerType, triggerConfig, onTrigger],
   );
 
-  // --- COMM-LINK SLASH COMMANDS ---
+  // --- COMM-LINK SLASH & EXCLAMATION COMMANDS ---
   const handleCommLinkCommand = useCallback(
     (commandStr: string) => {
       const cleanCmd = (commandStr || '').trim().toLowerCase();
-      if (!cleanCmd.startsWith('/')) return;
+      if (!cleanCmd.startsWith('/') && !cleanCmd.startsWith('!')) return;
+
+      const normalizedCmd = cleanCmd.startsWith('!') ? cleanCmd : `!${cleanCmd.substring(1)}`;
+      const slashCmd = cleanCmd.startsWith('/') ? cleanCmd : `/${cleanCmd.substring(1)}`;
 
       const expectedCommand = (triggerConfig?.command || '').toLowerCase();
-      const isExpectedMatch = expectedCommand && cleanCmd === expectedCommand;
+      const isExpectedMatch =
+        expectedCommand &&
+        (cleanCmd === expectedCommand ||
+          normalizedCmd === expectedCommand ||
+          slashCmd === expectedCommand);
 
       if (activeTriggerType === 'COMM_LINK_COMMAND' && (isExpectedMatch || !expectedCommand)) {
-        onTrigger('COMM_LINK_COMMAND', { command: cleanCmd });
-      } else if (activeEggCode === 'EE_TEMPORAL_1985' && cleanCmd === '/1985') {
-        onTrigger('COMM_LINK_COMMAND', { command: '/1985' });
-      } else if (activeEggCode === 'EE_MATRIX_COMM_LINK' && cleanCmd === '/matrix') {
-        onTrigger('COMM_LINK_COMMAND', { command: '/matrix' });
-      } else if (activeEggCode === 'EE_ANTIGRAVITY' && cleanCmd === '/antigravity') {
-        onTrigger('COMM_LINK_COMMAND', { command: '/antigravity' });
-      } else if (activeEggCode === 'EE_PARTY_DISCO' && cleanCmd === '/party') {
-        onTrigger('COMM_LINK_COMMAND', { command: '/party' });
+        onTrigger('COMM_LINK_COMMAND', { command: normalizedCmd });
+      } else if (activeEggCode === 'EE_TEMPORAL_1985' && (normalizedCmd === '!1985' || slashCmd === '/1985')) {
+        onTrigger('COMM_LINK_COMMAND', { command: '!1985' });
+      } else if (activeEggCode === 'EE_MATRIX_COMM_LINK' && (normalizedCmd === '!matrix' || slashCmd === '/matrix')) {
+        onTrigger('COMM_LINK_COMMAND', { command: '!matrix' });
+      } else if (activeEggCode === 'EE_ANTIGRAVITY' && (normalizedCmd === '!antigravity' || slashCmd === '/antigravity')) {
+        onTrigger('COMM_LINK_COMMAND', { command: '!antigravity' });
+      } else if (activeEggCode === 'EE_PARTY_DISCO' && (normalizedCmd === '!party' || slashCmd === '/party')) {
+        onTrigger('COMM_LINK_COMMAND', { command: '!party' });
       }
     },
     [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
@@ -177,10 +184,10 @@ export function useEasterEggTriggers({
         onTrigger('TIMELINE_WARP', { switches: eraSwitchesRef.current.length });
       } else if (
         activeTriggerType === 'COMM_LINK_COMMAND' &&
-        (triggerConfig?.command === '/1985' || activeEggCode === 'EE_TEMPORAL_1985')
+        (triggerConfig?.command === '!1985' || triggerConfig?.command === '/1985' || activeEggCode === 'EE_TEMPORAL_1985')
       ) {
         onTrigger('COMM_LINK_COMMAND', {
-          command: '/1985',
+          command: '!1985',
           source: 'era_switch_warp',
           switches: eraSwitchesRef.current.length,
         });

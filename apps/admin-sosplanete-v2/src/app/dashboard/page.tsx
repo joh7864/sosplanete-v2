@@ -185,13 +185,12 @@ export default function DashboardSummaryPage() {
             {(userRole === 'AS' || userRole === 'AM') && (
               <Link href="/dashboard/spaces/wizard">
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="px-4 py-2 flex items-center gap-2 rounded-xl bg-emerald-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none"
-                  title="Lancer l'Assistant de Création"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 flex items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all border-none cursor-pointer"
+                  title="Créer / dupliquer un espace"
                 >
                   <Plus size={18} />
-                  <span>Créer un Espace</span>
                 </motion.button>
               </Link>
             )}

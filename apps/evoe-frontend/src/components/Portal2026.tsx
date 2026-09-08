@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { useAuth } from '../context/AuthContext';
 import { PlayerAvatar } from './3d/PlayerAvatar';
 import PodiumGroup from './3d/PodiumGroup';
+import { playConstellationChimeSound } from '../utils/easterEggAudio';
 
 export function getCategoryEmoji(category: string): string {
   const cat = (category || '')
@@ -567,50 +568,249 @@ interface Portal2026Props {
   onStarClick?: (starId: number) => void;
 }
 
-function ConstellationStars({ onStarClick }: { onStarClick?: (id: number) => void }) {
-  const [clickedStars, setClickedStars] = useState<Set<number>>(new Set());
-  const starRefs = useRef<(THREE.Mesh | null)[]>([]);
+// Cache des textures de lentille stellaire (flare à croisillons lumineux)
+const starFlareTextureCache = new Map<string, THREE.CanvasTexture>();
+
+function getStarFlareTexture(color = '#ffd166'): THREE.CanvasTexture {
+  if (starFlareTextureCache.has(color)) {
+    return starFlareTextureCache.get(color)!;
+  }
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const center = size / 2;
+
+  ctx.clearRect(0, 0, size, size);
+
+  // 1. Halo radial doux
+  const radialGlow = ctx.createRadialGradient(center, center, 2, center, center, center);
+  radialGlow.addColorStop(0, '#ffffff');
+  radialGlow.addColorStop(0.18, color);
+  radialGlow.addColorStop(0.55, 'rgba(255, 209, 102, 0.18)');
+  radialGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = radialGlow;
+  ctx.fillRect(0, 0, size, size);
+
+  // 2. Croisillon / Spikes lumineux anamorphiques (étoile à 4 branches majeures + 4 mineures)
+  ctx.save();
+  ctx.translate(center, center);
+
+  const drawSpike = (length: number, width: number, col: string) => {
+    ctx.beginPath();
+    ctx.moveTo(-length, 0);
+    ctx.quadraticCurveTo(0, -width, length, 0);
+    ctx.quadraticCurveTo(0, width, -length, 0);
+    ctx.fillStyle = col;
+    ctx.fill();
+  };
+
+  // Branches cardinales principales (horizontale et verticale)
+  drawSpike(center * 0.96, 3, '#ffffff');
+  ctx.rotate(Math.PI / 2);
+  drawSpike(center * 0.96, 3, '#ffffff');
+
+  // Branches diagonales secondaires (45 degrés)
+  ctx.rotate(Math.PI / 4);
+  drawSpike(center * 0.52, 1.8, color);
+  ctx.rotate(Math.PI / 2);
+  drawSpike(center * 0.52, 1.8, color);
+
+  ctx.restore();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+  starFlareTextureCache.set(color, texture);
+  return texture;
+}
+
+/**
+ * Voûte céleste naturelle : 90 étoiles décoratives éparses dans l'espace
+ * assurant un ciel profond et riche pour que le triangle ne flotte pas artificiellement.
+ */
+function AmbientStarfield() {
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const starGeometry = useMemo(() => {
+    const count = 90;
+    const pos = new Float32Array(count * 3);
+    const col = new Float32Array(count * 3);
+    const palette = [
+      [0.95, 0.98, 1.0], // Blanc diamant pur
+      [0.55, 0.85, 1.0], // Cyan pastel
+      [1.0, 0.92, 0.7],  // Or chaud
+      [0.75, 0.8, 1.0],  // Lilas stellaire
+    ];
+
+    for (let i = 0; i < count; i++) {
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
+      const r = 13.5 + Math.random() * 4.5;
+
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = Math.abs(r * Math.sin(phi) * Math.sin(theta)) * 0.8 + 0.8; // Voûte céleste supérieure
+      const z = r * Math.cos(phi);
+
+      pos[i * 3] = x;
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = z;
+
+      const c = palette[Math.floor(Math.random() * palette.length)];
+      col[i * 3] = c[0];
+      col[i * 3 + 1] = c[1];
+      col[i * 3 + 2] = c[2];
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return geo;
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (pointsRef.current) {
+      pointsRef.current.rotation.y = clock.getElapsedTime() * 0.012;
+    }
+  });
+
+  return (
+    <points ref={pointsRef} geometry={starGeometry}>
+      <pointsMaterial
+        size={0.24}
+        vertexColors
+        transparent
+        opacity={0.68}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+/**
+ * Composant Étoile Interactive de la Constellation
+ * Dotée d'un cœur incandescent, d'un flare à croisillons orienté vers la caméra et d'effets de survol
+ */
+function PremiumConstellationStar({
+  id,
+  position,
+  isDone,
+  onClick,
+}: {
+  id: number;
+  position: [number, number, number];
+  isDone: boolean;
+  onClick: () => void;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const flareRef = useRef<THREE.Mesh>(null);
+  const texture = useMemo(() => getStarFlareTexture(isDone ? '#00ffcc' : '#ffd166'), [isDone]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
-    starRefs.current.forEach((mesh, idx) => {
-      if (mesh) {
-        const pulse = Math.sin(t * 3.2 + idx * 1.8) * 0.25 + 0.95;
-        mesh.scale.set(pulse, pulse, pulse);
-      }
-    });
+    if (groupRef.current) {
+      const pulse = Math.sin(t * 3.5 + id * 2.1) * 0.16 + 1.0;
+      groupRef.current.scale.set(pulse, pulse, pulse);
+    }
+    if (flareRef.current) {
+      flareRef.current.rotation.z = t * (isDone ? 0.8 : 0.35) + id;
+    }
   });
 
+  return (
+    <group
+      ref={groupRef}
+      position={position}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {/* Cœur stellaire incandescent */}
+      <mesh>
+        <sphereGeometry args={[0.22, 16, 16]} />
+        <meshBasicMaterial color={isDone ? '#ffffff' : '#fffbe6'} />
+      </mesh>
+
+      {/* Croisillon / Lens Flare à lueur cosmique additive orienté vers la caméra */}
+      <Billboard follow={true} raycast={() => null}>
+        <mesh ref={flareRef}>
+          <planeGeometry args={[1.5, 1.5]} />
+          <meshBasicMaterial
+            map={texture}
+            transparent={true}
+            opacity={isDone ? 0.95 : 0.78}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
+function ConstellationStars({ onStarClick }: { onStarClick?: (id: number) => void }) {
+  const [clickedStars, setClickedStars] = useState<Set<number>>(new Set());
+
+  // 1. Étoile 1 : Visible d'emblée dans le ciel 2026 sans bouger la caméra
+  // 2. Étoile 2 : Découverte en faisant pivoter la vue vers la gauche
+  // 3. Étoile 3 : Découverte en poursuivant la rotation orbitale
   const stars = [
-    { id: 1, pos: [-6.5, 8.2, -7] as [number, number, number] },
-    { id: 2, pos: [-4.2, 11.0, -7] as [number, number, number] },
-    { id: 3, pos: [-2.1, 8.6, -7] as [number, number, number] },
+    { id: 1, pos: [-2.0, 3.8, -7.0] as [number, number, number] },
+    { id: 2, pos: [-7.5, 4.4, -2.2] as [number, number, number] },
+    { id: 3, pos: [-4.2, 3.4, 6.8] as [number, number, number] },
   ];
+
+  // Lignes laser néon reliant les sommets découverts
+  const linesGeometry = useMemo(() => {
+    if (clickedStars.size < 2) return null;
+    const pts: number[] = [];
+    const starMap = new Map(stars.map(s => [s.id, s.pos]));
+    const clickedList = Array.from(clickedStars);
+    if (clickedList.length >= 2) {
+      const p1 = starMap.get(clickedList[0])!;
+      const p2 = starMap.get(clickedList[1])!;
+      pts.push(...p1, ...p2);
+    }
+    if (clickedList.length >= 3) {
+      const p2 = starMap.get(clickedList[1])!;
+      const p3 = starMap.get(clickedList[2])!;
+      const p1 = starMap.get(clickedList[0])!;
+      pts.push(...p2, ...p3);
+      pts.push(...p3, ...p1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+    return geo;
+  }, [clickedStars]);
 
   return (
     <group>
-      {stars.map((s, idx) => {
-        const isDone = clickedStars.has(s.id);
-        return (
-          <mesh
-            key={s.id}
-            ref={(el) => { starRefs.current[idx] = el; }}
-            position={s.pos}
-            onClick={(e) => {
-              e.stopPropagation();
-              setClickedStars((prev) => new Set([...prev, s.id]));
-              onStarClick?.(s.id);
-            }}
-          >
-            <sphereGeometry args={[0.22, 16, 16]} />
-            <meshBasicMaterial
-              color={isDone ? '#00ffcc' : '#ffd166'}
-              transparent
-              opacity={isDone ? 1 : 0.85}
-            />
-          </mesh>
-        );
-      })}
+      {/* Lignes de constellation dessinées progressivement */}
+      {linesGeometry && (
+        <lineSegments geometry={linesGeometry}>
+          <lineBasicMaterial color="#00ffcc" transparent opacity={0.65} linewidth={2} />
+        </lineSegments>
+      )}
+
+      {/* Les 3 étoiles interactives de la constellation */}
+      {stars.map((s) => (
+        <PremiumConstellationStar
+          key={s.id}
+          id={s.id}
+          position={s.pos}
+          isDone={clickedStars.has(s.id)}
+          onClick={() => {
+            playConstellationChimeSound();
+            setClickedStars((prev) => new Set([...prev, s.id]));
+            onStarClick?.(s.id);
+          }}
+        />
+      ))}
     </group>
   );
 }
@@ -767,6 +967,9 @@ export default function Portal2026({
 
   return (
     <group>
+      {/* Voûte Céleste Naturelle (Chantier 3.1) */}
+      <AmbientStarfield />
+
       {/* Constellation Anomaly (Easter Egg #10) */}
       <ConstellationStars onStarClick={onStarClick} />
 

@@ -291,3 +291,229 @@ export function playWheelClickSound(): void {
     console.warn('[EasterEgg Audio] Wheel click error:', err);
   }
 }
+
+/**
+ * Sons d'ambiance et effets pour les victoires "WOOOW" (Chantier 3.2)
+ */
+
+// Son 1 : Pluie de code Matrix (Flux binaire numérique rapide)
+export function playMatrixDigitalSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    for (let i = 0; i < 18; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const delay = i * 0.08 + Math.random() * 0.04;
+      const freq = 1200 + Math.random() * 2400;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.6, now + delay + 0.07);
+
+      gain.gain.setValueAtTime(0.08, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + 0.08);
+    }
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Matrix SFX error:', e);
+  }
+}
+
+// Son 2 : Rétro Synthwave 80s (Arcade power-up arpeggio)
+export function playRetroSynthwaveSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const notes = [220, 277.18, 329.63, 440, 554.37, 659.25, 880, 1108.73];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + idx * 0.06;
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, t);
+
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.2);
+    });
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Synthwave SFX error:', e);
+  }
+}
+
+// Son 3 : Apesanteur Zéro-G (Sub-bass drone + vortex ascendant)
+export function playAntigravitySound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(90, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 1.8);
+
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 2.1);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Antigravity SFX error:', e);
+  }
+}
+
+// Son 4 : Propulsion Réacteurs (Rugissement de plasma)
+export function playRocketThrusterSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const sampleCount = Math.floor(ctx.sampleRate * 2.2);
+    const buffer = ctx.createBuffer(1, sampleCount, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < sampleCount; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleCount * 0.45));
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+    filter.frequency.exponentialRampToValueAtTime(160, now + 2.0);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    source.start(now);
+    source.stop(now + 2.2);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Rocket SFX error:', e);
+  }
+}
+
+// Son 5 : Flash Temporel 1985 (Charge d'énergie supraluminique + étincelles)
+export function playTemporal1985Sound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.8);
+    osc.frequency.exponentialRampToValueAtTime(88, now + 1.8);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 2.0);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Temporal 1985 SFX error:', e);
+  }
+}
+
+// Son 6 : Disco Party (Arpège disco funky)
+export function playDiscoPartySound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const bassLine = [130.81, 164.81, 196.00, 261.63, 196.00, 164.81, 130.81, 261.63];
+    bassLine.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + idx * 0.12;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t);
+
+      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.11);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.12);
+    });
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Disco party SFX error:', e);
+  }
+}
+
+// Son 7 : Constellation Céleste (Carillon cristallin)
+export function playConstellationChimeSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const freqs = [880, 1174.66, 1396.91, 1760];
+    freqs.forEach((f, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + idx * 0.14;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t);
+
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 1.8);
+    });
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Constellation chime SFX error:', e);
+  }
+}
+
