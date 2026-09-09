@@ -566,6 +566,7 @@ interface Portal2026Props {
   onGlobeClick?: () => void;
   onCodexConsoleClick?: () => void;
   onStarClick?: (starId: number) => void;
+  customPlayersList?: any[];
 }
 
 // Cache des textures de lentille stellaire (flare à croisillons lumineux)
@@ -836,6 +837,7 @@ export default function Portal2026({
   onGlobeClick,
   onCodexConsoleClick: _onCodexConsoleClick,
   onStarClick,
+  customPlayersList,
 }: Portal2026Props) {
   const portalRef = useRef<THREE.Mesh>(null);
   const earthGroupRef = useRef<THREE.Group>(null);
@@ -845,8 +847,8 @@ export default function Portal2026({
   const { players } = useAuth();
   const { camera } = useThree();
 
-  const teamList = useMemo(() => players || [], [players]);
-  const me = teamList.find(p => p.isCurrent);
+  const me = (players || []).find((p: any) => p.isCurrent);
+  const teamList = useMemo(() => customPlayersList ?? (players || []), [customPlayersList, players]);
   const lastHealth = useRef<number | null>(null);
   const [pulseTime, setPulseTime] = useState<number | null>(null);
 
@@ -918,7 +920,7 @@ export default function Portal2026({
     const list: any[] = [];
     const addedPseudos = new Set<string>();
 
-    // 1. Ajouter les joueurs officiels du classement topPlayers
+    // 1. Ajouter les joueurs officiels du classement topPlayers uniquement s'ils sont dans teamList
     topFromDash.forEach((tp: any) => {
       const pName = (tp.pseudo || tp.name || '').toLowerCase();
       const match = teamList.find((p: any) => 
@@ -926,15 +928,17 @@ export default function Portal2026({
         (p.childId && tp.childId && Number(p.childId) === Number(tp.childId)) ||
         (p.id && tp.id && Number(p.id) === Number(tp.id))
       );
-      const merged = {
-        ...tp,
-        ...(match || {}),
-        pseudo: tp.pseudo || match?.pseudo || 'Agent',
-        color: tp.color || match?.color || '#00e8ff',
-      };
-      if (merged.pseudo && !addedPseudos.has(merged.pseudo.toLowerCase())) {
-        addedPseudos.add(merged.pseudo.toLowerCase());
-        list.push(merged);
+      if (match) {
+        const merged = {
+          ...tp,
+          ...match,
+          pseudo: tp.pseudo || match.pseudo || 'Agent',
+          color: tp.color || match.color || '#00e8ff',
+        };
+        if (merged.pseudo && !addedPseudos.has(merged.pseudo.toLowerCase())) {
+          addedPseudos.add(merged.pseudo.toLowerCase());
+          list.push(merged);
+        }
       }
     });
 

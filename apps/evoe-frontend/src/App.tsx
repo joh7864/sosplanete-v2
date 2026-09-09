@@ -15,6 +15,7 @@ import { MissionsCarousel3D } from './components/ui/MissionsCarousel3D';
 import { ChallengesCarousel3D } from './components/ui/ChallengesCarousel3D';
 import { OrbitalSectorRibbon } from './components/ui/OrbitalSectorRibbon';
 import { MissionSearchBar } from './components/ui/MissionSearchBar';
+import { PlayerFilterBar2026 } from './components/ui/PlayerFilterBar2026';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
@@ -140,6 +141,10 @@ function MainApp() {
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+
+  // Filtres Équipe & Recherche Joueur pour Dashboard 2026 & Leaderboard
+  const [selectedTeamFilter, setSelectedTeamFilter] = useState<number | string | null>(null);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
 
   // Easter Egg System
   const {
@@ -647,6 +652,37 @@ function MainApp() {
   const otherTeams = dashboardStatus?.teams?.filter((t: any) => t.id !== myTeamId) || [];
   const myTeam = dashboardStatus?.teams?.find((t: any) => t.id === myTeamId) || childInfos?.group?.team;
   const whatsappInviteUrl = childInfos?.group?.team?.whatsappInviteUrl || myTeam?.whatsappInviteUrl || childInfos?.whatsappInviteUrl || childInfos?.whatsappCommunityUrl || dashboardStatus?.whatsappCommunityUrl;
+
+  // Liste des équipes consolidées pour le sélecteur d'équipe (Dashboard 2026 & Leaderboard)
+  const allTeamsList = useMemo(() => {
+    if (dashboardStatus?.teams && dashboardStatus.teams.length > 0) {
+      return dashboardStatus.teams;
+    }
+    const map = new Map<string, any>();
+    (players || []).forEach((p: any) => {
+      if (p.teamId && !map.has(String(p.teamId))) {
+        map.set(String(p.teamId), {
+          id: p.teamId,
+          name: p.teamName || `Équipe ${p.teamId}`,
+          color: p.color || '#00ffcc',
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [dashboardStatus?.teams, players]);
+
+  // Filtrage des joueurs pour le Cercle 3D et le Leaderboard 3D
+  const filtered3DPlayers = useMemo(() => {
+    let list = players || [];
+    if (selectedTeamFilter !== null && selectedTeamFilter !== 'all') {
+      list = list.filter((p: any) => String(p.teamId) === String(selectedTeamFilter));
+    }
+    if (playerSearchQuery.trim()) {
+      const q = playerSearchQuery.trim().toLowerCase();
+      list = list.filter((p: any) => (p.pseudo || '').toLowerCase().includes(q));
+    }
+    return list;
+  }, [players, selectedTeamFilter, playerSearchQuery]);
   
   
   const availableMissionsForChallenge = missions || [];
@@ -904,6 +940,7 @@ function MainApp() {
               missionsWeekCount={impulsedMissionsCount}
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
+              customPlayersList={filtered3DPlayers}
               onSelectMissionsWeek={() => {
                 setSelectedProfileId(null);
                 setChatOpen(false);
@@ -1436,6 +1473,23 @@ function MainApp() {
             </button>
           </div>
         </header>
+
+        {/* Barre de filtrage par équipe et recherche de joueur pour le Dashboard 2026 et Leaderboard */}
+        {era === '2026' && !(selectedSector && (codexTab === 'missions' || codexTab === 'challenges') && !isCodexCollapsed) && (
+          <PlayerFilterBar2026
+            teams={allTeamsList}
+            allPlayers={players || []}
+            selectedTeamId={selectedTeamFilter}
+            onSelectTeam={setSelectedTeamFilter}
+            searchQuery={playerSearchQuery}
+            onSearchChange={setPlayerSearchQuery}
+            onSelectPlayer={(player) => {
+              setSelectedProfileId(player.childId || player.id);
+            }}
+            view={view2026}
+            isMobile={isMobile}
+          />
+        )}
 
         {/* CONTENU 2026 : Le Codex Temporel (Panel UI) */}
         {era === '2026' && selectedSector && (codexTab === 'missions' || codexTab === 'challenges') && !isCodexCollapsed ? (
