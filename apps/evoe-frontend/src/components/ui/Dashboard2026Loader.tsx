@@ -5,11 +5,13 @@ import styles from './Dashboard2026Loader.module.css';
 interface Dashboard2026LoaderProps {
   isReady: boolean;
   onComplete?: () => void;
+  currentYear?: number;
 }
 
 export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
   isReady,
   onComplete,
+  currentYear = new Date().getFullYear(),
 }) => {
   const [progress, setProgress] = useState(8);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -53,7 +55,7 @@ export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
     if (progress < 25) {
       return (
         <>
-          Établissement du <span className={styles.highlightText}>relais quantique 2026</span>...
+          Établissement du <span className={styles.highlightText}>relais quantique {currentYear}</span>...
         </>
       );
     }
@@ -74,7 +76,7 @@ export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
     if (progress < 99) {
       return (
         <>
-          Alignement orbital et <span className={styles.highlightText}>calibration de la Terre 2026</span>...
+          Alignement orbital et <span className={styles.highlightText}>calibration de la Terre {currentYear}</span>...
         </>
       );
     }
@@ -122,7 +124,7 @@ export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
         {/* Badge Lore */}
         <div className={styles.badge}>
           <div className={styles.liveIndicator} />
-          <span>RELAIS SPATIO-TEMPOREL • ÉPOQUE 2026</span>
+          <span>RELAIS SPATIO-TEMPOREL • ÉPOQUE {currentYear}</span>
         </div>
 
         {/* Titre */}

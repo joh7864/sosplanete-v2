@@ -37,7 +37,7 @@ const DEFAULT_STEPS: OnboardingStep[] = [
     title: '🌍 La Passerelle & Les Secteurs Écologiques',
     targetId: 'sector-orb-guide',
     position: 'bottom',
-    explanation: "Voici la Terre en 2026 entourée de ses orbes cristallines de secteurs écologiques (Eau, Énergie, Biodiversité, Recyclage...). Cliquez sur un orbe 3D pour ouvrir ses éco-missions."
+    explanation: `Voici la Terre en ${new Date().getFullYear()} entourée de ses orbes cristallines de secteurs écologiques (Eau, Énergie, Biodiversité, Recyclage...). Cliquez sur un orbe 3D pour ouvrir ses éco-missions.`
   },
   {
     id: 3,

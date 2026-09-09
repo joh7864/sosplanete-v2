@@ -480,6 +480,18 @@ function MainApp() {
   const { user, childInfos, pseudo, missions, logoutUser, instanceChoices, players, instanceId } = useAuth();
   const currentUserId = childInfos?.id || childInfos?.childId || pseudo || user || 'default_agent';
 
+  // Année active du Dashboard calculée dynamiquement (schoolYear ou année civile courante)
+  const currentYear = useMemo(() => {
+    const sy = childInfos?.schoolYear || childInfos?.group?.team?.instanceYear?.schoolYear || dashboardStatus?.schoolYear;
+    if (sy && typeof sy === 'string') {
+      const parts = sy.split('-');
+      if (parts.length === 2 && !isNaN(Number(parts[1]))) {
+        return Number(parts[1]);
+      }
+    }
+    return new Date().getFullYear();
+  }, [childInfos, dashboardStatus]);
+
   const isDashboard2026Ready = Boolean(
     !isEvoeDataLoading &&
     dashboardStatus &&
@@ -556,10 +568,10 @@ function MainApp() {
 
   // ---- Messages Oracle Terrestre ----
   const EARTH_ORACLE_MESSAGES: Record<number, string> = {
-    1: "La Terre de 2070 est silencieuse... Les archives des Agents Temporels ont été retrouvées dans les ruines. Leur courage a laissé une trace. Mais le temps manque encore. Revenez à 2026 — chaque action compte.",
-    2: "Les premiers signes de vie réapparaissent sur la Terre de 2070. Des forêts timides, de l’eau plus pure. La mission avance. Mais les Agents ont encore le pouvoir d’écrire la suite. Chaque geste en 2026 résonne ici.",
-    3: "La Terre de 2070 reprend son souffle. Les rivières coulent à nouveau, les villes verdissent. Les Agents de 2026 ont changé le cours du temps. Continuez — le futur vous entend.",
-    4: "En 2070, la Terre respire. Vos actions à 2026 ont réécrit notre avenir. Les écosystèmes se reconstituent, la biodiversité revient. Vous avez accompli ce que beaucoup croyaient impossible.",
+    1: `La Terre de 2070 est silencieuse... Les archives des Agents Temporels ont été retrouvées dans les ruines. Leur courage a laissé une trace. Mais le temps manque encore. Revenez à ${currentYear} — chaque action compte.`,
+    2: `Les premiers signes de vie réapparaissent sur la Terre de 2070. Des forêts timides, de l’eau plus pure. La mission avance. Mais les Agents ont encore le pouvoir d’écrire la suite. Chaque geste en ${currentYear} résonne ici.`,
+    3: `La Terre de 2070 reprend son souffle. Les rivières coulent à nouveau, les villes verdissent. Les Agents de ${currentYear} ont changé le cours du temps. Continuez — le futur vous entend.`,
+    4: `En 2070, la Terre respire. Vos actions à ${currentYear} ont réécrit notre avenir. Les écosystèmes se reconstituent, la biodiversité revient. Vous avez accompli ce que beaucoup croyaient impossible.`,
     5: "La vie a triomphé sur la Terre de 2070. Les Archives des Agents Temporels sont gravées dans l’histoire de l’humanité. Vous avez sauvé notre futur. Le voyage se termine ici — en victoire.",
   };
 
@@ -830,11 +842,12 @@ function MainApp() {
       {/* Glitch Écran Temporel */}
       {isGlitching && <div className="screen-glitch" />}
 
-      {/* Écran de Chargement Haute Définition / Barre de progression Dashboard 2026 */}
+      {/* Écran de Chargement Haute Définition / Barre de progression Dashboard */}
       <AnimatePresence>
         {era === '2026' && !loader2026Dismissed && (
           <Dashboard2026Loader
             isReady={isDashboard2026Ready}
+            currentYear={currentYear}
             onComplete={() => setLoader2026Dismissed(true)}
           />
         )}
@@ -1253,13 +1266,13 @@ function MainApp() {
 
             {/* BARRE DE GAUCHE : BOUTONS FONCTIONNELS DE JEU */}
 
-            {/* Switch Ère 2026/2070 (Icônes identiques au mobile) */}
+            {/* Switch Ère (Icônes identiques au mobile) */}
             <button
               id="hud-epoch-switch"
               className="switch-btn desktop-only" 
               onClick={handleSwitchEra} 
               disabled={isTransitioning}
-              title={era === '2026' ? 'Voyager vers le Radar 2070' : 'Retourner au QG 2026'}
+              title={era === '2026' ? 'Voyager vers le Radar 2070' : `Retourner au QG ${currentYear}`}
               style={{
                 width: '40px',
                 height: '40px',
@@ -2102,7 +2115,7 @@ function MainApp() {
                         <div className="metric-info">
                           <span className="metric-label">Bouclier Cryo-Arctique</span>
                           <span className="metric-value">{fmtMass(extrapolation.iceSavedKg || 0)} ❄️</span>
-                          <span className="metric-sub" style={{ color: '#10b981' }}>({fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} de CO₂ évités en 2026)</span>
+                          <span className="metric-sub" style={{ color: '#10b981' }}>({fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} de CO₂ évités en {currentYear})</span>
                         </div>
                       </div>
 
@@ -2113,12 +2126,12 @@ function MainApp() {
                           {(extrapolation.forestFootballFields || 0) >= 1 ? (
                             <>
                               <span className="metric-value">{(extrapolation.forestFootballFields || 0).toFixed(1)} zones 🍀</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.forestFootballFields || 0).toFixed(1)} terrains de foot préservés en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.forestFootballFields || 0).toFixed(1)} terrains de foot préservés en {currentYear})</span>
                             </>
                           ) : (
                             <>
                               <span className="metric-value">{fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} CO₂</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(absorbés par la biomasse végétale en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(absorbés par la biomasse végétale en {currentYear})</span>
                             </>
                           )}
                         </div>
@@ -2131,12 +2144,12 @@ function MainApp() {
                           {(extrapolation.waterOlympicPools || 0) >= 1 ? (
                             <>
                               <span className="metric-value">{(extrapolation.waterOlympicPools || 0).toFixed(1)} cuves 🧪</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.waterOlympicPools || 0).toFixed(1)} piscines olympiques préservées en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.waterOlympicPools || 0).toFixed(1)} piscines olympiques préservées en {currentYear})</span>
                             </>
                           ) : (
                             <>
                               <span className="metric-value">{fmtVolume(extrapolation.waterRealLitres || 0)}</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(d'eau potable épargnée en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(d'eau potable épargnée en {currentYear})</span>
                             </>
                           )}
                         </div>
@@ -2149,12 +2162,12 @@ function MainApp() {
                           {(extrapolation.wasteGarbageTrucks || 0) >= 1 ? (
                             <>
                               <span className="metric-value">{(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} conteneurs 🔋</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} camions-poubelles évités en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} camions-poubelles évités en {currentYear})</span>
                             </>
                           ) : (
                             <>
                               <span className="metric-value">{fmtMass(extrapolation.wasteRealKg || 0)}</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(de résidus non produits en 2026)</span>
+                              <span className="metric-sub" style={{ color: '#10b981' }}>(de résidus non produits en {currentYear})</span>
                             </>
                           )}
                         </div>
@@ -2688,7 +2701,7 @@ function MainApp() {
             className="fab-button"
             onClick={handleSwitchEra}
             disabled={isTransitioning}
-            title={era === '2026' ? 'Voyager vers 2070' : 'Retourner en 2026'}
+            title={era === '2026' ? 'Voyager vers 2070' : `Retourner en ${currentYear}`}
             style={{
               background: era === '2026' 
                 ? 'linear-gradient(135deg, #00b3ff, #0055ff)' 

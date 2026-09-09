@@ -42,7 +42,7 @@ export default function Login() {
         <div className="login-header">
           <Hexagon className="icon-neon" size={48} />
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <h1 style={{ margin: 0 }}>EVOE 2026</h1>
+            <h1 style={{ margin: 0 }}>EVOE {new Date().getFullYear()}</h1>
             <span style={{ fontSize: '0.75rem', color: '#00ffcc', opacity: 0.8, fontFamily: 'monospace', marginTop: '2px', letterSpacing: '0.05em' }}>
               v{pkg.version}
             </span>
