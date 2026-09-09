@@ -202,7 +202,6 @@ interface PodiumGroupProps {
   players: any[];
   childInfos: any;
   setSelectedProfileId: (id: number | null) => void;
-  setShowLeaderboardModal: (show: boolean) => void;
   visible: boolean;
 }
 
@@ -210,7 +209,6 @@ export default function PodiumGroup({
   players,
   childInfos,
   setSelectedProfileId,
-  setShowLeaderboardModal,
   visible,
 }: PodiumGroupProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -234,7 +232,6 @@ export default function PodiumGroup({
     const profileId = p?.childId || p?.id;
     if (profileId) {
       setSelectedProfileId(profileId);
-      setShowLeaderboardModal(false);
     }
   };
 

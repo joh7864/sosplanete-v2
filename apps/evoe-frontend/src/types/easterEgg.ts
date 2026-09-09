@@ -83,6 +83,8 @@ export interface ActiveEasterEggResponse {
     isMaxWinningReached: boolean;
     winningTeamsCount: number;
     maxWinningTeams: number;
+    hasChronoEgg?: boolean;
+    hasRosettaStone?: boolean;
     discoveredPlayers: DiscoveredPlayer[];
   };
 }
@@ -111,3 +113,31 @@ export interface DetectiveLeaderboardResponse {
   topDetectives: TopDetective[];
   teamsRanking: TeamDetectiveRanking[];
 }
+
+export interface ChronoCycleItem {
+  cycleId?: number;
+  cycleIndex: number;
+  periodStartId: number;
+  periodEndId: number;
+  startDate: string;
+  endDate: string;
+  isCurrentCycle: boolean;
+  isPast: boolean;
+  isFuture: boolean;
+  isLocked: boolean;
+  hasEgg: boolean;
+  eggTitle?: string;
+  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE' | string;
+  totalEggs: number;
+  solvedEggs: number;
+  ratio: number;
+  glyphIndex: number;
+  glyphLetter?: string;
+  isCompleted: boolean;
+  canReplay: boolean;
+  // Alias de rétro-compatibilité
+  periodId?: number;
+  periodIndex?: number;
+  isCurrentPeriod?: boolean;
+}
+

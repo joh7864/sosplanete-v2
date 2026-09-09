@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe } from 'lucide-react';
+import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -117,7 +117,6 @@ function MainApp() {
     isSubmittingChallenge,
     cancelMissionConfirm, setCancelMissionConfirm,
     showNoPeriodModal, setShowNoPeriodModal,
-    showLeaderboardModal, setShowLeaderboardModal,
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
     isStealthMode, toggleStealthMode,
@@ -267,14 +266,12 @@ function MainApp() {
     setView2026('codex');
     setChatOpen(false);
     setSelectedProfileId(null);
-    setShowLeaderboardModal(false);
   };
 
 
   // Callback pour basculer automatiquement les onglets pendant la visite guidée (11 étapes)
   const handleNavigateGuideStep = (stepIndex: number) => {
     setSelectedProfileId(null);
-    setShowLeaderboardModal(false);
 
     if (stepIndex === 0) { // Étape 1: Bienvenue & Profil Agent
       if (era !== '2026') handleSwitchEra();
@@ -785,7 +782,6 @@ function MainApp() {
                   return;
                 }
                 setSelectedProfileId(null);
-                setShowLeaderboardModal(false);
                 setChatOpen(false);
                 setCodexTab('challenges');
                 setIsCodexCollapsed(false);
@@ -801,7 +797,6 @@ function MainApp() {
                   return;
                 }
                 setSelectedProfileId(null);
-                setShowLeaderboardModal(false);
                 setChatOpen(false);
                 setCodexTab('challenges');
                 setIsCodexCollapsed(false);
@@ -823,7 +818,6 @@ function MainApp() {
               onToggleStealth={toggleStealthMode}
               onSelectMissionsWeek={() => {
                 setSelectedProfileId(null);
-                setShowLeaderboardModal(false);
                 setChatOpen(false);
                 setShowMissionsWeekModal(true);
               }}
@@ -982,39 +976,39 @@ function MainApp() {
                   />
                 )}
 
-                {/* Bouton Accès Chrono-Egg si débloqué */}
-                {childInfos && activeEggData?.teamProgress?.hasChronoEgg && (
+                {/* Bouton Accès Chrono-Egg si débloqué (Bouton Icône avec Tooltip) */}
+                {childInfos && (activeEggData?.metaEnigma?.hasChronoEgg || activeEggData?.teamProgress?.hasChronoEgg) && (
                   <button
                     type="button"
                     onClick={handleOpenChronoEgg}
-                    title="Chrono-Egg 2070 (Archives Temporelles)"
+                    title="Chrono-Egg : Archives Temporelles 2070 (Méta-Énigme)"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25))',
-                      border: '1px solid rgba(168, 85, 247, 0.5)',
-                      borderRadius: '9999px',
-                      color: '#c084fc',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
+                      justifyContent: 'center',
+                      width: '32px',
+                      height: '32px',
+                      padding: 0,
+                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.35))',
+                      border: '1.5px solid rgba(168, 85, 247, 0.65)',
+                      borderRadius: '50%',
+                      color: '#e9d5ff',
                       cursor: 'pointer',
-                      boxShadow: '0 0 12px rgba(168, 85, 247, 0.35)',
+                      boxShadow: '0 0 12px rgba(168, 85, 247, 0.45)',
                       transition: 'all 0.2s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 0 18px rgba(168, 85, 247, 0.6)';
+                      e.currentTarget.style.transform = 'scale(1.12)';
+                      e.currentTarget.style.boxShadow = '0 0 20px rgba(168, 85, 247, 0.85)';
+                      e.currentTarget.style.borderColor = '#c084fc';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.35)';
+                      e.currentTarget.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.45)';
+                      e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.65)';
                     }}
                   >
-                    <Sparkles size={12} className="animate-spin" style={{ animationDuration: '6s' }} />
-                    <span>CHRONO-EGG</span>
+                    <Sparkles size={16} />
                   </button>
                 )}
               </div>
@@ -2274,7 +2268,7 @@ function MainApp() {
             </div>
 
             {/* Carrousel de contrôle mobile en 2070 */}
-            {isMobile && !selectedSector && !chatOpen && !selectedProfileId && !showLeaderboardModal && !showExtrapolation && !showRadar && (
+            {isMobile && !selectedSector && !chatOpen && !selectedProfileId && !showExtrapolation && !showRadar && (
               <MobileContextCarousel
                 extrapolation={extrapolation}
                 dashboardStatus={dashboardStatus}
@@ -2485,7 +2479,7 @@ function MainApp() {
       <ChronoEggModal
         isOpen={showChronoEggModal}
         onClose={() => setShowChronoEggModal(false)}
-        hasRosettaStone={!!activeEggData?.teamProgress?.hasRosettaStone}
+        hasRosettaStone={!!(activeEggData?.metaEnigma?.hasRosettaStone || activeEggData?.teamProgress?.hasRosettaStone)}
         isMetaEnigmaUnlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
         periods={chronoPeriods}
         loading={chronoLoading}
@@ -2546,10 +2540,9 @@ function MainApp() {
       {/* Mobile Bottom Navbar (Axe 3) */}
       <nav className="mobile-bottom-nav">
         <button 
-          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'missions' && !selectedProfileId && !showLeaderboardModal ? 'active' : ''}`}
+          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'missions' && !selectedProfileId ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
-            setShowLeaderboardModal(false);
             setChatOpen(false);
             setCodexTab('missions');
             setIsCodexCollapsed(false); // Force expand the Codex panel
@@ -2570,10 +2563,9 @@ function MainApp() {
         </button>
 
         <button 
-          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'challenges' && !selectedProfileId && !showLeaderboardModal ? 'active' : ''}`}
+          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'challenges' && !selectedProfileId ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
-            setShowLeaderboardModal(false);
             setChatOpen(false);
             setCodexTab('challenges');
             setIsCodexCollapsed(false); // Force expand the Codex panel
@@ -2657,7 +2649,6 @@ function MainApp() {
           className={`nav-item ${chatOpen ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
-            setShowLeaderboardModal(false);
             setChatOpen(!chatOpen);
           }}
         >

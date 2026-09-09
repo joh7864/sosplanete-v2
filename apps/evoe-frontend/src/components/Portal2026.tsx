@@ -1023,7 +1023,6 @@ export default function Portal2026({
               }
             }
           }}
-          setShowLeaderboardModal={() => {}}
           visible={true}
         />
         {view === 'leaderboard' && (

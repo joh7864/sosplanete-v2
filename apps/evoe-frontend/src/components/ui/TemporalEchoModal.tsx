@@ -437,33 +437,102 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-md overflow-y-auto">
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(3, 7, 18, 0.88)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          zIndex: 20000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          boxSizing: 'border-box',
+          pointerEvents: 'auto',
+        }}
+        onClick={onClose}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-5xl bg-slate-900 border border-emerald-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] text-slate-100"
+          onClick={(e) => e.stopPropagation()}
           style={{
-            boxShadow: '0 0 60px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            position: 'relative',
+            width: '100%',
+            maxWidth: '1020px',
+            maxHeight: '92vh',
+            background: 'linear-gradient(175deg, rgba(15, 23, 42, 0.98) 0%, rgba(6, 12, 24, 0.99) 100%)',
+            border: '1.5px solid rgba(16, 185, 129, 0.4)',
+            borderRadius: '24px',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(16, 185, 129, 0.2)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            color: '#f1f5f9',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            boxSizing: 'border-box',
           }}
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+          <div
+            style={{
+              padding: '16px 24px',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(6, 78, 59, 0.25), rgba(15, 23, 42, 0.95))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  border: '1px solid rgba(16, 185, 129, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#6ee7b7',
+                }}
+              >
                 <Sparkles size={20} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-white">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#ffffff', letterSpacing: '0.03em', margin: 0 }}>
                     Vision 2050 : L'Écho des Décisions
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider border border-emerald-500/30">
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                      color: '#6ee7b7',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                    }}
+                  >
                     Photoréaliste
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
                   Déplacez le curseur central pour mesurer l'impact concret de vos missions sur l'avenir
                 </p>
               </div>
@@ -472,14 +541,44 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                color: '#94a3b8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                e.currentTarget.style.color = '#94a3b8';
+              }}
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Sélecteur des 5 Thèmes */}
-          <div className="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div
+            style={{
+              padding: '10px 24px',
+              backgroundColor: 'rgba(3, 7, 18, 0.6)',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              overflowX: 'auto',
+            }}
+          >
             {(Object.keys(THEME_SCENARIOS) as EcoThemeId[]).map((themeKey) => {
               const th = THEME_SCENARIOS[themeKey];
               const Icon = th.icon;
@@ -489,11 +588,21 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
                   key={themeKey}
                   type="button"
                   onClick={() => setActiveTheme(themeKey)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-xs'
-                      : 'bg-slate-800/60 border border-slate-700/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                  }`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s',
+                    backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(30, 41, 59, 0.6)',
+                    border: isSelected ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    color: isSelected ? '#6ee7b7' : '#94a3b8',
+                  }}
                 >
                   <Icon size={14} />
                   <span>{th.label}</span>
@@ -503,7 +612,17 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
           </div>
 
           {/* Zone du Slider Avant / Après Interactif */}
-          <div className="p-4 sm:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
+          <div
+            style={{
+              padding: '20px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              flex: 1,
+              overflowY: 'auto',
+              boxSizing: 'border-box',
+            }}
+          >
             <div
               ref={containerRef}
               onMouseDown={handleMouseDown}
@@ -511,13 +630,42 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
               onMouseMove={handleMouseMove}
               onTouchMove={handleTouchMove}
               onClick={(e) => handleMove(e.clientX)}
-              className="relative w-full h-72 sm:h-96 rounded-2xl overflow-hidden cursor-ew-resize select-none border border-slate-700/80 shadow-inner"
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '340px',
+                borderRadius: '18px',
+                overflow: 'hidden',
+                cursor: 'ew-resize',
+                userSelect: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: 'inset 0 0 20px rgba(0,0,0,0.6)',
+              }}
             >
               {/* Image / Scène "APRÈS" (en dessous, visible à droite du slider) */}
-              <div className="absolute inset-0 w-full h-full">
+              <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
                 {scenario.after.visualElements}
                 {/* Badge Côté Droit */}
-                <div className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-black flex items-center gap-1.5 backdrop-blur-sm shadow-md">
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    zIndex: 10,
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(6, 78, 59, 0.85)',
+                    border: '1px solid rgba(16, 185, 129, 0.5)',
+                    color: '#6ee7b7',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                  }}
+                >
                   <CheckCircle2 size={14} />
                   <span>{scenario.after.tag}</span>
                 </div>
@@ -525,14 +673,38 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
 
               {/* Image / Scène "AVANT" (au-dessus, découpée à la largeur du slider) */}
               <div
-                className="absolute inset-0 h-full overflow-hidden"
-                style={{ width: `${sliderPosition}%` }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  height: '100%',
+                  overflow: 'hidden',
+                  width: `${sliderPosition}%`,
+                }}
               >
-                <div className="absolute inset-0 w-full h-full" style={{ width: containerRef.current?.offsetWidth || '100%' }}>
+                <div style={{ position: 'absolute', inset: 0, width: containerRef.current?.offsetWidth || '100%', height: '100%' }}>
                   {scenario.before.visualElements}
                 </div>
                 {/* Badge Côté Gauche */}
-                <div className="absolute top-4 left-4 z-10 px-3 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500/40 text-rose-300 text-xs font-black flex items-center gap-1.5 backdrop-blur-sm shadow-md">
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    left: '16px',
+                    zIndex: 10,
+                    padding: '6px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(136, 19, 55, 0.85)',
+                    border: '1px solid rgba(244, 63, 94, 0.5)',
+                    color: '#fda4af',
+                    fontSize: '0.75rem',
+                    fontWeight: 900,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                  }}
+                >
                   <AlertTriangle size={14} />
                   <span>{scenario.before.tag}</span>
                 </div>
@@ -540,51 +712,112 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
 
               {/* Ligne de séparation & Poignée du Slider */}
               <div
-                className="absolute top-0 bottom-0 z-20 pointer-events-none"
-                style={{ left: `${sliderPosition}%` }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  zIndex: 20,
+                  pointerEvents: 'none',
+                  left: `${sliderPosition}%`,
+                }}
               >
                 {/* Trait lumineux vertical */}
-                <div className="w-0.5 h-full bg-white shadow-[0_0_10px_#ffffff]" />
+                <div style={{ width: '2px', height: '100%', backgroundColor: '#ffffff', boxShadow: '0 0 10px #ffffff' }} />
 
                 {/* Poignée centrale néon */}
-                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-xl border-2 border-slate-900 pointer-events-auto">
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 20px rgba(0,0,0,0.7), 0 0 10px #ffffff',
+                    border: '2px solid #0f172a',
+                    pointerEvents: 'auto',
+                  }}
+                >
                   <ArrowLeftRight size={15} />
                 </div>
               </div>
             </div>
 
             {/* Fiche Pédagogique Synthétique */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-900/40 space-y-1">
-                <div className="text-[11px] font-black uppercase text-rose-400">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '14px',
+                paddingTop: '6px',
+              }}
+            >
+              <div
+                style={{
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(136, 19, 55, 0.25)',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: '#fb7185' }}>
                   {scenario.before.title}
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.5' }}>
                   {scenario.before.description}
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-900/40 space-y-1">
-                <div className="text-[11px] font-black uppercase text-emerald-400">
+              <div
+                style={{
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(6, 78, 59, 0.25)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', color: '#6ee7b7' }}>
                   {scenario.after.title}
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p style={{ margin: 0, fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.5' }}>
                   {scenario.after.description}
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-col justify-between space-y-2">
+              <div
+                style={{
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>
                     Bilan Pédagogique 2050
                   </div>
-                  <div className="text-xs font-bold text-slate-200 mt-1">
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f1f5f9', marginTop: '4px' }}>
                     {scenario.keyImpact}
                   </div>
                 </div>
-                <div className="pt-2 border-t border-slate-700 flex items-center justify-between">
-                  <span className="text-xs text-slate-400">{scenario.metricLabel} :</span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">
+                <div style={{ paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{scenario.metricLabel} :</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#6ee7b7', fontFamily: 'monospace' }}>
                     {scenario.metricValue}
                   </span>
                 </div>
@@ -593,14 +826,37 @@ export const TemporalEchoModal: React.FC<TemporalEchoModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+          <div
+            style={{
+              padding: '16px 24px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'rgba(10, 15, 30, 0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.78rem',
+              color: '#94a3b8',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
             <span>
               La réalisation de vos missions quotidiennes oriente directement l'aiguille du destin.
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all cursor-pointer"
+              style={{
+                padding: '8px 20px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
             >
               Compris
             </button>

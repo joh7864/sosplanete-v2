@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, MessageSquare, X, Users, Award } from 'lucide-react';
+import { Trophy, Sparkles, MessageSquare, X } from 'lucide-react';
 import { playUnlockCadenasSound, playConstellationChimeSound } from '../../utils/easterEggAudio';
 
 interface VictoryData {

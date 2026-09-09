@@ -47,7 +47,6 @@ export function useEvoeData() {
   // States pour le modal de confirmation d'annulation
   const [cancelMissionConfirm, setCancelMissionConfirm] = useState<{ actionDoneId: number; label: string } | null>(null);
 
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
 
   // Toggle paysages
@@ -318,7 +317,6 @@ export function useEvoeData() {
     isSubmittingChallenge,
     cancelMissionConfirm, setCancelMissionConfirm,
     showNoPeriodModal, setShowNoPeriodModal,
-    showLeaderboardModal, setShowLeaderboardModal,
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
     isStealthMode, setIsStealthMode, toggleStealthMode,

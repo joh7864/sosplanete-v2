@@ -761,6 +761,8 @@ export class EasterEggService implements OnModuleInit {
         isMaxWinningReached,
         winningTeamsCount,
         maxWinningTeams,
+        hasChronoEgg: !!team.hasChronoEgg,
+        hasRosettaStone: !!team.hasRosettaStone,
         discoveredPlayers: teamDiscoveries.map(d => ({
           childId: d.child.id,
           pseudo: d.child.pseudo,
@@ -1952,101 +1954,170 @@ export class EasterEggService implements OnModuleInit {
   }
 
   /**
-   * Récupère l'historique complet de la saison pour le Chrono-Egg
+   * Récupère l'historique complet de la saison pour le Chrono-Egg, découpé en Cycles de 2 semaines
    */
   async getChronoEggArchive(childId: number) {
     const { child: _child, team, instanceYear, periods, currentPeriodIndex } =
       await this.getPlayerContext(childId);
 
     const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
-    const secretWord = instanceYear.metaEnigmaSecretWord || 'CHRONOS';
+    const secretWord = (instanceYear.metaEnigmaSecretWord || 'CHRONOS').trim().toUpperCase();
 
-    const elapsedPeriods = periods.slice(0, currentPeriodIndex);
     const teamChildren = team.groups.flatMap((g: any) => g.children);
     const teamChildIds = teamChildren.map((c: any) => c.id);
 
-    const archive = await Promise.all(
-      elapsedPeriods.map(async (period, idx) => {
-        const pIndex = idx + 1;
-        const cycleIdx = Math.floor((pIndex - 1) / frequency);
-        const cycleStart = cycleIdx * frequency;
-        const cycleEnd = Math.min(periods.length - 1, cycleStart + frequency - 1);
-        const cyclePeriodIds = periods.slice(cycleStart, cycleEnd + 1).map((p) => p.id);
+    // Nombre total de cycles pour la saison (ex: 46 périodes / 2 = 23 cycles)
+    const totalCycles = Math.ceil(periods.length / frequency);
+    // Index du cycle en cours (1-indexed)
+    const currentCycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency) + 1;
 
-        const instances = await this.prisma.evoeEasterEggInstance.findMany({
-          where: {
-            instanceYearId: instanceYear.id,
-            OR: [
-              { periodStartId: period.id },
-              { periodEndId: period.id },
-              { periodStartId: { in: cyclePeriodIds } },
-            ],
-          },
-          include: { easterEgg: true },
-        });
+    // Récupération de tous les Easter Eggs actifs classés par orderIndex (11 à 13 énigmes existantes)
+    const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
+      where: { isActive: true },
+      orderBy: { orderIndex: 'asc' },
+    });
 
-        let eggIds: number[] = [];
-        if (instances.length > 0) {
-          eggIds = instances
-            .filter((i) => i.easterEgg && i.easterEgg.isActive)
-            .map((i) => i.easterEggId);
+    // Cycles sans Easter Egg (pauses temporelles / cycles neutres sans énigme)
+    const defaultEmptyCycles = new Set([4, 8, 14, 19]);
+
+    // Mapping séquentiel des énigmes du catalogue pour les cycles avec énigmes
+    let eggCatalogCursor = 0;
+    const cycleEggMapping: Record<number, number[]> = {};
+    for (let cIdx = 1; cIdx <= totalCycles; cIdx++) {
+      if (!defaultEmptyCycles.has(cIdx)) {
+        if (activeCatalog.length > 0) {
+          cycleEggMapping[cIdx] = [activeCatalog[eggCatalogCursor % activeCatalog.length].id];
+          eggCatalogCursor++;
+        }
+      } else {
+        cycleEggMapping[cIdx] = [];
+      }
+    }
+
+    const cycles = [];
+
+    for (let cIdx = 1; cIdx <= totalCycles; cIdx++) {
+      const startPIndex = (cIdx - 1) * frequency;
+      const endPIndex = Math.min(periods.length - 1, startPIndex + frequency - 1);
+      const cyclePeriods = periods.slice(startPIndex, endPIndex + 1);
+      const cyclePeriodIds = cyclePeriods.map((p) => p.id);
+      const periodStart = cyclePeriods[0] || periods[0];
+      const periodEnd = cyclePeriods[cyclePeriods.length - 1] || periods[periods.length - 1];
+
+      const isCurrentCycle = cIdx === currentCycleIndex;
+      const isPast = cIdx < currentCycleIndex;
+      const isFuture = cIdx > currentCycleIndex;
+
+      // Vérifier les instances programmées par l'AM pour ce cycle
+      const explicitInstances = await this.prisma.evoeEasterEggInstance.findMany({
+        where: {
+          instanceYearId: instanceYear.id,
+          OR: [
+            { periodStartId: { in: cyclePeriodIds } },
+            { periodEndId: { in: cyclePeriodIds } },
+          ],
+        },
+        include: { easterEgg: true },
+      });
+
+      let eggIds: number[] = [];
+      let hasEgg = false;
+
+      if (explicitInstances.length > 0) {
+        const activeInst = explicitInstances.filter(
+          (i) => !i.isClosed && i.easterEgg && i.easterEgg.isActive,
+        );
+        if (activeInst.length > 0) {
+          hasEgg = true;
+          eggIds = activeInst.map((i) => i.easterEggId);
         } else {
-          const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
-            where: { isActive: true },
-            orderBy: { orderIndex: 'asc' },
-          });
-          if (activeCatalog.length > 0) {
-            const egg = activeCatalog[cycleIdx % activeCatalog.length];
-            if (egg) eggIds = [egg.id];
-          }
+          // Instances explicitement clôturées = cycle sans énigme
+          hasEgg = false;
+          eggIds = [];
         }
-
-        const totalEggs = Math.max(1, eggIds.length);
-
-        let solvedEggs = 0;
-        if (eggIds.length > 0) {
-          const solvedDistinct = await this.prisma.evoeEasterEggPlayerProgress.findMany({
-            where: {
-              easterEggId: { in: eggIds },
-              childId: { in: teamChildIds },
-              discoveredAt: { not: null },
-            },
-            distinct: ['easterEggId'],
-          });
-          solvedEggs = solvedDistinct.length;
+      } else {
+        // Distribution par défaut
+        if (!defaultEmptyCycles.has(cIdx) && cycleEggMapping[cIdx]?.length > 0) {
+          hasEgg = true;
+          eggIds = cycleEggMapping[cIdx];
+        } else {
+          hasEgg = false;
+          eggIds = [];
         }
+      }
 
-        const isCurrentPeriod = pIndex === currentPeriodIndex;
-        const glyphLetter = secretWord[(pIndex - 1) % secretWord.length] || '?';
+      const totalEggs = hasEgg ? Math.max(1, eggIds.length) : 0;
+      let solvedEggs = 0;
 
-        return {
-          periodId: period.id,
-          periodIndex: pIndex,
-          startDate: period.startDate,
-          endDate: period.endDate,
-          isCurrentPeriod,
-          totalEggs,
-          solvedEggs,
-          ratio: totalEggs > 0 ? solvedEggs / totalEggs : 0,
-          glyphIndex: (pIndex - 1) % 12,
-          glyphLetter,
-          isCompleted: solvedEggs >= totalEggs && totalEggs > 0,
-          canReplay: solvedEggs < totalEggs,
-        };
-      }),
-    );
+      if (hasEgg && eggIds.length > 0) {
+        const solvedDistinct = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+          where: {
+            easterEggId: { in: eggIds },
+            childId: { in: teamChildIds },
+            discoveredAt: { not: null },
+          },
+          distinct: ['easterEggId'],
+        });
+        solvedEggs = solvedDistinct.length;
+      }
+
+      const isCompleted = hasEgg && solvedEggs >= totalEggs && totalEggs > 0;
+      const canReplay = isPast && hasEgg && !isCompleted;
+
+      const glyphIndex = (cIdx - 1) % 12;
+
+      let eggTitle = '';
+      let specialReward = 'NONE';
+      // Règle : quand un cycle est futur/verrouillé, masquer l'énigme et la récompense spéciale
+      if (!isFuture && hasEgg && eggIds[0]) {
+        const eggObj = activeCatalog.find((e) => e.id === eggIds[0]);
+        if (eggObj) {
+          eggTitle = eggObj.title;
+          specialReward = eggObj.specialReward || 'NONE';
+        }
+      }
+
+      cycles.push({
+        cycleId: cIdx,
+        cycleIndex: cIdx,
+        periodStartId: periodStart.id,
+        periodEndId: periodEnd.id,
+        startDate: periodStart.startDate,
+        endDate: periodEnd.endDate,
+        isCurrentCycle,
+        isPast,
+        isFuture,
+        isLocked: isFuture,
+        hasEgg,
+        eggTitle,
+        specialReward,
+        totalEggs,
+        solvedEggs,
+        ratio: totalEggs > 0 ? solvedEggs / totalEggs : 0,
+        glyphIndex,
+        isCompleted,
+        canReplay,
+        // Rétro-compatibilité avec les champs attendus par l'UI
+        periodId: periodStart.id,
+        periodIndex: cIdx,
+        isCurrentPeriod: isCurrentCycle,
+      });
+    }
 
     return {
       hasChronoEgg: !!team.hasChronoEgg,
       hasRosettaStone: !!team.hasRosettaStone,
       isMetaEnigmaUnlocked: !!team.isMetaEnigmaUnlocked,
       secretWordLength: secretWord.length,
-      periods: archive,
+      totalCycles,
+      currentCycleIndex,
+      cycles,
+      periods: cycles, // Rétro-compatibilité
     };
   }
 
   /**
-   * Permet le "Rattrapage Temporel" pour une période passée
+   * Permet le "Rattrapage Temporel" pour un cycle passé
    */
   async reopenPeriodEgg(childId: number, periodId: number) {
     const { child, team, instanceYear, periods } = await this.getPlayerContext(childId);
@@ -2054,15 +2125,36 @@ export class EasterEggService implements OnModuleInit {
       throw new BadRequestException("Vous devez posséder l'outil Chrono-Egg pour relancer une archive.");
     }
 
-    const targetPeriod = periods.find((p) => p.id === periodId);
-    if (!targetPeriod) {
+    const pIdx = periods.findIndex((p) => p.id === periodId);
+    if (pIdx === -1) {
       throw new NotFoundException('Période introuvable.');
     }
+
+    const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+    const targetCycleIndex = Math.floor(pIdx / frequency) + 1;
+    const defaultEmptyCycles = new Set([4, 8, 14, 19]);
+
+    if (defaultEmptyCycles.has(targetCycleIndex)) {
+      throw new BadRequestException('Ce cycle temporel ne comporte aucun Easter Egg.');
+    }
+
+    const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
+      where: { isActive: true },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    const startPIndex = (targetCycleIndex - 1) * frequency;
+    const endPIndex = Math.min(periods.length - 1, startPIndex + frequency - 1);
+    const cyclePeriods = periods.slice(startPIndex, endPIndex + 1);
+    const cyclePeriodIds = cyclePeriods.map((p) => p.id);
 
     const instances = await this.prisma.evoeEasterEggInstance.findMany({
       where: {
         instanceYearId: instanceYear.id,
-        OR: [{ periodStartId: periodId }, { periodEndId: periodId }],
+        OR: [
+          { periodStartId: { in: cyclePeriodIds } },
+          { periodEndId: { in: cyclePeriodIds } },
+        ],
       },
       include: { easterEgg: true },
     });
@@ -2070,12 +2162,12 @@ export class EasterEggService implements OnModuleInit {
     let candidateEgg: EvoeEasterEgg | null = null;
     if (instances.length > 0) {
       for (const inst of instances) {
-        if (inst.easterEgg && inst.easterEgg.isActive) {
+        if (inst.easterEgg && inst.easterEgg.isActive && !inst.isClosed) {
           const solved = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
             where: {
               easterEggId: inst.easterEggId,
               childId: child.id,
-              periodId,
+              periodId: { in: cyclePeriodIds },
               discoveredAt: { not: null },
             },
           });
@@ -2089,25 +2181,28 @@ export class EasterEggService implements OnModuleInit {
         candidateEgg = instances[0].easterEgg;
       }
     } else {
-      const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
-        where: { isActive: true },
-        orderBy: { orderIndex: 'asc' },
-      });
-      const pIdx = periods.findIndex((p) => p.id === periodId);
-      const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
-      const cycleIdx = Math.floor(Math.max(0, pIdx) / frequency);
-      candidateEgg = activeCatalog[cycleIdx % activeCatalog.length] || activeCatalog[0];
+      let eggCatalogCursor = 0;
+      for (let c = 1; c <= targetCycleIndex; c++) {
+        if (!defaultEmptyCycles.has(c)) {
+          if (c === targetCycleIndex) {
+            candidateEgg = activeCatalog[eggCatalogCursor % activeCatalog.length];
+            break;
+          }
+          eggCatalogCursor++;
+        }
+      }
     }
 
     if (!candidateEgg) {
-      throw new NotFoundException('Aucune énigme trouvée pour cette période.');
+      throw new NotFoundException('Aucune énigme trouvée pour ce cycle.');
     }
 
     return {
       periodId,
-      periodIndex: periods.findIndex((p) => p.id === periodId) + 1,
+      cycleIndex: targetCycleIndex,
       easterEgg: candidateEgg,
       isReplayMode: true,
+      success: true,
     };
   }
 
