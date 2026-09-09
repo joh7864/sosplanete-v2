@@ -42,6 +42,7 @@ export interface DiscoveredPlayer {
 export interface ActiveEasterEggResponse {
   enabled: boolean;
   hasActiveEgg?: boolean;
+  isReplayMode?: boolean;
   message?: string;
   easterEgg?: EasterEggItem;
   multiEggProgress?: {
@@ -68,7 +69,7 @@ export interface ActiveEasterEggResponse {
     isDiscovered: boolean;
     firstInteractionAt?: string | null;
     discoveredAt: string | null;
-    resolutionTimeSeconds: number | null;
+    resolutionTimeSeconds?: number | null;
   };
   teamProgress?: {
     teamId: number;

@@ -16,12 +16,14 @@ import {
 
 export interface SubmitAnswerDto {
   easterEggId: number;
+  periodId?: number;
   answer: string;
   resolutionTimeSeconds?: number;
 }
 
 export interface ValidateTriggerDto {
   easterEggId: number;
+  periodId?: number;
   triggerType: EasterEggTriggerType;
   resolutionTimeSeconds?: number;
   metadata?: any;
@@ -958,11 +960,13 @@ export class EasterEggService implements OnModuleInit {
       };
     }
 
+    const effectivePeriodId = dto.periodId || (currentPeriod ? currentPeriod.id : 0);
+
     return this.processPlayerDiscovery(
       child,
       team,
       instanceYear,
-      currentPeriod ? currentPeriod.id : 0,
+      effectivePeriodId,
       egg,
       submitted,
       dto.resolutionTimeSeconds,
@@ -985,11 +989,13 @@ export class EasterEggService implements OnModuleInit {
       throw new BadRequestException('Déclencheur non conforme à cette énigme');
     }
 
+    const effectivePeriodId = dto.periodId || (currentPeriod ? currentPeriod.id : 0);
+
     return this.processPlayerDiscovery(
       child,
       team,
       instanceYear,
-      currentPeriod ? currentPeriod.id : 0,
+      effectivePeriodId,
       egg,
       JSON.stringify(dto.metadata || {}),
       dto.resolutionTimeSeconds,
@@ -2197,12 +2203,102 @@ export class EasterEggService implements OnModuleInit {
       throw new NotFoundException('Aucune énigme trouvée pour ce cycle.');
     }
 
+    const playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+      where: {
+        easterEggId: candidateEgg.id,
+        childId: child.id,
+        periodId: { in: cyclePeriodIds },
+        discoveredAt: { not: null },
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    const teamChildren = team.groups.flatMap((g: any) => g.children);
+    const teamChildIds = teamChildren.map((c: any) => c.id);
+
+    const teamDiscoveries = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+      where: {
+        easterEggId: candidateEgg.id,
+        periodId: { in: cyclePeriodIds },
+        childId: { in: teamChildIds },
+        discoveredAt: { not: null },
+      },
+      include: {
+        child: {
+          select: { id: true, pseudo: true, avatar: true },
+        },
+      },
+    });
+
+    const teamReward = await this.prisma.evoeEasterEggTeamReward.findFirst({
+      where: {
+        easterEggId: candidateEgg.id,
+        teamId: team.id,
+        periodId: { in: cyclePeriodIds },
+      },
+    });
+
+    const requiredPlayers = Math.max(1, instanceYear.easterEggRequiredPlayers || 2);
+
     return {
       periodId,
       cycleIndex: targetCycleIndex,
       easterEgg: candidateEgg,
       isReplayMode: true,
       success: true,
+      activeEggData: {
+        enabled: true,
+        hasActiveEgg: true,
+        isReplayMode: true,
+        easterEgg: {
+          id: candidateEgg.id,
+          code: candidateEgg.code,
+          title: candidateEgg.title,
+          senderLore: candidateEgg.senderLore,
+          crypticMessage: candidateEgg.crypticMessage,
+          explicitHint: candidateEgg.explicitHint,
+          isExplicitHintVisible: true,
+          isInteractable: true,
+          clues: candidateEgg.clues,
+          imageUrl: candidateEgg.imageUrl,
+          triggerType: candidateEgg.triggerType,
+          triggerConfig: candidateEgg.triggerConfig,
+          complexity: candidateEgg.complexity,
+          rewardPointsIT: candidateEgg.rewardPointsIT,
+          specialReward: candidateEgg.specialReward,
+          orderIndex: candidateEgg.orderIndex,
+        },
+        period: {
+          id: periodId,
+          periodIndex: pIdx + 1,
+          cycleIndex: targetCycleIndex,
+          frequency,
+        },
+        playerProgress: {
+          isDiscovered: !!playerProgress?.discoveredAt,
+          firstInteractionAt: playerProgress?.firstInteractionAt || new Date().toISOString(),
+          discoveredAt: playerProgress?.discoveredAt || null,
+        },
+        teamProgress: {
+          teamDiscoveriesCount: teamDiscoveries.length,
+          requiredPlayers,
+          isTeamRewarded: !!teamReward,
+          teamRewardPoints: candidateEgg.rewardPointsIT,
+          discoveredPlayers: teamDiscoveries.map((d: any) => ({
+            childId: d.child.id,
+            pseudo: d.child.pseudo,
+            avatar: d.child.avatar,
+            discoveredAt: d.discoveredAt,
+          })),
+        },
+        metaEnigma: {
+          hasChronoEgg: !!team.hasChronoEgg,
+          hasRosettaStone: !!team.hasRosettaStone,
+          isMetaEnigmaUnlocked: !!team.isMetaEnigmaUnlocked,
+          secretWordLength: (instanceYear.metaEnigmaSecretWord || 'CHRONOS').trim().length,
+          periodGlyphIndex: (targetCycleIndex - 1) % 12,
+        },
+      },
     };
   }
 

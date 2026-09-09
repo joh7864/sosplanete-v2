@@ -92,12 +92,29 @@ export function useEasterEgg() {
           `${EVOE_API_URL}/easter-eggs/verify-answer`,
           {
             easterEggId: activeEggData.easterEgg.id,
+            periodId: activeEggData.period?.id,
             answer,
             resolutionTimeSeconds,
           },
           { headers: getHeaders() },
         );
-        await fetchActiveEgg();
+        if (res.data?.success) {
+          setActiveEggData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  playerProgress: {
+                    ...prev.playerProgress,
+                    isDiscovered: true,
+                    discoveredAt: new Date().toISOString(),
+                  },
+                }
+              : prev,
+          );
+          if (!activeEggData.isReplayMode) {
+            await fetchActiveEgg();
+          }
+        }
         return res.data;
       } catch (err: any) {
         return {
@@ -121,13 +138,30 @@ export function useEasterEgg() {
           `${EVOE_API_URL}/easter-eggs/validate-trigger`,
           {
             easterEggId: activeEggData.easterEgg.id,
+            periodId: activeEggData.period?.id,
             triggerType,
             metadata,
             resolutionTimeSeconds,
           },
           { headers: getHeaders() },
         );
-        await fetchActiveEgg();
+        if (res.data?.success) {
+          setActiveEggData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  playerProgress: {
+                    ...prev.playerProgress,
+                    isDiscovered: true,
+                    discoveredAt: new Date().toISOString(),
+                  },
+                }
+              : prev,
+          );
+          if (!activeEggData.isReplayMode) {
+            await fetchActiveEgg();
+          }
+        }
         return res.data;
       } catch (err: any) {
         return {
@@ -190,12 +224,20 @@ export function useEasterEgg() {
           { periodId },
           { headers: getHeaders() },
         );
+        if (res.data?.success && res.data?.activeEggData) {
+          setActiveEggData(res.data.activeEggData);
+          if (childInfos && res.data.activeEggData.easterEgg) {
+            const seenKey = `evoe_seen_egg_${childInfos.id}_${res.data.activeEggData.easterEgg.id}`;
+            localStorage.setItem(seenKey, 'true');
+            setHasSeenEnigma(true);
+          }
+        }
         return res.data;
       } catch (err: any) {
         throw new Error(err?.response?.data?.message || 'Erreur réouverture énigme');
       }
     },
-    [getHeaders],
+    [childInfos, getHeaders],
   );
 
   const submitMetaEnigmaCode = useCallback(

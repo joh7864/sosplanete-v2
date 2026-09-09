@@ -183,9 +183,9 @@ function MainApp() {
   const handleReplayPeriod = async (periodId: number) => {
     try {
       const res = await reopenPeriodEgg(periodId);
-      if (res.success) {
+      if (res?.success) {
         setShowChronoEggModal(false);
-        await fetchActiveEgg();
+        // Ne pas appeler fetchActiveEgg() ici pour conserver l'énigme du cycle sélectionné
         setShowMascotBubble(true);
       }
     } catch (err: any) {
@@ -966,11 +966,13 @@ function MainApp() {
                       if (!activeEggData?.easterEgg?.isInteractable) return;
                       markEnigmaAsSeen();
                       setShowMascotBubble(true);
-                      if (!activeEggData?.playerProgress?.firstInteractionAt) {
-                        await interactWithEgg();
-                        await fetchActiveEgg();
-                      } else {
-                        await fetchActiveEgg();
+                      if (!activeEggData?.isReplayMode) {
+                        if (!activeEggData?.playerProgress?.firstInteractionAt) {
+                          await interactWithEgg();
+                          await fetchActiveEgg();
+                        } else {
+                          await fetchActiveEgg();
+                        }
                       }
                     }}
                   />
