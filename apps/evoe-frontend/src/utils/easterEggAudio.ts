@@ -517,3 +517,105 @@ export function playConstellationChimeSound(): void {
   }
 }
 
+/**
+ * Son rétro 8-bit pour chaque étape validée du Konami Code
+ */
+export function playKonamiStepSound(stepIndex: number): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const baseFreq = 380 + Math.min(stepIndex, 10) * 55;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.08);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.1);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Konami step sound error:', e);
+  }
+}
+
+/**
+ * Son d'erreur / échec de la séquence Konami
+ */
+export function playKonamiErrorSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.linearRampToValueAtTime(110, now + 0.18);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Konami error sound error:', e);
+  }
+}
+
+/**
+ * Son de succès complet du Konami Code (Fanfare 8-bit NES rétro)
+ */
+export function playKonamiSuccessSound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const notes = [
+      { freq: 440, delay: 0 },
+      { freq: 554.37, delay: 0.08 },
+      { freq: 659.25, delay: 0.16 },
+      { freq: 880, delay: 0.24 },
+      { freq: 1108.73, delay: 0.36 },
+      { freq: 1318.51, delay: 0.48 },
+    ];
+
+    notes.forEach((n) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t = now + n.delay;
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(n.freq, t);
+
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    });
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Konami victory sound error:', e);
+  }
+}
+

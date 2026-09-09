@@ -1,6 +1,6 @@
 # 🕵️ Plan d'Implémentation Complet : Easter Eggs SF "Sherlock 2070" (Zéro Modale)
 
-> **Dernière mise à jour :** 06 Septembre 2026  
+> **Dernière mise à jour :** 09 Septembre 2026  
 > **Arbitrage Clé :** ZÉRO MODALE. Toute l'expérience repose sur l'interaction avec le **micro-œuf du HUD**, les apparitions de la **Mascotte 3D (Groot sur hoverboard)**, et le **Comm-Link**.
 
 ---
@@ -78,9 +78,10 @@ graph TD
 | **4. Système de Déclencheurs (11 Triggers)** | ✅ Terminé | **100%** | `useEasterEggTriggers.ts`, `Portal2026.tsx`, `ChatPanel.tsx` |
 | **5. Minuteur du 2ème Indice & Reclic Œuf** | ✅ Terminé | **100%** | Reclic joueur, timer masqué, 2ème indice non spoil, Comm-Link branché |
 | **6. Effets Visuels & Ciel d'Étoiles 3D** | ✅ Terminé | **100%** | Voûte céleste 3D, triangle d'exploration, overlays WOOOW personnalisés |
-| **7. Leaderboard Détectives (dans Leaderboard)** | 🔴 À Faire | **20%** | Endpoint backend OK, **Onglet à ajouter dans `LeaderboardModal.tsx`** |
-| **8. Administration & Cockpit AM** | ✅ Terminé | **100%** | Page dédiée AM, éditeur catalogue DnD, cockpit temps réel |
-| **9. Temps Réel (Sockets & Comm-Link)** | 🟡 En cours | **60%** | Pré-remplissage Comm-Link OK, notifications Sockets équipe à finaliser |
+| **7. Leaderboard Détectives (dans Leaderboard)** | ✅ Terminé | **100%** | Onglet dédié dans `LeaderboardModal.tsx`, Top 3 & classement inter-équipes |
+| **8. Administration & Cockpit AM** | ✅ Terminé | **100%** | Éditeur catalogue DnD, cockpit temps réel, gestion des instances |
+| **9. Réinitialisation & Import/Export AM** | ✅ Terminé | **100%** | Reset unitaire/sélection/global, Export/Import JSON 22 champs, modale dédiée |
+| **10. Machine à Écrire Déterministe** | ✅ Terminé | **100%** | Slicing déterministe `currentMessage.slice(0, i)` dans `MascotBubble3D.tsx` |
 
 ---
 
@@ -176,3 +177,20 @@ graph TD
     - Bannière dorée plein écran pour tous les membres de l'équipe :  
       `"🏆 Victoire Temporelle ! +60 Points IT remportés par l'équipe [Nom Équipe] !"`
     - Émission de la propulsion du vaisseau de l'équipe sur le Radar 2070.
+
+---
+
+### Chantier 6 : Outils AM & Robustesse Texte Mascotte
+
+- [x] **6.1. Réinitialisation des Easter Eggs par l'AM (comme non résolus)** :
+  - **Par Easter Egg individuel** : Bouton `RotateCcw` sur chaque carte du catalogue et dans le cockpit en direct.
+  - **Par sélection groupée** : Cases à cocher multi-sélection + bouton « Réinitialiser la sélection (N) ».
+  - **Générale (tous les œufs)** : Bouton « Tout réinitialiser » avec dialogue de confirmation solennel.
+  - **Backend** : `POST /evoe/easter-eggs/admin/reset-progress` (supprime les découvertes et récompenses sans toucher au paramétrage du catalogue).
+- [x] **6.2. Export & Import du Catalogue d'Easter Eggs (JSON)** :
+  - **Export JSON** : Téléchargement en un clic de `easter-eggs-catalog-[date].json` avec l'intégralité des 22 caractéristiques.
+  - **Import JSON** : Modale dédiée `EasterEggImportModal.tsx` avec glisser-déposer, aperçu du nombre d'énigmes et choix du mode (`upsert` pour enrichir/mettre à jour ou `replace` pour écraser).
+  - **Backend** : `GET /evoe/easter-eggs/admin/catalog/export` et `POST /evoe/easter-eggs/admin/catalog/import`.
+- [x] **6.3. Correction Déterministe de la Machine à Écrire (`MascotBubble3D.tsx`)** :
+  - Remplacement de l'accumulation relative `prev + charAt(i)` par un slicing préfixe déterministe `currentMessage.slice(0, i)`.
+  - Élimination définitive des lettres avalées, dédoublées ou triplées.

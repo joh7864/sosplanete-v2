@@ -56,7 +56,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     if (code === 'EE_LOGO_ROCKET' || trigger === 'LOGO_HOLD') return 'rocket';
     if (code === 'EE_TEMPORAL_1985' || trigger === 'TIMELINE_WARP' || code.includes('1985')) return 'temporal1985';
     if (code === 'EE_PARTY_DISCO' || code.includes('PARTY')) return 'disco';
-    if (code === 'EE_CADENAS_4CH_ARCHE' || trigger === 'CODE_INPUT') return 'cadenas';
+    if (code === 'EE_CADENAS_4CH_ARCHE' || trigger === 'RIDDLE_ANSWER_INPUT' || trigger === 'CODE_INPUT') return 'cadenas';
     if (code === 'EE_CONSTELLATION_3D' || trigger === 'SCREEN_EDGE') return 'constellation';
     return 'celestial';
   })();
@@ -77,9 +77,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     }, cardDelay);
 
     // Audio dédié
-    if (effectType === 'cadenas' || effectType === 'celestial') {
+    if (effectType === 'cadenas') {
       playUnlockCadenasSound();
-    } else if (effectType === 'constellation') {
+    } else if (effectType === 'constellation' || effectType === 'celestial') {
       playConstellationChimeSound();
     }
 

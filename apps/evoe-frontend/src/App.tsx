@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,6 +35,7 @@ import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
 import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
+import { KonamiArcadeHUD } from './components/ui/KonamiArcadeHUD';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
@@ -149,6 +150,7 @@ function MainApp() {
     verifyAnswer: verifyEasterEggAnswer,
     interactWithEgg,
     fetchActiveEgg,
+    exitReplayMode,
     validateTrigger,
     fetchChronoEggArchive,
     reopenPeriodEgg,
@@ -213,6 +215,9 @@ function MainApp() {
   };
 
   const {
+    konamiHUD,
+    handleKonamiButtonPress,
+    handleCloseKonamiHUD,
     handleLogoMouseDown,
     handleLogoMouseUpOrLeave,
     handleGlobeClick,
@@ -227,6 +232,76 @@ function MainApp() {
     activeEggCode: activeEggData?.easterEgg?.code,
     onTrigger: handleEasterEggTrigger,
   });
+
+  const handleVerifyCommand = useCallback(
+    async (commandStr: string): Promise<{ success: boolean; message?: string }> => {
+      const raw = (commandStr || '').trim().toLowerCase();
+      if (!raw) return { success: false, message: 'Veuillez saisir une commande ou un mot-clé.' };
+
+      const cleanCmd = raw.replace(/^[!/]+/, '').trim();
+      const currentTriggerType = activeEggData?.easterEgg?.triggerType;
+      const currentEggCode = activeEggData?.easterEgg?.code;
+
+      // 1. Cas Konami Code (alternative textuelle pour mobile/desktop)
+      if (
+        (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') &&
+        (currentTriggerType === 'KONAMI_CODE' || currentEggCode === 'EE_KONAMI_80S')
+      ) {
+        const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' });
+        if (result.success) {
+          const freshEgg = await fetchActiveEgg(true);
+          setShowEggCelebration(true);
+          setChatActiveTab('team');
+          if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
+            setPrefilledChatText("Victoire ! Notre équipe a décodé le secret Konami Arcade et remporté les points IT ! 🎉");
+          } else {
+            setPrefilledChatText("J'ai décodé le secret Konami Arcade ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀");
+          }
+          return { success: true };
+        }
+        return { success: false, message: result.message || 'Validation échouée pour le code Konami.' };
+      }
+
+      // 2. Cas Commande Comm-Link / Mot-clé
+      const expectedConfig = ((activeEggData?.easterEgg?.triggerConfig as any)?.command || '').trim().toLowerCase().replace(/^[!/]+/, '');
+      const expectedAnswer = ((activeEggData?.easterEgg as any)?.expectedAnswer || '').trim().toLowerCase().replace(/^[!/]+/, '');
+
+      const isMatch =
+        (expectedConfig && cleanCmd === expectedConfig) ||
+        (expectedAnswer && cleanCmd === expectedAnswer) ||
+        (currentEggCode === 'EE_TEMPORAL_1985' && cleanCmd === '1985') ||
+        (currentEggCode === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') ||
+        (currentEggCode === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') ||
+        (currentEggCode === 'EE_PARTY_DISCO' && cleanCmd === 'party') ||
+        (!expectedConfig && !expectedAnswer);
+
+      if (!isMatch) {
+        return {
+          success: false,
+          message: 'Mot-clé ou commande non reconnu. Croisez attentivement vos indices.',
+        };
+      }
+
+      const result = await validateTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}`, source: 'bubble_input' });
+      if (result.success) {
+        const freshEgg = await fetchActiveEgg(true);
+        setShowEggCelebration(true);
+        setChatActiveTab('team');
+        if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
+          setPrefilledChatText(`Victoire ! Notre équipe a validé l'ordre "${cleanCmd.toUpperCase()}" et remporté les points IT ! 🎉`);
+        } else {
+          setPrefilledChatText(`J'ai découvert l'ordre "${cleanCmd.toUpperCase()}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
+        }
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        message: result.message || 'Erreur lors de la validation du protocole.',
+      };
+    },
+    [activeEggData, validateTrigger, fetchActiveEgg, setChatActiveTab, setPrefilledChatText, setShowEggCelebration],
+  );
 
   const handleSwitchEra = () => {
     handleEraSwitch();
@@ -2418,6 +2493,16 @@ function MainApp() {
         )}
       </AnimatePresence>
 
+      {/* HUD RÉTRO ARCADE KONAMI (TOUCHES CLAVIER & SWIPES MOBILE & RETOUR VISUEL) */}
+      <KonamiArcadeHUD
+        isVisible={konamiHUD.isVisible}
+        stepIndex={konamiHUD.stepIndex}
+        isError={konamiHUD.isError}
+        showMobileButtons={konamiHUD.showMobileButtons}
+        onMobileButtonPress={handleKonamiButtonPress}
+        onClose={handleCloseKonamiHUD}
+      />
+
       {/* MASCOTTE 3D (EASTER EGG) */}
       {activeEggData?.easterEgg && (
         <MascotBubble3D
@@ -2433,15 +2518,21 @@ function MainApp() {
           rewardPointsIT={activeEggData.easterEgg.rewardPointsIT}
           mascotDurationSeconds={activeEggData.easterEgg.mascotDurationSeconds || 45}
           multiEggProgress={activeEggData.multiEggProgress}
+          isReplayMode={!!activeEggData.isReplayMode}
+          replayedCycleIndex={activeEggData.period?.cycleIndex}
+          onExitReplay={exitReplayMode}
           onVerifyAnswer={verifyEasterEggAnswer}
+          onVerifyCommand={handleVerifyCommand}
+          onReplayVictoryAnimation={() => setShowEggCelebration(true)}
           onSuccess={async () => {
-            const freshEgg = await fetchActiveEgg();
+            const freshEgg = await fetchActiveEgg(true);
             setShowEggCelebration(true);
             setChatActiveTab('team');
+            const title = activeEggData?.easterEgg?.title || 'Easter Egg 2070';
             if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-              setPrefilledChatText("Victoire ! Notre équipe a validé l'Easter Egg du Cadenas 2070 et remporté les points IT ! 🎉");
+              setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
             } else {
-              setPrefilledChatText("J'ai trouvé la solution du Cadenas 2070 ! Venez vite valider votre code pour débloquer les points IT de l'équipe ! 🚀");
+              setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
             }
           }}
           onOpenCommLink={() => {
@@ -2494,6 +2585,8 @@ function MainApp() {
       <RosettaStoneModal
         isOpen={showRosettaStoneModal}
         onClose={() => setShowRosettaStoneModal(false)}
+        periods={chronoPeriods}
+        onResolvePeriod={handleReplayPeriod}
         onOpenTerminal={() => {
           setShowRosettaStoneModal(false);
           setShowTerminalModal(true);

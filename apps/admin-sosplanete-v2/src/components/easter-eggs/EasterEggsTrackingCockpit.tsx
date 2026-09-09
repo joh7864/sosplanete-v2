@@ -20,6 +20,7 @@ import {
   Calendar,
   Check,
   Plus,
+  RotateCcw,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -32,6 +33,7 @@ import {
   fetchAdminLeaderboard,
   closeInstanceEgg,
   forceInstanceHint,
+  resetAdminEggProgress,
 } from '@/utils/easterEggApi';
 import { ManualActivationModal } from './ManualActivationModal';
 
@@ -103,6 +105,8 @@ export function EasterEggsTrackingCockpit({
   const [manualModalMode, setManualModalMode] = useState<'replace' | 'add'>('replace');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showForceHintConfirm, setShowForceHintConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [targetResetEgg, setTargetResetEgg] = useState<{ id: number; title: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const loadTracking = async (showSpinner = true, targetEggId?: number) => {
@@ -186,6 +190,31 @@ export function EasterEggsTrackingCockpit({
       setActionLoading(false);
       setShowForceHintConfirm(false);
       setTargetActionEggId(null);
+    }
+  };
+
+  const handleResetEggInCockpit = async () => {
+    if (!targetResetEgg) return;
+    setActionLoading(true);
+    try {
+      await resetAdminEggProgress({
+        easterEggIds: [targetResetEgg.id],
+        instanceYearId,
+      });
+      setFeedback({
+        type: 'success',
+        message: `Progression de "${targetResetEgg.title}" réinitialisée avec succès (comme si non résolue).`,
+      });
+      loadTracking(true);
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Erreur lors de la réinitialisation.',
+      });
+    } finally {
+      setActionLoading(false);
+      setShowResetConfirm(false);
+      setTargetResetEgg(null);
     }
   };
 
@@ -506,6 +535,20 @@ export function EasterEggsTrackingCockpit({
                           }}
                         >
                           <Eye size={15} />
+                        </IconButtonWithTooltip>
+
+                        {/* Bouton-icône RotateCcw : Réinitialiser la progression */}
+                        <IconButtonWithTooltip
+                          tooltip="Réinitialiser la progression (comme non résolu)"
+                          tooltipPosition="top"
+                          variant="amber"
+                          size="sm"
+                          onClick={() => {
+                            setTargetResetEgg({ id: pEgg.eggId, title: pEgg.title });
+                            setShowResetConfirm(true);
+                          }}
+                        >
+                          <RotateCcw size={15} />
                         </IconButtonWithTooltip>
 
                         {/* Bouton-icône StopCircle : Clôturer cet Easter Egg */}
@@ -1150,6 +1193,21 @@ export function EasterEggsTrackingCockpit({
         title="Forcer le 2ème Indice immédiatement ?"
         description="Le délai du minuteur sera court-circuité : tous les élèves de l'établissement verront immédiatement le 2ème indice explicite dans la bulle de la mascotte."
         confirmLabel="Forcer l'indice"
+        cancelLabel="Annuler"
+        variant="warning"
+      />
+
+      {/* Confirmation Réinitialisation en direct */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        onClose={() => {
+          setShowResetConfirm(false);
+          setTargetResetEgg(null);
+        }}
+        onConfirm={handleResetEggInCockpit}
+        title="Réinitialiser cette énigme en direct ?"
+        description={`Voulez-vous réinitialiser la progression de "${targetResetEgg?.title}" pour cette instance ? Les découvertes individuelles et récompenses d'équipe associées seront effacées (comme si elle n'avait jamais été résolue).`}
+        confirmLabel="Réinitialiser l'énigme"
         cancelLabel="Annuler"
         variant="warning"
       />

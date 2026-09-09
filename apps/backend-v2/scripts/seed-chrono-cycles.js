@@ -70,12 +70,11 @@ async function main() {
     }
   }
 
-  // S'assurer que l'équipe Feu a bien le Chrono-Egg et la Pierre de Rosette pour tester tous les affichages
+  // S'assurer que l'équipe Feu a bien le Chrono-Egg pour tester la chrono-frise
   await prisma.team.update({
     where: { id: hubert.group.team.id },
     data: {
       hasChronoEgg: true,
-      hasRosettaStone: true,
     },
   });
 

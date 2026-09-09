@@ -366,4 +366,42 @@ export async function fetchActionRefs(): Promise<ActionRefSummary[]> {
   return resp.json();
 }
 
+export async function resetAdminEggProgress(params: {
+  easterEggIds?: number[];
+  all?: boolean;
+  instanceYearId?: number;
+}): Promise<any> {
+  const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/reset-progress`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(params),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `Erreur réinitialisation progression (${resp.status})`);
+  }
+  return resp.json();
+}
+
+export async function exportAdminCatalog(): Promise<any[]> {
+  const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/catalog/export`, {
+    headers: getHeaders(),
+  });
+  if (!resp.ok) throw new Error(`Erreur export catalogue (${resp.status})`);
+  return resp.json();
+}
+
+export async function importAdminCatalog(items: any[], mode: 'upsert' | 'replace' = 'upsert'): Promise<any> {
+  const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/catalog/import`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ items, mode }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `Erreur import catalogue (${resp.status})`);
+  }
+  return resp.json();
+}
+
 

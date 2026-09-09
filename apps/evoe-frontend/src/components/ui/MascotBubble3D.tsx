@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw } from 'lucide-react';
+import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw, Terminal, Gamepad2, Trophy } from 'lucide-react';
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
 import LockVideoWowAnimation from './LockVideoWowAnimation';
@@ -27,7 +27,12 @@ interface MascotBubble3DProps {
     solved: number;
     currentIndex: number;
   };
+  isReplayMode?: boolean;
+  replayedCycleIndex?: number;
+  onExitReplay?: () => void;
   onVerifyAnswer?: (answer: string) => Promise<{ success: boolean; message?: string }>;
+  onVerifyCommand?: (command: string) => Promise<{ success: boolean; message?: string }>;
+  onReplayVictoryAnimation?: () => void;
   onSuccess?: () => void;
   onOpenCommLink?: () => void;
 }
@@ -44,23 +49,31 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   isDiscovered = false,
   rewardPointsIT = 60,
   mascotImageUrl = '/images/robot-mascot.png',
-  mascotDurationSeconds = 45,
+  mascotDurationSeconds: _mascotDurationSeconds = 60,
   multiEggProgress,
+  isReplayMode = false,
+  replayedCycleIndex,
+  onExitReplay,
   onVerifyAnswer,
+  onVerifyCommand,
+  onReplayVictoryAnimation,
   onSuccess,
   onOpenCommLink,
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const [digits, setDigits] = useState<string[]>(['', '', '', '']);
+  const [commandInput, setCommandInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerifyingCommand, setIsVerifyingCommand] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showErrorShake, setShowErrorShake] = useState(false);
   const [localSuccess, setLocalSuccess] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
-  const [isInteracting, setIsInteracting] = useState(false);
   const [isCryptexActive, setIsCryptexActive] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const initialDuration = 60;
+  const [timeLeft, setTimeLeft] = useState(initialDuration);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -69,9 +82,18 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     useRef<HTMLInputElement>(null),
   ];
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   const currentMessage =
     (showExplicitHint && explicitHint ? explicitHint : crypticMessage) ||
     "Transmission prioritaire 2070 : Décodez l'anomalie temporelle...";
+
+  const resetTimer = useCallback(() => {
+    setTimeLeft(initialDuration);
+  }, [initialDuration]);
 
   // Typewriter effect
   useEffect(() => {
@@ -79,12 +101,13 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       setDisplayedText('');
       setIsTypingComplete(false);
       setDigits(['', '', '', '']);
+      setCommandInput('');
       setErrorMessage(null);
       setLocalSuccess(false);
       setShowLightbox(false);
-      setIsInteracting(false);
       setIsCryptexActive(false);
       setActiveTooltip(null);
+      setTimeLeft(initialDuration);
       return;
     }
 
@@ -96,35 +119,46 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     setIsTypingComplete(false);
 
     const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + currentMessage.charAt(i));
       i++;
       if (i >= currentMessage.length) {
-        clearInterval(interval);
+        setDisplayedText(currentMessage);
         setIsTypingComplete(true);
+        clearInterval(interval);
+      } else {
+        setDisplayedText(currentMessage.slice(0, i));
       }
     }, 28);
 
     return () => clearInterval(interval);
-  }, [isOpen, currentMessage]);
+  }, [isOpen, currentMessage, initialDuration]);
 
-  // Auto-close countdown (only if not actively typing or looking at lightbox)
+  // Compte à rebours de 60 secondes, réinitialisé à chaque frappe/interaction
   useEffect(() => {
-    if (!isOpen || isInteracting || showLightbox || localSuccess) return;
+    if (!isOpen || showLightbox || localSuccess) return;
 
-    const timer = setTimeout(() => {
-      onClose();
-    }, mascotDurationSeconds * 1000);
+    setTimeLeft(initialDuration);
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          onCloseRef.current();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => clearTimeout(timer);
-  }, [isOpen, isInteracting, showLightbox, localSuccess, mascotDurationSeconds, onClose]);
+    return () => clearInterval(interval);
+  }, [isOpen, showLightbox, localSuccess, initialDuration]);
 
   const handleSkipTyping = () => {
+    resetTimer();
     setDisplayedText(currentMessage);
     setIsTypingComplete(true);
   };
 
   const handleDigitChange = (index: number, val: string) => {
-    setIsInteracting(true);
+    resetTimer();
     setErrorMessage(null);
 
     // Filter only numeric characters
@@ -160,7 +194,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    setIsInteracting(true);
+    resetTimer();
     if (e.key === 'Backspace' && !digits[index] && index > 0) {
       inputRefs[index - 1]?.current?.focus();
     } else if (e.key === 'Enter') {
@@ -169,6 +203,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   };
 
   const handleSubmitAnswer = async () => {
+    resetTimer();
     const answer = digits.join('');
     if (answer.length < 4) {
       setErrorMessage('Veuillez saisir les 4 chiffres du code.');
@@ -195,6 +230,40 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       triggerShake();
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleCommandSubmit = async () => {
+    const raw = commandInput.trim();
+    if (!raw) return;
+
+    resetTimer();
+    setErrorMessage(null);
+
+    if (!onVerifyCommand) {
+      setErrorMessage('Validation non disponible pour cette énigme');
+      triggerShake();
+      return;
+    }
+
+    try {
+      setIsVerifyingCommand(true);
+      const res = await onVerifyCommand(raw);
+      if (res.success) {
+        setLocalSuccess(true);
+        if (triggerType === 'RIDDLE_ANSWER_INPUT') {
+          setIsCryptexActive(true);
+        }
+        onSuccess?.();
+      } else {
+        setErrorMessage(res.message || 'Mot-clé ou commande non reconnu.');
+        triggerShake();
+      }
+    } catch {
+      setErrorMessage('Erreur lors de la validation.');
+      triggerShake();
+    } finally {
+      setIsVerifyingCommand(false);
     }
   };
 
@@ -272,7 +341,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
               <motion.div
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsInteracting(true);
+                  resetTimer();
                 }}
                 style={{
                   background: '#ffffff',
@@ -344,6 +413,46 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     >
                       {title}
                     </h4>
+                    {isReplayMode && (
+                      <span
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.15)',
+                          color: '#b45309',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        ⏳ Rattrapage Cycle {replayedCycleIndex}
+                      </span>
+                    )}
+                    {isReplayMode && onExitReplay && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onExitReplay();
+                          onClose();
+                        }}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(148, 163, 184, 0.4)',
+                          backgroundColor: 'rgba(241, 245, 249, 0.9)',
+                          color: '#475569',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        title="Quitter le rattrapage et revenir au cycle en cours"
+                      >
+                        Retour cycle actif
+                      </button>
+                    )}
                     {multiEggProgress && multiEggProgress.total > 1 && (
                       <span
                         style={{
@@ -363,20 +472,40 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       </span>
                     )}
                   </div>
-                  <span
-                    style={{
-                      background: '#fef3c7',
-                      color: '#b45309',
-                      fontSize: '0.78rem',
-                      fontWeight: 800,
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      border: '1.5px solid #fde68a',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    +{rewardPointsIT} IT
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        color: timeLeft <= 15 ? '#ef4444' : '#64748b',
+                        background: timeLeft <= 15 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(100, 116, 139, 0.12)',
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        border: `1px solid ${timeLeft <= 15 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(100, 116, 139, 0.25)'}`,
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Temps restant avant fermeture automatique (se réinitialise à 60s à chaque frappe)"
+                    >
+                      ⏱️ {timeLeft}s
+                    </span>
+                    <span
+                      style={{
+                        background: '#fef3c7',
+                        color: '#b45309',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #fde68a',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      +{rewardPointsIT} IT
+                    </span>
+                  </div>
                 </div>
 
                 {/* Badge Alerte 2ème Indice Débloqué si hh:mm écoulé */}
@@ -501,8 +630,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   </div>
                 )}
 
-                {/* Option A : Pavé de saisie 4 chiffres pour énigmes de type RIDDLE_ANSWER_INPUT */}
-                {triggerType === 'RIDDLE_ANSWER_INPUT' && (
+                {/* Zone interactive de saisie : Pavé 4 chiffres pour RIDDLE_ANSWER_INPUT OU Champ texte premium pour COMM_LINK_COMMAND / KONAMI_CODE */}
+                {(triggerType === 'RIDDLE_ANSWER_INPUT' || triggerType === 'COMM_LINK_COMMAND' || triggerType === 'KONAMI_CODE') && (
                   <div
                     style={{
                       background: '#0f172a',
@@ -520,55 +649,154 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         transition={{ type: 'spring', stiffness: 180, damping: 14 }}
                         style={{ textAlign: 'center', padding: '8px 0' }}
                       >
-                        {/* Mini Cadenas Déverrouillé Animé */}
-                        <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px' }}>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                            style={{
-                              position: 'absolute',
-                              inset: '-4px',
-                              borderRadius: '50%',
-                              border: '1.5px dashed rgba(56, 189, 248, 0.45)',
-                            }}
-                          />
-                          <motion.div
-                            initial={{ y: 0, rotate: 0 }}
-                            animate={{ y: -10, rotate: -25 }}
-                            transition={{ type: 'spring', stiffness: 300, damping: 12 }}
-                            style={{
-                              position: 'absolute',
-                              top: '6px',
-                              left: '16px',
-                              width: '28px',
-                              height: '28px',
-                              borderTop: '5px solid #e2e8f0',
-                              borderLeft: '5px solid #e2e8f0',
-                              borderRight: '5px solid #94a3b8',
-                              borderTopLeftRadius: '16px',
-                              borderTopRightRadius: '16px',
-                              transformOrigin: 'bottom left',
-                            }}
-                          />
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: '4px',
-                              left: '8px',
-                              width: '48px',
-                              height: '38px',
-                              borderRadius: '10px',
-                              background: 'linear-gradient(135deg, #10b981, #047857)',
-                              border: '2px solid #34d399',
-                              boxShadow: '0 0 16px rgba(16, 185, 129, 0.6)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Unlock size={20} color="#ffffff" />
+                        {/* Visuel de Victoire Spécifique selon le Déclencheur */}
+                        {triggerType === 'RIDDLE_ANSWER_INPUT' ? (
+                          /* Mini Cadenas Déverrouillé Animé pour les énigmes cadenas */
+                          <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px' }}>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                              style={{
+                                position: 'absolute',
+                                inset: '-4px',
+                                borderRadius: '50%',
+                                border: '1.5px dashed rgba(56, 189, 248, 0.45)',
+                              }}
+                            />
+                            <motion.div
+                              initial={{ y: 0, rotate: 0 }}
+                              animate={{ y: -10, rotate: -25 }}
+                              transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+                              style={{
+                                position: 'absolute',
+                                top: '6px',
+                                left: '16px',
+                                width: '28px',
+                                height: '28px',
+                                borderTop: '5px solid #e2e8f0',
+                                borderLeft: '5px solid #e2e8f0',
+                                borderRight: '5px solid #94a3b8',
+                                borderTopLeftRadius: '16px',
+                                borderTopRightRadius: '16px',
+                                transformOrigin: 'bottom left',
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: '4px',
+                                left: '8px',
+                                width: '48px',
+                                height: '38px',
+                                borderRadius: '10px',
+                                background: 'linear-gradient(135deg, #10b981, #047857)',
+                                border: '2px solid #34d399',
+                                boxShadow: '0 0 16px rgba(16, 185, 129, 0.6)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Unlock size={20} color="#ffffff" />
+                            </div>
                           </div>
-                        </div>
+                        ) : triggerType === 'COMM_LINK_COMMAND' ? (
+                          /* Emblème Terminal pour les Commandes Comm-Link */
+                          <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                              style={{
+                                position: 'absolute',
+                                inset: '-4px',
+                                borderRadius: '50%',
+                                border: '1.5px dashed rgba(56, 189, 248, 0.55)',
+                              }}
+                            />
+                            <motion.div
+                              initial={{ scale: 0.8, rotate: -10 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #0284c7, #0f172a)',
+                                border: '2px solid #38bdf8',
+                                boxShadow: '0 0 18px rgba(56, 189, 248, 0.6)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Terminal size={22} color="#38bdf8" />
+                            </motion.div>
+                          </div>
+                        ) : triggerType === 'KONAMI_CODE' ? (
+                          /* Emblème Arcade pour le Konami Code */
+                          <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <motion.div
+                              animate={{ rotate: -360 }}
+                              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                              style={{
+                                position: 'absolute',
+                                inset: '-4px',
+                                borderRadius: '50%',
+                                border: '1.5px dashed rgba(244, 63, 94, 0.55)',
+                              }}
+                            />
+                            <motion.div
+                              initial={{ scale: 0.8, y: 5 }}
+                              animate={{ scale: 1, y: 0 }}
+                              transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '12px',
+                                background: 'linear-gradient(135deg, #f43f5e, #881337)',
+                                border: '2px solid #fb7185',
+                                boxShadow: '0 0 18px rgba(244, 63, 94, 0.6)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Gamepad2 size={24} color="#ffffff" />
+                            </motion.div>
+                          </div>
+                        ) : (
+                          /* Emblème Stellaire / Trophée pour les autres triggers */
+                          <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+                              style={{
+                                position: 'absolute',
+                                inset: '-4px',
+                                borderRadius: '50%',
+                                border: '1.5px dashed rgba(245, 158, 11, 0.55)',
+                              }}
+                            />
+                            <motion.div
+                              initial={{ scale: 0.8 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #f59e0b, #78350f)',
+                                border: '2px solid #fbbf24',
+                                boxShadow: '0 0 18px rgba(245, 158, 11, 0.6)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Trophy size={22} color="#fef08a" />
+                            </motion.div>
+                          </div>
+                        )}
 
                         <div
                           style={{
@@ -576,14 +804,20 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '8px',
-                            color: '#34d399',
+                            color: triggerType === 'KONAMI_CODE' ? '#fb7185' : triggerType === 'COMM_LINK_COMMAND' ? '#38bdf8' : '#34d399',
                             fontWeight: 900,
                             fontSize: '1.05rem',
                             marginBottom: '6px',
-                            textShadow: '0 0 12px rgba(16, 185, 129, 0.4)',
+                            textShadow: '0 0 12px rgba(56, 189, 248, 0.4)',
                           }}
                         >
-                          Cadenas 2070 Déverrouillé !
+                          {triggerType === 'RIDDLE_ANSWER_INPUT'
+                            ? 'Cadenas 2070 Déverrouillé !'
+                            : triggerType === 'COMM_LINK_COMMAND'
+                              ? 'Protocole 2070 Validé !'
+                              : triggerType === 'KONAMI_CODE'
+                                ? 'Code Secret Arcade Débloqué !'
+                                : 'Anomalie Temporelle Résolue !'}
                         </div>
 
                         <div
@@ -606,7 +840,11 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         </div>
 
                         <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.45 }}>
-                          Anomalie temporelle neutralisée. Partagez la découverte avec votre équipe pour remporter le bonus collectif !
+                          {triggerType === 'COMM_LINK_COMMAND'
+                            ? "Ordre prioritaire transmis avec succès aux relais de l'Arche spatiale. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"
+                            : triggerType === 'KONAMI_CODE'
+                              ? "Séquence rétro-arcade authentifiée par l'ordinateur central. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"
+                              : "Anomalie temporelle neutralisée. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"}
                         </p>
                         
                         {/* Actions bar : boutons d'actions carrés premium avec tooltips */}
@@ -623,7 +861,13 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           <div style={{ position: 'relative' }}>
                             <motion.button
                               type="button"
-                              onClick={() => setIsCryptexActive(true)}
+                              onClick={() => {
+                                if (triggerType === 'RIDDLE_ANSWER_INPUT') {
+                                  setIsCryptexActive(true);
+                                } else if (onReplayVictoryAnimation) {
+                                  onReplayVictoryAnimation();
+                                }
+                              }}
                               onMouseEnter={() => setActiveTooltip('replay')}
                               onMouseLeave={() => setActiveTooltip(null)}
                               onFocus={() => setActiveTooltip('replay')}
@@ -769,8 +1013,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           )}
                         </div>
                       </motion.div>
-                    ) : (
-                      /* Formulaire de saisie des 4 chiffres */
+                    ) : triggerType === 'RIDDLE_ANSWER_INPUT' ? (
+                      /* Formulaire de saisie des 4 chiffres (Cadenas Cryptex conservé) */
                       <div>
                         <div
                           style={{
@@ -810,7 +1054,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               value={digit}
                               onChange={(e) => handleDigitChange(idx, e.target.value)}
                               onKeyDown={(e) => handleKeyDown(idx, e)}
-                              onFocus={() => setIsInteracting(true)}
+                              onFocus={() => {
+                                resetTimer();
+                              }}
                               style={{
                                 width: '46px',
                                 height: '52px',
@@ -882,6 +1128,129 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         >
                           <Unlock size={16} />
                           {isVerifying ? 'Décodage temporel en cours...' : 'DÉVERROUILLER LE CADENAS'}
+                        </button>
+                      </div>
+                    ) : (
+                      /* Formulaire de saisie d'ordre / commande textuelle premium (COMM_LINK_COMMAND & KONAMI_CODE) */
+                      <div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Terminal size={14} />
+                            {triggerType === 'KONAMI_CODE' ? 'COMMANDE ARCADE OU SÉQUENCE' : 'COMMANDE OU MOT-CLÉ DIRECT'}
+                          </span>
+                          <span style={{ fontSize: '0.70rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '2px 7px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700 }}>
+                            DIRECT PROTOCOL
+                          </span>
+                        </div>
+
+                        {/* Champ texte avec secousse en cas d'erreur */}
+                        <motion.div
+                          animate={showErrorShake ? { x: [-10, 10, -8, 8, -4, 4, 0] } : {}}
+                          transition={{ duration: 0.5 }}
+                          style={{ marginBottom: '12px' }}
+                        >
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="text"
+                              value={commandInput}
+                              onChange={(e) => {
+                                resetTimer();
+                                setErrorMessage(null);
+                                setCommandInput(e.target.value);
+                              }}
+                              onKeyDown={(e) => {
+                                resetTimer();
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleCommandSubmit();
+                                }
+                              }}
+                              onFocus={() => {
+                                resetTimer();
+                              }}
+                              placeholder={
+                                triggerType === 'KONAMI_CODE'
+                                  ? "Tapez 'konami' ou utilisez les touches arcade..."
+                                  : "Saisissez votre code ou mot-clé (ex: matrix)..."
+                              }
+                              style={{
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                background: '#1e293b',
+                                border: `2px solid ${showErrorShake ? '#ef4444' : commandInput ? '#38bdf8' : '#475569'}`,
+                                borderRadius: '10px',
+                                color: '#ffffff',
+                                fontSize: '0.92rem',
+                                fontWeight: 600,
+                                padding: '10px 14px',
+                                outline: 'none',
+                                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                                boxShadow: commandInput ? '0 0 12px rgba(56, 189, 248, 0.25)' : 'none',
+                              }}
+                            />
+                          </div>
+                        </motion.div>
+
+                        {/* Message d'erreur */}
+                        {errorMessage && (
+                          <div
+                            style={{
+                              color: '#ef4444',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              marginBottom: '10px',
+                              textAlign: 'center',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <AlertCircle size={14} />
+                            {errorMessage}
+                          </div>
+                        )}
+
+                        {/* Bouton Valider Commande */}
+                        <button
+                          type="button"
+                          onClick={handleCommandSubmit}
+                          disabled={isVerifyingCommand || !commandInput.trim()}
+                          style={{
+                            width: '100%',
+                            background: isVerifyingCommand || !commandInput.trim()
+                              ? '#475569'
+                              : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '10px',
+                            color: '#ffffff',
+                            fontWeight: 800,
+                            fontSize: '0.88rem',
+                            cursor: isVerifyingCommand || !commandInput.trim() ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            boxShadow: commandInput.trim() ? '0 4px 12px rgba(2, 132, 199, 0.35)' : 'none',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isVerifyingCommand && commandInput.trim()) e.currentTarget.style.filter = 'brightness(1.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isVerifyingCommand && commandInput.trim()) e.currentTarget.style.filter = 'none';
+                          }}
+                        >
+                          <Terminal size={16} />
+                          {isVerifyingCommand ? 'Vérification en cours...' : 'TRANSMETTRE LA COMMANDE'}
                         </button>
                       </div>
                     )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { evoeClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import type {
@@ -14,9 +14,15 @@ export function useEasterEgg() {
 
   const [activeEggData, setActiveEggData] =
     useState<ActiveEasterEggResponse | null>(null);
+  const activeEggDataRef = useRef<ActiveEasterEggResponse | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSeenEnigma, setHasSeenEnigma] = useState<boolean>(false);
+
+  useEffect(() => {
+    activeEggDataRef.current = activeEggData;
+  }, [activeEggData]);
 
   const getHeaders = useCallback(() => {
     const savedToken =
@@ -39,29 +45,43 @@ export function useEasterEgg() {
     };
   }, [instanceId]);
 
-  const fetchActiveEgg = useCallback(async (): Promise<ActiveEasterEggResponse | undefined> => {
-    if (!childInfos) return undefined;
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await evoeClient.get<ActiveEasterEggResponse>(
-        `${EVOE_API_URL}/easter-eggs/active`,
-        { headers: getHeaders() },
-      );
-      setActiveEggData(res.data);
+  const childId = childInfos?.id;
 
-      if (res.data?.easterEgg) {
-        const seenKey = `evoe_seen_egg_${childInfos.id}_${res.data.easterEgg.id}`;
-        setHasSeenEnigma(localStorage.getItem(seenKey) === 'true');
+  const fetchActiveEgg = useCallback(
+    async (force = false): Promise<ActiveEasterEggResponse | undefined> => {
+      if (!childId) return undefined;
+      // Ne jamais écraser l'œuf rejoué en mode Rattrapage Temporel, sauf si force === true
+      if (!force && activeEggDataRef.current?.isReplayMode) {
+        return activeEggDataRef.current;
       }
-      return res.data;
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message);
-      return undefined;
-    } finally {
-      setLoading(false);
-    }
-  }, [childInfos, getHeaders]);
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await evoeClient.get<ActiveEasterEggResponse>(
+          `${EVOE_API_URL}/easter-eggs/active`,
+          { headers: getHeaders() },
+        );
+        activeEggDataRef.current = res.data;
+        setActiveEggData(res.data);
+
+        if (res.data?.easterEgg) {
+          const seenKey = `evoe_seen_egg_${childId}_${res.data.easterEgg.id}`;
+          setHasSeenEnigma(localStorage.getItem(seenKey) === 'true');
+        }
+        return res.data;
+      } catch (err: any) {
+        setError(err?.response?.data?.message || err.message);
+        return undefined;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [childId, instanceId, getHeaders],
+  );
+
+  const exitReplayMode = useCallback(async () => {
+    return fetchActiveEgg(true);
+  }, [fetchActiveEgg]);
 
   const markEnigmaAsSeen = useCallback(() => {
     if (childInfos && activeEggData?.easterEgg) {
@@ -225,6 +245,7 @@ export function useEasterEgg() {
           { headers: getHeaders() },
         );
         if (res.data?.success && res.data?.activeEggData) {
+          activeEggDataRef.current = res.data.activeEggData;
           setActiveEggData(res.data.activeEggData);
           if (childInfos && res.data.activeEggData.easterEgg) {
             const seenKey = `evoe_seen_egg_${childInfos.id}_${res.data.activeEggData.easterEgg.id}`;
@@ -248,7 +269,7 @@ export function useEasterEgg() {
           { code },
           { headers: getHeaders() },
         );
-        await fetchActiveEgg();
+        await fetchActiveEgg(true);
         return res.data;
       } catch (err: any) {
         return {
@@ -261,8 +282,10 @@ export function useEasterEgg() {
   );
 
   useEffect(() => {
-    fetchActiveEgg();
-  }, [fetchActiveEgg]);
+    if (childId && instanceId) {
+      fetchActiveEgg();
+    }
+  }, [childId, instanceId, fetchActiveEgg]);
 
   const hasUnread =
     activeEggData?.hasActiveEgg &&
@@ -278,6 +301,7 @@ export function useEasterEgg() {
     markEnigmaAsSeen,
     interactWithEgg,
     fetchActiveEgg,
+    exitReplayMode,
     verifyAnswer,
     validateTrigger,
     shareInCommLink,

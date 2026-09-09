@@ -1,18 +1,22 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Scroll, Terminal, Sparkles } from 'lucide-react';
+import { X, Scroll, Terminal, Sparkles, Lock, Play, CheckCircle2 } from 'lucide-react';
 import { PERIOD_GLYPHS_2070 } from '../../utils/periodGlyphs2070';
 
 interface RosettaStoneModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenTerminal: () => void;
+  periods?: any[];
+  onResolvePeriod?: (periodId: number) => void;
 }
 
 export const RosettaStoneModal: React.FC<RosettaStoneModalProps> = ({
   isOpen,
   onClose,
   onOpenTerminal,
+  periods = [],
+  onResolvePeriod,
 }) => {
   const [selectedGlyphId, setSelectedGlyphId] = React.useState<number | null>(null);
 
@@ -195,33 +199,94 @@ export const RosettaStoneModal: React.FC<RosettaStoneModalProps> = ({
             >
               {glyphList.map((g) => {
                 const isSelected = selectedGlyphId === g.id;
+                const isDiscovered = periods && periods.length > 0
+                  ? periods.some((p: any) => (p.glyphIndex === g.id - 1 || p.glyphIndex === g.id) && p.isCompleted)
+                  : false;
+
+                // Trouver un cycle associé pour décrypter ce glyphe si non résolu
+                const targetPeriod = periods && periods.length > 0
+                  ? (periods.find((p: any) => (p.glyphIndex === g.id - 1 || p.glyphIndex === g.id) && p.hasEgg && !p.isCompleted && !p.isLocked) ||
+                     periods.find((p: any) => (p.glyphIndex === g.id - 1 || p.glyphIndex === g.id) && p.hasEgg && !p.isLocked) ||
+                     periods.find((p: any) => (p.glyphIndex === g.id - 1 || p.glyphIndex === g.id)))
+                  : null;
+
+                const canLaunchEnigma = !isDiscovered && targetPeriod && targetPeriod.hasEgg && !targetPeriod.isLocked;
+
                 return (
                   <motion.div
                     key={g.id}
                     whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => setSelectedGlyphId(isSelected ? null : g.id)}
+                    onClick={() => {
+                      if (canLaunchEnigma && onResolvePeriod) {
+                        onClose();
+                        onResolvePeriod(targetPeriod.periodId);
+                      } else {
+                        setSelectedGlyphId(isSelected ? null : g.id);
+                      }
+                    }}
                     style={{
                       padding: '14px',
                       borderRadius: '16px',
-                      border: isSelected
-                        ? '1.5px solid #818cf8'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                      backgroundColor: isSelected
-                        ? 'rgba(49, 46, 129, 0.6)'
-                        : 'rgba(30, 41, 59, 0.6)',
-                      boxShadow: isSelected
+                      border: isDiscovered
+                        ? (isSelected ? '1.5px solid #818cf8' : '1px solid rgba(129, 140, 248, 0.35)')
+                        : '1px dashed rgba(148, 163, 184, 0.25)',
+                      backgroundColor: isDiscovered
+                        ? (isSelected ? 'rgba(49, 46, 129, 0.6)' : 'rgba(30, 41, 59, 0.6)')
+                        : 'rgba(15, 23, 42, 0.6)',
+                      boxShadow: isDiscovered && isSelected
                         ? '0 0 20px rgba(99, 102, 241, 0.35)'
                         : 'none',
-                      cursor: 'pointer',
+                      cursor: canLaunchEnigma ? 'pointer' : 'default',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '10px',
+                      position: 'relative',
+                      opacity: isDiscovered ? 1 : 0.85,
                       transition: 'all 0.2s',
                     }}
                   >
-                    {/* Dessin SVG du glyphe complet */}
+                    {/* Badge d'état du glyphe */}
+                    <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+                      {isDiscovered ? (
+                        <span
+                          title="Glyphe décrypté"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.4)',
+                          }}
+                        >
+                          <CheckCircle2 size={11} />
+                        </span>
+                      ) : (
+                        <span
+                          title="Glyphe scellé"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                            color: '#94a3b8',
+                            border: '1px solid rgba(148, 163, 184, 0.2)',
+                          }}
+                        >
+                          <Lock size={10} />
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Dessin SVG du glyphe ou silhouette masquée */}
                     <div
                       style={{
                         width: '56px',
@@ -231,46 +296,120 @@ export const RosettaStoneModal: React.FC<RosettaStoneModalProps> = ({
                         justifyContent: 'center',
                         backgroundColor: 'rgba(15, 23, 42, 0.8)',
                         borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        border: isDiscovered ? '1px solid rgba(129, 140, 248, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
                         padding: '4px',
+                        position: 'relative',
                       }}
                     >
-                      <svg viewBox="0 0 32 38" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
-                        {g.segments.map((seg, sIdx) => (
-                          <g key={sIdx}>
-                            <path
-                              d={seg.d}
-                              stroke="#818cf8"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              fill="none"
-                            />
-                            <path
-                              d={seg.d}
-                              stroke="#ffffff"
-                              strokeWidth="0.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              fill="none"
-                            />
-                            {seg.points?.map((pt, pIdx) => (
-                              <circle key={pIdx} cx={pt.cx} cy={pt.cy} r="1.5" fill="#a5b4fc" />
-                            ))}
-                          </g>
-                        ))}
-                      </svg>
+                      {isDiscovered ? (
+                        <svg viewBox="0 0 32 38" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>
+                          {g.segments.map((seg, sIdx) => (
+                            <g key={sIdx}>
+                              <path
+                                d={seg.d}
+                                stroke="#818cf8"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                fill="none"
+                              />
+                              <path
+                                d={seg.d}
+                                stroke="#ffffff"
+                                strokeWidth="0.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                fill="none"
+                              />
+                              {seg.points?.map((pt, pIdx) => (
+                                <circle key={pIdx} cx={pt.cx} cy={pt.cy} r="1.5" fill="#a5b4fc" />
+                              ))}
+                            </g>
+                          ))}
+                        </svg>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#f59e0b', opacity: 0.7, fontFamily: 'monospace' }}>
+                            ?
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Équivalent Alphabet */}
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'monospace', color: '#fcd34d' }}>
-                        = {g.letter}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '2px', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {g.name}
-                      </div>
+                    {/* Équivalent Alphabet ou Masque */}
+                    <div style={{ textAlign: 'center', width: '100%' }}>
+                      {isDiscovered ? (
+                        <>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'monospace', color: '#fcd34d' }}>
+                            = {g.letter}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '2px', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 auto' }}>
+                            {g.name}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'monospace', color: '#64748b' }}>
+                            = ?
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, marginTop: '2px', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 auto' }}>
+                            Non décrypté
+                          </div>
+                        </>
+                      )}
                     </div>
+
+                    {/* Bouton-icône avec tooltip pour résoudre directement l'œuf si non décodé */}
+                    {!isDiscovered && (
+                      <div style={{ marginTop: '2px', display: 'flex', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          title={
+                            canLaunchEnigma
+                              ? `Décrypter ce glyphe (Résoudre l'énigme du Cycle ${targetPeriod?.cycleIndex})`
+                              : targetPeriod?.isLocked
+                              ? 'Cycle futur verrouillé'
+                              : 'Cycle non disponible'
+                          }
+                          disabled={!canLaunchEnigma}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canLaunchEnigma && onResolvePeriod) {
+                              onClose();
+                              onResolvePeriod(targetPeriod.periodId);
+                            }
+                          }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '10px',
+                            backgroundColor: canLaunchEnigma ? '#4f46e5' : 'rgba(255, 255, 255, 0.05)',
+                            border: canLaunchEnigma ? '1px solid #818cf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                            color: canLaunchEnigma ? '#ffffff' : '#64748b',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: canLaunchEnigma ? 'pointer' : 'not-allowed',
+                            boxShadow: canLaunchEnigma ? '0 0 12px rgba(79, 70, 229, 0.45)' : 'none',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (canLaunchEnigma) {
+                              e.currentTarget.style.backgroundColor = '#6366f1';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (canLaunchEnigma) {
+                              e.currentTarget.style.backgroundColor = '#4f46e5';
+                              e.currentTarget.style.transform = 'scale(1)';
+                            }
+                          }}
+                        >
+                          {canLaunchEnigma ? <Play size={13} fill="currentColor" /> : <Lock size={12} />}
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

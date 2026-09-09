@@ -1,5 +1,10 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { EasterEggTriggerType } from '../types/easterEgg';
+import {
+  playKonamiStepSound,
+  playKonamiErrorSound,
+  playKonamiSuccessSound,
+} from '../utils/easterEggAudio';
 
 interface UseEasterEggTriggersProps {
   activeTriggerType?: EasterEggTriggerType;
@@ -14,9 +19,17 @@ export function useEasterEggTriggers({
   activeEggCode,
   onTrigger,
 }: UseEasterEggTriggersProps) {
-  // 1. KONAMI CODE STATE
+  // 1. KONAMI CODE STATE & HUD
   const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   const konamiIndex = useRef(0);
+  const konamiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [konamiHUD, setKonamiHUD] = useState({
+    isVisible: false,
+    stepIndex: 0,
+    isError: false,
+    showMobileButtons: false,
+  });
 
   // 2. LOGO HOLD STATE
   const logoHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,31 +48,136 @@ export function useEasterEggTriggers({
   // 6. CONSTELLATION 3D STARS STATE
   const clickedStarsRef = useRef<Set<number>>(new Set());
 
-  // --- EFFECT: GLOBAL LISTENERS (Keyboard Konami + Device Motion) ---
+  // Avance dans la séquence Konami (touches clavier, swipes mobiles ou boutons virtuels)
+  const advanceKonamiSequence = useCallback(
+    (key: string) => {
+      const expectedKey = konamiSequence[konamiIndex.current];
+      if (!expectedKey) return;
+
+      const matches = key === expectedKey || key.toLowerCase() === expectedKey.toLowerCase();
+
+      if (matches) {
+        const nextIndex = konamiIndex.current + 1;
+        konamiIndex.current = nextIndex;
+        playKonamiStepSound(nextIndex);
+
+        setKonamiHUD({
+          isVisible: true,
+          stepIndex: nextIndex,
+          isError: false,
+          showMobileButtons: nextIndex >= 8, // Affiche les touches virtuelles B & A sur mobile
+        });
+
+        if (konamiTimer.current) clearTimeout(konamiTimer.current);
+
+        if (nextIndex === konamiSequence.length) {
+          playKonamiSuccessSound();
+          onTrigger('KONAMI_CODE', { sequence: 'konami' });
+          konamiTimer.current = setTimeout(() => {
+            setKonamiHUD({
+              isVisible: false,
+              stepIndex: 0,
+              isError: false,
+              showMobileButtons: false,
+            });
+            konamiIndex.current = 0;
+          }, 2200);
+        } else {
+          // Réinitialisation après 7s d'inactivité
+          konamiTimer.current = setTimeout(() => {
+            setKonamiHUD({
+              isVisible: false,
+              stepIndex: 0,
+              isError: false,
+              showMobileButtons: false,
+            });
+            konamiIndex.current = 0;
+          }, 7000);
+        }
+      } else {
+        // En cas de fausse touche si la séquence était déjà engagée
+        if (konamiIndex.current > 0) {
+          playKonamiErrorSound();
+          setKonamiHUD((prev) => ({
+            ...prev,
+            isError: true,
+          }));
+          konamiIndex.current = 0;
+          if (konamiTimer.current) clearTimeout(konamiTimer.current);
+          konamiTimer.current = setTimeout(() => {
+            setKonamiHUD({
+              isVisible: false,
+              stepIndex: 0,
+              isError: false,
+              showMobileButtons: false,
+            });
+          }, 900);
+        }
+      }
+    },
+    [onTrigger],
+  );
+
+  // --- EFFECT: GLOBAL LISTENERS (Keyboard Konami + Touch Swipes + Device Motion) ---
   useEffect(() => {
     if (!activeTriggerType) return;
 
-    // 1. Konami Code Listener
+    // 1. Konami Code Listener (Touches Clavier)
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorer si l'utilisateur est en train de taper dans un champ de formulaire
+      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (targetTag === 'input' || targetTag === 'textarea') return;
+
       if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
 
-      const key = e.key;
-      const expectedKey = konamiSequence[konamiIndex.current];
-
-      if (key === expectedKey || key.toLowerCase() === expectedKey.toLowerCase()) {
-        konamiIndex.current++;
-        if (konamiIndex.current === konamiSequence.length) {
-          onTrigger('KONAMI_CODE', { sequence: 'konami' });
-          konamiIndex.current = 0;
-        }
-      } else {
-        konamiIndex.current = 0;
-      }
+      advanceKonamiSequence(e.key);
     };
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // 2. Mobile Device Shake (for Antigravity or custom action)
+    // 2. Mobile Touch Swipes Listener (Swipes tactiles directionnels pour mobile)
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
+      if (e.touches.length !== 1) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
+      if (e.changedTouches.length !== 1) return;
+
+      const elapsed = Date.now() - touchStartTime;
+      if (elapsed > 1200) return; // Glissement trop lent ignoré
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dx = touchEndX - touchStartX;
+      const dy = touchEndY - touchStartY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      const minSwipeDistance = 35;
+      if (Math.max(absDx, absDy) < minSwipeDistance) return;
+
+      if (absDx > absDy) {
+        // Balayage horizontal
+        advanceKonamiSequence(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+      } else {
+        // Balayage vertical
+        advanceKonamiSequence(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    // 3. Mobile Device Shake (pour Antigravity ou custom action)
     let lastX: number | null = null;
     let lastY: number | null = null;
     let lastZ: number | null = null;
@@ -103,11 +221,13 @@ export function useEasterEggTriggers({
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
       if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
         window.removeEventListener('devicemotion', handleDeviceMotion);
       }
     };
-  }, [activeTriggerType, activeEggCode, triggerConfig, onTrigger]);
+  }, [activeTriggerType, activeEggCode, triggerConfig, onTrigger, advanceKonamiSequence]);
 
   // --- GENERIC REPEATED CLICK HANDLER ---
   const handleTargetClick = useCallback(
@@ -137,35 +257,63 @@ export function useEasterEggTriggers({
     [activeTriggerType, triggerConfig, onTrigger],
   );
 
-  // --- COMM-LINK SLASH & EXCLAMATION COMMANDS ---
+  // --- COMM-LINK SLASH & EXCLAMATION COMMANDS & DIRECT INPUT ---
   const handleCommLinkCommand = useCallback(
     (commandStr: string) => {
-      const cleanCmd = (commandStr || '').trim().toLowerCase();
-      if (!cleanCmd.startsWith('/') && !cleanCmd.startsWith('!')) return;
+      const raw = (commandStr || '').trim().toLowerCase();
+      if (!raw) return;
 
-      const normalizedCmd = cleanCmd.startsWith('!') ? cleanCmd : `!${cleanCmd.substring(1)}`;
-      const slashCmd = cleanCmd.startsWith('/') ? cleanCmd : `/${cleanCmd.substring(1)}`;
+      // Supprimer les préfixes d'échappement (! ou /) pour une comparaison naturelle
+      const cleanCmd = raw.replace(/^[!/]+/, '').trim();
 
-      const expectedCommand = (triggerConfig?.command || '').toLowerCase();
-      const isExpectedMatch =
-        expectedCommand &&
-        (cleanCmd === expectedCommand ||
-          normalizedCmd === expectedCommand ||
-          slashCmd === expectedCommand);
+      // Alternative textuelle pour le Konami Code sur mobile ou desktop
+      if (
+        (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') &&
+        (activeTriggerType === 'KONAMI_CODE' || activeEggCode === 'EE_KONAMI_80S')
+      ) {
+        playKonamiSuccessSound();
+        onTrigger('KONAMI_CODE', { sequence: 'konami', source: 'text_input' });
+        return;
+      }
 
-      if (activeTriggerType === 'COMM_LINK_COMMAND' && (isExpectedMatch || !expectedCommand)) {
-        onTrigger('COMM_LINK_COMMAND', { command: normalizedCmd });
-      } else if (activeEggCode === 'EE_TEMPORAL_1985' && (normalizedCmd === '!1985' || slashCmd === '/1985')) {
+      const expectedRaw = (triggerConfig?.command || '').toLowerCase();
+      const expectedClean = expectedRaw.replace(/^[!/]+/, '').trim();
+
+      const isExpectedMatch = expectedClean && cleanCmd === expectedClean;
+
+      if (activeTriggerType === 'COMM_LINK_COMMAND' && (isExpectedMatch || !expectedClean)) {
+        onTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}` });
+      } else if (activeEggCode === 'EE_TEMPORAL_1985' && cleanCmd === '1985') {
         onTrigger('COMM_LINK_COMMAND', { command: '!1985' });
-      } else if (activeEggCode === 'EE_MATRIX_COMM_LINK' && (normalizedCmd === '!matrix' || slashCmd === '/matrix')) {
+      } else if (activeEggCode === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') {
         onTrigger('COMM_LINK_COMMAND', { command: '!matrix' });
-      } else if (activeEggCode === 'EE_ANTIGRAVITY' && (normalizedCmd === '!antigravity' || slashCmd === '/antigravity')) {
+      } else if (activeEggCode === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') {
         onTrigger('COMM_LINK_COMMAND', { command: '!antigravity' });
-      } else if (activeEggCode === 'EE_PARTY_DISCO' && (normalizedCmd === '!party' || slashCmd === '/party')) {
+      } else if (activeEggCode === 'EE_PARTY_DISCO' && cleanCmd === 'party') {
         onTrigger('COMM_LINK_COMMAND', { command: '!party' });
       }
     },
     [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
+  );
+
+  // Fermeture manuelle du HUD Konami
+  const handleCloseKonamiHUD = useCallback(() => {
+    if (konamiTimer.current) clearTimeout(konamiTimer.current);
+    setKonamiHUD({
+      isVisible: false,
+      stepIndex: 0,
+      isError: false,
+      showMobileButtons: false,
+    });
+    konamiIndex.current = 0;
+  }, []);
+
+  // Pression sur boutons virtuels B ou A pour mobile
+  const handleKonamiButtonPress = useCallback(
+    (btn: 'b' | 'a') => {
+      advanceKonamiSequence(btn);
+    },
+    [advanceKonamiSequence],
   );
 
   // --- TIMELINE WARP (Rapid Era Switch) ---
@@ -242,8 +390,13 @@ export function useEasterEggTriggers({
     [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
   );
 
-  // Handlers attached to React elements
+  // Handlers and states attached to React elements
   return {
+    // Konami HUD arcade feedback and mobile buttons
+    konamiHUD,
+    handleKonamiButtonPress,
+    handleCloseKonamiHUD,
+
     // Logo Hold
     handleLogoMouseDown: () => {
       if (activeTriggerType !== 'LOGO_HOLD' && activeEggCode !== 'EE_LOGO_ROCKET') return;

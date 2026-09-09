@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   GripVertical,
   Plus,
@@ -18,7 +18,14 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Power
+  Power,
+  RotateCcw,
+  Download,
+  Upload,
+  Check,
+  CheckSquare,
+  Square,
+  X,
 } from 'lucide-react';
 import {
   DndContext,
@@ -48,8 +55,11 @@ import {
   reorderAdminCatalog,
   updateAdminEgg,
   resolveEnigmaImageUrl,
+  resetAdminEggProgress,
+  exportAdminCatalog,
 } from '@/utils/easterEggApi';
 import { EasterEggFormModal } from './EasterEggFormModal';
+import { EasterEggImportModal } from './EasterEggImportModal';
 
 function formatDelay(minutes: number): string {
   const h = Math.floor(minutes / 60);
@@ -115,17 +125,23 @@ function getDifficultyBadge(diff: string) {
 interface SortableEggCardProps {
   egg: EasterEggCatalogItem;
   index: number;
+  isSelected: boolean;
+  onToggleSelect: (id: number) => void;
   onEdit: (egg: EasterEggCatalogItem) => void;
   onDelete: (egg: EasterEggCatalogItem) => void;
   onToggleActive: (egg: EasterEggCatalogItem) => void;
+  onReset: (egg: EasterEggCatalogItem) => void;
 }
 
 function SortableEggCard({
   egg,
   index,
+  isSelected,
+  onToggleSelect,
   onEdit,
   onDelete,
   onToggleActive,
+  onReset,
 }: SortableEggCardProps) {
   const {
     attributes,
@@ -152,14 +168,33 @@ function SortableEggCard({
         className={`p-5 bg-white/95 border transition-all rounded-3xl ${
           isDragging
             ? 'border-emerald-500 shadow-xl ring-2 ring-emerald-500/20'
+            : isSelected
+            ? 'border-emerald-400/90 ring-2 ring-emerald-500/20 bg-emerald-50/10 shadow-md'
             : egg.isActive
             ? 'border-slate-200/80 hover:border-slate-300 hover:shadow-md'
             : 'border-slate-200/60 opacity-60 bg-slate-50/60'
         }`}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          {/* Drag Handle & Order Badge */}
+          {/* Multi-select Checkbox + Drag Handle & Order Badge */}
           <div className="flex items-center gap-3 shrink-0">
+            {/* Checkbox */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelect(egg.id);
+              }}
+              className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${
+                isSelected
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                  : 'bg-white border-slate-300 hover:border-emerald-500 text-transparent'
+              }`}
+              title={isSelected ? 'Désélectionner' : 'Sélectionner'}
+            >
+              <Check size={14} className={isSelected ? 'stroke-[3]' : 'opacity-0'} />
+            </button>
+
             <div
               {...attributes}
               {...listeners}
@@ -250,6 +285,16 @@ function SortableEggCard({
               <Power size={16} />
             </IconButtonWithTooltip>
 
+            {/* Reset Progress Button */}
+            <IconButtonWithTooltip
+              tooltip="Réinitialiser la progression (comme si non résolue)"
+              variant="amber"
+              size="md"
+              onClick={() => onReset(egg)}
+            >
+              <RotateCcw size={16} />
+            </IconButtonWithTooltip>
+
             {/* Edit Button */}
             <IconButtonWithTooltip
               tooltip="Modifier cette énigme"
@@ -283,9 +328,16 @@ export function EasterEggsCatalogEditor() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingEgg, setEditingEgg] = useState<EasterEggCatalogItem | null>(null);
   const [eggToDelete, setEggToDelete] = useState<EasterEggCatalogItem | null>(null);
+  const [eggToReset, setEggToReset] = useState<EasterEggCatalogItem | null>(null);
+  const [isResetSelectionConfirmOpen, setIsResetSelectionConfirmOpen] = useState(false);
+  const [isResetAllConfirmOpen, setIsResetAllConfirmOpen] = useState(false);
+  const [selectedEggIds, setSelectedEggIds] = useState<number[]>([]);
   const [reordering, setReordering] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const sensors = useSensors(
@@ -319,6 +371,21 @@ export function EasterEggsCatalogEditor() {
         e.triggerType.toLowerCase().includes(q)
     );
   }, [catalog, searchQuery]);
+
+  // Multi-selection helpers
+  const handleToggleSelect = (id: number) => {
+    setSelectedEggIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedEggIds.length === filteredCatalog.length) {
+      setSelectedEggIds([]);
+    } else {
+      setSelectedEggIds(filteredCatalog.map((e) => e.id));
+    }
+  };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -358,6 +425,7 @@ export function EasterEggsCatalogEditor() {
     try {
       await deleteAdminEgg(eggToDelete.id);
       setCatalog(catalog.filter((e) => e.id !== eggToDelete.id));
+      setSelectedEggIds((prev) => prev.filter((id) => id !== eggToDelete.id));
       setFeedback({ type: 'success', message: `Énigme "${eggToDelete.title}" supprimée.` });
       setTimeout(() => setFeedback(null), 3000);
     } catch (err: any) {
@@ -367,10 +435,95 @@ export function EasterEggsCatalogEditor() {
     }
   };
 
+  // Export Catalogue JSON
+  const handleExportCatalog = async () => {
+    setExporting(true);
+    try {
+      const data = await exportAdminCatalog();
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const nowStr = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `easter-eggs-catalog-${nowStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setFeedback({
+        type: 'success',
+        message: `Catalogue exporté avec succès (${data.length} énigmes exportées en JSON).`,
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || "Erreur lors de l'export du catalogue." });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Reset Actions
+  const handleResetSingleConfirm = async () => {
+    if (!eggToReset) return;
+    setResetting(true);
+    try {
+      await resetAdminEggProgress({ easterEggIds: [eggToReset.id] });
+      setFeedback({
+        type: 'success',
+        message: `Progression de l'énigme "${eggToReset.title}" réinitialisée (comme si non résolue).`,
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erreur lors de la réinitialisation.' });
+    } finally {
+      setResetting(false);
+      setEggToReset(null);
+    }
+  };
+
+  const handleResetSelectionConfirm = async () => {
+    if (selectedEggIds.length === 0) return;
+    setResetting(true);
+    try {
+      await resetAdminEggProgress({ easterEggIds: selectedEggIds });
+      setFeedback({
+        type: 'success',
+        message: `Progression réinitialisée avec succès pour les ${selectedEggIds.length} énigme(s) sélectionnée(s).`,
+      });
+      setSelectedEggIds([]);
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erreur lors de la réinitialisation groupée.' });
+    } finally {
+      setResetting(false);
+      setIsResetSelectionConfirmOpen(false);
+    }
+  };
+
+  const handleResetAllConfirm = async () => {
+    setResetting(true);
+    try {
+      await resetAdminEggProgress({ all: true });
+      setFeedback({
+        type: 'success',
+        message: `Toutes les énigmes du jeu ont été réinitialisées pour l'ensemble des joueurs et des équipes.`,
+      });
+      setSelectedEggIds([]);
+      setTimeout(() => setFeedback(null), 5000);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erreur lors de la réinitialisation générale.' });
+    } finally {
+      setResetting(false);
+      setIsResetAllConfirmOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Top Toolbar: Search + Create Button (Icon with Tooltip) */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Top Toolbar: Search + Action Buttons */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
@@ -382,37 +535,145 @@ export function EasterEggsCatalogEditor() {
           />
         </div>
 
-        {/* Global Create Button with Tooltip */}
-        <IconButtonWithTooltip
-          tooltip="Créer une nouvelle énigme"
-          tooltipPosition="bottom"
-          tooltipAlign="end"
-          variant="primary-solid"
-          size="lg"
-          onClick={() => {
-            setEditingEgg(null);
-            setIsFormOpen(true);
-          }}
-        >
-          <Plus size={20} />
-        </IconButtonWithTooltip>
+        {/* Global Toolbar Actions */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          {/* Exporter Catalogue */}
+          <IconButtonWithTooltip
+            tooltip="Exporter tout le catalogue au format JSON"
+            tooltipPosition="bottom"
+            tooltipAlign="center"
+            variant="default"
+            size="lg"
+            disabled={exporting || catalog.length === 0}
+            onClick={handleExportCatalog}
+          >
+            {exporting ? <Loader2 size={18} className="animate-spin text-emerald-600" /> : <Download size={18} />}
+          </IconButtonWithTooltip>
+
+          {/* Importer Catalogue */}
+          <IconButtonWithTooltip
+            tooltip="Importer un catalogue depuis un fichier JSON"
+            tooltipPosition="bottom"
+            tooltipAlign="center"
+            variant="default"
+            size="lg"
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            <Upload size={18} />
+          </IconButtonWithTooltip>
+
+          {/* Tout réinitialiser */}
+          <IconButtonWithTooltip
+            tooltip="Réinitialiser TOUS les Easter Eggs (comme non résolus)"
+            tooltipPosition="bottom"
+            tooltipAlign="center"
+            variant="amber"
+            size="lg"
+            disabled={resetting || catalog.length === 0}
+            onClick={() => setIsResetAllConfirmOpen(true)}
+          >
+            <RotateCcw size={18} />
+          </IconButtonWithTooltip>
+
+          {/* Créer une énigme */}
+          <IconButtonWithTooltip
+            tooltip="Créer une nouvelle énigme"
+            tooltipPosition="bottom"
+            tooltipAlign="end"
+            variant="primary-solid"
+            size="lg"
+            onClick={() => {
+              setEditingEgg(null);
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus size={20} />
+          </IconButtonWithTooltip>
+        </div>
       </div>
 
-      {/* Reorder instructions banner */}
+      {/* Multi-Selection Action Bar (appears when eggs are selected) */}
+      <AnimatePresence>
+        {selectedEggIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-3.5 rounded-2xl bg-slate-900 text-white shadow-xl flex flex-wrap items-center justify-between gap-3 border border-slate-800"
+          >
+            <div className="flex items-center gap-3">
+              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-400 font-mono font-bold text-xs">
+                {selectedEggIds.length} sélectionnée(s)
+              </span>
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                className="text-xs text-slate-300 hover:text-white underline underline-offset-2 transition-colors"
+              >
+                {selectedEggIds.length === filteredCatalog.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsResetSelectionConfirmOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-xs transition-colors"
+              >
+                <RotateCcw size={14} />
+                Réinitialiser la sélection ({selectedEggIds.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedEggIds([])}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                title="Fermer la sélection"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reorder instructions banner & Select All Shortcut */}
       <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 text-xs text-slate-600">
-        <div className="flex items-center gap-2">
-          <GripVertical size={16} className="text-emerald-600" />
-          <span>
+        <div className="flex items-center gap-2 min-w-0">
+          <GripVertical size={16} className="text-emerald-600 shrink-0" />
+          <span className="truncate">
             Glissez-déposez les cartes pour <strong>prioriser l’ordre de parution</strong>. Si un œuf n’est pas résolu,
             il sera reconduit automatiquement.
           </span>
         </div>
-        {reordering && (
-          <span className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-[11px] shrink-0">
-            <Loader2 size={12} className="animate-spin" />
-            Sauvegarde...
-          </span>
-        )}
+
+        <div className="flex items-center gap-3 shrink-0">
+          {filteredCatalog.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors"
+            >
+              {selectedEggIds.length === filteredCatalog.length && filteredCatalog.length > 0 ? (
+                <>
+                  <CheckSquare size={14} className="text-emerald-600" />
+                  Tout désélectionner
+                </>
+              ) : (
+                <>
+                  <Square size={14} />
+                  Tout sélectionner
+                </>
+              )}
+            </button>
+          )}
+
+          {reordering && (
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-[11px] shrink-0">
+              <Loader2 size={12} className="animate-spin" />
+              Sauvegarde...
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Feedback banner */}
@@ -442,7 +703,7 @@ export function EasterEggsCatalogEditor() {
           <Sparkles size={36} className="mx-auto text-slate-400" />
           <h3 className="text-base font-bold text-slate-800">Catalogue vide</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Aucune énigme n'a été créée pour le moment. Cliquez sur le bouton + pour inaugurer la saison.
+            Aucune énigme n'a été créée pour le moment. Cliquez sur le bouton + pour inaugurer la saison ou importez un catalogue JSON.
           </p>
         </div>
       ) : (
@@ -454,12 +715,15 @@ export function EasterEggsCatalogEditor() {
                   key={egg.id}
                   egg={egg}
                   index={idx}
+                  isSelected={selectedEggIds.includes(egg.id)}
+                  onToggleSelect={handleToggleSelect}
                   onEdit={(e) => {
                     setEditingEgg(e);
                     setIsFormOpen(true);
                   }}
                   onDelete={(e) => setEggToDelete(e)}
                   onToggleActive={handleToggleActive}
+                  onReset={(e) => setEggToReset(e)}
                 />
               ))}
             </div>
@@ -478,6 +742,20 @@ export function EasterEggsCatalogEditor() {
         enigmaToEdit={editingEgg}
       />
 
+      {/* Modal Import Catalog */}
+      <EasterEggImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          loadCatalog();
+          setFeedback({
+            type: 'success',
+            message: 'Catalogue importé avec succès !',
+          });
+          setTimeout(() => setFeedback(null), 4000);
+        }}
+      />
+
       {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={Boolean(eggToDelete)}
@@ -486,6 +764,42 @@ export function EasterEggsCatalogEditor() {
         title="Supprimer cette énigme ?"
         description={`Êtes-vous sûr de vouloir supprimer définitivement l’énigme "${eggToDelete?.title}" (${eggToDelete?.code}) du catalogue ? Cette action est irréversible.`}
         confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+      />
+
+      {/* Reset Single Egg Confirmation */}
+      <ConfirmDialog
+        isOpen={Boolean(eggToReset)}
+        onClose={() => setEggToReset(null)}
+        onConfirm={handleResetSingleConfirm}
+        title="Réinitialiser cette énigme ?"
+        description={`Voulez-vous réinitialiser l'énigme "${eggToReset?.title}" (${eggToReset?.code}) comme si elle n'avait JAMAIS été résolue ? Les découvertes des joueurs et récompenses d'équipe seront supprimées.`}
+        confirmLabel="Réinitialiser l'énigme"
+        cancelLabel="Annuler"
+        variant="warning"
+      />
+
+      {/* Reset Selection Confirmation */}
+      <ConfirmDialog
+        isOpen={isResetSelectionConfirmOpen}
+        onClose={() => setIsResetSelectionConfirmOpen(false)}
+        onConfirm={handleResetSelectionConfirm}
+        title="Réinitialiser la sélection d'énigmes ?"
+        description={`Voulez-vous réinitialiser les ${selectedEggIds.length} énigme(s) sélectionnée(s) comme si elles n'avaient jamais été résolues ? Toutes les découvertes et récompenses associées seront remises à zéro.`}
+        confirmLabel={`Réinitialiser les ${selectedEggIds.length} énigme(s)`}
+        cancelLabel="Annuler"
+        variant="warning"
+      />
+
+      {/* Reset ALL Eggs Confirmation */}
+      <ConfirmDialog
+        isOpen={isResetAllConfirmOpen}
+        onClose={() => setIsResetAllConfirmOpen(false)}
+        onConfirm={handleResetAllConfirm}
+        title="Réinitialiser TOUTES les énigmes ?"
+        description="ATTENTION : Cette action va réinitialiser l'intégralité des Easter Eggs du jeu pour tous les joueurs et toutes les équipes (découvertes, récompenses et artefacts Oméga). Le catalogue d'énigmes reste intact."
+        confirmLabel="Tout réinitialiser à zéro"
         cancelLabel="Annuler"
         variant="danger"
       />

@@ -57,7 +57,7 @@ const TRIGGER_TYPES = [
   {
     value: 'COMM_LINK_COMMAND',
     label: 'Commande Comm-Link',
-    description: 'Commande tapée dans le chat (/matrix, /antigravity, /1985...).',
+    description: 'Commande tapée dans le chat (!matrix, !antigravity, !1985...).',
     icon: Terminal,
   },
   {
@@ -123,11 +123,15 @@ export function EasterEggFormModal({
   const [expectedAnswer, setExpectedAnswer] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [commandConfig, setCommandConfig] = useState('');
+  const [customActionType, setCustomActionType] = useState<
+    'device_shake' | 'avatar_rapid_click' | 'ships_order_click' | 'sound_frequency_tap' | 'era_warp_fast' | 'custom_event'
+  >('device_shake');
+  const [customEventKey, setCustomEventKey] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  // Prérequis de déblocage
-  const [prerequisiteType, setPrerequisiteType] = useState<'MISSIONS_COUNT' | 'SPECIFIC_MISSIONS' | 'NONE'>('MISSIONS_COUNT');
+  // Prérequis de déblocage (Accès libre par défaut)
+  const [prerequisiteType, setPrerequisiteType] = useState<'MISSIONS_COUNT' | 'SPECIFIC_MISSIONS' | 'NONE'>('NONE');
   const [reqCount, setReqCount] = useState(3);
   const [reqDistinctSectors, setReqDistinctSectors] = useState(2);
   const [selectedMissionCodes, setSelectedMissionCodes] = useState<string[]>([]);
@@ -179,8 +183,21 @@ export function EasterEggFormModal({
         setCommandConfig('');
       }
 
+      if (enigmaToEdit.triggerType === 'CUSTOM_ACTION') {
+        const act = enigmaToEdit.triggerConfig?.action;
+        if (['device_shake', 'avatar_rapid_click', 'ships_order_click', 'sound_frequency_tap', 'era_warp_fast'].includes(act)) {
+          setCustomActionType(act as any);
+        } else if (act) {
+          setCustomActionType('custom_event');
+          setCustomEventKey(act);
+        }
+      } else {
+        setCustomActionType('device_shake');
+        setCustomEventKey('');
+      }
+
       // Initialiser les prérequis
-      const prereqType = (enigmaToEdit.prerequisiteType as any) || 'MISSIONS_COUNT';
+      const prereqType = (enigmaToEdit.prerequisiteType as any) || 'NONE';
       setPrerequisiteType(prereqType);
 
       const prereqConfig = (enigmaToEdit.prerequisiteConfig as any) || {};
@@ -213,9 +230,11 @@ export function EasterEggFormModal({
       setExpectedAnswer('');
       setCaseSensitive(false);
       setCommandConfig('');
+      setCustomActionType('device_shake');
+      setCustomEventKey('');
       setImageUrl('');
       setIsActive(true);
-      setPrerequisiteType('MISSIONS_COUNT');
+      setPrerequisiteType('NONE');
       setReqCount(3);
       setReqDistinctSectors(2);
       setSelectedMissionCodes([]);
@@ -296,7 +315,16 @@ export function EasterEggFormModal({
       triggerType,
       expectedAnswer: triggerType === 'RIDDLE_ANSWER_INPUT' ? expectedAnswer.trim() : null,
       caseSensitive: triggerType === 'RIDDLE_ANSWER_INPUT' ? caseSensitive : false,
-      triggerConfig: triggerType === 'COMM_LINK_COMMAND' ? { command: commandConfig.trim() } : {},
+      triggerConfig:
+        triggerType === 'COMM_LINK_COMMAND'
+          ? { command: commandConfig.trim() }
+          : triggerType === 'CUSTOM_ACTION'
+          ? customActionType === 'custom_event'
+            ? { action: customEventKey.trim() || 'custom_event' }
+            : customActionType === 'ships_order_click'
+            ? { action: 'ships_order_click', sequence: ['scout', 'frigate', 'freighter'] }
+            : { action: customActionType }
+          : {},
       imageUrl: imageUrl.trim() || null,
       isActive,
     };
@@ -923,17 +951,107 @@ export function EasterEggFormModal({
 
             {/* Conditionnel : Commande Comm-Link */}
             {triggerType === 'COMM_LINK_COMMAND' && (
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Commande tapée dans le Comm-Link
+                  Commande tapée dans le Comm-Link (doit commencer par !)
                 </label>
                 <input
                   type="text"
                   value={commandConfig}
                   onChange={(e) => setCommandConfig(e.target.value)}
-                  placeholder="/matrix ou /antigravity"
+                  placeholder="!matrix ou !antigravity"
                   className="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-emerald-700 font-mono font-bold text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-xs"
                 />
+                <p className="text-[11px] text-slate-500">
+                  💡 Règle Comm-Link : Les commandes d'Easter Eggs doivent obligatoirement commencer par un point d'exclamation (ex: <span className="font-mono font-bold text-emerald-600">!eclipse</span>, <span className="font-mono font-bold text-emerald-600">!matrix</span>).
+                </p>
+              </div>
+            )}
+
+            {/* Conditionnel : Action Personnalisée */}
+            {triggerType === 'CUSTOM_ACTION' && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black uppercase tracking-wider text-indigo-900">
+                    ⚙️ Paramétrage de l'Action Personnalisée
+                  </label>
+                  <span className="text-[11px] font-bold text-indigo-700">
+                    Déclenchement interactif
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    {
+                      value: 'device_shake',
+                      label: '📱 Secouer le smartphone',
+                      desc: '3 secousses rapides du mobile (accéléromètre)',
+                    },
+                    {
+                      value: 'avatar_rapid_click',
+                      label: '👤 Clics sur l’Avatar',
+                      desc: '5 clics rapides sur l’avatar de l’agent au QG',
+                    },
+                    {
+                      value: 'ships_order_click',
+                      label: '🚀 Vaisseaux Orbitaux',
+                      desc: 'Clic ordonné sur les 3 vaisseaux spatiaux 2070',
+                    },
+                    {
+                      value: 'sound_frequency_tap',
+                      label: '🔊 Fréquence Audio',
+                      desc: '4 clics rapides sur l’icône son pour capter une onde',
+                    },
+                    {
+                      value: 'era_warp_fast',
+                      label: '🔄 Saut Temporel Rapide',
+                      desc: '3 bascules consécutives entre 2026 et 2070 (< 8s)',
+                    },
+                    {
+                      value: 'custom_event',
+                      label: '🛰️ Événement Sur-Mesure',
+                      desc: 'Clé d’événement Javascript personnalisée',
+                    },
+                  ].map((preset) => {
+                    const isSelected = customActionType === preset.value;
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => setCustomActionType(preset.value as any)}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-indigo-100 hover:bg-indigo-50/50'
+                        }`}
+                      >
+                        <div className="text-xs font-bold leading-tight">{preset.label}</div>
+                        <div
+                          className={`text-[11px] mt-1 leading-snug ${
+                            isSelected ? 'text-indigo-100' : 'text-slate-500'
+                          }`}
+                        >
+                          {preset.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {customActionType === 'custom_event' && (
+                  <div className="pt-2">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Clé d’Événement Javascript (Ex : solar_alignment, secret_drawer_opened)
+                    </label>
+                    <input
+                      type="text"
+                      value={customEventKey}
+                      onChange={(e) => setCustomEventKey(e.target.value)}
+                      placeholder="nom_evenement_sur_mesure"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-mono text-xs font-bold focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </div>
+                )}
               </div>
             )}
 

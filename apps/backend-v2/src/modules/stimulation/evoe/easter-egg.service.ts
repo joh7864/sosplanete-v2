@@ -73,6 +73,17 @@ export interface UpdateEasterEggSettingsDto {
   metaEnigmaPeriodGlyphs?: any;
 }
 
+export interface ResetEggProgressDto {
+  instanceYearId?: number;
+  easterEggIds?: number[];
+  all?: boolean;
+}
+
+export interface ImportCatalogDto {
+  items: any[];
+  mode?: 'upsert' | 'replace';
+}
+
 const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {
     code: 'EE_CADENAS_4CH_ARCHE',
@@ -243,12 +254,178 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
     title: 'La Fête Orbitale',
     crypticMessage:
       'Même à 400 km d’altitude, nos équipages célèbrent vos victoires avec un mot de passe festif...',
-    clues: ['Tapez /party dans le Comm-Link pour allumer la boule à facettes.'],
+    clues: ['Tapez !party dans le Comm-Link pour allumer la boule à facettes.'],
     triggerType: EasterEggTriggerType.COMM_LINK_COMMAND,
-    triggerConfig: { command: '/party' },
+    triggerConfig: { command: '!party' },
     complexity: EasterEggDifficulty.EASY,
     rewardPointsIT: 40,
     orderIndex: 11,
+    isActive: true,
+  },
+  {
+    code: 'EE_NEPTUNE_BEACON',
+    title: 'La Balise S.O.S de Neptune',
+    crypticMessage:
+      'Transmission lointaine 2070 : Une sonde automatique cryogénisée dérive en orbite de Neptune. Son signal de détresse est verrouillé par un code harmonique à 4 chiffres.',
+    clues: [
+      'Une équation planétaire basée sur la distance orbitale.',
+      'Trouvez le code à 4 chiffres : 3-0-1-4.',
+    ],
+    explicitHint: 'Les capteurs indiquent la fréquence exacte : 3014.',
+    triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+    expectedAnswer: '3014',
+    caseSensitive: false,
+    complexity: EasterEggDifficulty.MEDIUM,
+    rewardPointsIT: 60,
+    orderIndex: 14,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_SPACESHIPS_FLEET',
+    title: "L'Escadrille de l'Arche",
+    crypticMessage:
+      "Flotte de surveillance 2070 : Les trois vaisseaux de reconnaissance spatiale attendent vos ordres d'alignement pour stabiliser le corridor orbital.",
+    clues: [
+      'Observez la ronde des navettes autour de la Terre 2070.',
+      'Activez les vaisseaux dans l’ordre : Éclaireur ➔ Frégate ➔ Cargo.',
+    ],
+    explicitHint: 'Cliquez dans l’ordre sur les trois vaisseaux patrouillant en orbite.',
+    triggerType: EasterEggTriggerType.CUSTOM_ACTION,
+    triggerConfig: { action: 'ships_order_click', sequence: ['scout', 'frigate', 'freighter'] },
+    complexity: EasterEggDifficulty.MEDIUM,
+    rewardPointsIT: 70,
+    orderIndex: 15,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_SOLAR_ECLIPSE',
+    title: "L'Éclipse Solaire Artificielle",
+    crypticMessage:
+      "Alerte éruption coronale : L'Arche doit déployer son bouclier miroir orbital pour filtrer les rayonnements ultraviolets. Entrez la commande d'urgence dans le Comm-Link !",
+    clues: [
+      'Une commande Comm-Link commençant par un point d’exclamation !',
+      'Tapez !eclipse pour occulter le flux solaire.',
+    ],
+    explicitHint: 'Saisissez !eclipse dans le canal de communication.',
+    triggerType: EasterEggTriggerType.COMM_LINK_COMMAND,
+    triggerConfig: { command: '!eclipse' },
+    complexity: EasterEggDifficulty.EASY,
+    rewardPointsIT: 50,
+    orderIndex: 16,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_TELLURIC_HARMONY',
+    title: "L'Harmonie Tellurique",
+    crypticMessage:
+      'Équilibre biosphérique 2070 : Pour régénérer le cycle naturel de la planète, réalignez les 3 indicateurs de ressources de votre profil d’agent.',
+    clues: [
+      'Ouvrez votre profil d’agent.',
+      'Séquence : Eau ➔ Déchets ➔ Eau ➔ Carbone ➔ Déchets.',
+    ],
+    explicitHint: 'Cliquez sur les jauges du profil dans l’ordre indiqué pour stabiliser l’écosystème.',
+    triggerType: EasterEggTriggerType.METRIC_SEQUENCE,
+    triggerConfig: { sequence: ['water', 'waste', 'water', 'carbon', 'waste'] },
+    complexity: EasterEggDifficulty.MEDIUM,
+    rewardPointsIT: 70,
+    orderIndex: 17,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_PULSAR_SIGNAL',
+    title: 'Le Signal Pulsar 2070',
+    crypticMessage:
+      "Un pulsar radio lointain module une fréquence stellaire contenant le nom d'un projet secret de reboisement boréal.",
+    clues: [
+      'Le mot de passe correspond aux lueurs célestes polaires magnétiques.',
+      '6 lettres commençant par A : A-U-R-O-R-A.',
+    ],
+    explicitHint: 'Tapez AURORA pour décoder la transmission.',
+    triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+    expectedAnswer: 'AURORA',
+    caseSensitive: false,
+    complexity: EasterEggDifficulty.MEDIUM,
+    rewardPointsIT: 60,
+    orderIndex: 18,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_GRAVITON_LOCK',
+    title: 'Le Verrou de Graviton',
+    crypticMessage:
+      'Les générateurs inertiels de l’Arche subissent une surtension gravitationnelle. Une secousse physique calibrée est requise pour réinitialiser le gyroscope !',
+    clues: [
+      'Utilisez le gyroscope de votre appareil ou simulez une impulsion cinétique.',
+      'Secouez vigoureusement votre smartphone 3 fois.',
+    ],
+    explicitHint: 'Secouez votre appareil mobile 3 fois consécutives pour relancer les turbines.',
+    triggerType: EasterEggTriggerType.CUSTOM_ACTION,
+    triggerConfig: { action: 'device_shake' },
+    complexity: EasterEggDifficulty.EASY,
+    rewardPointsIT: 50,
+    orderIndex: 19,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_OXYGEN_SPECTRUM',
+    title: "Le Spectre de l'Oxygène Pur",
+    crypticMessage:
+      "Analyse spectrographique 2070 : Les capteurs atmosphériques mesurent le seuil critique d'ozone et d'oxygène de l'an de mission.",
+    clues: [
+      'L’année de référence de notre Arche spatiale.',
+      '4 chiffres symbolisant notre siècle futur.',
+    ],
+    explicitHint: 'L’année cible est 2070.',
+    triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+    expectedAnswer: '2070',
+    caseSensitive: false,
+    complexity: EasterEggDifficulty.EASY,
+    rewardPointsIT: 50,
+    orderIndex: 20,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_WHALE_SONG',
+    title: 'Le Chant Bio-Acoustique',
+    crypticMessage:
+      'Archives sonores de la Terre : Les bancs de données de l’Arche conservent les vibrations des grands fonds océaniques. Invoquez la biosphère marine !',
+    clues: [
+      'Une commande commençant par !',
+      'Tapez !biosphere dans le Comm-Link.',
+    ],
+    explicitHint: 'Tapez la commande !biosphere dans le chat.',
+    triggerType: EasterEggTriggerType.COMM_LINK_COMMAND,
+    triggerConfig: { command: '!biosphere' },
+    complexity: EasterEggDifficulty.EASY,
+    rewardPointsIT: 50,
+    orderIndex: 21,
+    prerequisiteType: 'NONE',
+    isActive: true,
+  },
+  {
+    code: 'EE_QUANTUM_KEY',
+    title: 'La Clé Quantique Temporelle',
+    crypticMessage:
+      "Sas du Réacteur Temporel : L'accès aux générateurs de flux chronologique est scellé par une série de nombres premiers et l'inversion d'une signature légendaire.",
+    clues: [
+      "Le miroir numérique du mot 'LEET' bien connu des hackers du XXe siècle.",
+      '4 chiffres : 7-3-3-1.',
+    ],
+    explicitHint: 'Entrez le code 7331 pour déverrouiller la passerelle.',
+    triggerType: EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+    expectedAnswer: '7331',
+    caseSensitive: false,
+    complexity: EasterEggDifficulty.HARD,
+    rewardPointsIT: 80,
+    orderIndex: 22,
+    prerequisiteType: 'NONE',
     isActive: true,
   },
 ];
@@ -278,7 +455,7 @@ export class EasterEggService implements OnModuleInit {
     try {
       const count = await this.prisma.evoeEasterEgg.count();
       if (count === 0) {
-        this.logger.log('Initialisation du catalogue d’Easter Eggs par défaut (11 énigmes)...');
+        this.logger.log('Initialisation du catalogue d’Easter Eggs par défaut (22 énigmes)...');
         for (const egg of DEFAULT_EASTER_EGGS) {
           await this.prisma.evoeEasterEgg.create({
             data: {
@@ -294,6 +471,7 @@ export class EasterEggService implements OnModuleInit {
               complexity: egg.complexity || EasterEggDifficulty.MEDIUM,
               rewardPointsIT: egg.rewardPointsIT || 50,
               orderIndex: egg.orderIndex || 0,
+              prerequisiteType: (egg.prerequisiteType as any) || 'NONE',
               isActive: egg.isActive ?? true,
             },
           });
@@ -1412,6 +1590,245 @@ export class EasterEggService implements OnModuleInit {
     return { success: true, count: orderedIds.length };
   }
 
+  /**
+   * Réinitialise la progression (résolution) des Easter Eggs :
+   * - par œuf individuel
+   * - par sélection d'œufs
+   * - ou pour tous les œufs
+   */
+  async resetEggProgress(dto: ResetEggProgressDto) {
+    const { easterEggIds, all, instanceYearId } = dto;
+
+    let targetEggIds: number[] = [];
+    if (all) {
+      const allEggs = await this.prisma.evoeEasterEgg.findMany({ select: { id: true } });
+      targetEggIds = allEggs.map((e) => e.id);
+    } else if (Array.isArray(easterEggIds) && easterEggIds.length > 0) {
+      targetEggIds = easterEggIds.map((id) => +id).filter((id) => !isNaN(id));
+    }
+
+    if (targetEggIds.length === 0 && !all) {
+      throw new BadRequestException("Veuillez spécifier au moins un Easter Egg ou l'option 'all: true'.");
+    }
+
+    let periodIdsFilter: number[] | undefined = undefined;
+    if (instanceYearId) {
+      const periods = await this.prisma.period.findMany({
+        where: { instanceYearId: +instanceYearId },
+        select: { id: true },
+      });
+      periodIdsFilter = periods.map((p) => p.id);
+    }
+
+    const progressWhere: any = {};
+    const rewardsWhere: any = {};
+
+    if (!all || targetEggIds.length > 0) {
+      progressWhere.easterEggId = { in: targetEggIds };
+      rewardsWhere.easterEggId = { in: targetEggIds };
+    }
+    if (periodIdsFilter && periodIdsFilter.length > 0) {
+      progressWhere.periodId = { in: periodIdsFilter };
+      rewardsWhere.periodId = { in: periodIdsFilter };
+    }
+
+    // Suppression des découvertes individuelles
+    const deletedProgress = await this.prisma.evoeEasterEggPlayerProgress.deleteMany({
+      where: progressWhere,
+    });
+
+    // Suppression des récompenses d'équipe
+    const deletedRewards = await this.prisma.evoeEasterEggTeamReward.deleteMany({
+      where: rewardsWhere,
+    });
+
+    // Réinitialisation des artefacts d'équipe si all
+    if (all) {
+      if (instanceYearId) {
+        const teams = await this.prisma.team.findMany({
+          where: { instanceYearId: +instanceYearId },
+          select: { id: true },
+        });
+        if (teams.length > 0) {
+          await this.prisma.team.updateMany({
+            where: { id: { in: teams.map((t) => t.id) } },
+            data: {
+              hasChronoEgg: false,
+              hasRosettaStone: false,
+              isMetaEnigmaUnlocked: false,
+            },
+          });
+        }
+      } else {
+        await this.prisma.team.updateMany({
+          data: {
+            hasChronoEgg: false,
+            hasRosettaStone: false,
+            isMetaEnigmaUnlocked: false,
+          },
+        });
+      }
+    }
+
+    // Réinitialise forceHint sur les instances associées
+    const instanceWhere: any = {};
+    if (targetEggIds.length > 0) instanceWhere.easterEggId = { in: targetEggIds };
+    if (instanceYearId) instanceWhere.instanceYearId = +instanceYearId;
+    await this.prisma.evoeEasterEggInstance.updateMany({
+      where: instanceWhere,
+      data: { forceHint: false },
+    });
+
+    return {
+      success: true,
+      resetEggIds: targetEggIds,
+      deletedProgressCount: deletedProgress.count,
+      deletedRewardsCount: deletedRewards.count,
+      all: !!all,
+      message: `Progression réinitialisée avec succès (${deletedProgress.count} découvertes, ${deletedRewards.count} récompenses d'équipe supprimées).`,
+    };
+  }
+
+  /**
+   * Exporte l'intégralité du catalogue avec toutes ses caractéristiques
+   */
+  async exportCatalog() {
+    const eggs = await this.prisma.evoeEasterEgg.findMany({
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    return eggs.map((e) => ({
+      code: e.code,
+      title: e.title,
+      prerequisiteType: e.prerequisiteType,
+      prerequisiteConfig: e.prerequisiteConfig,
+      crypticMessage: e.crypticMessage,
+      explicitHint: e.explicitHint,
+      hintDelayMinutes: e.hintDelayMinutes,
+      mascotDurationSeconds: e.mascotDurationSeconds,
+      triggerAction: e.triggerAction,
+      senderLore: e.senderLore,
+      clues: e.clues,
+      imageUrl: e.imageUrl,
+      triggerType: e.triggerType,
+      expectedAnswer: e.expectedAnswer,
+      caseSensitive: e.caseSensitive,
+      triggerConfig: e.triggerConfig,
+      complexity: e.complexity,
+      rewardPointsIT: e.rewardPointsIT,
+      specialReward: e.specialReward,
+      orderIndex: e.orderIndex,
+      isActive: e.isActive,
+    }));
+  }
+
+  /**
+   * Importe une liste d'Easter Eggs (mode upsert ou replace)
+   */
+  async importCatalog(dto: ImportCatalogDto) {
+    const items = dto.items;
+    const mode = dto.mode || 'upsert';
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException("Le fichier ou la liste d'Easter Eggs est vide ou invalide.");
+    }
+
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    if (mode === 'replace') {
+      await this.prisma.evoeEasterEgg.deleteMany({});
+      for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        if (!item.code || !item.title) continue;
+        await this.prisma.evoeEasterEgg.create({
+          data: {
+            code: String(item.code).trim(),
+            title: String(item.title).trim(),
+            prerequisiteType: item.prerequisiteType || 'MISSIONS_COUNT',
+            prerequisiteConfig: item.prerequisiteConfig ?? { count: 3, distinctSectors: 2 },
+            crypticMessage: item.crypticMessage || item.senderLore || '',
+            explicitHint: item.explicitHint || null,
+            hintDelayMinutes: item.hintDelayMinutes != null ? Number(item.hintDelayMinutes) : 120,
+            mascotDurationSeconds: item.mascotDurationSeconds != null ? Number(item.mascotDurationSeconds) : 30,
+            triggerAction: item.triggerAction || null,
+            senderLore: item.senderLore || null,
+            clues: item.clues || null,
+            imageUrl: item.imageUrl || null,
+            triggerType: item.triggerType || EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+            expectedAnswer: item.expectedAnswer != null ? String(item.expectedAnswer) : null,
+            caseSensitive: Boolean(item.caseSensitive),
+            triggerConfig: item.triggerConfig || null,
+            complexity: item.complexity || EasterEggDifficulty.MEDIUM,
+            rewardPointsIT: item.rewardPointsIT != null ? Number(item.rewardPointsIT) : 50,
+            specialReward: item.specialReward || 'NONE',
+            orderIndex: item.orderIndex != null ? Number(item.orderIndex) : idx + 1,
+            isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+          },
+        });
+        createdCount++;
+      }
+    } else {
+      for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx];
+        if (!item.code || !item.title) continue;
+
+        const code = String(item.code).trim();
+        const existing = await this.prisma.evoeEasterEgg.findUnique({
+          where: { code },
+        });
+
+        const data: any = {
+          title: String(item.title).trim(),
+          prerequisiteType: item.prerequisiteType || 'MISSIONS_COUNT',
+          prerequisiteConfig: item.prerequisiteConfig ?? { count: 3, distinctSectors: 2 },
+          crypticMessage: item.crypticMessage || item.senderLore || '',
+          explicitHint: item.explicitHint || null,
+          hintDelayMinutes: item.hintDelayMinutes != null ? Number(item.hintDelayMinutes) : 120,
+          mascotDurationSeconds: item.mascotDurationSeconds != null ? Number(item.mascotDurationSeconds) : 30,
+          triggerAction: item.triggerAction || null,
+          senderLore: item.senderLore || null,
+          clues: item.clues || null,
+          imageUrl: item.imageUrl || null,
+          triggerType: item.triggerType || EasterEggTriggerType.RIDDLE_ANSWER_INPUT,
+          expectedAnswer: item.expectedAnswer != null ? String(item.expectedAnswer) : null,
+          caseSensitive: Boolean(item.caseSensitive),
+          triggerConfig: item.triggerConfig || null,
+          complexity: item.complexity || EasterEggDifficulty.MEDIUM,
+          rewardPointsIT: item.rewardPointsIT != null ? Number(item.rewardPointsIT) : 50,
+          specialReward: item.specialReward || 'NONE',
+          orderIndex: item.orderIndex != null ? Number(item.orderIndex) : idx + 1,
+          isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+        };
+
+        if (existing) {
+          await this.prisma.evoeEasterEgg.update({
+            where: { code },
+            data,
+          });
+          updatedCount++;
+        } else {
+          await this.prisma.evoeEasterEgg.create({
+            data: {
+              code,
+              ...data,
+            },
+          });
+          createdCount++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      mode,
+      totalProcessed: items.length,
+      createdCount,
+      updatedCount,
+      message: `Import réussi (${createdCount} créés, ${updatedCount} mis à jour).`,
+    };
+  }
+
   async updateSettings(instanceYearId: number, dto: UpdateEasterEggSettingsDto) {
     const updated = await this.prisma.instanceYear.update({
       where: { id: instanceYearId },
@@ -2203,15 +2620,44 @@ export class EasterEggService implements OnModuleInit {
       throw new NotFoundException('Aucune énigme trouvée pour ce cycle.');
     }
 
-    const playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+    let playerProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
       where: {
         easterEggId: candidateEgg.id,
         childId: child.id,
         periodId: { in: cyclePeriodIds },
-        discoveredAt: { not: null },
       },
       orderBy: { id: 'desc' },
     });
+
+    const nowTime = new Date();
+    if (!playerProgress) {
+      playerProgress = await this.prisma.evoeEasterEggPlayerProgress.create({
+        data: {
+          easterEggId: candidateEgg.id,
+          childId: child.id,
+          periodId,
+          firstInteractionAt: nowTime,
+        },
+      });
+    } else if (!playerProgress.firstInteractionAt) {
+      playerProgress = await this.prisma.evoeEasterEggPlayerProgress.update({
+        where: { id: playerProgress.id },
+        data: { firstInteractionAt: nowTime },
+      });
+    }
+
+    const explicitInstance = instances.find((i) => i.easterEggId === candidateEgg.id);
+    let isExplicitHintVisible = false;
+
+    if (explicitInstance?.forceHint) {
+      isExplicitHintVisible = true;
+    } else if (playerProgress.firstInteractionAt) {
+      const delayMinutes = candidateEgg.hintDelayMinutes ?? 120;
+      const delayMs = delayMinutes * 60 * 1000;
+      if (nowTime.getTime() - new Date(playerProgress.firstInteractionAt).getTime() >= delayMs) {
+        isExplicitHintVisible = true;
+      }
+    }
 
     const teamChildren = team.groups.flatMap((g: any) => g.children);
     const teamChildIds = teamChildren.map((c: any) => c.id);
@@ -2257,7 +2703,7 @@ export class EasterEggService implements OnModuleInit {
           senderLore: candidateEgg.senderLore,
           crypticMessage: candidateEgg.crypticMessage,
           explicitHint: candidateEgg.explicitHint,
-          isExplicitHintVisible: true,
+          isExplicitHintVisible,
           isInteractable: true,
           clues: candidateEgg.clues,
           imageUrl: candidateEgg.imageUrl,
@@ -2276,7 +2722,7 @@ export class EasterEggService implements OnModuleInit {
         },
         playerProgress: {
           isDiscovered: !!playerProgress?.discoveredAt,
-          firstInteractionAt: playerProgress?.firstInteractionAt || new Date().toISOString(),
+          firstInteractionAt: playerProgress?.firstInteractionAt || nowTime.toISOString(),
           discoveredAt: playerProgress?.discoveredAt || null,
         },
         teamProgress: {

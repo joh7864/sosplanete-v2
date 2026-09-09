@@ -25,6 +25,8 @@ import {
   CreateEasterEggDto,
   UpdateEasterEggDto,
   UpdateEasterEggSettingsDto,
+  ResetEggProgressDto,
+  ImportCatalogDto,
 } from './easter-egg.service';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
 
@@ -184,6 +186,18 @@ export class EasterEggController {
     return this.easterEggService.getAdminCatalog();
   }
 
+  @Get('admin/catalog/export')
+  @ApiOperation({ summary: 'Exporte le catalogue complet des Easter Eggs avec toutes leurs caractéristiques' })
+  async exportCatalog() {
+    return this.easterEggService.exportCatalog();
+  }
+
+  @Post('admin/catalog/import')
+  @ApiOperation({ summary: 'Importe un catalogue d’Easter Eggs (mode upsert ou replace)' })
+  async importCatalog(@Body() dto: ImportCatalogDto) {
+    return this.easterEggService.importCatalog(dto);
+  }
+
   @Post('admin/catalog')
   @ApiOperation({ summary: 'Crée une nouvelle énigme dans le catalogue' })
   async createEasterEgg(@Body() dto: CreateEasterEggDto) {
@@ -305,5 +319,11 @@ export class EasterEggController {
       throw new BadRequestException('instanceYearId est requis');
     }
     return this.easterEggService.forceInstanceHint(+instanceYearId, easterEggId ? +easterEggId : undefined);
+  }
+
+  @Post('admin/reset-progress')
+  @ApiOperation({ summary: 'Réinitialise la progression et les récompenses des Easter Eggs (unitaire, sélection ou tous)' })
+  async resetEggProgress(@Body() dto: ResetEggProgressDto) {
+    return this.easterEggService.resetEggProgress(dto);
   }
 }
