@@ -119,10 +119,23 @@ export class EasterEggController {
   @ApiOperation({
     summary: 'Leaderboard des Détectives Temporels (individuel et équipes)',
   })
-  async getLeaderboard(@Query('instanceYearId') instanceYearId?: string) {
-    return this.easterEggService.getDetectiveLeaderboard(
-      instanceYearId ? +instanceYearId : undefined,
-    );
+  async getLeaderboard(
+    @Query('instanceYearId') instanceYearId?: string,
+    @Headers('authorization') auth?: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    let resolvedInstanceYearId = instanceYearId ? +instanceYearId : undefined;
+    if (!resolvedInstanceYearId && auth) {
+      try {
+        const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+        if (child?.group?.team?.instanceYearId) {
+          resolvedInstanceYearId = child.group.team.instanceYearId;
+        }
+      } catch {
+        // Ignorer si token non valide ou admin
+      }
+    }
+    return this.easterEggService.getDetectiveLeaderboard(resolvedInstanceYearId);
   }
 
   @Get('chrono-egg/archive')

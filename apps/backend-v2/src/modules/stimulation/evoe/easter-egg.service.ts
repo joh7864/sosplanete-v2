@@ -4,8 +4,10 @@ import {
   BadRequestException,
   OnModuleInit,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { ChatGateway } from '../chat.gateway';
 import {
   EasterEggTriggerType,
   EasterEggDifficulty,
@@ -253,7 +255,10 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
 export class EasterEggService implements OnModuleInit {
   private readonly logger = new Logger(EasterEggService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly chatGateway?: ChatGateway,
+  ) {}
 
   async onModuleInit() {
     await this.seedDefaultEasterEggs();
@@ -1083,6 +1088,23 @@ export class EasterEggService implements OnModuleInit {
           },
         });
         teamRewardEarned = true;
+
+        if (this.chatGateway) {
+          try {
+            this.chatGateway.broadcastTeamEasterEggVictory({
+              teamId: team.id,
+              teamName: team.name,
+              teamColor: team.color,
+              teamIcon: team.icon,
+              easterEggTitle: egg.title,
+              pointsIT: egg.rewardPointsIT,
+              rank,
+              childPseudo: child.pseudo,
+            });
+          } catch (err: any) {
+            this.logger.warn(`[EasterEggService] Erreur broadcast victoire équipe: ${err?.message}`);
+          }
+        }
       }
     }
 

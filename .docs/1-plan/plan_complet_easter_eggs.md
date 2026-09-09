@@ -157,12 +157,12 @@ graph TD
 
 *Pas de bouton flottant en plus : intégration directe dans la modale de classement existante.*
 
-- [ ] **4.1. Nouvel onglet "🕵️ Détectives Temporels" dans le Leaderboard Général** :
+- [x] **4.1. Nouvel onglet "🕵️ Détectives Temporels" dans le Leaderboard Général** :
   - Ajout d'un sélecteur d'onglet dans `LeaderboardModal.tsx`.
-- [ ] **4.2. Podium Top 3 & Classement Individuel** :
+- [x] **4.2. Podium Top 3 & Classement Individuel** :
   - Cartes Or, Argent, Bronze avec couronne Sherlock 2070.
   - Nombre d'énigmes résolues et points IT rapportés à l'équipe.
-- [ ] **4.3. Classement Inter-Équipes** :
+- [x] **4.3. Classement Inter-Équipes** :
   - Classement des équipes ayant le meilleur taux de résolution et la plus grande vélocité.
 
 ---
@@ -171,7 +171,7 @@ graph TD
 
 - [x] **5.1. Pré-remplissage exact dans le Comm-Link post-découverte** :
   - Dès qu'un joueur réussit l'action secrète ou le code PIN : le Comm-Link s'ouvre automatiquement sur le salon privé de son équipe (`team`) avec le texte pré-formaté.
-- [ ] **5.2. Célébration Collective & Propulsion du Vaisseau** :
+- [x] **5.2. Célébration Collective & Propulsion du Vaisseau** :
   - Dès que le nombre minimum de joueurs requis est atteint dans l'équipe :
     - Bannière dorée plein écran pour tous les membres de l'équipe :  
       `"🏆 Victoire Temporelle ! +60 Points IT remportés par l'équipe [Nom Équipe] !"`

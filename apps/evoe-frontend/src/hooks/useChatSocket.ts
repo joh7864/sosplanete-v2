@@ -543,6 +543,11 @@ export function useChatSocket({
       setTimeout(() => setErrorMsg(null), 5000);
     });
 
+    socketInstance.on('easter_egg_team_victory', (data: any) => {
+      console.log('[WebSockets] 🏆 Victoire Easter Egg d’équipe reçue:', data);
+      window.dispatchEvent(new CustomEvent('easter_egg_team_victory', { detail: data }));
+    });
+
     socketInstance.on('disconnect', () => {
       console.log('[Chat WebSockets] Déconnecté du serveur');
       setMessages((prev) => [
@@ -571,6 +576,7 @@ export function useChatSocket({
       socketInstance.off('chatHistory');
       socketInstance.off('reactionAdded');
       socketInstance.off('chatError');
+      socketInstance.off('easter_egg_team_victory');
       socketInstance.off('disconnect');
       socketInstance.disconnect();
     };

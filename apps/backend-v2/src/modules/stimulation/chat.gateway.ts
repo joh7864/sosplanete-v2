@@ -850,4 +850,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
   }
+
+  /**
+   * Diffuse en temps réel une victoire d'équipe sur un Easter Egg
+   */
+  broadcastTeamEasterEggVictory(data: {
+    teamId: number;
+    teamName: string;
+    teamColor?: string | null;
+    teamIcon?: string | null;
+    easterEggTitle: string;
+    pointsIT: number;
+    rank?: number;
+    childPseudo: string;
+  }) {
+    if (!this.server) return;
+    this.logger.log(
+      `[Chat WebSockets] 🏆 Victoire Easter Egg d'équipe diffusée pour ${data.teamName} (+${data.pointsIT} IT)`,
+    );
+    this.server.to(`team_${data.teamId}`).emit('easter_egg_team_victory', data);
+    this.server.to('global').emit('easter_egg_global_alert', data);
+  }
 }

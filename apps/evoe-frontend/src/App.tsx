@@ -28,6 +28,7 @@ import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
 import { MascotBubble3D } from './components/ui/MascotBubble3D';
 import { EasterEggVictoryDispatcher } from './components/ui/EasterEggVictoryDispatcher';
+import { TeamVictoryCelebrationModal } from './components/ui/TeamVictoryCelebrationModal';
 import { ChronoEggModal, type ChronoPeriodItem } from './components/ui/ChronoEggModal';
 import { RosettaStoneModal } from './components/ui/RosettaStoneModal';
 import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
@@ -507,8 +508,8 @@ function MainApp() {
   };
 
   // Trouver les informations de profil du Gardien connecté
-  const currentPlayer = players?.find(p => p.id === childInfos?.id);
-  const myTeamId = currentPlayer?.teamId;
+  const currentPlayer = players?.find(p => p.id === childInfos?.id || p.childId === childInfos?.id);
+  const myTeamId = currentPlayer?.teamId || childInfos?.group?.teamId;
 
   const activeChallengeActionIds = challenges
     .filter(c => c.status === 'ACCEPTED' && c.targetTeamId === myTeamId)
@@ -2466,6 +2467,15 @@ function MainApp() {
         onOpenCommLink={() => {
           setShowEggCelebration(false);
           setShowMascotBubble(false);
+          setChatActiveTab('team');
+          setChatOpen(true);
+        }}
+      />
+
+      {/* CÉLÉBRATION COLLECTIVE VICTOIRE D'ÉQUIPE (BROADCAST WEBSOCKET POUR TOUS LES COÉQUIPIERS CONNECTÉS) */}
+      <TeamVictoryCelebrationModal
+        myTeamId={myTeamId}
+        onOpenCommLink={() => {
           setChatActiveTab('team');
           setChatOpen(true);
         }}
