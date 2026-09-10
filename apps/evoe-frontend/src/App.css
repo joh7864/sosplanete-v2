@@ -2593,5 +2593,17 @@ body {
   background: rgba(0, 255, 204, 0.15);
 }
 
+.app-version-badge {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+}
+
+.app-version-badge:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: #00ffcc !important;
+  box-shadow: 0 0 16px rgba(0, 255, 204, 0.55), 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  background: rgba(0, 255, 204, 0.22) !important;
+}
+
 
 

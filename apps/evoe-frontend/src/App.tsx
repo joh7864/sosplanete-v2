@@ -33,6 +33,7 @@ import { TeamVictoryCelebrationModal } from './components/ui/TeamVictoryCelebrat
 import { ChronoEggModal, type ChronoPeriodItem } from './components/ui/ChronoEggModal';
 import { RosettaStoneModal } from './components/ui/RosettaStoneModal';
 import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
+import { AboutModal } from './components/ui/AboutModal';
 import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
@@ -137,6 +138,7 @@ function MainApp() {
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const [showMissionsWeekModal, setShowMissionsWeekModal] = useState(false);
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -2875,26 +2877,45 @@ function MainApp() {
         )}
       </AnimatePresence>
 
-      {/* Badge Discret de Version App en bas à gauche */}
+      {/* Badge Interactif de Version App en bas à gauche -> Ouvre le Journal de Bord / About */}
       <div 
         className="app-version-badge"
+        onClick={() => setShowAboutModal(true)}
+        title="Ouvrir le Journal de Bord & Cartographie des fonctionnalités"
         style={{
           position: 'fixed',
           bottom: '12px',
           left: '16px',
           zIndex: 100,
           fontSize: '0.72rem',
-          fontWeight: 600,
+          fontWeight: 700,
           letterSpacing: '0.8px',
-          color: era === '2026' ? 'rgba(0, 179, 255, 0.5)' : 'rgba(0, 255, 204, 0.5)',
+          color: era === '2026' ? '#00b3ff' : '#00ffcc',
+          background: era === '2026' ? 'rgba(0, 179, 255, 0.12)' : 'rgba(0, 255, 204, 0.12)',
+          border: era === '2026' ? '1px solid rgba(0, 179, 255, 0.35)' : '1px solid rgba(0, 255, 204, 0.35)',
+          borderRadius: '8px',
+          padding: '3px 9px',
+          backdropFilter: 'blur(8px)',
           fontFamily: 'monospace',
-          pointerEvents: 'none',
+          pointerEvents: 'auto',
+          cursor: 'pointer',
           userSelect: 'none',
-          textShadow: '0 1px 4px rgba(0, 0, 0, 0.9)'
+          boxShadow: era === '2026' ? '0 0 10px rgba(0, 179, 255, 0.25)' : '0 0 10px rgba(0, 255, 204, 0.25)',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px'
         }}
       >
-        v{pkg.version}
+        <span>v{pkg.version}</span>
       </div>
+
+      {/* Modale À propos / Journal de Bord & Cartographie des Epics */}
+      <AboutModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+        version={pkg.version}
+      />
     </div>
   );
 }
