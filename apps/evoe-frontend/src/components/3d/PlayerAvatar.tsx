@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
@@ -299,6 +299,434 @@ function getMissionsWeekTexture(color: string, count: number): THREE.Texture {
   return tex;
 }
 
+/**
+ * Texture Canvas HD pour le Médaillon d'anniversaire festif (Option 1) :
+ * - Écrin sombre en verre cosmique profond (#0c1630 / #020408) pour contraste 100%
+ * - Cerclage doré biseauté éclatant avec lueur néon et rivets d'or
+ * - Plateau doré royal avec reflets spéculaires
+ * - Double étage gourmand velouté crème/vanille avec coulis caramel ruisselant
+ * - Perles de sucre dorées et nacrées le long des étages
+ * - 3 bougies royales dorées avec flammes incandescentes ultra-lumineuses
+ * - Étoiles et étincelles festives dorées
+ */
+const premiumBirthdayCakeTexture = (() => {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  const cx = 128;
+  const cy = 130;
+  const r = 94;
+
+  // 1. Halo lumineux doré d'ambiance externe doux
+  const halo = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, 126);
+  halo.addColorStop(0, 'rgba(255, 215, 0, 0.45)');
+  halo.addColorStop(0.6, 'rgba(255, 170, 0, 0.15)');
+  halo.addColorStop(1, 'rgba(255, 120, 0, 0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 126, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 2. ÉCRIN SOMBRE : Médaillon en verre sombre cosmique profond pour contraste 100%
+  const bgGrad = ctx.createRadialGradient(cx, cy - 20, 10, cx, cy, r);
+  bgGrad.addColorStop(0, '#0c1630'); // bleu nuit sombre au centre
+  bgGrad.addColorStop(0.6, '#060b18');
+  bgGrad.addColorStop(1, '#020408'); // noir profond aux bords
+  ctx.fillStyle = bgGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. CERCLAGE DORÉ BISEAUTÉ & LUMINEUX (Beveled Gold Neon Rim)
+  ctx.save();
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 14;
+  const rimGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  rimGrad.addColorStop(0, '#fffbe6');
+  rimGrad.addColorStop(0.2, '#ffd700');
+  rimGrad.addColorStop(0.45, '#aa7715');
+  rimGrad.addColorStop(0.7, '#ffd700');
+  rimGrad.addColorStop(1, '#664005');
+  ctx.strokeStyle = rimGrad;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Filet de lumière interne sur le cerclage
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 4.5, Math.PI * 0.75, Math.PI * 1.55);
+  ctx.stroke();
+  ctx.restore();
+
+  // 4 Clous / Rivets d'or aux 4 points cardinaux
+  [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].forEach(angle => {
+    const rx = cx + Math.cos(angle) * (r - 2);
+    const ry = cy + Math.sin(angle) * (r - 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(rx, ry, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(rx, ry, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Helper pour tracer une ellipse remplie
+  const fillEllipse = (x: number, y: number, rx: number, ry: number, fillStyle: string | CanvasGradient) => {
+    ctx.save();
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // 4. GÂTEAU ROYAL FESTIF
+  // Plateau doré (Pedestal Stand)
+  const footGrad = ctx.createLinearGradient(cx - 20, 204, cx + 20, 204);
+  footGrad.addColorStop(0, '#8a580a');
+  footGrad.addColorStop(0.3, '#ffd700');
+  footGrad.addColorStop(0.5, '#fff2a8');
+  footGrad.addColorStop(0.7, '#ffd700');
+  footGrad.addColorStop(1, '#664005');
+  ctx.fillStyle = footGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 15, 196);
+  ctx.lineTo(cx - 22, 210);
+  ctx.quadraticCurveTo(cx, 213, cx + 22, 210);
+  ctx.lineTo(cx + 15, 196);
+  ctx.closePath();
+  ctx.fill();
+
+  // Bord inférieur du plateau
+  const plateUnderGrad = ctx.createLinearGradient(cx - 65, 192, cx + 65, 192);
+  plateUnderGrad.addColorStop(0, '#664005');
+  plateUnderGrad.addColorStop(0.3, '#b8860b');
+  plateUnderGrad.addColorStop(0.5, '#ffd700');
+  plateUnderGrad.addColorStop(0.8, '#b8860b');
+  plateUnderGrad.addColorStop(1, '#523303');
+  ctx.fillStyle = plateUnderGrad;
+  ctx.beginPath();
+  ctx.ellipse(cx, 196, 64, 10, 0, 0, Math.PI);
+  ctx.fill();
+
+  // Surface supérieure du plateau
+  const plateTopGrad = ctx.createRadialGradient(cx, 191, 8, cx, 191, 62);
+  plateTopGrad.addColorStop(0, '#fffbe6');
+  plateTopGrad.addColorStop(0.4, '#ffd700');
+  plateTopGrad.addColorStop(0.8, '#c69214');
+  plateTopGrad.addColorStop(1, '#8a580a');
+  fillEllipse(cx, 192, 63, 9, plateTopGrad);
+
+  // Filet de lumière spéculaire
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(cx, 192, 62, 8.5, 0, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+
+  // 5. Étage Inférieur (Grand Étage Gourmand)
+  const tier1BodyGrad = ctx.createLinearGradient(cx - 48, 168, cx + 48, 168);
+  tier1BodyGrad.addColorStop(0, '#2e1910'); // chocolat velouté
+  tier1BodyGrad.addColorStop(0.16, '#fff0db'); // crème vanille royale
+  tier1BodyGrad.addColorStop(0.5, '#ffffff'); // blanc éclatant pur
+  tier1BodyGrad.addColorStop(0.84, '#fff0db');
+  tier1BodyGrad.addColorStop(1, '#3b2216');
+  
+  ctx.fillStyle = tier1BodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 48, 156);
+  ctx.lineTo(cx - 48, 188);
+  ctx.ellipse(cx, 188, 48, 8, 0, Math.PI, 0, true);
+  ctx.lineTo(cx + 48, 156);
+  ctx.ellipse(cx, 156, 48, 8, 0, 0, Math.PI, false);
+  ctx.closePath();
+  ctx.fill();
+
+  // Perles dorées au pied du 1er étage
+  for (let i = 0; i < 9; i++) {
+    const angle = Math.PI * (0.12 + i * 0.095);
+    const px = cx + Math.cos(angle) * 46;
+    const py = 188 + Math.sin(angle) * 7.5;
+    const pearlGrad = ctx.createRadialGradient(px - 1, py - 1, 0.5, px, py, 2.5);
+    pearlGrad.addColorStop(0, '#ffffff');
+    pearlGrad.addColorStop(0.4, '#ffd700');
+    pearlGrad.addColorStop(1, '#996515');
+    ctx.fillStyle = pearlGrad;
+    ctx.beginPath();
+    ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Glaçage caramel / coulis doré ruisselant (Drips)
+  const dripGrad = ctx.createLinearGradient(cx - 48, 156, cx + 48, 156);
+  dripGrad.addColorStop(0, '#996515');
+  dripGrad.addColorStop(0.2, '#f59e0b');
+  dripGrad.addColorStop(0.5, '#ffd700');
+  dripGrad.addColorStop(0.8, '#f59e0b');
+  dripGrad.addColorStop(1, '#784a08');
+  
+  ctx.fillStyle = dripGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 48, 156);
+  ctx.bezierCurveTo(cx - 44, 172, cx - 36, 174, cx - 32, 161);
+  ctx.bezierCurveTo(cx - 28, 177, cx - 18, 179, cx - 14, 162);
+  ctx.bezierCurveTo(cx - 8, 180, cx, 182, cx + 4, 162);
+  ctx.bezierCurveTo(cx + 10, 181, cx + 20, 178, cx + 24, 162);
+  ctx.bezierCurveTo(cx + 28, 177, cx + 36, 175, cx + 40, 161);
+  ctx.bezierCurveTo(cx + 44, 170, cx + 47, 168, cx + 48, 156);
+  ctx.ellipse(cx, 156, 48, 8, 0, 0, Math.PI, true);
+  ctx.closePath();
+  ctx.fill();
+
+  // Surface dessus de l'étage 1
+  fillEllipse(cx, 156, 48, 8, plateTopGrad);
+
+  // 6. Étage Supérieur (Second Étage Raffiné)
+  const tier2BodyGrad = ctx.createLinearGradient(cx - 32, 130, cx + 32, 130);
+  tier2BodyGrad.addColorStop(0, '#2e1910');
+  tier2BodyGrad.addColorStop(0.18, '#fff3e0');
+  tier2BodyGrad.addColorStop(0.5, '#ffffff');
+  tier2BodyGrad.addColorStop(0.82, '#fff3e0');
+  tier2BodyGrad.addColorStop(1, '#3b2216');
+
+  ctx.fillStyle = tier2BodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 32, 126);
+  ctx.lineTo(cx - 32, 152);
+  ctx.ellipse(cx, 152, 32, 6, 0, Math.PI, 0, true);
+  ctx.lineTo(cx + 32, 126);
+  ctx.ellipse(cx, 126, 32, 6, 0, 0, Math.PI, false);
+  ctx.closePath();
+  ctx.fill();
+
+  // Perles d'or à la jonction du 2ème étage
+  for (let i = 0; i < 7; i++) {
+    const angle = Math.PI * (0.15 + i * 0.12);
+    const px = cx + Math.cos(angle) * 30;
+    const py = 152 + Math.sin(angle) * 5.2;
+    const pearlGrad = ctx.createRadialGradient(px - 0.8, py - 0.8, 0.4, px, py, 2.2);
+    pearlGrad.addColorStop(0, '#ffffff');
+    pearlGrad.addColorStop(0.4, '#ffd700');
+    pearlGrad.addColorStop(1, '#996515');
+    ctx.fillStyle = pearlGrad;
+    ctx.beginPath();
+    ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Drips glaçage doré étage 2
+  ctx.fillStyle = dripGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx - 32, 126);
+  ctx.bezierCurveTo(cx - 28, 140, cx - 20, 142, cx - 17, 131);
+  ctx.bezierCurveTo(cx - 12, 144, cx - 4, 145, cx, 131);
+  ctx.bezierCurveTo(cx + 6, 145, cx + 14, 143, cx + 18, 131);
+  ctx.bezierCurveTo(cx + 22, 141, cx + 28, 139, cx + 32, 126);
+  ctx.ellipse(cx, 126, 32, 6, 0, 0, Math.PI, true);
+  ctx.closePath();
+  ctx.fill();
+
+  // Surface supérieure de l'étage 2
+  fillEllipse(cx, 126, 32, 6, plateTopGrad);
+
+  // Rosaces de crème chantilly sur le dessus
+  const drawRosette = (rx: number, ry: number) => {
+    const roseGrad = ctx.createRadialGradient(rx - 1, ry - 1, 1, rx, ry, 4);
+    roseGrad.addColorStop(0, '#ffffff');
+    roseGrad.addColorStop(0.6, '#fffaed');
+    roseGrad.addColorStop(1, '#e6c88b');
+    ctx.fillStyle = roseGrad;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(rx, ry, 1, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  drawRosette(cx - 22, 126);
+  drawRosette(cx - 11, 128);
+  drawRosette(cx, 129);
+  drawRosette(cx + 11, 128);
+  drawRosette(cx + 22, 126);
+
+  // 7. Bougies Royales Lumineuses (3 bougies dorées)
+  const candles = [
+    { x: cx - 17, yTop: 84, yBottom: 124, w: 6.5 },
+    { x: cx,      yTop: 76, yBottom: 125, w: 7.5 },
+    { x: cx + 17, yTop: 84, yBottom: 124, w: 6.5 },
+  ];
+
+  candles.forEach(({ x, yTop, yBottom, w }) => {
+    const candleGrad = ctx.createLinearGradient(x - w / 2, yTop, x + w / 2, yTop);
+    candleGrad.addColorStop(0, '#b8860b');
+    candleGrad.addColorStop(0.2, '#ffd700');
+    candleGrad.addColorStop(0.5, '#ffffff');
+    candleGrad.addColorStop(0.8, '#ffd700');
+    candleGrad.addColorStop(1, '#8a580a');
+
+    ctx.fillStyle = candleGrad;
+    ctx.beginPath();
+    if (typeof (ctx as any).roundRect === 'function') {
+      (ctx as any).roundRect(x - w / 2, yTop, w, yBottom - yTop, [2, 2, 0, 0]);
+    } else {
+      ctx.rect(x - w / 2, yTop, w, yBottom - yTop);
+    }
+    ctx.fill();
+
+    // Spirales festives rubis
+    ctx.strokeStyle = '#e11d48';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for (let sy = yTop + 6; sy < yBottom - 4; sy += 8) {
+      ctx.moveTo(x - w / 2, sy);
+      ctx.lineTo(x + w / 2, sy + 3.5);
+    }
+    ctx.stroke();
+
+    // Mèche
+    ctx.strokeStyle = '#331100';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(x, yTop);
+    ctx.lineTo(x, yTop - 5);
+    ctx.stroke();
+
+    // Halo lumineux intense de la flamme
+    ctx.save();
+    ctx.shadowColor = '#ff8800';
+    ctx.shadowBlur = 18;
+
+    // Flamme extérieure
+    const flameGrad = ctx.createRadialGradient(x, yTop - 13, 1, x, yTop - 13, 8);
+    flameGrad.addColorStop(0, '#ffffff');
+    flameGrad.addColorStop(0.25, '#ffe600');
+    flameGrad.addColorStop(0.65, '#ff6600');
+    flameGrad.addColorStop(1, 'rgba(255, 34, 0, 0)');
+
+    ctx.fillStyle = flameGrad;
+    ctx.beginPath();
+    ctx.moveTo(x, yTop - 5);
+    ctx.bezierCurveTo(x - 5.5, yTop - 10, x - 5.5, yTop - 19, x, yTop - 23);
+    ctx.bezierCurveTo(x + 5.5, yTop - 19, x + 5.5, yTop - 10, x, yTop - 5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Flamme intérieure (Cœur blanc incandescent)
+    const coreGrad = ctx.createRadialGradient(x, yTop - 12, 0.5, x, yTop - 12, 3.5);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.7, '#fff5a0');
+    coreGrad.addColorStop(1, 'rgba(255, 200, 0, 0)');
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.ellipse(x, yTop - 12, 2.2, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  });
+
+  // 8. Étoiles étincelantes & Scintillements cosmiques sur fond sombre
+  const drawSparkle = (sx: number, sy: number, radius: number) => {
+    ctx.save();
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - radius);
+    ctx.quadraticCurveTo(sx, sy, sx + radius, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy + radius);
+    ctx.quadraticCurveTo(sx, sy, sx - radius, sy);
+    ctx.quadraticCurveTo(sx, sy, sx, sy - radius);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cœur doré
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  drawSparkle(cx - 52, 75, 10);
+  drawSparkle(cx + 52, 75, 10);
+  drawSparkle(cx - 65, 140, 7.5);
+  drawSparkle(cx + 65, 138, 7.5);
+  drawSparkle(cx, 44, 9);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+})();
+
+/**
+ * Halo lumineux doré éclatant pour faire ressortir le gâteau d'anniversaire :
+ * - Étoile de rayons solaires dorés chauds
+ * - Halo radial intense doré/ambre avec dégradé doux
+ * - Anneau céleste lumineux
+ */
+const cakeHaloTexture = (() => {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const cx = 128;
+  const cy = 128;
+
+  // 1. Rayons solaires dorés (8 rayons doux en étoile)
+  ctx.save();
+  ctx.translate(cx, cy);
+  for (let i = 0; i < 8; i++) {
+    ctx.rotate((Math.PI * 2) / 8);
+    const rayGrad = ctx.createLinearGradient(0, 0, 0, 118);
+    rayGrad.addColorStop(0, 'rgba(255, 235, 120, 0.65)');
+    rayGrad.addColorStop(0.4, 'rgba(255, 190, 0, 0.28)');
+    rayGrad.addColorStop(1, 'rgba(255, 140, 0, 0)');
+    ctx.fillStyle = rayGrad;
+    ctx.beginPath();
+    ctx.moveTo(-16, 0);
+    ctx.lineTo(0, 118);
+    ctx.lineTo(16, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 2. Halo radial intense doré/ambre
+  const halo = ctx.createRadialGradient(cx, cy, 15, cx, cy, 120);
+  halo.addColorStop(0, 'rgba(255, 255, 240, 0.98)');
+  halo.addColorStop(0.2, 'rgba(255, 225, 60, 0.88)');
+  halo.addColorStop(0.48, 'rgba(255, 175, 0, 0.55)');
+  halo.addColorStop(0.78, 'rgba(255, 120, 0, 0.2)');
+  halo.addColorStop(1, 'rgba(255, 80, 0, 0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. Anneau doré fin avec lueur intense
+  ctx.strokeStyle = 'rgba(255, 245, 180, 0.75)';
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  return tex;
+})();
+
 interface PlayerAvatarProps {
   player: any;
   position: [number, number, number];
@@ -306,6 +734,7 @@ interface PlayerAvatarProps {
   onSelectPlayer?: (p: any) => void;
   onSelectChallengeBadge?: (p: any) => void;
   onSelectMissionsWeek?: (p: any) => void;
+  onSelectBirthdayCake?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
   isStealthMode?: boolean;
@@ -324,6 +753,7 @@ export function PlayerAvatar({
   onSelectPlayer, 
   onSelectChallengeBadge,
   onSelectMissionsWeek,
+  onSelectBirthdayCake,
   isOnline = false,
   hasUnread = false,
   isStealthMode = false,
@@ -342,6 +772,36 @@ export function PlayerAvatar({
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const groupRef = useRef<THREE.Group>(null);
   const bracketsRef = useRef<THREE.Mesh>(null);
+
+  // Détection du jour d'anniversaire de l'Agent pour le halo doré et le badge 3D
+  const isBirthday = useMemo(() => {
+    if (isMe && player?.id) {
+      const year = new Date().getFullYear();
+      const celeb = localStorage.getItem(`evoe_birthday_celebrated_${player.id}_${year}`);
+      if (celeb && new Date(celeb).toDateString() === new Date().toDateString()) {
+        return true;
+      }
+    }
+    if (!player?.birthDate) return false;
+    try {
+      const bDate = new Date(player.birthDate);
+      if (isNaN(bDate.getTime())) return false;
+      const now = new Date();
+      // Jour J exact
+      if (bDate.getDate() === now.getDate() && bDate.getMonth() === now.getMonth()) {
+        return true;
+      }
+      // Fenêtre de rattrapage (7 jours max)
+      const bThisYear = new Date(now.getFullYear(), bDate.getMonth(), bDate.getDate(), 0, 0, 0, 0);
+      const diffDays = (now.getTime() - bThisYear.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays >= 0 && diffDays <= 7) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [player?.birthDate, player?.id, isMe]);
 
   useEffect(() => {
     let isMounted = true;
@@ -457,16 +917,21 @@ export function PlayerAvatar({
         document.body.style.cursor = 'auto';
       }}
     >
-      <pointLight position={[0, 0.5, 0]} color={color} intensity={isMe ? 1.2 : 0.3} distance={2} />
+      <pointLight 
+        position={[0, 0.5, 0]} 
+        color={isBirthday ? '#ffd700' : color} 
+        intensity={isBirthday ? 1.8 : (isMe ? 1.2 : 0.3)} 
+        distance={isBirthday ? 3 : 2} 
+      />
       
       <Billboard follow={true}>
         <mesh position={[0, 0, -0.01]}>
           <planeGeometry args={[haloScale, haloScale]} />
           <meshBasicMaterial 
             map={haloTexture}
-            color={isSelfStealth ? '#38bdf8' : color} 
+            color={isSelfStealth ? '#38bdf8' : (isBirthday ? '#ffd700' : color)} 
             transparent={true} 
-            opacity={isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6)} 
+            opacity={isBirthday ? 0.95 : (isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6))} 
             depthWrite={false} 
           />
         </mesh>
@@ -496,6 +961,49 @@ export function PlayerAvatar({
           >
             {initial}
           </Text>
+        )}
+
+        {/* Médaillon d'anniversaire festif premium (Option 1) avec son halo lumineux dédié, centré par rapport à la photo de l'avatar */}
+        {isBirthday && (
+          <group 
+            position={[0, -0.27 * avatarScale, 0.04]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectBirthdayCake?.(player);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'auto';
+            }}
+          >
+            {/* Halo lumineux doré éclatant en arrière-plan du médaillon pour le faire ressortir */}
+            <mesh position={[0, 0, 0]} renderOrder={2400}>
+              <planeGeometry args={[0.36 * avatarScale, 0.36 * avatarScale]} />
+              <meshBasicMaterial 
+                map={cakeHaloTexture}
+                transparent={true}
+                toneMapped={false}
+                depthWrite={false}
+                depthTest={false}
+              />
+            </mesh>
+
+            {/* Médaillon sombre et gâteau haute fidélité en avant-plan par-dessus le bas de l'avatar */}
+            <mesh position={[0, 0, 0.005]} renderOrder={2500}>
+              <planeGeometry args={[0.28 * avatarScale, 0.28 * avatarScale]} />
+              <meshBasicMaterial 
+                map={premiumBirthdayCakeTexture}
+                transparent={true}
+                toneMapped={false}
+                depthWrite={false}
+                depthTest={false}
+              />
+            </mesh>
+          </group>
         )}
 
         {/* Pastille de présence : Verte si connecté normal, Bleue (#38bdf8) si en mode furtif pour le joueur lui-même */}

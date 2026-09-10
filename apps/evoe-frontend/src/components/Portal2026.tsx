@@ -484,6 +484,7 @@ function AnimatedAvatar({
   onSelectPlayer, 
   onSelectChallengeBadge,
   onSelectMissionsWeek,
+  onSelectBirthdayCake,
   isOnline, 
   hasUnread,
   isStealthMode,
@@ -500,6 +501,7 @@ function AnimatedAvatar({
   onSelectPlayer?: (p: any) => void;
   onSelectChallengeBadge?: (p: any) => void;
   onSelectMissionsWeek?: (p: any) => void;
+  onSelectBirthdayCake?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
   isStealthMode?: boolean;
@@ -529,6 +531,7 @@ function AnimatedAvatar({
         onSelectPlayer={onSelectPlayer} 
         onSelectChallengeBadge={onSelectChallengeBadge}
         onSelectMissionsWeek={onSelectMissionsWeek}
+        onSelectBirthdayCake={onSelectBirthdayCake}
         isOnline={isOnline}
         hasUnread={hasUnread}
         isStealthMode={isStealthMode}
@@ -550,6 +553,7 @@ interface Portal2026Props {
   onSelectChallenges?: () => void;
   onSelectChallengeBadge?: (player: any) => void;
   onSelectMissionsWeek?: (player: any) => void;
+  onSelectBirthdayCake?: (player: any) => void;
   onlineUsers?: Set<string>;
   unreadTeam?: number;
   unreadMps?: Record<string, number>;
@@ -823,6 +827,7 @@ export default function Portal2026({
   onSelectChallenges,
   onSelectChallengeBadge,
   onSelectMissionsWeek,
+  onSelectBirthdayCake,
   onlineUsers = new Set(),
   unreadTeam = 0,
   unreadMps = {},
@@ -1134,6 +1139,7 @@ export default function Portal2026({
               onSelectPlayer={onSelectPlayer} 
               onSelectChallengeBadge={onSelectChallengeBadge}
               onSelectMissionsWeek={onSelectMissionsWeek}
+              onSelectBirthdayCake={onSelectBirthdayCake}
               isOnline={isOnline}
               hasUnread={hasUnread}
               isStealthMode={isMe ? isStealthMode : false}

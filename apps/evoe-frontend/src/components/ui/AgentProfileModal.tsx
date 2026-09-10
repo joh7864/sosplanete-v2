@@ -3,6 +3,7 @@ import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film, Zap } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
+import { isBirthdayDate } from '../../hooks/useBirthday';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
@@ -312,11 +313,36 @@ export function AgentProfileModal({
                   style={{ 
                     fontSize: '0.8rem', 
                     color: 'rgba(255, 255, 255, 0.7)', 
-                    margin: '3px 0 8px 0' 
+                    margin: '3px 0 6px 0' 
                   }}
                 >
                   Année active : {profileData.profile.schoolYear || '2025-2026'}
                 </div>
+
+                {/* Badge Collector Anniversaire Voyageur Solaire */}
+                {(isBirthdayDate(profileData.profile?.birthDate) || localStorage.getItem(`evoe_birthday_badge_unlocked_${profileId}`) === 'true') && (
+                  <div
+                    title="Badge Collector Anniversaire : Voyageur Solaire — A célébré son cycle stellaire au Nexus"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.22) 0%, rgba(255, 170, 0, 0.12) 100%)',
+                      border: '1.2px solid #ffd700',
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: '800',
+                      color: '#ffd700',
+                      boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)',
+                      marginBottom: '8px',
+                      width: 'fit-content'
+                    }}
+                  >
+                    <span>🎂</span>
+                    <span>Voyageur Solaire</span>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {profileData.profile?.whatsappInviteUrl && (

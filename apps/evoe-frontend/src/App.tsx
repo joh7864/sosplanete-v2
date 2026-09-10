@@ -34,6 +34,8 @@ import { ChronoEggModal, type ChronoPeriodItem } from './components/ui/ChronoEgg
 import { RosettaStoneModal } from './components/ui/RosettaStoneModal';
 import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
 import { AboutModal } from './components/ui/AboutModal';
+import { useBirthday } from './hooks/useBirthday';
+import { GribouilleBirthdayBubble } from './components/birthday/GribouilleBirthdayBubble';
 import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
@@ -143,6 +145,7 @@ function MainApp() {
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+
 
   // Easter Egg System
   const {
@@ -598,6 +601,65 @@ function MainApp() {
   const currentPlayer = players?.find(p => p.id === childInfos?.id || p.childId === childInfos?.id);
   const myTeamId = currentPlayer?.teamId || childInfos?.group?.teamId;
 
+  // Système d'Anniversaire de l'Agent Temporel
+  const {
+    isBirthdayActive,
+    isCatchup: isBirthdayCatchup,
+    boostsRemaining: birthdayBoostsRemaining,
+    hasCelebrationPending: hasBirthdayCelebrationPending,
+    acknowledgeCelebration: acknowledgeBirthdayCelebration,
+    consumeBoost: consumeBirthdayBoost,
+  } = useBirthday(childInfos?.id, childInfos?.birthDate || currentPlayer?.birthDate);
+
+  // Mascotte Gribouille pour l'anniversaire (soi-même ou un coéquipier)
+  const [gribouilleBirthdayPlayer, setGribouilleBirthdayPlayer] = useState<any | null>(null);
+
+  // Apparition automatique de Gribouille après l'affichage du dashboard 2026
+  useEffect(() => {
+    if (hasBirthdayCelebrationPending && loader2026Dismissed && currentPlayer) {
+      const timer = setTimeout(() => {
+        setGribouilleBirthdayPlayer(currentPlayer);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [hasBirthdayCelebrationPending, loader2026Dismissed, currentPlayer]);
+
+  const handleSelectBirthdayCake = (player: any) => {
+    setGribouilleBirthdayPlayer(player);
+  };
+
+  const handleCloseGribouille = () => {
+    if (
+      gribouilleBirthdayPlayer &&
+      (gribouilleBirthdayPlayer.id === childInfos?.id || gribouilleBirthdayPlayer.childId === childInfos?.id || gribouilleBirthdayPlayer.isCurrent) &&
+      hasBirthdayCelebrationPending
+    ) {
+      acknowledgeBirthdayCelebration();
+    }
+    setGribouilleBirthdayPlayer(null);
+  };
+
+  const handleShareBirthdayWithTeam = () => {
+    handleCloseGribouille();
+    setPrefilledChatText(`🎂 C'est mon anniversaire aujourd'hui ! Le Commandement m'a activé un boost x2 sur mes 3 prochaines missions pour faire grimper notre vaisseau ! 🚀🎉`);
+    setChatActiveTab('team');
+    setChatOpen(true);
+  };
+
+  const handleWishTeammateBirthday = (targetPseudo: string) => {
+    handleCloseGribouille();
+    setPrefilledChatText(`🎂 Joyeux anniversaire ${targetPseudo} ! Que la force cosmique soit avec toi aujourd'hui ! 🎉🚀`);
+    setChatActiveTab('team');
+    setChatOpen(true);
+  };
+
+  const handleImpulseMissionWithBirthday = async (missionId: number) => {
+    if (isBirthdayActive && birthdayBoostsRemaining > 0) {
+      consumeBirthdayBoost();
+    }
+    await handleImpulseMission(missionId);
+  };
+
   const activeChallengeActionIds = challenges
     .filter(c => c.status === 'ACCEPTED' && c.targetTeamId === myTeamId)
     .map(c => c.localActionId);
@@ -910,6 +972,7 @@ function MainApp() {
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
               customPlayersList={players || []}
+              onSelectBirthdayCake={handleSelectBirthdayCake}
               onSelectMissionsWeek={() => {
                 setSelectedProfileId(null);
                 setChatOpen(false);
@@ -1121,7 +1184,7 @@ function MainApp() {
                     cursor: 'pointer'
                   }}
                 >
-                  Agent Temporel {childInfos.pseudo}
+                  Agent Temporel {childInfos.pseudo} {isBirthdayActive && '🎂'}
                 </span>
               )}
             </div>
@@ -1803,19 +1866,25 @@ function MainApp() {
                                       label: missionWithChallenge.evoeMission?.titreSF || missionWithChallenge.label
                                     });
                                   } else {
-                                    handleImpulseMission(missionWithChallenge.id);
+                                    handleImpulseMissionWithBirthday(missionWithChallenge.id);
                                   }
                                 }}
                                 style={missionWithChallenge.evoeMission?.isImpulsed ? {
                                   background: 'rgba(16, 185, 129, 0.15)',
                                   borderColor: '#10b981',
                                   color: '#10b981'
-                                } : {}}
+                                } : (isBirthdayActive && birthdayBoostsRemaining > 0 ? {
+                                  borderColor: '#ffd700',
+                                  color: '#ffd700',
+                                  boxShadow: '0 0 12px rgba(255, 215, 0, 0.35)'
+                                } : {})}
                               >
                                 {loadingMissionId === missionWithChallenge.id ? (
                                   <RefreshCw className="icon-sm spin-loading" style={{ margin: '0 auto' }} />
                                 ) : missionWithChallenge.evoeMission?.isImpulsed ? (
                                   "Déjà Impulsé"
+                                ) : isBirthdayActive && birthdayBoostsRemaining > 0 ? (
+                                  `Impulser (+${(missionWithChallenge.evoeMission?.amplitude || 10) * 2} IT 🎂 x2)`
                                 ) : (
                                   `Impulser (+${missionWithChallenge.evoeMission?.amplitude || 10} IT)`
                                 )}
@@ -1878,19 +1947,25 @@ function MainApp() {
                                     label: mission.evoeMission?.titreSF || mission.label
                                   });
                                 } else {
-                                  handleImpulseMission(mission.id);
+                                  handleImpulseMissionWithBirthday(mission.id);
                                 }
                               }}
                               style={mission.evoeMission?.isImpulsed ? {
                                 background: 'rgba(16, 185, 129, 0.15)',
                                 borderColor: '#10b981',
                                 color: '#10b981'
-                              } : {}}
+                              } : (isBirthdayActive && birthdayBoostsRemaining > 0 ? {
+                                borderColor: '#ffd700',
+                                color: '#ffd700',
+                                boxShadow: '0 0 12px rgba(255, 215, 0, 0.35)'
+                              } : {})}
                             >
                               {loadingMissionId === mission.id ? (
                                 <RefreshCw className="icon-sm spin-loading" style={{ margin: '0 auto' }} />
                               ) : mission.evoeMission?.isImpulsed ? (
                                 "Déjà Impulsé"
+                              ) : isBirthdayActive && birthdayBoostsRemaining > 0 ? (
+                                `Impulser (+${(mission.evoeMission?.amplitude || 10) * 2} IT 🎂 x2)`
                               ) : (
                                 `Impulser (+${mission.evoeMission?.amplitude || 10} IT)`
                               )}
@@ -2437,19 +2512,25 @@ function MainApp() {
                       label: expandedMission.evoeMission?.titreSF || expandedMission.label
                     });
                   } else {
-                    handleImpulseMission(expandedMission.id);
+                    handleImpulseMissionWithBirthday(expandedMission.id);
                   }
                 }}
                 style={expandedMission.evoeMission?.isImpulsed ? {
                   background: 'rgba(16, 185, 129, 0.15)',
                   borderColor: '#10b981',
                   color: '#10b981'
-                } : {}}
+                } : (isBirthdayActive && birthdayBoostsRemaining > 0 ? {
+                  borderColor: '#ffd700',
+                  color: '#ffd700',
+                  boxShadow: '0 0 12px rgba(255, 215, 0, 0.35)'
+                } : {})}
               >
                 {loadingMissionId === expandedMission.id ? (
                   <RefreshCw className="icon-sm spin-loading" style={{ margin: '0 auto' }} />
                 ) : expandedMission.evoeMission?.isImpulsed ? (
                   "Déjà Impulsé"
+                ) : isBirthdayActive && birthdayBoostsRemaining > 0 ? (
+                  `Impulser (+${(expandedMission.evoeMission?.amplitude || 10) * 2} IT 🎂 x2)`
                 ) : (
                   `Impulser (+${expandedMission.evoeMission?.amplitude || 10} IT)`
                 )}
@@ -2458,6 +2539,23 @@ function MainApp() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mascotte Gribouille - Célébration Anniversaire & Clic Gâteau */}
+      <GribouilleBirthdayBubble
+        isOpen={!!gribouilleBirthdayPlayer}
+        player={gribouilleBirthdayPlayer}
+        isMe={
+          !!gribouilleBirthdayPlayer &&
+          (gribouilleBirthdayPlayer.id === childInfos?.id ||
+            gribouilleBirthdayPlayer.childId === childInfos?.id ||
+            gribouilleBirthdayPlayer.isCurrent)
+        }
+        boostsRemaining={birthdayBoostsRemaining}
+        isCatchup={isBirthdayCatchup}
+        onClose={handleCloseGribouille}
+        onShareWithTeam={handleShareBirthdayWithTeam}
+        onWishTeammate={handleWishTeammateBirthday}
+      />
 
       {/* Modal de Création de Défi PvP */}
       <Suspense fallback={null}>
