@@ -408,8 +408,8 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
                 !
               </button>
 
-              {/* Bouton Vision 2050 (Débloqué via la Méta-Énigme) */}
-              {onOpenVision2050 && (
+              {/* Bouton Vision 2050 (Affiché UNIQUEMENT si la Méta-Énigme a été débloquée par une équipe) */}
+              {onOpenVision2050 && isVision2050Unlocked && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -423,27 +423,19 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
                     onOpenVision2050(theme);
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  title={
-                    isVision2050Unlocked
-                      ? 'Consulter la Vision 2050 pour cette mission'
-                      : 'Signal crypté (Résolvez la méta-énigme des œufs pour débloquer la Vision 2050)'
-                  }
+                  title="Consulter la Vision 2050 pour cette mission"
                   style={{
                     width: '42px',
                     borderRadius: '12px',
-                    background: isVision2050Unlocked
-                      ? 'rgba(16, 185, 129, 0.18)'
-                      : 'rgba(255, 255, 255, 0.05)',
-                    border: isVision2050Unlocked
-                      ? '1.5px solid #10b981'
-                      : '1.5px solid rgba(255, 255, 255, 0.15)',
-                    color: isVision2050Unlocked ? '#34d399' : 'rgba(255, 255, 255, 0.35)',
+                    background: 'rgba(16, 185, 129, 0.18)',
+                    border: '1.5px solid #10b981',
+                    color: '#34d399',
                     fontSize: '1rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    boxShadow: isVision2050Unlocked ? '0 0 12px rgba(16, 185, 129, 0.35)' : 'none',
+                    boxShadow: '0 0 12px rgba(16, 185, 129, 0.35)',
                     transition: 'all 0.2s ease',
                     flexShrink: 0,
                   }}

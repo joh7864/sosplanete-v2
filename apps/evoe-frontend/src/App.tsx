@@ -202,6 +202,10 @@ function MainApp() {
   };
 
   const handleOpenVision2050 = (theme?: EcoThemeId) => {
+    // Prevent access if the meta-enigma is locked
+    if (!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked) {
+      return;
+    }
     if (theme) setSelectedEchoTheme(theme);
     setShowTemporalEchoModal(true);
   };
