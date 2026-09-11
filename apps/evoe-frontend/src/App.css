@@ -59,9 +59,11 @@ body {
 
 @media (max-width: 768px) {
   .header {
-    padding: 12px 15px 22px 15px !important;
-    flex-wrap: wrap;
-    gap: 10px;
+    padding: 10px 12px 20px 12px !important;
+    /* Plus de flex-wrap : les icônes restent sur la même ligne que l'avatar */
+    flex-wrap: nowrap;
+    gap: 6px;
+    align-items: center;
   }
 }
 
@@ -114,7 +116,7 @@ body {
 
 @media (max-width: 768px) {
   .logo h1 {
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 }
 
@@ -146,6 +148,18 @@ body {
   .switch-btn {
     padding: 8px 12px;
     font-size: 0.85rem;
+  }
+  /* Boutons d'action du header : taille compacte sur mobile pour tenir en 1 ligne */
+  .header-actions {
+    gap: 6px !important;
+  }
+  .header-actions .switch-btn,
+  .header-actions a.switch-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
   }
 }
 

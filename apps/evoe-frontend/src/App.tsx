@@ -1389,7 +1389,7 @@ function MainApp() {
             );
           })()}
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
+          <div className="header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
 
             {/* BARRE DE GAUCHE : BOUTONS FONCTIONNELS DE JEU */}
 
