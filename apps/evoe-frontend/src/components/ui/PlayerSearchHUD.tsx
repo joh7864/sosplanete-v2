@@ -114,6 +114,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
     return `${EVOE_IMG_URL}${player.avatar}`;
   };
 
+  const buttonSize = isMobile ? 34 : 40;
   const expandedWidth = isMobile ? '200px' : '250px';
 
   return (
@@ -130,12 +131,12 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
         layout
         initial={false}
         animate={{
-          width: isOpen ? expandedWidth : '40px',
+          width: isOpen ? expandedWidth : `${buttonSize}px`,
           borderRadius: isOpen ? '22px' : '50%',
         }}
         transition={{ type: 'spring', stiffness: 450, damping: 32 }}
         style={{
-          height: '40px',
+          height: `${buttonSize}px`,
           background: isOpen 
             ? 'rgba(5, 15, 30, 0.94)' 
             : 'rgba(0, 255, 204, 0.18)',
@@ -159,9 +160,9 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
         {/* Bouton Loupe / Icône permanente */}
         <div
           style={{
-            width: '40px',
-            height: '40px',
-            minWidth: '40px',
+            width: `${buttonSize}px`,
+            height: `${buttonSize}px`,
+            minWidth: `${buttonSize}px`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -177,7 +178,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
             e.stopPropagation();
           }}
         >
-          <Search size={18} />
+          <Search size={isMobile ? 16 : 18} />
         </div>
 
         {/* Input extensible */}
