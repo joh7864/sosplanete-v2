@@ -296,4 +296,41 @@ export class EvoeController {
   ) {
     return this.evoeService.markOnboardingSeen(auth, instanceIdStr);
   }
+
+  @Post('birthday/acknowledge')
+  @ApiOperation({
+    summary: "Enregistre la célébration d'anniversaire d'un agent",
+  })
+  async acknowledgeBirthday(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Body() body: { year: number; isLate?: boolean },
+  ) {
+    return this.evoeService.acknowledgeBirthday(auth, instanceIdStr, body);
+  }
+
+  @Post('birthday/wish')
+  @ApiOperation({
+    summary: "Envoie un vœu d'anniversaire persistant à un camarade",
+  })
+  async sendBirthdayWish(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Body() body: { recipientId: number; message: string; year: number },
+  ) {
+    return this.evoeService.sendBirthdayWish(auth, instanceIdStr, body);
+  }
+
+  @Get('birthday/wishes/:childId')
+  @ApiOperation({
+    summary: "Récupère les vœux d'anniversaire reçus par un joueur",
+  })
+  async getBirthdayWishes(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr: string,
+    @Param('childId') childId: string,
+  ) {
+    return this.evoeService.getBirthdayWishes(auth, instanceIdStr, +childId);
+  }
 }
+

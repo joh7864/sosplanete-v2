@@ -605,28 +605,36 @@ function MainApp() {
   const currentPlayer = players?.find(p => p.id === childInfos?.id || p.childId === childInfos?.id);
   const myTeamId = currentPlayer?.teamId || childInfos?.group?.teamId;
 
-  // Système d'Anniversaire de l'Agent Temporel
+  // Système d'Anniversaire de l'Agent Temporel (Option D)
   const {
     isBirthdayActive,
     isCatchup: isBirthdayCatchup,
+    isLate: isBirthdayLate,
     boostsRemaining: birthdayBoostsRemaining,
     hasCelebrationPending: hasBirthdayCelebrationPending,
+    hasLateModalPending: hasBirthdayLateModalPending,
+    wishes: birthdayWishes,
     acknowledgeCelebration: acknowledgeBirthdayCelebration,
     consumeBoost: consumeBirthdayBoost,
-  } = useBirthday(childInfos?.id, childInfos?.birthDate || currentPlayer?.birthDate);
+  } = useBirthday(
+    childInfos?.id,
+    childInfos?.birthDate || currentPlayer?.birthDate,
+    currentPlayer?.birthdayCelebratedYear ?? (childInfos as any)?.birthdayCelebratedYear,
+    currentPlayer?.birthdayCelebratedDate ?? (childInfos as any)?.birthdayCelebratedDate,
+  );
 
   // Mascotte Gribouille pour l'anniversaire (soi-même ou un coéquipier)
   const [gribouilleBirthdayPlayer, setGribouilleBirthdayPlayer] = useState<any | null>(null);
 
   // Apparition automatique de Gribouille après l'affichage du dashboard 2026
   useEffect(() => {
-    if (hasBirthdayCelebrationPending && loader2026Dismissed && currentPlayer) {
+    if ((hasBirthdayCelebrationPending || hasBirthdayLateModalPending) && loader2026Dismissed && currentPlayer) {
       const timer = setTimeout(() => {
         setGribouilleBirthdayPlayer(currentPlayer);
       }, 1200);
       return () => clearTimeout(timer);
     }
-  }, [hasBirthdayCelebrationPending, loader2026Dismissed, currentPlayer]);
+  }, [hasBirthdayCelebrationPending, hasBirthdayLateModalPending, loader2026Dismissed, currentPlayer]);
 
   const handleSelectBirthdayCake = (player: any) => {
     setGribouilleBirthdayPlayer(player);
@@ -635,10 +643,13 @@ function MainApp() {
   const handleCloseGribouille = () => {
     if (
       gribouilleBirthdayPlayer &&
-      (gribouilleBirthdayPlayer.id === childInfos?.id || gribouilleBirthdayPlayer.childId === childInfos?.id || gribouilleBirthdayPlayer.isCurrent) &&
-      hasBirthdayCelebrationPending
+      (gribouilleBirthdayPlayer.id === childInfos?.id || gribouilleBirthdayPlayer.childId === childInfos?.id || gribouilleBirthdayPlayer.isCurrent)
     ) {
-      acknowledgeBirthdayCelebration();
+      if (hasBirthdayCelebrationPending) {
+        acknowledgeBirthdayCelebration(false);
+      } else if (hasBirthdayLateModalPending) {
+        acknowledgeBirthdayCelebration(true);
+      }
     }
     setGribouilleBirthdayPlayer(null);
   };
@@ -650,11 +661,34 @@ function MainApp() {
     setChatOpen(true);
   };
 
-  const handleWishTeammateBirthday = (targetPseudo: string) => {
+  const handleWishTeammateBirthday = async (targetPseudo: string) => {
+    const targetPlayer = gribouilleBirthdayPlayer;
     handleCloseGribouille();
     setPrefilledChatText(`🎂 Joyeux anniversaire ${targetPseudo} ! Que la force cosmique soit avec toi aujourd'hui ! 🎉🚀`);
     setChatActiveTab('team');
     setChatOpen(true);
+
+    // Enregistrement du message de souhait en base (conservé pendant 3 périodes)
+    if (targetPlayer?.id) {
+      try {
+        const token = localStorage.getItem('token');
+        await fetch(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/birthday/wish`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            recipientId: Number(targetPlayer.id),
+            message: `Joyeux anniversaire ${targetPseudo} ! 🎉 Que la force cosmique soit avec toi !`,
+            senderAvatar: currentPlayer?.avatar,
+            senderTeamColor: currentPlayer?.color || '#3b82f6',
+          }),
+        });
+      } catch (err) {
+        console.warn('[BirthdayWish] Erreur envoi souhait en base:', err);
+      }
+    }
   };
 
   const handleImpulseMissionWithBirthday = async (missionId: number) => {
@@ -663,6 +697,16 @@ function MainApp() {
     }
     await handleImpulseMission(missionId);
   };
+
+  const enrichedPlayers = useMemo(() => {
+    if (!players) return [];
+    return players.map((p: any) => {
+      if (p.id === childInfos?.id || p.childId === childInfos?.id) {
+        return { ...p, isBirthdayActive };
+      }
+      return p;
+    });
+  }, [players, childInfos?.id, isBirthdayActive]);
 
   const activeChallengeActionIds = challenges
     .filter(c => c.status === 'ACCEPTED' && c.targetTeamId === myTeamId)
@@ -975,7 +1019,7 @@ function MainApp() {
               missionsWeekCount={impulsedMissionsCount}
               isStealthMode={isStealthMode}
               onToggleStealth={toggleStealthMode}
-              customPlayersList={players || []}
+              customPlayersList={enrichedPlayers}
               onSelectBirthdayCake={handleSelectBirthdayCake}
               onSelectMissionsWeek={() => {
                 setSelectedProfileId(null);
@@ -2556,6 +2600,8 @@ function MainApp() {
         }
         boostsRemaining={birthdayBoostsRemaining}
         isCatchup={isBirthdayCatchup}
+        isLate={isBirthdayLate}
+        wishes={birthdayWishes}
         onClose={handleCloseGribouille}
         onShareWithTeam={handleShareBirthdayWithTeam}
         onWishTeammate={handleWishTeammateBirthday}

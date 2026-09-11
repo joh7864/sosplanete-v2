@@ -123,7 +123,19 @@ export const EditPlayerModal: React.FC<EditPlayerModalProps> = ({
       setGender(initialData?.gender || null);
       
       const rawBirth = initialData?.birthDate || '';
-      setBirthDate(rawBirth ? rawBirth.substring(0, 10) : '');
+      if (rawBirth) {
+        const d = new Date(rawBirth);
+        if (!isNaN(d.getTime())) {
+          const y = d.getUTCFullYear();
+          const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(d.getUTCDate()).padStart(2, '0');
+          setBirthDate(`${y}-${m}-${day}`);
+        } else {
+          setBirthDate(rawBirth.substring(0, 10));
+        }
+      } else {
+        setBirthDate('');
+      }
       setAvatar(initialData?.avatar || null);
       setShowAvatarPicker(false);
 

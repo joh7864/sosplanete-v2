@@ -698,6 +698,8 @@ export class EvoeService {
           avatar: getAvatarUrl(child.avatar),
           gender: child.gender,
           birthDate: child.birthDate,
+          birthdayCelebratedYear: child.birthdayCelebratedYear,
+          birthdayCelebratedDate: child.birthdayCelebratedDate,
           color: team.color,
           teamName: team.name,
           health,
@@ -1810,6 +1812,8 @@ export class EvoeService {
         avatar: getAvatarUrl(child.avatar),
         gender: child.gender,
         birthDate: child.birthDate,
+        birthdayCelebratedYear: child.birthdayCelebratedYear,
+        birthdayCelebratedDate: child.birthdayCelebratedDate,
         hasSeenBriefing: child.hasSeenBriefing,
         teamName: team.name,
         teamColor: team.color,
@@ -1874,9 +1878,18 @@ export class EvoeService {
     if (data.birthDate !== undefined) {
       let parsedDate = null;
       if (data.birthDate) {
-        const dateObj = new Date(data.birthDate);
-        if (!isNaN(dateObj.getTime())) {
-          parsedDate = dateObj;
+        const str = String(data.birthDate).trim();
+        const yyyymmdd = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+        if (yyyymmdd) {
+          const year = parseInt(yyyymmdd[1], 10);
+          const month = parseInt(yyyymmdd[2], 10) - 1;
+          const day = parseInt(yyyymmdd[3], 10);
+          parsedDate = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+        } else {
+          const dateObj = new Date(str);
+          if (!isNaN(dateObj.getTime())) {
+            parsedDate = new Date(Date.UTC(dateObj.getUTCFullYear(), dateObj.getUTCMonth(), dateObj.getUTCDate(), 12, 0, 0, 0));
+          }
         }
       }
       updateData.birthDate = parsedDate;
@@ -1887,6 +1900,142 @@ export class EvoeService {
       where: { id: child.id },
       data: updateData,
     });
+  }
+
+  async acknowledgeBirthday(
+    authHeader: string,
+    instanceIdStr: string | undefined,
+    body: { year: number; isLate?: boolean },
+  ) {
+    const child = await this.verifyAuth(authHeader, instanceIdStr);
+    const updateData: any = {
+      birthdayCelebratedYear: body.year,
+    };
+    if (!body.isLate) {
+      updateData.birthdayCelebratedDate = new Date();
+    }
+    await this.prisma.child.update({
+      where: { id: child.id },
+      data: updateData,
+    });
+    return { success: true, birthdayCelebratedYear: body.year };
+  }
+
+  async sendBirthdayWish(
+    authHeader: string,
+    instanceIdStr: string | undefined,
+    body: { recipientId: number; message: string; year: number },
+  ) {
+    const sender = await this.verifyAuth(authHeader, instanceIdStr);
+    const recipient = await this.prisma.child.findUnique({
+      where: { id: body.recipientId },
+      include: { group: { include: { team: true } } },
+    });
+    if (!recipient) throw new NotFoundException('Destinataire introuvable');
+
+    const senderFull = await this.prisma.child.findUnique({
+      where: { id: sender.id },
+      include: { group: { include: { team: true } } },
+    });
+
+    const instanceYearId = recipient.group.team.instanceYearId;
+    const activePeriod = await this.prisma.period.findFirst({
+      where: { instanceYearId, isOpen: true },
+    });
+
+    const wish = await this.prisma.birthdayWish.create({
+      data: {
+        recipientId: recipient.id,
+        senderId: sender.id,
+        senderPseudo: sender.pseudo,
+        senderAvatar: senderFull?.avatar || null,
+        senderTeamColor: senderFull?.group?.team?.color || null,
+        message: body.message,
+        year: body.year,
+        periodId: activePeriod?.id || null,
+      },
+    });
+
+    // Émettre aussi sur le chat d'équipe si chatGateway disponible
+    if (this.chatGateway && senderFull?.group?.teamId) {
+      const teamRoom = `team_${senderFull.group.teamId}`;
+      this.chatGateway.server?.to(teamRoom).emit('msgTeam', {
+        id: `wish_${wish.id}`,
+        sender: sender.pseudo,
+        text: body.message,
+        timestamp: new Date().toISOString(),
+        teamColor: senderFull?.group?.team?.color || '#00ffcc',
+        senderAvatar: senderFull?.avatar || null,
+      });
+    }
+
+    return wish;
+  }
+
+  async getBirthdayWishes(
+    authHeader: string,
+    instanceIdStr: string | undefined,
+    targetChildId?: number,
+  ) {
+    const child = await this.verifyAuth(authHeader, instanceIdStr);
+    const recipientId = targetChildId || child.id;
+
+    const fullRecipient = await this.prisma.child.findUnique({
+      where: { id: recipientId },
+      include: { group: { include: { team: true } } },
+    });
+    if (!fullRecipient) return [];
+
+    const instanceYearId = fullRecipient.group.team.instanceYearId;
+    const periods = await this.prisma.period.findMany({
+      where: { instanceYearId },
+      orderBy: { startDate: 'asc' },
+    });
+
+    const activeIdx = periods.findIndex((p) => p.isOpen);
+    const currentIdx = activeIdx >= 0 ? activeIdx : periods.length - 1;
+
+    const currentYear = new Date().getFullYear();
+    const wishes = await this.prisma.birthdayWish.findMany({
+      where: {
+        recipientId,
+        year: currentYear,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const validWishes: typeof wishes = [];
+    const expiredWishIds: number[] = [];
+
+    for (const w of wishes) {
+      if (w.periodId && periods.length > 0) {
+        const wishPeriodIdx = periods.findIndex((p) => p.id === w.periodId);
+        if (wishPeriodIdx >= 0 && currentIdx - wishPeriodIdx >= 3) {
+          expiredWishIds.push(w.id);
+          continue;
+        }
+      } else {
+        const ageMs = Date.now() - new Date(w.createdAt).getTime();
+        const ageDays = ageMs / (1000 * 60 * 60 * 24);
+        if (ageDays >= 21) {
+          expiredWishIds.push(w.id);
+          continue;
+        }
+      }
+      validWishes.push(w);
+    }
+
+    if (expiredWishIds.length > 0) {
+      this.prisma.birthdayWish
+        .deleteMany({
+          where: { id: { in: expiredWishIds } },
+        })
+        .catch((err) =>
+          console.error('[BirthdayWishes] Erreur purge expirés:', err),
+        );
+    }
+
+    return validWishes;
   }
 
   async markBriefingSeen(authHeader: string, instanceIdStr?: string) {

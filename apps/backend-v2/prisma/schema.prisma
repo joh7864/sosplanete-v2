@@ -161,6 +161,9 @@ model Child {
   hasSeenOnboarding Boolean      @default(false)
   gender          String?
   birthDate       DateTime?
+  birthdayCelebratedYear  Int?
+  birthdayCelebratedDate  DateTime?
+  birthdayWishesReceived  BirthdayWish[] @relation("ReceivedBirthdayWishes")
   actionsDone     ActionDone[]
   easterEggProgress EvoeEasterEggPlayerProgress[]
   group           Group        @relation(fields: [groupId], references: [id])
@@ -201,6 +204,7 @@ model Period {
   actionsDone    ActionDone[]
   instanceYear   InstanceYear    @relation(fields: [instanceYearId], references: [id])
   evoeChallenges EvoeChallenge[]
+  birthdayWishes BirthdayWish[]
 }
 
 model ActionDone {
@@ -476,5 +480,24 @@ model EvoeEasterEggTeamReward {
 
   @@unique([easterEggId, teamId, periodId])
   @@map("evoe_easter_egg_team_reward")
+}
+
+model BirthdayWish {
+  id              Int      @id @default(autoincrement())
+  recipientId     Int
+  recipient       Child    @relation("ReceivedBirthdayWishes", fields: [recipientId], references: [id], onDelete: Cascade)
+  senderId        Int?
+  senderPseudo    String
+  senderAvatar    String?
+  senderTeamColor String?
+  message         String
+  year            Int
+  periodId        Int?
+  period          Period?  @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@index([recipientId, year])
+  @@index([createdAt])
+  @@map("evoe_birthday_wish")
 }
 

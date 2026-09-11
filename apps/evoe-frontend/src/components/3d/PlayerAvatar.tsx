@@ -773,35 +773,37 @@ export function PlayerAvatar({
   const groupRef = useRef<THREE.Group>(null);
   const bracketsRef = useRef<THREE.Mesh>(null);
 
-  // Détection du jour d'anniversaire de l'Agent pour le halo doré et le badge 3D
+  // Détection du jour d'anniversaire de l'Agent pour le halo doré et le badge 3D (Option D)
   const isBirthday = useMemo(() => {
-    if (isMe && player?.id) {
-      const year = new Date().getFullYear();
-      const celeb = localStorage.getItem(`evoe_birthday_celebrated_${player.id}_${year}`);
-      if (celeb && new Date(celeb).toDateString() === new Date().toDateString()) {
-        return true;
+    // 1. Si c'est moi-même : affiché UNIQUEMENT si ma journée d'anniversaire est active
+    if (isMe) {
+      if (player?.isBirthdayActive !== undefined) {
+        return !!player.isBirthdayActive;
       }
+      if (player?.id) {
+        const year = new Date().getFullYear();
+        const celeb = localStorage.getItem(`evoe_birthday_celebrated_${player.id}_${year}`);
+        if (celeb && new Date(celeb).toDateString() === new Date().toDateString()) {
+          return true;
+        }
+      }
+      return false;
     }
+
+    // 2. Pour les AUTRES joueurs : STRICTEMENT le Jour J exact, même si le joueur fêté ne se connecte pas
     if (!player?.birthDate) return false;
     try {
       const bDate = new Date(player.birthDate);
       if (isNaN(bDate.getTime())) return false;
       const now = new Date();
-      // Jour J exact
-      if (bDate.getDate() === now.getDate() && bDate.getMonth() === now.getMonth()) {
-        return true;
-      }
-      // Fenêtre de rattrapage (7 jours max)
-      const bThisYear = new Date(now.getFullYear(), bDate.getMonth(), bDate.getDate(), 0, 0, 0, 0);
-      const diffDays = (now.getTime() - bThisYear.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays >= 0 && diffDays <= 7) {
-        return true;
-      }
-      return false;
+      return (
+        bDate.getUTCDate() === now.getDate() &&
+        bDate.getUTCMonth() === now.getMonth()
+      );
     } catch {
       return false;
     }
-  }, [player?.birthDate, player?.id, isMe]);
+  }, [player?.birthDate, player?.isBirthdayActive, player?.id, isMe]);
 
   useEffect(() => {
     let isMounted = true;

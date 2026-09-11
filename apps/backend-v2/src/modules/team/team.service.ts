@@ -478,7 +478,10 @@ function normalizeGender(val: string | null | undefined): string | null {
 
 function parseBirthDate(val: string | Date | null | undefined): Date | null {
   if (!val) return null;
-  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null;
+    return new Date(Date.UTC(val.getUTCFullYear(), val.getUTCMonth(), val.getUTCDate(), 12, 0, 0, 0));
+  }
   const str = String(val).trim();
   if (str === '') return null;
 
@@ -488,7 +491,7 @@ function parseBirthDate(val: string | Date | null | undefined): Date | null {
     const day = parseInt(ddmmyyyy[1], 10);
     const month = parseInt(ddmmyyyy[2], 10) - 1;
     const year = parseInt(ddmmyyyy[3], 10);
-    const d = new Date(year, month, day);
+    const d = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
     if (!isNaN(d.getTime())) return d;
   }
 
@@ -498,10 +501,13 @@ function parseBirthDate(val: string | Date | null | undefined): Date | null {
     const year = parseInt(yyyymmdd[1], 10);
     const month = parseInt(yyyymmdd[2], 10) - 1;
     const day = parseInt(yyyymmdd[3], 10);
-    const d = new Date(year, month, day);
+    const d = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
     if (!isNaN(d.getTime())) return d;
   }
 
   const parsed = new Date(str);
-  return isNaN(parsed.getTime()) ? null : parsed;
+  if (!isNaN(parsed.getTime())) {
+    return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 12, 0, 0, 0));
+  }
+  return null;
 }

@@ -89,7 +89,19 @@ export function AgentProfileModal({
             setPseudo(res.data.profile.pseudo || '');
             setGender(res.data.profile.gender || '');
             const bDate = res.data.profile.birthDate;
-            setBirthDate(bDate ? bDate.substring(0, 10) : '');
+            if (bDate) {
+              const d = new Date(bDate);
+              if (!isNaN(d.getTime())) {
+                const y = d.getUTCFullYear();
+                const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(d.getUTCDate()).padStart(2, '0');
+                setBirthDate(`${y}-${m}-${day}`);
+              } else {
+                setBirthDate(bDate.substring(0, 10));
+              }
+            } else {
+              setBirthDate('');
+            }
             setAvatar(res.data.profile.avatar || null);
             setPassword('');
           }

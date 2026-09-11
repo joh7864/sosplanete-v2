@@ -15,6 +15,8 @@ export interface GribouilleBirthdayBubbleProps {
   isMe: boolean;
   boostsRemaining?: number;
   isCatchup?: boolean;
+  isLate?: boolean;
+  wishes?: any[];
   onClose: () => void;
   onShareWithTeam?: () => void;
   onWishTeammate?: (targetPseudo: string) => void;
@@ -26,6 +28,8 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
   isMe,
   boostsRemaining = 3,
   isCatchup = false,
+  isLate = false,
+  wishes = [],
   onClose,
   onShareWithTeam,
   onWishTeammate,
@@ -186,19 +190,35 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
                 }}
               >
                 {isMe ? (
-                  <>
-                    <span>Joyeux Anniversaire</span>
-                    <span
-                      style={{
-                        background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                      }}
-                    >
-                      {pseudo}
-                    </span>
-                    <span>! 🎂🎉</span>
-                  </>
+                  isLate ? (
+                    <>
+                      <span>Bon Anniversaire en Retard</span>
+                      <span
+                        style={{
+                          background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {pseudo}
+                      </span>
+                      <span>! 🎂⏳</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Joyeux Anniversaire</span>
+                      <span
+                        style={{
+                          background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {pseudo}
+                      </span>
+                      <span>! 🎂🎉</span>
+                    </>
+                  )
                 ) : (
                   <>
                     <span>C'est l'anniversaire de</span>
@@ -235,7 +255,7 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
                   }}
                 >
                   <Sparkles size={12} color="#b45309" />
-                  {isMe ? 'JOUR J' : 'FÊTE'}
+                  {isMe ? (isLate ? 'RETARD (> 7J)' : (isCatchup ? 'RATTRAPAGE' : 'JOUR J')) : 'FÊTE'}
                 </span>
 
                 <button
@@ -303,7 +323,9 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               >
                 <Sparkles size={14} />
               </div>
-              <span style={{ letterSpacing: '-0.01em' }}>Révolution Solaire Détectée dans la Station ! 🚀</span>
+              <span style={{ letterSpacing: '-0.01em' }}>
+                {isLate ? 'Décalage Spatio-Temporel Détecté (> 7 jours) ⏳' : 'Révolution Solaire Détectée dans la Station ! 🚀'}
+              </span>
             </div>
 
             {/* Texte narratif de la mascotte */}
@@ -318,9 +340,13 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               }}
             >
               {isMe ? (
-                isCatchup ? (
+                isLate ? (
                   <>
-                    <strong style={{ color: '#0f172a' }}>Transmission spéciale :</strong> Même avec un léger décalage spatio-temporel, l'Alliance tenait à célébrer ta nouvelle révolution solaire !
+                    <strong style={{ color: '#0f172a' }}>Transmission avec décalage temporel :</strong> Bon anniversaire avec un peu de retard de plus de 7 jours ! L'Alliance et toute la station spatiale célèbrent ta nouvelle révolution solaire. Malheureusement, la fenêtre temporelle des 3 impulsions x2 s'est refermée pour cette année... Mais tes camarades ont pensé à toi !
+                  </>
+                ) : isCatchup ? (
+                  <>
+                    <strong style={{ color: '#0f172a' }}>Transmission spéciale :</strong> Même avec un léger décalage spatio-temporel, l'Alliance tenait à célébrer ta nouvelle révolution solaire ! Le Commandement t'active tes privilèges d'Agent d'élite pour la journée :
                   </>
                 ) : (
                   <>
@@ -334,8 +360,8 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               )}
             </p>
 
-            {/* Cartes des privilèges pour le joueur fêté */}
-            {isMe && (
+            {/* Cartes des privilèges pour le joueur fêté (uniquement si dans la période festive, non expirée) */}
+            {isMe && !isLate && (
               <div
                 style={{
                   display: 'grid',
@@ -422,6 +448,57 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               </div>
             )}
 
+            {/* Boîte des vœux reçus des camarades (conservés pendant 3 périodes) */}
+            {isMe && wishes && wishes.length > 0 && (
+              <div
+                style={{
+                  background: 'rgba(241, 245, 249, 0.85)',
+                  border: '1.5px solid rgba(203, 213, 225, 0.9)',
+                  borderRadius: '16px',
+                  padding: '12px 14px',
+                  marginBottom: '18px',
+                  maxHeight: '160px',
+                  overflowY: 'auto',
+                  position: 'relative',
+                  zIndex: 1,
+                  boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.05)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    💌 Messages de tes camarades ({wishes.length})
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>visibles pendant 3 périodes</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {wishes.map((w: any) => (
+                    <div
+                      key={w.id}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid rgba(226, 232, 240, 0.9)',
+                        borderRadius: '12px',
+                        padding: '8px 12px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                        <strong style={{ fontSize: '12px', color: w.senderTeamColor || '#0284c7' }}>
+                          @{w.senderPseudo}
+                        </strong>
+                        <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                          {new Date(w.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#334155', lineHeight: 1.4 }}>
+                        {w.message}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Carte de notification pour les coéquipiers */}
             {!isMe && (
               <div
@@ -464,7 +541,7 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               </div>
             )}
 
-            {/* Boutons d'Action Premium avec dégradés soignés et ombres lumineuses */}
+            {/* Boutons d'Action Premium */}
             <div
               style={{
                 display: 'flex',
@@ -475,71 +552,104 @@ export const GribouilleBirthdayBubble: React.FC<GribouilleBirthdayBubbleProps> =
               }}
             >
               {isMe ? (
-                <>
+                isLate ? (
                   <button
-                    onClick={onShareWithTeam}
+                    onClick={onClose}
                     style={{
-                      flex: '1 1 190px',
-                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #b45309 100%)',
+                      flex: '1 1 100%',
+                      background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 60%, #0369a1 100%)',
                       color: '#ffffff',
                       border: '1px solid rgba(255, 255, 255, 0.35)',
                       borderRadius: '16px',
                       padding: '12px 18px',
                       fontSize: '13.5px',
                       fontWeight: 800,
-                      letterSpacing: '0.01em',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '8px',
-                      boxShadow: '0 8px 22px -4px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+                      boxShadow: '0 8px 22px -4px rgba(2, 132, 199, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
                       transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 12px 28px -4px rgba(217, 119, 6, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5)';
+                      e.currentTarget.style.boxShadow = '0 12px 28px -4px rgba(2, 132, 199, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = '0 8px 22px -4px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)';
+                      e.currentTarget.style.boxShadow = '0 8px 22px -4px rgba(2, 132, 199, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)';
                     }}
                   >
-                    <MessageSquare size={16} />
-                    <span>Partager avec l'Équipe</span>
+                    J'ai compris, merci Gribouille ! ✨
                   </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={onShareWithTeam}
+                      style={{
+                        flex: '1 1 190px',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 60%, #b45309 100%)',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255, 255, 255, 0.35)',
+                        borderRadius: '16px',
+                        padding: '12px 18px',
+                        fontSize: '13.5px',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 8px 22px -4px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 12px 28px -4px rgba(217, 119, 6, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = '0 8px 22px -4px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4)';
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                      <span>Partager avec l'Équipe</span>
+                    </button>
 
-                  <button
-                    onClick={onClose}
-                    style={{
-                      flex: '1 1 130px',
-                      background: 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%)',
-                      color: '#334155',
-                      border: '1.5px solid rgba(203, 213, 225, 0.9)',
-                      borderRadius: '16px',
-                      padding: '12px 18px',
-                      fontSize: '13.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 #ffffff',
-                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.background = '#e2e8f0';
-                      e.currentTarget.style.color = '#0f172a';
-                      e.currentTarget.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.08)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.background = 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%)';
-                      e.currentTarget.style.color = '#334155';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 #ffffff';
-                    }}
-                  >
-                    Merci Gribouille ! ✨
-                  </button>
-                </>
+                    <button
+                      onClick={onClose}
+                      style={{
+                        flex: '1 1 130px',
+                        background: 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%)',
+                        color: '#334155',
+                        border: '1.5px solid rgba(203, 213, 225, 0.9)',
+                        borderRadius: '16px',
+                        padding: '12px 18px',
+                        fontSize: '13.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 #ffffff',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.background = '#e2e8f0';
+                        e.currentTarget.style.color = '#0f172a';
+                        e.currentTarget.style.boxShadow = '0 8px 18px rgba(0, 0, 0, 0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.background = 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%)';
+                        e.currentTarget.style.color = '#334155';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 0 #ffffff';
+                      }}
+                    >
+                      Merci Gribouille ! ✨
+                    </button>
+                  </>
+                )
               ) : (
                 <>
                   <button
