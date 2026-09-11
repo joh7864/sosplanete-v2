@@ -136,7 +136,16 @@ function MainApp() {
     handleResetPropulsion, handleCompleteBriefing
   } = useEvoeData();
 
-  const [loader2026Dismissed, setLoader2026Dismissed] = useState(false);
+  // Mémorisation via sessionStorage : le loader ne s'affiche qu'une seule fois par session d'onglet.
+  // Si l'onglet est fermé ou rafraîci manuellement (F5), il revient normalement.
+  const [loader2026Dismissed, setLoader2026Dismissed] = useState(
+    () => sessionStorage.getItem('evoe_loader2026_dismissed') === 'true'
+  );
+
+  const dismissLoader = () => {
+    sessionStorage.setItem('evoe_loader2026_dismissed', 'true');
+    setLoader2026Dismissed(true);
+  };
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
@@ -963,7 +972,8 @@ function MainApp() {
           <Dashboard2026Loader
             isReady={isDashboard2026Ready}
             currentYear={currentYear}
-            onComplete={() => setLoader2026Dismissed(true)}
+            maxDurationMs={4000}
+            onComplete={dismissLoader}
           />
         )}
       </AnimatePresence>

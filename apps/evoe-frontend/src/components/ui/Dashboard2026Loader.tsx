@@ -6,34 +6,53 @@ interface Dashboard2026LoaderProps {
   isReady: boolean;
   onComplete?: () => void;
   currentYear?: number;
+  /** Durée maximale avant fermeture forcée, même si les données ne sont pas prêtes (ms). Défaut : 4000ms */
+  maxDurationMs?: number;
 }
 
 export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
   isReady,
   onComplete,
   currentYear = new Date().getFullYear(),
+  maxDurationMs = 4000,
 }) => {
   const [progress, setProgress] = useState(8);
   const [isCompleted, setIsCompleted] = useState(false);
   const isReadyRef = useRef(isReady);
+  const isCompletedRef = useRef(false);
   isReadyRef.current = isReady;
 
+  const triggerComplete = useRef(() => {
+    if (isCompletedRef.current) return;
+    isCompletedRef.current = true;
+    setProgress(100);
+    setTimeout(() => {
+      setIsCompleted(true);
+      setTimeout(() => {
+        onComplete?.();
+      }, 450);
+    }, 400);
+  });
+
   useEffect(() => {
+    // Timeout maximum garanti : fermeture forcée après maxDurationMs
+    const maxTimer = setTimeout(() => {
+      triggerComplete.current();
+    }, maxDurationMs);
+
     let current = 8;
     const interval = setInterval(() => {
+      if (isCompletedRef.current) {
+        clearInterval(interval);
+        return;
+      }
       if (isReadyRef.current) {
         // Données reçues : accélération fluide jusqu'à 100%
         current += (100 - current) * 0.22 + 1.2;
         if (current >= 99.8) {
-          current = 100;
-          setProgress(100);
           clearInterval(interval);
-          setTimeout(() => {
-            setIsCompleted(true);
-            setTimeout(() => {
-              onComplete?.();
-            }, 450);
-          }, 400);
+          clearTimeout(maxTimer);
+          triggerComplete.current();
         } else {
           setProgress(Math.round(current));
         }
@@ -47,8 +66,11 @@ export const Dashboard2026Loader: React.FC<Dashboard2026LoaderProps> = ({
       }
     }, 45);
 
-    return () => clearInterval(interval);
-  }, [onComplete]);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(maxTimer);
+    };
+  }, [onComplete, maxDurationMs]);
 
   // Message dynamique de transmission lore
   const getLoreStatus = () => {
