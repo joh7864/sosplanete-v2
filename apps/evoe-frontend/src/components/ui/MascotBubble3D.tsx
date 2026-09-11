@@ -75,7 +75,42 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const initialDuration = 60;
   const [timeLeft, setTimeLeft] = useState(initialDuration);
 
+  // Détection dynamique des dimensions de fenêtre et de l'orientation mobile
+  const [windowDimensions, setWindowDimensions] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  const isLandscapeMobile =
+    windowDimensions.width > windowDimensions.height && windowDimensions.height < 620;
+  const isDesktopWide =
+    windowDimensions.width >= 1200 && windowDimensions.height >= 650;
+  const isSmallPortrait =
+    windowDimensions.height >= windowDimensions.width && windowDimensions.width < 430;
+
   const inputRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
+
+  const lightboxInputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -157,9 +192,10 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     setIsTypingComplete(true);
   };
 
-  const handleDigitChange = (index: number, val: string) => {
+  const handleDigitChange = (index: number, val: string, isLightbox = false) => {
     resetTimer();
     setErrorMessage(null);
+    const targetRefs = isLightbox ? lightboxInputRefs : inputRefs;
 
     // Filter only numeric characters
     const cleanVal = val.replace(/\D/g, '');
@@ -179,7 +215,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       });
       setDigits(newDigits);
       const nextIdx = Math.min(3, index + chars.length);
-      inputRefs[nextIdx]?.current?.focus();
+      targetRefs[nextIdx]?.current?.focus();
       return;
     }
 
@@ -189,14 +225,15 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 
     // Auto advance to next digit
     if (index < 3 && cleanVal) {
-      inputRefs[index + 1]?.current?.focus();
+      targetRefs[index + 1]?.current?.focus();
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>, isLightbox = false) => {
     resetTimer();
+    const targetRefs = isLightbox ? lightboxInputRefs : inputRefs;
     if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs[index - 1]?.current?.focus();
+      targetRefs[index - 1]?.current?.focus();
     } else if (e.key === 'Enter') {
       handleSubmitAnswer();
     }
@@ -220,6 +257,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
       if (res.success) {
         setLocalSuccess(true);
         setIsCryptexActive(true);
+        setShowLightbox(false);
         onSuccess?.();
       } else {
         setErrorMessage(res.message || 'Code erroné. Croisez bien les 5 règles du schéma !');
@@ -254,6 +292,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
         if (triggerType === 'RIDDLE_ANSWER_INPUT') {
           setIsCryptexActive(true);
         }
+        setShowLightbox(false);
         onSuccess?.();
       } else {
         setErrorMessage(res.message || 'Mot-clé ou commande non reconnu.');
@@ -293,22 +332,36 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
             id="mascot-bubble-overlay"
             style={{
               position: 'fixed',
-              top: '28px',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              inset: 0,
               zIndex: 9999,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'flex-start',
+              padding: isLandscapeMobile
+                ? '10px 12px 24px 12px'
+                : isSmallPortrait
+                  ? '14px 10px 24px 10px'
+                  : '24px 16px 32px 16px',
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
               pointerEvents: isCryptexActive ? 'none' : 'auto',
               opacity: isCryptexActive ? 0 : 1,
               transition: 'opacity 0.25s ease',
-              maxWidth: '92vw',
             }}
           >
             <motion.div
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-              initial={{ x: -800, y: 280, opacity: 0, scale: 0.4 }}
+              style={{
+                display: 'flex',
+                flexDirection: isLandscapeMobile ? 'row' : 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: isLandscapeMobile ? '16px' : '6px',
+                width: '100%',
+                maxWidth: isLandscapeMobile ? '820px' : '480px',
+                margin: 'auto 0',
+              }}
+              initial={{ x: isLandscapeMobile ? -400 : -800, y: isLandscapeMobile ? 0 : 280, opacity: 0, scale: 0.4 }}
               animate={{ x: 0, y: 0, opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.4, transition: { duration: 0.3 } }}
               transition={{
@@ -325,11 +378,16 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 onClick={onClose}
                 title="Cliquer sur la mascotte pour fermer"
                 style={{
-                  width: '185px',
+                  width: isLandscapeMobile
+                    ? '92px'
+                    : isSmallPortrait
+                      ? '135px'
+                      : '175px',
                   height: 'auto',
                   filter: 'drop-shadow(0 16px 24px rgba(0,0,0,0.65))',
                   cursor: 'pointer',
                   userSelect: 'none',
+                  flexShrink: 0,
                 }}
                 animate={{ y: [0, -8, 0], rotateZ: [-2, 2, -2] }}
                 transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
@@ -347,12 +405,12 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   background: '#ffffff',
                   border: '3.5px solid #0f172a',
                   borderRadius: '24px',
-                  padding: '20px 24px',
+                  padding: isLandscapeMobile ? '14px 18px' : '20px 24px',
                   color: '#0f172a',
-                  width: '460px',
-                  maxWidth: '92vw',
+                  width: isLandscapeMobile ? '520px' : '460px',
+                  maxWidth: isLandscapeMobile ? 'calc(100% - 110px)' : '94vw',
                   boxShadow: '0 20px 35px rgba(0,0,0,0.4), 6px 6px 0px #0f172a',
-                  marginTop: '8px',
+                  marginTop: isLandscapeMobile ? '0' : '8px',
                   position: 'relative',
                   lineHeight: 1.45,
                   textAlign: 'left',
@@ -361,35 +419,69 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5, type: 'spring', stiffness: 140 }}
               >
-                {/* Flèche BD pointant vers le hoverboard */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-20px',
-                    left: '50%',
-                    marginLeft: '-14px',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '14px solid transparent',
-                    borderRight: '14px solid transparent',
-                    borderBottom: '20px solid #ffffff',
-                    zIndex: 2,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-25px',
-                    left: '50%',
-                    marginLeft: '-17px',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '17px solid transparent',
-                    borderRight: '17px solid transparent',
-                    borderBottom: '25px solid #0f172a',
-                    zIndex: 1,
-                  }}
-                />
+                {/* Flèche BD pointant vers la mascotte */}
+                {!isLandscapeMobile && (
+                  <>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-20px',
+                        left: '50%',
+                        marginLeft: '-14px',
+                        width: 0,
+                        height: 0,
+                        borderLeft: '14px solid transparent',
+                        borderRight: '14px solid transparent',
+                        borderBottom: '20px solid #ffffff',
+                        zIndex: 2,
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-25px',
+                        left: '50%',
+                        marginLeft: '-17px',
+                        width: 0,
+                        height: 0,
+                        borderLeft: '17px solid transparent',
+                        borderRight: '17px solid transparent',
+                        borderBottom: '25px solid #0f172a',
+                        zIndex: 1,
+                      }}
+                    />
+                  </>
+                )}
+                {isLandscapeMobile && (
+                  <>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '-20px',
+                        top: '36px',
+                        width: 0,
+                        height: 0,
+                        borderTop: '12px solid transparent',
+                        borderBottom: '12px solid transparent',
+                        borderRight: '20px solid #ffffff',
+                        zIndex: 2,
+                      }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '-25px',
+                        top: '33px',
+                        width: 0,
+                        height: 0,
+                        borderTop: '15px solid transparent',
+                        borderBottom: '15px solid transparent',
+                        borderRight: '25px solid #0f172a',
+                        zIndex: 1,
+                      }}
+                    />
+                  </>
+                )}
 
                 {/* En-tête de la bulle : Titre aligné à gauche et points IT alignés à droite */}
                 <div
@@ -398,14 +490,14 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '12px',
-                    marginBottom: '12px',
+                    marginBottom: isLandscapeMobile ? '8px' : '12px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
                     <h4
                       style={{
                         margin: 0,
-                        fontSize: '1.05rem',
+                        fontSize: isLandscapeMobile ? '0.95rem' : '1.05rem',
                         fontWeight: 900,
                         color: '#0f172a',
                         letterSpacing: '-0.2px',
@@ -472,7 +564,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       </span>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -505,6 +597,38 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     >
                       +{rewardPointsIT} IT
                     </span>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      title="Fermer la bulle"
+                      style={{
+                        background: 'rgba(241, 245, 249, 0.95)',
+                        border: '1.5px solid #cbd5e1',
+                        borderRadius: '8px',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#64748b',
+                        padding: 0,
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#fee2e2';
+                        e.currentTarget.style.color = '#ef4444';
+                        e.currentTarget.style.borderColor = '#fca5a5';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(241, 245, 249, 0.95)';
+                        e.currentTarget.style.color = '#64748b';
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
                   </div>
                 </div>
 
@@ -1257,294 +1381,734 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   </div>
                 )}
 
-                {/* Panneau de Déduction Agrandit (Non-Modal, Affiché à droite et aligné au centre de la bulle) */}
+                {/* Panneau de Déduction Agrandit (Modal Centré sur Mobile & Tablettes, Docké à droite sur Desktop Large) */}
                 {showLightbox && imageUrl && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: '-50%' }}
-                    animate={{ opacity: 1, scale: 1, y: '-50%' }}
-                    exit={{ opacity: 0, scale: 0.95, y: '-50%' }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-                    drag
-                    dragMomentum={false}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: 'calc(100% + 18px)',
-                      width: '395px',
-                      maxHeight: '88vh',
-                      background: '#040813',
-                      borderRadius: '20px',
-                      border: '2px solid rgba(56, 189, 248, 0.55)',
-                      boxShadow: '0 20px 45px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.3)',
-                      zIndex: 10000,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      overflow: 'hidden',
-                      pointerEvents: 'auto',
-                    }}
-                  >
-                    {/* Header Panneau Déduction (Poignée Draggable) */}
-                    <div
+                  isDesktopWide ? (
+                    /* Version Desktop Écran Large : Panneau flottant docké à droite de la bulle avec drag */
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: '-50%' }}
+                      animate={{ opacity: 1, scale: 1, y: '-50%' }}
+                      exit={{ opacity: 0, scale: 0.95, y: '-50%' }}
+                      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+                      drag
+                      dragMomentum={false}
+                      onClick={(e) => e.stopPropagation()}
                       style={{
-                        padding: '9px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid rgba(30, 41, 59, 0.7)',
-                        background: 'rgba(15, 23, 42, 0.85)',
-                        cursor: 'grab',
-                      }}
-                    >
-                      <span style={{ color: '#00ffcc', fontWeight: 800, fontSize: '0.78rem', letterSpacing: '0.6px' }}>
-                        🔍 SCHÉMA DE DÉDUCTION — CADENAS 2070
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowLightbox(false)}
-                        title="Fermer ce panneau"
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#94a3b8',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '4px',
-                        }}
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-
-                    {/* Contenu Déduction Arcade Stylisé */}
-                    <div
-                      style={{
-                        padding: '14px 16px 16px 16px',
-                        overflowY: 'auto',
+                        position: 'absolute',
+                        top: '50%',
+                        left: 'calc(100% + 18px)',
+                        width: '395px',
+                        maxHeight: '88vh',
+                        background: '#040813',
+                        borderRadius: '20px',
+                        border: '2px solid rgba(56, 189, 248, 0.55)',
+                        boxShadow: '0 20px 45px rgba(0,0,0,0.7), 0 0 30px rgba(56, 189, 248, 0.3)',
+                        zIndex: 10000,
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'center',
-                        background: 'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%)',
+                        overflow: 'hidden',
+                        pointerEvents: 'auto',
                       }}
                     >
-                      {imageUrl.includes('cadenas') ? (
-                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {/* Cadenas 3D Stylisé */}
-                          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-                            <svg
-                              width="76"
-                              height="84"
-                              viewBox="0 0 84 94"
-                              fill="none"
-                              style={{ filter: 'drop-shadow(0 4px 14px rgba(245, 158, 11, 0.4))' }}
-                            >
-                              <defs>
-                                <linearGradient id="shackleGradSide" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#94a3b8" />
-                                  <stop offset="25%" stopColor="#ffffff" />
-                                  <stop offset="60%" stopColor="#cbd5e1" />
-                                  <stop offset="100%" stopColor="#64748b" />
-                                </linearGradient>
-                                <linearGradient id="lockBodyGradSide" x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="#fbbf24" />
-                                  <stop offset="50%" stopColor="#f59e0b" />
-                                  <stop offset="100%" stopColor="#d97706" />
-                                </linearGradient>
-                              </defs>
+                      {/* Header Panneau Déduction */}
+                      <div
+                        style={{
+                          padding: '9px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          borderBottom: '1px solid rgba(30, 41, 59, 0.7)',
+                          background: 'rgba(15, 23, 42, 0.85)',
+                          cursor: 'grab',
+                        }}
+                      >
+                        <span style={{ color: '#00ffcc', fontWeight: 800, fontSize: '0.78rem', letterSpacing: '0.6px' }}>
+                          🔍 SCHÉMA DE DÉDUCTION — CADENAS 2070
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowLightbox(false)}
+                          title="Fermer ce panneau"
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '4px',
+                          }}
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
 
-                              {/* Anse Métallique */}
-                              <path
-                                d="M 23 38 V 20 C 23 10 31 3 42 3 C 53 3 61 10 61 20 V 38"
-                                stroke="url(#shackleGradSide)"
-                                strokeWidth="10"
-                                strokeLinecap="round"
+                      {/* Contenu Déduction */}
+                      <div
+                        style={{
+                          padding: '14px 16px 16px 16px',
+                          overflowY: 'auto',
+                          WebkitOverflowScrolling: 'touch',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          background: 'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%)',
+                        }}
+                      >
+                        {imageUrl.includes('cadenas') ? (
+                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            {/* Cadenas 3D Stylisé */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+                              <svg
+                                width="76"
+                                height="84"
+                                viewBox="0 0 84 94"
                                 fill="none"
-                              />
-
-                              {/* Corps Doré */}
-                              <rect
-                                x="8"
-                                y="30"
-                                width="68"
-                                height="54"
-                                rx="13"
-                                fill="url(#lockBodyGradSide)"
-                                stroke="rgba(254, 240, 138, 0.8)"
-                                strokeWidth="1.2"
-                              />
-
-                              {/* 4 Roulettes / Dials */}
-                              {[0, 1, 2, 3].map((i) => (
-                                <g key={i} transform={`translate(${14 + i * 14.5}, 38)`}>
-                                  <rect width="11" height="38" rx="3.5" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
-                                  <polygon points="5.5,2.5 2.5,6 8.5,6" fill="#fde047" />
-                                  <text
-                                    x="5.5"
-                                    y="22"
-                                    fill="#ffffff"
-                                    fontSize="9.5"
-                                    fontWeight="900"
-                                    textAnchor="middle"
-                                    fontFamily="sans-serif"
-                                  >
-                                    ?
-                                  </text>
-                                  <polygon points="5.5,35.5 2.5,32 8.5,32" fill="#fde047" />
-                                </g>
-                              ))}
-                            </svg>
-                          </div>
-
-                          {/* 5 Cartes de Déduction (Chaque règle sur une seule ligne) */}
-                          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {[
-                              {
-                                digits: '4839',
-                                strikethrough: false,
-                                borderColor: '#38bdf8',
-                                glowColor: 'rgba(56, 189, 248, 0.45)',
-                                parts: [{ text: '1 BON, BIEN PLACÉ', color: '#22c55e' }],
-                              },
-                              {
-                                digits: '7251',
-                                strikethrough: false,
-                                borderColor: '#38bdf8',
-                                glowColor: 'rgba(56, 189, 248, 0.45)',
-                                parts: [{ text: '2 BONS DONT 1 BIEN PLACÉ', color: '#22c55e' }],
-                              },
-                              {
-                                digits: '8063',
-                                strikethrough: false,
-                                borderColor: '#38bdf8',
-                                glowColor: 'rgba(56, 189, 248, 0.45)',
-                                parts: [
-                                  { text: '1 BON, ', color: '#22c55e' },
-                                  { text: 'MAL PLACÉ', color: '#ef4444' },
-                                ],
-                              },
-                              {
-                                digits: '9513',
-                                strikethrough: true,
-                                borderColor: '#ef4444',
-                                glowColor: 'rgba(239, 68, 68, 0.4)',
-                                parts: [{ text: "AUCUN N'EST BON", color: '#ef4444' }],
-                              },
-                              {
-                                digits: '7046',
-                                strikethrough: false,
-                                borderColor: '#38bdf8',
-                                glowColor: 'rgba(56, 189, 248, 0.45)',
-                                parts: [
-                                  { text: '3 BONS, ', color: '#22c55e' },
-                                  { text: 'MAL PLACÉS', color: '#ef4444' },
-                                ],
-                              },
-                            ].map((clue) => (
-                              <div
-                                key={clue.digits}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '7px 14px',
-                                  borderRadius: '13px',
-                                  border: `2px solid ${clue.borderColor}`,
-                                  boxShadow: `0 0 12px ${clue.glowColor}, inset 0 0 10px rgba(15, 23, 42, 0.7)`,
-                                  background: 'linear-gradient(180deg, #0f172a 0%, #080e1a 100%)',
-                                  position: 'relative',
-                                }}
+                                style={{ filter: 'drop-shadow(0 4px 14px rgba(245, 158, 11, 0.4))' }}
                               >
-                                {/* Chiffres à gauche */}
-                                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                  <span
-                                    style={{
-                                      fontFamily: "'Impact', 'Arial Black', -apple-system, sans-serif",
-                                      fontSize: '1.9rem',
-                                      fontWeight: 900,
-                                      color: '#ffffff',
-                                      letterSpacing: '2px',
-                                      lineHeight: 1,
-                                      textShadow:
-                                        '0 2px 4px rgba(0,0,0,0.95), 1px 1px 0 #000, -1px -1px 0 #000',
-                                    }}
-                                  >
-                                    {clue.digits}
-                                  </span>
-                                  {clue.strikethrough && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        left: -3,
-                                        right: -3,
-                                        top: '50%',
-                                        height: '3px',
-                                        background: '#ef4444',
-                                        borderRadius: '2px',
-                                        boxShadow: '0 0 8px #ef4444',
-                                      }}
-                                    />
-                                  )}
-                                </div>
+                                <defs>
+                                  <linearGradient id="shackleGradSide" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#94a3b8" />
+                                    <stop offset="25%" stopColor="#ffffff" />
+                                    <stop offset="60%" stopColor="#cbd5e1" />
+                                    <stop offset="100%" stopColor="#64748b" />
+                                  </linearGradient>
+                                  <linearGradient id="lockBodyGradSide" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stopColor="#fbbf24" />
+                                    <stop offset="50%" stopColor="#f59e0b" />
+                                    <stop offset="100%" stopColor="#d97706" />
+                                  </linearGradient>
+                                </defs>
 
-                                {/* Règle sur une seule ligne à droite */}
+                                <path
+                                  d="M 23 38 V 20 C 23 10 31 3 42 3 C 53 3 61 10 61 20 V 38"
+                                  stroke="url(#shackleGradSide)"
+                                  strokeWidth="10"
+                                  strokeLinecap="round"
+                                  fill="none"
+                                />
+
+                                <rect
+                                  x="8"
+                                  y="30"
+                                  width="68"
+                                  height="54"
+                                  rx="13"
+                                  fill="url(#lockBodyGradSide)"
+                                  stroke="rgba(254, 240, 138, 0.8)"
+                                  strokeWidth="1.2"
+                                />
+
+                                {[0, 1, 2, 3].map((i) => (
+                                  <g key={i} transform={`translate(${14 + i * 14.5}, 38)`}>
+                                    <rect width="11" height="38" rx="3.5" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
+                                    <polygon points="5.5,2.5 2.5,6 8.5,6" fill="#fde047" />
+                                    <text
+                                      x="5.5"
+                                      y="22"
+                                      fill="#ffffff"
+                                      fontSize="9.5"
+                                      fontWeight="900"
+                                      textAnchor="middle"
+                                      fontFamily="sans-serif"
+                                    >
+                                      ?
+                                    </text>
+                                    <polygon points="5.5,35.5 2.5,32 8.5,32" fill="#fde047" />
+                                  </g>
+                                ))}
+                              </svg>
+                            </div>
+
+                            {/* 5 Cartes de Déduction */}
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {[
+                                {
+                                  digits: '4839',
+                                  strikethrough: false,
+                                  borderColor: '#38bdf8',
+                                  glowColor: 'rgba(56, 189, 248, 0.45)',
+                                  parts: [{ text: '1 BON, BIEN PLACÉ', color: '#22c55e' }],
+                                },
+                                {
+                                  digits: '7251',
+                                  strikethrough: false,
+                                  borderColor: '#38bdf8',
+                                  glowColor: 'rgba(56, 189, 248, 0.45)',
+                                  parts: [{ text: '2 BONS DONT 1 BIEN PLACÉ', color: '#22c55e' }],
+                                },
+                                {
+                                  digits: '8063',
+                                  strikethrough: false,
+                                  borderColor: '#38bdf8',
+                                  glowColor: 'rgba(56, 189, 248, 0.45)',
+                                  parts: [
+                                    { text: '1 BON, ', color: '#22c55e' },
+                                    { text: 'MAL PLACÉ', color: '#ef4444' },
+                                  ],
+                                },
+                                {
+                                  digits: '9513',
+                                  strikethrough: true,
+                                  borderColor: '#ef4444',
+                                  glowColor: 'rgba(239, 68, 68, 0.4)',
+                                  parts: [{ text: "AUCUN N'EST BON", color: '#ef4444' }],
+                                },
+                                {
+                                  digits: '7046',
+                                  strikethrough: false,
+                                  borderColor: '#38bdf8',
+                                  glowColor: 'rgba(56, 189, 248, 0.45)',
+                                  parts: [
+                                    { text: '3 BONS, ', color: '#22c55e' },
+                                    { text: 'MAL PLACÉS', color: '#ef4444' },
+                                  ],
+                                },
+                              ].map((clue) => (
                                 <div
+                                  key={clue.digits}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    whiteSpace: 'nowrap',
-                                    marginLeft: '12px',
+                                    justifyContent: 'space-between',
+                                    padding: '7px 14px',
+                                    borderRadius: '13px',
+                                    border: `2px solid ${clue.borderColor}`,
+                                    boxShadow: `0 0 12px ${clue.glowColor}, inset 0 0 10px rgba(15, 23, 42, 0.7)`,
+                                    background: 'linear-gradient(180deg, #0f172a 0%, #080e1a 100%)',
+                                    position: 'relative',
                                   }}
                                 >
-                                  {clue.parts.map((p, idx) => (
+                                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <span
-                                      key={idx}
                                       style={{
-                                        fontFamily: "'Inter', system-ui, sans-serif",
-                                        fontSize: '0.84rem',
+                                        fontFamily: "'Impact', 'Arial Black', -apple-system, sans-serif",
+                                        fontSize: '1.9rem',
                                         fontWeight: 900,
-                                        color: p.color,
-                                        letterSpacing: '0.4px',
-                                        textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                                        color: '#ffffff',
+                                        letterSpacing: '2px',
+                                        lineHeight: 1,
+                                        textShadow:
+                                          '0 2px 4px rgba(0,0,0,0.95), 1px 1px 0 #000, -1px -1px 0 #000',
                                       }}
                                     >
-                                      {p.text}
+                                      {clue.digits}
                                     </span>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                                    {clue.strikethrough && (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          left: -3,
+                                          right: -3,
+                                          top: '50%',
+                                          height: '3px',
+                                          background: '#ef4444',
+                                          borderRadius: '2px',
+                                          boxShadow: '0 0 8px #ef4444',
+                                        }}
+                                      />
+                                    )}
+                                  </div>
 
-                          {/* Question finale demandée par l'utilisateur */}
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      whiteSpace: 'nowrap',
+                                      marginLeft: '12px',
+                                    }}
+                                  >
+                                    {clue.parts.map((p, idx) => (
+                                      <span
+                                        key={idx}
+                                        style={{
+                                          fontFamily: "'Inter', system-ui, sans-serif",
+                                          fontSize: '0.84rem',
+                                          fontWeight: 900,
+                                          color: p.color,
+                                          letterSpacing: '0.4px',
+                                          textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                                        }}
+                                      >
+                                        {p.text}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div
+                              style={{
+                                marginTop: '12px',
+                                fontSize: '0.92rem',
+                                fontWeight: 900,
+                                color: '#00ffcc',
+                                textAlign: 'center',
+                                letterSpacing: '0.5px',
+                                textShadow: '0 0 12px rgba(0, 255, 204, 0.45)',
+                              }}
+                            >
+                              Quelle est la bonne combinaison ?
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={imageUrl}
+                            alt="Schéma Plein Écran"
+                            style={{
+                              maxWidth: '100%',
+                              height: 'auto',
+                              borderRadius: '8px',
+                            }}
+                          />
+                        )}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    /* Version Mobile (Portrait & Paysage) et Écrans Étroits : Modal Centré avec Backdrop via Portal */
+                    typeof document !== 'undefined' &&
+                    createPortal(
+                      <div
+                        id="deduction-panel-modal-backdrop"
+                        style={{
+                          position: 'fixed',
+                          inset: 0,
+                          zIndex: 10005,
+                          background: 'rgba(3, 7, 18, 0.82)',
+                          backdropFilter: 'blur(8px)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: isLandscapeMobile ? '8px 12px' : '16px',
+                          overflowY: 'auto',
+                          WebkitOverflowScrolling: 'touch',
+                        }}
+                        onClick={() => setShowLightbox(false)}
+                      >
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.92, y: 16 }}
+                          transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: isLandscapeMobile ? '560px' : '430px',
+                            maxHeight: isLandscapeMobile ? '94vh' : '90vh',
+                            background: '#040813',
+                            borderRadius: '20px',
+                            border: '2px solid rgba(56, 189, 248, 0.65)',
+                            boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(56, 189, 248, 0.4)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            margin: 'auto',
+                            pointerEvents: 'auto',
+                          }}
+                        >
+                          {/* Header Panneau Déduction Sticky */}
                           <div
                             style={{
-                              marginTop: '12px',
-                              fontSize: '0.92rem',
-                              fontWeight: 900,
-                              color: '#00ffcc',
-                              textAlign: 'center',
-                              letterSpacing: '0.5px',
-                              textShadow: '0 0 12px rgba(0, 255, 204, 0.45)',
+                              padding: isLandscapeMobile ? '8px 12px' : '10px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              borderBottom: '1px solid rgba(30, 41, 59, 0.7)',
+                              background: 'rgba(15, 23, 42, 0.95)',
+                              backdropFilter: 'blur(6px)',
+                              position: 'sticky',
+                              top: 0,
+                              zIndex: 10,
                             }}
                           >
-                            Quelle est la bonne combinaison ?
+                            <span style={{ color: '#00ffcc', fontWeight: 800, fontSize: isLandscapeMobile ? '0.74rem' : '0.80rem', letterSpacing: '0.6px' }}>
+                              🔍 SCHÉMA DE DÉDUCTION — CADENAS 2070
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowLightbox(false)}
+                              title="Fermer ce panneau"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                border: 'none',
+                                borderRadius: '6px',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '32px',
+                                height: '32px',
+                                padding: 0,
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.color = '#94a3b8';
+                              }}
+                            >
+                              <X size={18} />
+                            </button>
                           </div>
-                        </div>
-                      ) : (
-                        <img
-                          src={imageUrl}
-                          alt="Schéma Plein Écran"
-                          style={{
-                            maxWidth: '100%',
-                            height: 'auto',
-                            borderRadius: '8px',
-                          }}
-                        />
-                      )}
-                    </div>
-                  </motion.div>
+
+                          {/* Contenu Déduction Arcade Stylisé */}
+                          <div
+                            style={{
+                              padding: isLandscapeMobile ? '10px 12px 14px 12px' : '14px 16px 16px 16px',
+                              overflowY: 'auto',
+                              WebkitOverflowScrolling: 'touch',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              background: 'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%)',
+                              gap: isLandscapeMobile ? '6px' : '10px',
+                            }}
+                          >
+                            {imageUrl.includes('cadenas') ? (
+                              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                {/* Cadenas 3D Stylisé */}
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isLandscapeMobile ? '6px' : '10px' }}>
+                                  <svg
+                                    width={isLandscapeMobile ? '56' : '76'}
+                                    height={isLandscapeMobile ? '62' : '84'}
+                                    viewBox="0 0 84 94"
+                                    fill="none"
+                                    style={{ filter: 'drop-shadow(0 4px 14px rgba(245, 158, 11, 0.4))' }}
+                                  >
+                                    <defs>
+                                      <linearGradient id="shackleGradModal" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#94a3b8" />
+                                        <stop offset="25%" stopColor="#ffffff" />
+                                        <stop offset="60%" stopColor="#cbd5e1" />
+                                        <stop offset="100%" stopColor="#64748b" />
+                                      </linearGradient>
+                                      <linearGradient id="lockBodyGradModal" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stopColor="#fbbf24" />
+                                        <stop offset="50%" stopColor="#f59e0b" />
+                                        <stop offset="100%" stopColor="#d97706" />
+                                      </linearGradient>
+                                    </defs>
+
+                                    <path
+                                      d="M 23 38 V 20 C 23 10 31 3 42 3 C 53 3 61 10 61 20 V 38"
+                                      stroke="url(#shackleGradModal)"
+                                      strokeWidth="10"
+                                      strokeLinecap="round"
+                                      fill="none"
+                                    />
+
+                                    <rect
+                                      x="8"
+                                      y="30"
+                                      width="68"
+                                      height="54"
+                                      rx="13"
+                                      fill="url(#lockBodyGradModal)"
+                                      stroke="rgba(254, 240, 138, 0.8)"
+                                      strokeWidth="1.2"
+                                    />
+
+                                    {[0, 1, 2, 3].map((i) => (
+                                      <g key={i} transform={`translate(${14 + i * 14.5}, 38)`}>
+                                        <rect width="11" height="38" rx="3.5" fill="#1e293b" stroke="#334155" strokeWidth="0.8" />
+                                        <polygon points="5.5,2.5 2.5,6 8.5,6" fill="#fde047" />
+                                        <text
+                                          x="5.5"
+                                          y="22"
+                                          fill="#ffffff"
+                                          fontSize="9.5"
+                                          fontWeight="900"
+                                          textAnchor="middle"
+                                          fontFamily="sans-serif"
+                                        >
+                                          ?
+                                        </text>
+                                        <polygon points="5.5,35.5 2.5,32 8.5,32" fill="#fde047" />
+                                      </g>
+                                    ))}
+                                  </svg>
+                                </div>
+
+                                {/* 5 Cartes de Déduction */}
+                                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: isLandscapeMobile ? '6px' : '8px' }}>
+                                  {[
+                                    {
+                                      digits: '4839',
+                                      strikethrough: false,
+                                      borderColor: '#38bdf8',
+                                      glowColor: 'rgba(56, 189, 248, 0.45)',
+                                      parts: [{ text: '1 BON, BIEN PLACÉ', color: '#22c55e' }],
+                                    },
+                                    {
+                                      digits: '7251',
+                                      strikethrough: false,
+                                      borderColor: '#38bdf8',
+                                      glowColor: 'rgba(56, 189, 248, 0.45)',
+                                      parts: [{ text: '2 BONS DONT 1 BIEN PLACÉ', color: '#22c55e' }],
+                                    },
+                                    {
+                                      digits: '8063',
+                                      strikethrough: false,
+                                      borderColor: '#38bdf8',
+                                      glowColor: 'rgba(56, 189, 248, 0.45)',
+                                      parts: [
+                                        { text: '1 BON, ', color: '#22c55e' },
+                                        { text: 'MAL PLACÉ', color: '#ef4444' },
+                                      ],
+                                    },
+                                    {
+                                      digits: '9513',
+                                      strikethrough: true,
+                                      borderColor: '#ef4444',
+                                      glowColor: 'rgba(239, 68, 68, 0.4)',
+                                      parts: [{ text: "AUCUN N'EST BON", color: '#ef4444' }],
+                                    },
+                                    {
+                                      digits: '7046',
+                                      strikethrough: false,
+                                      borderColor: '#38bdf8',
+                                      glowColor: 'rgba(56, 189, 248, 0.45)',
+                                      parts: [
+                                        { text: '3 BONS, ', color: '#22c55e' },
+                                        { text: 'MAL PLACÉS', color: '#ef4444' },
+                                      ],
+                                    },
+                                  ].map((clue) => (
+                                    <div
+                                      key={clue.digits}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: isLandscapeMobile ? '5px 10px' : '7px 12px',
+                                        borderRadius: '12px',
+                                        border: `2px solid ${clue.borderColor}`,
+                                        boxShadow: `0 0 10px ${clue.glowColor}, inset 0 0 8px rgba(15, 23, 42, 0.7)`,
+                                        background: 'linear-gradient(180deg, #0f172a 0%, #080e1a 100%)',
+                                        position: 'relative',
+                                        gap: '8px',
+                                      }}
+                                    >
+                                      {/* Chiffres à gauche */}
+                                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                        <span
+                                          style={{
+                                            fontFamily: "'Impact', 'Arial Black', -apple-system, sans-serif",
+                                            fontSize: isLandscapeMobile ? '1.5rem' : '1.75rem',
+                                            fontWeight: 900,
+                                            color: '#ffffff',
+                                            letterSpacing: '2px',
+                                            lineHeight: 1,
+                                            textShadow:
+                                              '0 2px 4px rgba(0,0,0,0.95), 1px 1px 0 #000, -1px -1px 0 #000',
+                                          }}
+                                        >
+                                          {clue.digits}
+                                        </span>
+                                        {clue.strikethrough && (
+                                          <div
+                                            style={{
+                                              position: 'absolute',
+                                              left: -3,
+                                              right: -3,
+                                              top: '50%',
+                                              height: '3px',
+                                              background: '#ef4444',
+                                              borderRadius: '2px',
+                                              boxShadow: '0 0 8px #ef4444',
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+
+                                      {/* Règle à droite */}
+                                      <div
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          whiteSpace: 'nowrap',
+                                          marginLeft: 'auto',
+                                        }}
+                                      >
+                                        {clue.parts.map((p, idx) => (
+                                          <span
+                                            key={idx}
+                                            style={{
+                                              fontFamily: "'Inter', system-ui, sans-serif",
+                                              fontSize: isLandscapeMobile ? '0.74rem' : '0.80rem',
+                                              fontWeight: 900,
+                                              color: p.color,
+                                              letterSpacing: '0.3px',
+                                              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                                            }}
+                                          >
+                                            {p.text}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Question finale */}
+                                <div
+                                  style={{
+                                    marginTop: isLandscapeMobile ? '8px' : '12px',
+                                    marginBottom: isLandscapeMobile ? '6px' : '10px',
+                                    fontSize: isLandscapeMobile ? '0.86rem' : '0.92rem',
+                                    fontWeight: 900,
+                                    color: '#00ffcc',
+                                    textAlign: 'center',
+                                    letterSpacing: '0.5px',
+                                    textShadow: '0 0 12px rgba(0, 255, 204, 0.45)',
+                                  }}
+                                >
+                                  Quelle est la bonne combinaison ?
+                                </div>
+
+                                {/* Saisie directe du code dans le schéma (ultra pratique sur mobile) */}
+                                {triggerType === 'RIDDLE_ANSWER_INPUT' && (
+                                  <div
+                                    style={{
+                                      width: '100%',
+                                      background: 'rgba(15, 23, 42, 0.85)',
+                                      border: '1.5px solid #334155',
+                                      borderRadius: '12px',
+                                      padding: isLandscapeMobile ? '8px 10px' : '10px 14px',
+                                      boxSizing: 'border-box',
+                                      marginTop: '4px',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        marginBottom: '6px',
+                                      }}
+                                    >
+                                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Lock size={12} />
+                                        SAISIR LE CODE DU CADENAS
+                                      </span>
+                                      <span style={{ fontSize: '0.70rem', color: '#94a3b8' }}>
+                                        {digits.filter(Boolean).length}/4
+                                      </span>
+                                    </div>
+
+                                    {/* 4 chiffres */}
+                                    <motion.div
+                                      animate={showErrorShake ? { x: [-10, 10, -8, 8, -4, 4, 0] } : {}}
+                                      transition={{ duration: 0.5 }}
+                                      style={{
+                                        display: 'flex',
+                                        gap: isLandscapeMobile ? '6px' : '8px',
+                                        justifyContent: 'center',
+                                        marginBottom: '8px',
+                                      }}
+                                    >
+                                      {digits.map((digit, idx) => (
+                                        <input
+                                          key={`lightbox-${idx}`}
+                                          ref={lightboxInputRefs[idx]}
+                                          type="text"
+                                          inputMode="numeric"
+                                          maxLength={1}
+                                          value={digit}
+                                          onChange={(e) => handleDigitChange(idx, e.target.value, true)}
+                                          onKeyDown={(e) => handleKeyDown(idx, e, true)}
+                                          onFocus={() => resetTimer()}
+                                          style={{
+                                            width: isLandscapeMobile ? '38px' : '44px',
+                                            height: isLandscapeMobile ? '42px' : '48px',
+                                            background: '#1e293b',
+                                            border: `2px solid ${showErrorShake ? '#ef4444' : digit ? '#38bdf8' : '#475569'}`,
+                                            borderRadius: '8px',
+                                            color: '#ffffff',
+                                            fontSize: isLandscapeMobile ? '1.3rem' : '1.45rem',
+                                            fontWeight: 900,
+                                            textAlign: 'center',
+                                            outline: 'none',
+                                            transition: 'border-color 0.15s ease',
+                                            boxShadow: digit ? '0 0 8px rgba(56, 189, 248, 0.3)' : 'none',
+                                          }}
+                                        />
+                                      ))}
+                                    </motion.div>
+
+                                    {errorMessage && (
+                                      <div
+                                        style={{
+                                          color: '#ef4444',
+                                          fontSize: '0.74rem',
+                                          fontWeight: 700,
+                                          marginBottom: '6px',
+                                          textAlign: 'center',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: '5px',
+                                        }}
+                                      >
+                                        <AlertCircle size={13} />
+                                        {errorMessage}
+                                      </div>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={handleSubmitAnswer}
+                                      disabled={isVerifying}
+                                      style={{
+                                        width: '100%',
+                                        background: isVerifying
+                                          ? '#475569'
+                                          : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        padding: isLandscapeMobile ? '7px 10px' : '9px 12px',
+                                        color: '#ffffff',
+                                        fontWeight: 800,
+                                        fontSize: '0.84rem',
+                                        cursor: isVerifying ? 'wait' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px',
+                                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
+                                      }}
+                                    >
+                                      <Unlock size={14} />
+                                      {isVerifying ? 'Décodage en cours...' : 'DÉVERROUILLER LE CADENAS'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <img
+                                src={imageUrl}
+                                alt="Schéma Plein Écran"
+                                style={{
+                                  maxWidth: '100%',
+                                  maxHeight: isLandscapeMobile ? '70vh' : '75vh',
+                                  objectFit: 'contain',
+                                  borderRadius: '8px',
+                                }}
+                              />
+                            )}
+                          </div>
+                        </motion.div>
+                      </div>,
+                      document.body
+                    )
+                  )
                 )}
               </motion.div>
             </motion.div>

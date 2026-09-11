@@ -1247,40 +1247,89 @@ body {
   }
   .agent-profile-container {
     display: flex !important;
-    flex-direction: row !important;
-    width: 200% !important;
+    flex-direction: column !important;
+    width: 100% !important;
     height: 100% !important;
-    overflow: visible;
-    transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
-  }
-  .agent-profile-container.slide-profile {
-    transform: translateX(0%);
-  }
-  .agent-profile-container.slide-stats {
-    transform: translateX(-50%);
-  }
-  .agent-profile-sidebar {
-    flex: 0 0 50% !important;
-    width: 50% !important;
-    max-width: 50% !important;
-    height: 100% !important;
-    border-right: none;
-    border-bottom: none;
-    padding: 20px 16px 65px 16px !important;
+    transform: none !important;
+    transition: none !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+  }
+  .agent-profile-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 16px 16px 14px 16px !important;
     box-sizing: border-box !important;
   }
   .agent-profile-avatar-wrapper {
-    width: 90px;
-    height: 90px;
+    width: 68px !important;
+    height: 68px !important;
+    padding: 3px !important;
+  }
+  .agent-profile-avatar-edit-btn {
+    width: 25px !important;
+    height: 25px !important;
   }
   .agent-profile-pseudo {
-    margin: 10px 0 2px 0;
-    font-size: 1.15rem;
+    margin: 4px 0 2px 0;
+    font-size: 1.08rem;
   }
   .agent-profile-team {
-    margin-bottom: 8px;
+    margin-bottom: 3px;
+  }
+  .agent-profile-identity-header {
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+  }
+  .agent-profile-identity-info .agent-profile-pseudo {
+    font-size: 1.08rem !important;
+    margin-bottom: 2px !important;
+  }
+  .agent-profile-identity-info .agent-profile-team {
+    font-size: 0.70rem !important;
+    margin-bottom: 3px !important;
+  }
+  .agent-vitality-container {
+    margin-bottom: 8px !important;
+    padding: 6px 10px !important;
+  }
+  .agent-vitality-label {
+    font-size: 0.70rem !important;
+    margin-bottom: 3px !important;
+  }
+  .agent-vitality-track {
+    height: 5px !important;
+  }
+  .agent-profile-form {
+    gap: 7px !important;
+  }
+  .agent-profile-form .form-group {
+    gap: 2px !important;
+  }
+  .agent-profile-form label {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.35px !important;
+  }
+  .agent-profile-form input[type="text"],
+  .agent-profile-form input[type="date"],
+  .agent-select-trigger,
+  .password-input-wrapper input {
+    padding: 6px 10px !important;
+    font-size: 0.82rem !important;
+    height: 32px !important;
+    box-sizing: border-box !important;
+  }
+  .agent-profile-save-btn {
+    padding: 8px 14px !important;
+    font-size: 0.82rem !important;
+    height: 35px !important;
+    margin-top: 4px !important;
+    margin-bottom: 8px !important;
   }
 }
 
@@ -1704,25 +1753,27 @@ body {
 
 @media (max-width: 768px) {
   .agent-profile-content {
-    flex: 0 0 50% !important;
-    width: 50% !important;
-    max-width: 50% !important;
-    height: 100% !important;
-    padding: 20px 16px 65px 16px !important;
-    gap: 15px;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 0 auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 14px 16px 28px 16px !important;
+    gap: 14px !important;
     box-sizing: border-box !important;
   }
   .profile-it-hero-card {
     padding: 10px 12px;
     gap: 10px;
+    flex-shrink: 0 !important;
+    min-height: 52px !important;
   }
   .profile-it-icon-badge {
     width: 34px;
     height: 34px;
     min-width: 34px;
     min-height: 34px;
+    flex-shrink: 0 !important;
   }
   .profile-it-title {
     font-size: 0.85rem;
@@ -1741,6 +1792,7 @@ body {
     grid-template-columns: repeat(3, 1fr);
     width: 100%;
     box-sizing: border-box;
+    flex-shrink: 0 !important;
   }
   .profile-metric-card {
     padding: 8px 6px;
@@ -1768,6 +1820,39 @@ body {
     font-size: 0.8rem;
     white-space: nowrap;
   }
+
+  .profile-tab-content {
+    overflow: visible !important;
+    flex: none !important;
+    min-height: auto !important;
+  }
+
+  .tab-label-full {
+    display: none !important;
+  }
+  .tab-label-short {
+    display: inline !important;
+  }
+
+  .profile-tabs-nav {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+    overflow-x: visible !important;
+    padding-bottom: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  .profile-tab-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 6px 2px 8px 2px !important;
+    font-size: 0.78rem !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
 }
 
 /* Hero Card : Énergie IT Cumulée */
@@ -1777,6 +1862,8 @@ body {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
+  flex-shrink: 0;
+  min-height: 56px;
   background: linear-gradient(135deg, rgba(217, 70, 239, 0.12) 0%, rgba(13, 20, 36, 0.9) 60%, rgba(0, 255, 204, 0.08) 100%);
   border: 1.5px solid rgba(217, 70, 239, 0.35);
   border-radius: 14px;
@@ -1878,6 +1965,7 @@ body {
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .profile-metric-card {
@@ -1951,6 +2039,7 @@ body {
   gap: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .profile-tab-btn {
@@ -1984,10 +2073,18 @@ body {
   box-shadow: 0 0 10px #00ffcc;
 }
 
+.tab-label-short {
+  display: none;
+}
+
+.tab-label-full {
+  display: inline;
+}
+
 .profile-tab-content {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
-  min-height: 200px;
+  min-height: 60px;
 }
 
 .empty-state {
@@ -2269,6 +2366,161 @@ body {
       opacity: 1;
       transform: translate(-50%, 0) scale(1);
     }
+  }
+}
+
+/* Adaptation Paysage Mobile & Écrans à faible hauteur (< 620px) */
+@media (max-height: 620px) {
+  .agent-profile-modal {
+    height: 94vh !important;
+    max-height: 94vh !important;
+  }
+
+  .agent-profile-sidebar {
+    padding: 12px 14px !important;
+  }
+
+  .agent-profile-avatar-wrapper {
+    width: 68px !important;
+    height: 68px !important;
+    padding: 3px !important;
+  }
+
+  .agent-profile-avatar-edit-btn {
+    width: 25px !important;
+    height: 25px !important;
+  }
+
+  .agent-profile-pseudo {
+    font-size: 1.08rem !important;
+    margin: 4px 0 2px 0 !important;
+  }
+
+  .agent-profile-content {
+    padding: 12px 52px 12px 18px !important;
+    gap: 10px !important;
+  }
+
+  .profile-it-hero-card {
+    padding: 8px 14px !important;
+    min-height: 52px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .profile-it-icon-badge {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .profile-it-title {
+    font-size: 0.85rem !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  .profile-it-subtitle {
+    font-size: 0.70rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .profile-it-score-wrapper {
+    padding: 4px 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .profile-it-score-val {
+    font-size: 1.2rem !important;
+  }
+
+  .profile-metrics-grid {
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .profile-metric-card {
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+
+  .profile-metric-card .metric-icon {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 4px !important;
+  }
+
+  .profile-metric-card .value {
+    font-size: 0.82rem !important;
+  }
+
+  .profile-tabs-nav {
+    padding-bottom: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .profile-tab-content {
+    min-height: 50px !important;
+  }
+
+  .agent-profile-identity-header {
+    gap: 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .agent-profile-identity-info .agent-profile-pseudo {
+    font-size: 1.08rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .agent-profile-identity-info .agent-profile-team {
+    font-size: 0.70rem !important;
+    margin-bottom: 3px !important;
+  }
+
+  .agent-vitality-container {
+    margin-bottom: 8px !important;
+    padding: 6px 10px !important;
+  }
+
+  .agent-vitality-label {
+    font-size: 0.70rem !important;
+    margin-bottom: 3px !important;
+  }
+
+  .agent-vitality-track {
+    height: 5px !important;
+  }
+
+  .agent-profile-form {
+    gap: 7px !important;
+  }
+
+  .agent-profile-form .form-group {
+    gap: 2px !important;
+  }
+
+  .agent-profile-form label {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.35px !important;
+  }
+
+  .agent-profile-form input[type="text"],
+  .agent-profile-form input[type="date"],
+  .agent-select-trigger,
+  .password-input-wrapper input {
+    padding: 6px 10px !important;
+    font-size: 0.82rem !important;
+    height: 32px !important;
+    box-sizing: border-box !important;
+  }
+
+  .agent-profile-save-btn {
+    padding: 8px 14px !important;
+    font-size: 0.82rem !important;
+    height: 35px !important;
+    margin-top: 4px !important;
   }
 }
 
