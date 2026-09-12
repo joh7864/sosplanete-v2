@@ -18,7 +18,8 @@ import {
   Building2,
   Search,
   Bell,
-  Sparkles
+  Sparkles,
+  BarChart2
 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { getAssetUrl } from '@/utils/assets';
@@ -223,7 +224,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
     return (
       <nav className={`flex flex-col gap-2 ${mobile ? 'mt-2' : ''}`}>
         <SidebarDashboardDropdown
-          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/catalog', '/dashboard/organization', '/dashboard/settings', '/dashboard/easter-eggs'].every(forbidden => !isLinkActive(forbidden))}
+          active={isLinkActive('/dashboard') && ['/dashboard/users', '/dashboard/reference', '/dashboard/catalog', '/dashboard/organization', '/dashboard/settings', '/dashboard/easter-eggs', '/dashboard/tracking'].every(forbidden => !isLinkActive(forbidden))}
           instances={managedInstances}
           activeId={activeInstanceId}
           onDashboardClick={closeMenu}
@@ -237,6 +238,14 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode; role: 'AS' |
           }}
         />
         
+        <SidebarItem 
+          icon={<BarChart2 size={20} />} 
+          label="Statistiques & Suivi" 
+          href={getAmLink('/dashboard/tracking')}
+          active={isLinkActive('/dashboard/tracking')}
+          onClick={closeMenu}
+          collapsed={collapsed}
+        />
         <SidebarItem 
           icon={<Building2 size={20} />} 
           label="Mon Établissement" 

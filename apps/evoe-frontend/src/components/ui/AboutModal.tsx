@@ -12,7 +12,6 @@ import {
   MessageSquare,
   UserCheck,
   Search,
-  CheckCircle2,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -63,7 +62,7 @@ const EPICS_DATA: EpicItem[] = [
     features: [
       'Briefing vidéo FTUX avec transmission narrative des enjeux écologiques',
       'Guide interactif contextuel pour découvrir les commandes du QG',
-      'Sauvegarde de l’état d’onboarding pour éviter les répétitions',
+      'Menu bulle flottante universel (HUD) disponible sur mobile et grand écran',
       'Adaptabilité complète de l’expérience sur ordinateur et mobile'
     ]
   },
@@ -76,8 +75,8 @@ const EPICS_DATA: EpicItem[] = [
     summary: 'Environnement spatial 3D temps réel centré sur la Terre et les secteurs thématiques.',
     features: [
       'Globe terrestre 3D haute fidélité avec shaders atmosphériques et rotation interactive',
-      'Anneau orbital et secteurs éco-citoyens (Énergie, Eau, Biodiversité, Mobilité...)',
-      'Positionnement spatial des bulles des Agents connectés en temps réel',
+      'Anneau orbital et secteurs éco-citoyens avec cadrage harmonisé et dégagé',
+      'Recherche de joueur avec rotation gyroscopique cinématique et anneau holographique au sol',
       'Caméra dynamique et commandes tactiles / souris avec recentrage orbital'
     ]
   },
@@ -133,7 +132,7 @@ const EPICS_DATA: EpicItem[] = [
     features: [
       'Radar spatial cartographiant la position et vitesse de tous les vaisseaux d’équipe',
       'Évolution des moteurs de propulsion par paliers selon l’intensité écologique collective',
-      'Effets visuels de traînées laser et boosters énergétiques',
+      'Pipeline de rendu Three.js 60 FPS robuste et matériaux PBR calibrés',
       'Mode discrétion (Stealth Mode) activable pour optimiser la concentration'
     ]
   },
@@ -184,8 +183,8 @@ const EPICS_DATA: EpicItem[] = [
 export const AboutModal: React.FC<AboutModalProps> = ({
   isOpen,
   onClose,
-  version = '1.6.0',
-  releaseDate = '2026-09-10T10:00:00.000Z',
+  version = '1.6.3',
+  releaseDate = '2026-09-13T00:00:00.000Z',
   periodsTimeout = 2, // 2 périodes avant retrait
   daysPerPeriod = 7,  // 7 jours par période (soit 14 jours de visibilité)
 }) => {
@@ -452,13 +451,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Search size={15} color="#00ffcc" />
+                        <Layers size={15} color="#00ffcc" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Recherche Rapide de Joueur (HUD)
+                          Menu Bulle Flottante Universel (HUD)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Nouveau bouton extensible à gauche du commutateur temporel. Autocomplétion dynamique en direct et ouverture instantanée de la fiche profil.
+                        Unification des commandes système (WhatsApp Équipe, Guide interactif, Qualité 3D GPU, Journal de bord, Déconnexion) dans une bulle d'options unique et élégante sur tous les supports (mobile portrait/paysage et grands écrans).
                       </p>
                     </div>
 
@@ -471,13 +470,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Calendar size={15} color="#00b3ff" />
+                        <Search size={15} color="#00b3ff" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Année Temporelle Dynamique
+                          Recherche 3D & Anneau Holographique
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Calcul automatique de l’année courante dans le cockpit, adaptant les références historiques et les calculs d’âge des explorateurs.
+                        Rotation cinématique automatique avec inclinaison gyroscopique vers l'avatar ciblé. Nouveau ciblage par anneau holographique 3D au sol en perspective, synchronisé aux pulsations de couleur d'équipe.
                       </p>
                     </div>
 
@@ -492,11 +491,11 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <Globe size={15} color="#10b981" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Immersion & Visibilité 3D Accrue
+                          Cadrage & Rayon Optimal de l'Orbite
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Suppression des barres intermédiaires encombrantes pour offrir une vue panoramique dégagée sur la Terre spatiale et les anneaux de missions.
+                        Ajustement harmonieux du cercle des avatars autour de la Terre spatiale. Dégagement total des bulles de secteurs éco-citoyens et garantie de parfaite lisibilité des pseudonymes et badges sans coupure visuelle.
                       </p>
                     </div>
 
@@ -509,13 +508,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <CheckCircle2 size={15} color="#ffd700" />
+                        <Zap size={15} color="#ffd700" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Optimisations & Ergonomie Multi-supports
+                          Stabilité Graphique & Rendu 2070
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Fluidité renforcée des animations d’interface, navigation au clavier intuitive et synchronisation complète de la plateforme.
+                        Pipeline Three.js 60 FPS natif sans post-processing instable sur mobile. Matériaux PBR et reflets métalliques calibrés éliminant les variations d'exposition et assurant la fidélité des couleurs de vaisseaux sous tous les angles.
                       </p>
                     </div>
                   </div>

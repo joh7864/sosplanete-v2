@@ -166,6 +166,7 @@ model Child {
   birthdayWishesReceived  BirthdayWish[] @relation("ReceivedBirthdayWishes")
   actionsDone     ActionDone[]
   easterEggProgress EvoeEasterEggPlayerProgress[]
+  playerSessions  PlayerSession[]
   group           Group        @relation(fields: [groupId], references: [id])
 
   @@unique([pseudo, groupId])
@@ -500,5 +501,72 @@ model BirthdayWish {
   @@index([recipientId, year])
   @@index([createdAt])
   @@map("evoe_birthday_wish")
+}
+
+enum SessionStatus {
+  ACTIVE
+  CLOSED
+  EXPIRED
+}
+
+enum EventType {
+  LOGIN
+  LOGOUT
+  PAGE_VIEW
+  MISSION_DONE
+  MISSION_CANCELLED
+  CHALLENGE_INTERACTION
+  EASTER_EGG_INTERACTION
+  HEARTBEAT
+}
+
+model PlayerSession {
+  id              String         @id @default(uuid())
+  childId         Int
+  childPseudo     String
+  instanceYearId  Int?
+  instanceId      Int
+  schoolYear      String
+  startedAt       DateTime       @default(now())
+  lastActiveAt    DateTime       @default(now())
+  endedAt         DateTime?
+  durationSeconds Int            @default(0)
+  
+  deviceType      String?        // "MOBILE_PORTRAIT", "MOBILE_LANDSCAPE", "DESKTOP"
+  browser         String?
+  os              String?
+  
+  status          SessionStatus  @default(ACTIVE)
+
+  child           Child          @relation(fields: [childId], references: [id], onDelete: Cascade)
+  events          SessionEvent[]
+
+  @@index([instanceId, schoolYear])
+  @@index([childId, startedAt])
+  @@index([childPseudo])
+  @@index([startedAt])
+  @@map("evoe_player_session")
+}
+
+model SessionEvent {
+  id                Int             @id @default(autoincrement())
+  sessionId         String
+  childId           Int
+  childPseudo       String
+  timestamp         DateTime        @default(now())
+  
+  eventType         EventType
+  target            String
+  label             String?
+  timeSpentSeconds  Int             @default(0)
+  metadata          Json?
+
+  session           PlayerSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, timestamp])
+  @@index([childId, timestamp])
+  @@index([childPseudo])
+  @@index([eventType])
+  @@map("evoe_session_event")
 }
 

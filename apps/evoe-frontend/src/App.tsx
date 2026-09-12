@@ -3047,6 +3047,7 @@ function MainApp() {
         isOpen={showAboutModal}
         onClose={() => setShowAboutModal(false)}
         version={pkg.version}
+        releaseDate="2026-09-13T00:00:00.000Z"
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { telemetry } from '../../services/telemetryService';
 import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film, Zap } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { isBirthdayDate } from '../../hooks/useBirthday';
@@ -49,11 +50,17 @@ export function AgentProfileModal({
   const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges'>('missions');
   const [impulsingId, setImpulsingId] = useState<number | null>(null);
 
-  const handleImpulseMission = async (localActionId: number) => {
+  const handleImpulseMission = async (localActionId: number, label?: string) => {
     setImpulsingId(localActionId);
     try {
       const BASE_API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy').replace('/legacy', '');
       await evoeClient.post(`${BASE_API_URL}/actiondone/${profileId}`, { id: localActionId });
+      telemetry.logEvent(
+        'MISSION_DONE',
+        `MISSION_${localActionId}`,
+        label || 'Mission impulsée (défi)',
+        { localActionId, profileId, missionTitle: label }
+      );
       refreshData();
       const res = await evoeClient.get(`${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/profile/${profileId}`);
       setProfileData(res.data);
@@ -711,7 +718,7 @@ export function AgentProfileModal({
                           )}
                           {!c.isChallenger && c.status === 'ACCEPTED' && isOwner && (
                             <button 
-                              onClick={() => handleImpulseMission(c.localActionId)}
+                              onClick={() => handleImpulseMission(c.localActionId, c.actionLabel)}
                               disabled={impulsingId === c.localActionId}
                               style={{
                                 marginTop: '12px',

@@ -27,7 +27,8 @@ import {
   Play,
   Pause,
   SkipBack,
-  SkipForward
+  SkipForward,
+  Radio
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, ReferenceLine, BarChart, Bar, Cell } from 'recharts';
 import { getAuthData } from '@/utils/storage';
@@ -39,6 +40,7 @@ import { ActionsImportModal } from '@/components/tracking/ActionsImportModal';
 import { TrackingMatrix } from '@/components/tracking/TrackingMatrix';
 import { TrackingCharts } from '@/components/tracking/TrackingCharts';
 import { IndicatorsTab } from './IndicatorsTab';
+import { PlayerTrackingTab } from './PlayerTrackingTab';
 import { useSchoolYear } from '@/hooks/useSchoolYear';
 import { useInstanceYear } from '@/hooks/useInstanceYear';
 
@@ -88,9 +90,9 @@ export function TrackingView({
   const [hideInactive, setHideInactive] = useState(false);
   const [hideEmptyPeriods, setHideEmptyPeriods] = useState(false);
   const [leaderboardType, setLeaderboardType] = useState<'child' | 'team' | 'group' | null>(null);
-  const [activeTab, setActiveTab] = useState<'actions' | 'indicators' | 'animals' | 'graphic'>(() => {
+  const [activeTab, setActiveTab] = useState<'actions' | 'indicators' | 'animals' | 'player-tracking' | 'graphic'>(() => {
     if (typeof window !== 'undefined') {
-      return (sessionStorage.getItem('trackingActiveTab') as 'actions' | 'indicators' | 'animals' | 'graphic') || 'indicators';
+      return (sessionStorage.getItem('trackingActiveTab') as 'actions' | 'indicators' | 'animals' | 'player-tracking' | 'graphic') || 'indicators';
     }
     return 'indicators';
   });
@@ -320,6 +322,12 @@ export function TrackingView({
           >
             <CheckCircle2 size={16} /> Déblocage Animaux
           </button>
+          <button
+            onClick={() => setActiveTab('player-tracking')}
+            className={`flex items-center gap-3 py-3 px-5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'player-tracking' ? 'bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
+          >
+            <Radio size={16} /> Traçabilité Joueurs
+          </button>
         </div>
         <div className="flex items-center gap-2">
             {activeTab === 'indicators' && (
@@ -512,8 +520,16 @@ export function TrackingView({
           helpOpen={helpOpen} 
           setHelpOpen={setHelpOpen} 
         />
-      ) : (
+      ) : activeTab === 'animals' ? (
         <AnimalsTrackingTab instanceId={instanceId as number} refreshKey={animalsRefreshKey} schoolYear={schoolYear} instanceYearId={instanceYearId ?? undefined} />
+      ) : (
+        <PlayerTrackingTab
+          instanceId={instanceId}
+          schoolYear={schoolYear}
+          instanceYearId={instanceYearId ?? undefined}
+          teams={teams}
+          groups={groups}
+        />
       )}
     </div>
   );

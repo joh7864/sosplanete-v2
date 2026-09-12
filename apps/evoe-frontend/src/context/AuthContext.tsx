@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { evoeClient } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
+import { telemetry } from '../services/telemetryService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
 const EVOE_API_URL = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
@@ -60,6 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setChildInfos(res.data.childInfos);
         setMissions(res.data.missions);
         setPlayers(res.data.players || []);
+
+        if (res.data.childInfos?.id && savedInstanceId) {
+          telemetry.initSession({
+            childId: res.data.childInfos.id,
+            childPseudo: res.data.childInfos.pseudo || '',
+            instanceId: parseInt(savedInstanceId, 10),
+            schoolYear: res.data.childInfos.schoolYear || '2024-2025',
+            instanceYearId: res.data.childInfos.instanceYearId,
+          });
+        }
       } catch (e) {
         console.error("Erreur rafraîchissement contexte:", e);
       }
@@ -86,6 +97,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setChildInfos(res.data.childInfos);
         setMissions(res.data.missions);
         setPlayers(res.data.players || []);
+
+        if (res.data.childInfos?.id) {
+          telemetry.initSession({
+            childId: res.data.childInfos.id,
+            childPseudo: res.data.childInfos.pseudo || _loginPseudo,
+            instanceId: parseInt(instId, 10),
+            schoolYear: res.data.childInfos.schoolYear || '2024-2025',
+            instanceYearId: res.data.childInfos.instanceYearId,
+          });
+        }
       })
       .catch(() => {
         setChildInfos(null);
@@ -179,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logoutUser = () => {
+    telemetry.endSession();
     setUser(null);
     setPseudo(null);
     setChildInfos(null);
@@ -276,8 +298,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  pseudo: null,
+  loading: false,
+  errorAuthentification: '',
+  instanceChoices: null,
+  loginUser: async () => {},
+  finishLogin: () => {},
+  logoutUser: () => {},
+  childInfos: null,
+  instanceId: null,
+  teamId: null,
+  missions: [],
+  players: [],
+  refreshContext: async () => {},
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) {
+    return defaultAuthContext;
+  }
   return context;
 };

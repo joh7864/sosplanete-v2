@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { evoeClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { telemetry } from '../services/telemetryService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy';
 const EVOE_API_URL = import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe';
 
 export function useEvoeData() {
-  const { childInfos, instanceId, refreshContext } = useAuth();
+  const { childInfos, instanceId, refreshContext, missions } = useAuth();
 
   const [era, setEra] = useState<'2026' | '2070'>('2026');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -226,6 +227,18 @@ export function useEvoeData() {
       setTimeout(() => setIsGlitching(false), 800);
 
       await evoeClient.post(`${API_URL}/actiondone/${childInfos.id}`, { id: missionId });
+      const mission = missions.find((m: any) => m.id === missionId);
+      telemetry.logEvent(
+        'MISSION_DONE',
+        `MISSION_${missionId}`,
+        mission?.titreSF || mission?.label || 'Mission validée',
+        {
+          missionId,
+          pointsIT: mission?.pointsGagnes,
+          actionRefId: mission?.actionRefId,
+          missionTitle: mission?.titreSF || mission?.label,
+        }
+      );
       await refreshContext();
       fetchEvoeData();
     } catch (err: any) {
@@ -244,6 +257,12 @@ export function useEvoeData() {
     try {
       setLoadingMissionId(actionDoneId);
       await evoeClient.delete(`${API_URL}/actiondone/${actionDoneId}`);
+      telemetry.logEvent(
+        'MISSION_CANCELLED',
+        `ACTION_DONE_${actionDoneId}`,
+        'Mission annulée',
+        { actionDoneId }
+      );
       await refreshContext();
       fetchEvoeData();
     } catch (err) {
@@ -321,6 +340,8 @@ export function useEvoeData() {
     setIsTransitioning(true);
     setShowExtrapolation(false);
     setShowRadar(false);
+    const nextEra = era === '2026' ? '2070' : '2026';
+    telemetry.trackView(nextEra === '2026' ? 'QG_2026' : 'WORLD_2070');
     // Basculement immédiat de l'ère (0ms) pour réactivité instantanée
     setEra(prev => (prev === '2026' ? '2070' : '2026'));
     // Extinction rapide de l'effet visuel de transition
