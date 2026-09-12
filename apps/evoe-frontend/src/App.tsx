@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles } from 'lucide-react';
+import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles, Cpu } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
@@ -16,6 +16,7 @@ import { ChallengesCarousel3D } from './components/ui/ChallengesCarousel3D';
 import { OrbitalSectorRibbon } from './components/ui/OrbitalSectorRibbon';
 import { MissionSearchBar } from './components/ui/MissionSearchBar';
 import { PlayerSearchHUD } from './components/ui/PlayerSearchHUD';
+import { SystemMenuHUD } from './components/ui/SystemMenuHUD';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
@@ -125,6 +126,7 @@ function MainApp() {
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
     isStealthMode, toggleStealthMode,
+    isUnbridledDpr, toggleUnbridledDpr,
     onlineUsers, setOnlineUsers,
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,
@@ -196,6 +198,30 @@ function MainApp() {
       setChronoLoading(false);
     }
   };
+
+  // Bridage intelligent du ratio de pixels (DPR) : [1, 1.25] par défaut pour garantir 60 FPS, débridable si configuré
+  const dpr = useMemo<[number, number]>(() => {
+    const maxDpr = isUnbridledDpr ? 2 : 1.25;
+    const winDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    return [1, Math.min(winDpr, maxDpr)];
+  }, [isUnbridledDpr]);
+
+  // Boucle 3D adaptative : frameloop="demand" lorsque des modales lourdes masquent la scène 3D
+  const isHeavyModalOpen = Boolean(
+    selectedProfileId ||
+    showOnboardingGuide ||
+    showAboutModal ||
+    showMissionsWeekModal ||
+    showChallengeModal ||
+    showChronoEggModal ||
+    showRosettaStoneModal ||
+    showTerminalModal ||
+    showTemporalEchoModal ||
+    showNoPeriodModal ||
+    cancelMissionConfirm ||
+    showEggCelebration ||
+    (selectedSector && (codexTab === 'missions' || codexTab === 'challenges') && !isCodexCollapsed)
+  );
 
   const handleReplayPeriod = async (periodId: number) => {
     try {
@@ -980,73 +1006,84 @@ function MainApp() {
 
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
-        <Canvas camera={{ position: [0, 5, 10], fov: 60 }} dpr={[1, 2]}>
-          {era === '2026' ? (
-            <Portal2026 
-              categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
-              onSelectSector={handleSelectSector} 
-              onSelectPlayer={handleSelectPlayer}
-              onGlobeClick={handleGlobeClick}
-              onCodexConsoleClick={handleCodexConsoleClick}
-              onStarClick={handleStarClick}
-              onSelectChallenges={() => {
-                if (childInfos && childInfos.isPeriodOpen === false) {
-                  setShowNoPeriodModal(true);
-                  return;
-                }
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setCodexTab('challenges');
-                setIsCodexCollapsed(false);
-                if (era !== '2026') handleSwitchEra();
-                if (!selectedSector) {
-                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                  if (cats.length > 0) setSelectedSector(cats[0]);
-                }
-              }}
-              onSelectChallengeBadge={() => {
-                if (childInfos && childInfos.isPeriodOpen === false) {
-                  setShowNoPeriodModal(true);
-                  return;
-                }
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setCodexTab('challenges');
-                setIsCodexCollapsed(false);
-                if (era !== '2026') handleSwitchEra();
-                if (!selectedSector) {
-                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                  if (cats.length > 0) setSelectedSector(cats[0]);
-                }
-              }}
-              onlineUsers={onlineUsers}
-              unreadTeam={unreadChat.team}
-              unreadMps={unreadChat.unreadMps}
-              isMobile={isMobile}
-              view={view2026}
-              dashboardStatus={dashboardStatus}
-              challenges={challenges}
-              missionsWeekCount={impulsedMissionsCount}
-              isStealthMode={isStealthMode}
-              onToggleStealth={toggleStealthMode}
-              customPlayersList={enrichedPlayers}
-              onSelectBirthdayCake={handleSelectBirthdayCake}
-              onSelectMissionsWeek={() => {
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setShowMissionsWeekModal(true);
-              }}
-              onCloseLeaderboard={() => setView2026('codex')}
-            />
-          ) : (
-            <Portal2070 
-              dashboardStatus={dashboardStatus} 
-              selectedTeamId={selectedRadarTeamId}
-              onEarthClick={handleEarthClick} 
-              onVesselClick={handleVesselClick}
-              isMobile={isMobile}
-            />
-          )}
+        <Canvas 
+          camera={{ position: [0, 5, 10], fov: 60 }} 
+          dpr={dpr}
+          frameloop={isHeavyModalOpen ? 'demand' : 'always'}
+          gl={{
+            powerPreference: 'high-performance',
+            antialias: true,
+            alpha: true,
+            stencil: false,
+            depth: true,
+            precision: 'mediump',
+          }}
+        >
+          <Portal2026 
+            isActive={era === '2026'}
+            categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
+            onSelectSector={handleSelectSector} 
+            onSelectPlayer={handleSelectPlayer}
+            onGlobeClick={handleGlobeClick}
+            onCodexConsoleClick={handleCodexConsoleClick}
+            onStarClick={handleStarClick}
+            onSelectChallenges={() => {
+              if (childInfos && childInfos.isPeriodOpen === false) {
+                setShowNoPeriodModal(true);
+                return;
+              }
+              setSelectedProfileId(null);
+              setChatOpen(false);
+              setCodexTab('challenges');
+              setIsCodexCollapsed(false);
+              if (era !== '2026') handleSwitchEra();
+              if (!selectedSector) {
+                const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                if (cats.length > 0) setSelectedSector(cats[0]);
+              }
+            }}
+            onSelectChallengeBadge={() => {
+              if (childInfos && childInfos.isPeriodOpen === false) {
+                setShowNoPeriodModal(true);
+                return;
+              }
+              setSelectedProfileId(null);
+              setChatOpen(false);
+              setCodexTab('challenges');
+              setIsCodexCollapsed(false);
+              if (era !== '2026') handleSwitchEra();
+              if (!selectedSector) {
+                const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                if (cats.length > 0) setSelectedSector(cats[0]);
+              }
+            }}
+            onlineUsers={onlineUsers}
+            unreadTeam={unreadChat.team}
+            unreadMps={unreadChat.unreadMps}
+            isMobile={isMobile}
+            view={view2026}
+            dashboardStatus={dashboardStatus}
+            challenges={challenges}
+            missionsWeekCount={impulsedMissionsCount}
+            isStealthMode={isStealthMode}
+            onToggleStealth={toggleStealthMode}
+            customPlayersList={enrichedPlayers}
+            onSelectBirthdayCake={handleSelectBirthdayCake}
+            onSelectMissionsWeek={() => {
+              setSelectedProfileId(null);
+              setChatOpen(false);
+              setShowMissionsWeekModal(true);
+            }}
+            onCloseLeaderboard={() => setView2026('codex')}
+          />
+          <Portal2070 
+            isActive={era === '2070'}
+            dashboardStatus={dashboardStatus} 
+            selectedTeamId={selectedRadarTeamId}
+            onEarthClick={handleEarthClick} 
+            onVesselClick={handleVesselClick}
+            isMobile={isMobile}
+          />
         </Canvas>
       </div>
 
@@ -1093,15 +1130,15 @@ function MainApp() {
         </div>
       )}
 
-      {/* Transition Effect (Zoom Visière) */}
+      {/* Transition Effect (Flash Visière Vif & Fluide) */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
             className="transition-overlay"
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 50, opacity: 1 }}
+            animate={{ scale: 35, opacity: 0.8 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: "easeInOut" }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           />
         )}
       </AnimatePresence>
@@ -1472,8 +1509,9 @@ function MainApp() {
               />
             </button>
 
-            {/* SÉPARATEUR VISUEL NET */}
+            {/* SÉPARATEUR VISUEL NET (DESKTOP) */}
             <div 
+              className="desktop-only"
               style={{
                 width: '1.5px',
                 height: '24px',
@@ -1483,9 +1521,21 @@ function MainApp() {
               }}
             />
 
+            {/* Menu Système Holographique (Affiché sur Mobile dans le Header) */}
+            <div className="mobile-only">
+              <SystemMenuHUD
+                whatsappInviteUrl={whatsappInviteUrl}
+                onOpenHelp={() => setShowOnboardingGuide(true)}
+                onOpenAbout={() => setShowAboutModal(true)}
+                onLogout={logoutUser}
+                version={pkg.version}
+                isMobile={true}
+                isUnbridledDpr={isUnbridledDpr}
+                onToggleUnbridledDpr={toggleUnbridledDpr}
+              />
+            </div>
 
-
-            {/* BARRE DE DROITE : WHATSAPP, AIDE (VIOLET/MAGENTA) & QUITTER */}
+            {/* BARRE DE DROITE : WHATSAPP, AIDE (VIOLET/MAGENTA) & QUITTER (DESKTOP) */}
 
             {/* WhatsApp Équipe */}
             {whatsappInviteUrl && (
@@ -1495,7 +1545,7 @@ function MainApp() {
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Rejoindre le WhatsApp de mon Équipe"
-                className="switch-btn"
+                className="switch-btn desktop-only"
                 style={{
                   width: '40px',
                   height: '40px',
@@ -1522,7 +1572,7 @@ function MainApp() {
             {/* Bouton d'Aide ? (Cercle Homogène & Typographie Premium) */}
             <button 
               id="hud-btn-help"
-              className="switch-btn" 
+              className="switch-btn desktop-only" 
               onClick={() => setShowOnboardingGuide(true)} 
               title="Relancer le guide interactif (Aide)"
               style={{ 
@@ -1547,9 +1597,36 @@ function MainApp() {
               ?
             </button>
 
+            {/* Bouton Rendu 3D GPU (Desktop) */}
+            <button
+              id="hud-btn-dpr-toggle"
+              className="switch-btn desktop-only"
+              onClick={() => toggleUnbridledDpr()}
+              title={isUnbridledDpr 
+                ? "Qualité 3D : ULTRA (DPR débridé). Cliquez pour basculer en mode FLUIDE (recommandé 60 FPS)" 
+                : "Qualité 3D : FLUIDE (DPR bridé à 1.25). Cliquez pour activer le mode ULTRA (débridé)"}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                padding: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: isUnbridledDpr ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                border: isUnbridledDpr ? '1.5px solid #f59e0b' : '1.5px solid #10b981',
+                color: isUnbridledDpr ? '#f59e0b' : '#10b981',
+                boxShadow: isUnbridledDpr ? '0 0 10px rgba(245, 158, 11, 0.35)' : '0 0 10px rgba(16, 185, 129, 0.25)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+            >
+              <Cpu size={18} />
+            </button>
+
             {/* Quitter */}
             <button 
-              className="switch-btn" 
+              className="switch-btn desktop-only" 
               onClick={logoutUser} 
               title="Quitter la simulation"
               style={{ 

@@ -1168,4 +1168,17 @@ export class LegacyApiService {
 
     return this.ecoBarRaceService.getHistory(instanceYear.schoolYear);
   }
+
+  async getPublicConfig() {
+    try {
+      const config = await this.prisma.systemConfig.findFirst({
+        orderBy: { id: 'desc' },
+      });
+      return {
+        unbridleDpr: Boolean((config as any)?.unbridleDpr),
+      };
+    } catch {
+      return { unbridleDpr: false };
+    }
+  }
 }

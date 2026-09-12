@@ -49,6 +49,32 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      chunkSizeWarningLimit: 700,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('three') || id.includes('@react-three/fiber') || id.includes('@react-three/drei')) {
+                return 'vendor-three';
+              }
+              if (id.includes('@react-three/postprocessing') || id.includes('postprocessing')) {
+                return 'vendor-postprocessing';
+              }
+              if (id.includes('framer-motion')) {
+                return 'vendor-motion';
+              }
+              if (id.includes('lucide-react') || id.includes('react-icons')) {
+                return 'vendor-icons';
+              }
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('axios') || id.includes('socket.io-client')) {
+                return 'vendor-core';
+              }
+            }
+          },
+        },
+      },
+    },
   };
 })
 

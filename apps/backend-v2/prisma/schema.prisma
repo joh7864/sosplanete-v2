@@ -267,6 +267,7 @@ model SystemConfig {
   whatsappGeneralUrl     String?
   whatsappGeneralId      String?
   ftuxSteps              Json?
+  unbridleDpr            Boolean @default(false)
 }
 
 model InstanceAnimalUnlock {

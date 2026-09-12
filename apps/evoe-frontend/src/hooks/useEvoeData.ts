@@ -75,6 +75,46 @@ export function useEvoeData() {
     });
   };
 
+  // Réglage Graphique : Débridage du ratio de pixels (DPR 3D)
+  // Par défaut : bridé à 1.25 pour garantir 60 FPS sur GPU intégré (Core i5 / 6 Go RAM)
+  const [isUnbridledDpr, setIsUnbridledDpr] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('evoe_unbridle_dpr') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleUnbridledDpr = (customValue?: boolean) => {
+    setIsUnbridledDpr(prev => {
+      const next = typeof customValue === 'boolean' ? customValue : !prev;
+      try {
+        localStorage.setItem('evoe_unbridle_dpr', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  // Synchronisation avec la configuration globale admin si pas d'override local
+  useEffect(() => {
+    const fetchPublicConfig = async () => {
+      try {
+        const res = await evoeClient.get(`${API_URL}/public_config`);
+        if (res.data && typeof res.data.unbridleDpr === 'boolean') {
+          const localSaved = localStorage.getItem('evoe_unbridle_dpr');
+          if (localSaved === null) {
+            setIsUnbridledDpr(res.data.unbridleDpr);
+          }
+        }
+      } catch {
+        // ignore non-critical
+      }
+    };
+    fetchPublicConfig();
+  }, []);
+
   // States de chat et statut de connexion
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [unreadChat, setUnreadChat] = useState<{
@@ -281,10 +321,12 @@ export function useEvoeData() {
     setIsTransitioning(true);
     setShowExtrapolation(false);
     setShowRadar(false);
+    // Basculement immédiat de l'ère (0ms) pour réactivité instantanée
+    setEra(prev => (prev === '2026' ? '2070' : '2026'));
+    // Extinction rapide de l'effet visuel de transition
     setTimeout(() => {
-      setEra(prev => prev === '2026' ? '2070' : '2026');
       setIsTransitioning(false);
-    }, 1000);
+    }, 250);
   };
 
   return {
@@ -320,6 +362,7 @@ export function useEvoeData() {
     selectedProfileId, setSelectedProfileId,
     allowPortrait, setAllowPortrait,
     isStealthMode, setIsStealthMode, toggleStealthMode,
+    isUnbridledDpr, toggleUnbridledDpr,
     onlineUsers, setOnlineUsers,
     unreadChat, setUnreadChat,
     chatOpen, setChatOpen,

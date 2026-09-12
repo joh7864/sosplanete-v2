@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Sphere, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,19 +6,22 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Vessel2070 from './Vessel2070';
 import Arch2070 from './Arch2070';
 import { SpeedParticles, CosmicScale, TemporalEchoPulse } from './3d/CosmicEnvironment';
+import { loadSharedEarthTexture } from '../utils/earthTexture';
 
-export default function Portal2070({ 
+function Portal2070Component({ 
   dashboardStatus, 
   selectedTeamId,
   onEarthClick,
   onVesselClick,
-  isMobile = false
+  isMobile = false,
+  isActive = false,
 }: { 
   dashboardStatus: any; 
   selectedTeamId?: number | string | null;
   onEarthClick?: (level: number) => void;
   onVesselClick?: (teamId: number) => void;
   isMobile?: boolean;
+  isActive?: boolean;
 }) {
   const orbitRef = useRef<THREE.Group>(null);
   const planetMeshRef = useRef<THREE.Mesh>(null);
@@ -30,10 +33,11 @@ export default function Portal2070({
   // Positionner idéalement la caméra pour la course temporelle en 2070
   // Vue cinématique : caméra reculée pour bien voir les vaisseaux, avec un angle bas
   useEffect(() => {
+    if (!isActive) return;
     camera.position.set(0, 3.5, 17);
     camera.lookAt(0, 0, 4);
     camera.updateProjectionMatrix();
-  }, [camera]);
+  }, [camera, isActive]);
 
 
 
@@ -67,14 +71,10 @@ export default function Portal2070({
     else onEarthClick(5);
   };
 
-  // Chargement de la texture réelle de la Terre satellite 2026 (locale)
-  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
+  // Chargement partagé de la texture de la Terre
+  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(() => loadSharedEarthTexture());
   useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      '/earth.webp',
-      (tex) => setEarthTexture(tex)
-    );
+    loadSharedEarthTexture((tex) => setEarthTexture(tex));
   }, []);
 
   // Injection de la texture de la Terre dans le shader une fois chargée
@@ -209,6 +209,7 @@ export default function Portal2070({
   }, []);
 
   useFrame((state) => {
+    if (!isActive) return;
     const t = state.clock.getElapsedTime();
     
     // Rotation lente de l'orbite des descendants
@@ -241,9 +242,10 @@ export default function Portal2070({
   });
 
   return (
-    <group>
+    <group visible={isActive}>
       {/* Contrôles orbitaux sécurisés pour le confort visuel */}
       <OrbitControls 
+        enabled={isActive}
         enableZoom={true} 
         enablePan={false} 
         minPolarAngle={Math.PI/2 - 0.5} 
@@ -318,12 +320,20 @@ export default function Portal2070({
       </group>
       {/* L'orbite des avatars a été retirée pour laisser la vedette absolue aux vaisseaux et épurer la scène spatiale. */}
 
-      {/* Post-processing pour l'effet Bloom haute qualité (uniquement sur desktop) */}
-      {!isMobile && (
+      {/* Post-processing pour l'effet Bloom optimisé (uniquement actif quand 2070 est affiché) */}
+      {!isMobile && isActive && (
         <EffectComposer>
-          <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} intensity={1.5} mipmapBlur />
+          <Bloom 
+            luminanceThreshold={0.7} 
+            luminanceSmoothing={0.3} 
+            intensity={0.6} 
+            kernelSize={2}
+          />
         </EffectComposer>
       )}
     </group>
   );
 }
+
+const Portal2070 = memo(Portal2070Component);
+export default Portal2070;

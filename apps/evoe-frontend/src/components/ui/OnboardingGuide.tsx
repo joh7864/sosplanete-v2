@@ -205,6 +205,14 @@ export function OnboardingGuide({ isOpen, onClose, onNavigateStep, teamName, use
       if (!el && targetId === 'hud-btn-chat') {
         el = document.getElementById('btn-com-link');
       }
+      if (targetId === 'hud-btn-whatsapp') {
+        const directEl = document.getElementById('hud-btn-whatsapp');
+        if (directEl && directEl.getBoundingClientRect().width > 0) {
+          el = directEl;
+        } else {
+          el = document.getElementById('hud-system-menu');
+        }
+      }
       if (targetId === 'hud-completion-bar') {
         const desktopEl = document.getElementById('hud-completion-bar');
         const laserEl = document.getElementById('hud-laser-regen-bar');

@@ -87,6 +87,7 @@ export class StimulationService {
         whatsappCommunityUrl: data.whatsappCommunityUrl,
         whatsappGeneralUrl: data.whatsappGeneralUrl,
         whatsappGeneralId: data.whatsappGeneralId,
+        ...(data.unbridleDpr !== undefined && { unbridleDpr: Boolean(data.unbridleDpr) }),
         ...(data.ftuxSteps !== undefined && { ftuxSteps: data.ftuxSteps }),
       },
     });

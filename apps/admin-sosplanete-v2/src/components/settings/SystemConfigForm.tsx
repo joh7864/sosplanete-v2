@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Cpu, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -155,7 +155,8 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
     populationReference: 68000000,
     youtubeBriefingUrl: '',
     whatsappGeneralUrl: '',
-    whatsappGeneralId: ''
+    whatsappGeneralId: '',
+    unbridleDpr: false
   });
 
   useEffect(() => {
@@ -177,7 +178,8 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
           populationReference: data.populationReference || 68000000,
           youtubeBriefingUrl: data.youtubeBriefingUrl || '',
           whatsappGeneralUrl: data.whatsappGeneralUrl || '',
-          whatsappGeneralId: data.whatsappGeneralId || ''
+          whatsappGeneralId: data.whatsappGeneralId || '',
+          unbridleDpr: Boolean(data.unbridleDpr)
         });
       }
     } catch (e) {
@@ -293,6 +295,66 @@ function TerreMometreSettings({ schoolYear }: { schoolYear: string }) {
               className="bg-slate-50/50 h-14 rounded-2xl text-lg font-bold"
             />
          </div>
+
+          {/* Section Rendu 3D WebGL & DPR */}
+          <div className="md:col-span-2 pt-6 mt-2 border-t border-slate-100">
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/80 border border-slate-200/80 shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${config.unbridleDpr ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600'}`}>
+                    <Cpu size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
+                      Rendu 3D WebGL : Ratio de Pixels (DPR)
+                      <span className={`text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded-full border ${
+                        config.unbridleDpr 
+                          ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        {config.unbridleDpr ? '⚡ Débridé (Pleine Résolution)' : '🛡️ Bridé à 1.25 (Recommandé)'}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">Contrôle la finesse de rendu Three.js et la charge sur le processeur graphique (GPU).</p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={config.unbridleDpr}
+                    onChange={e => setConfig(prev => ({ ...prev, unbridleDpr: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              <div className={`p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+                config.unbridleDpr
+                  ? 'bg-amber-50/80 border-amber-200/80 text-amber-900'
+                  : 'bg-emerald-50/80 border-emerald-200/80 text-emerald-900'
+              }`}>
+                {config.unbridleDpr ? (
+                  <AlertTriangle className="shrink-0 text-amber-600 mt-0.5" size={16} />
+                ) : (
+                  <CheckCircle2 className="shrink-0 text-emerald-600 mt-0.5" size={16} />
+                )}
+                <div>
+                  <p className="font-semibold mb-0.5">
+                    {config.unbridleDpr 
+                      ? 'Mode Débridé activé : consommation GPU élevée' 
+                      : 'Recommandation active : DPR bridé par défaut à 1.25'}
+                  </p>
+                  <p className="text-[11px] opacity-90">
+                    {config.unbridleDpr
+                      ? 'Ce mode restitue chaque pixel natif (Retina/4K). Recommandé uniquement pour les stations équipées de cartes graphiques dédiées (NVIDIA GeForce / AMD Radeon). Peut provoquer des saccades sur les ordinateurs avec carte graphique intégrée (Intel Core i5).'
+                      : 'La finesse visuelle est identique à l\'œil nu, mais la charge GPU est divisée par deux. Cela garantit un affichage fluide à 60 FPS sur tous les PC et ordinateurs portables bureautiques (Intel Core i5, 6 Go RAM).'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
       </div>
 
       <div className="flex justify-end items-center gap-4 mt-10 pt-6 border-t border-slate-100">

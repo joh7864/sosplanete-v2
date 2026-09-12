@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, OrbitControls, Billboard, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { PlayerAvatar } from './3d/PlayerAvatar';
 import PodiumGroup from './3d/PodiumGroup';
 import { playConstellationChimeSound } from '../utils/easterEggAudio';
+import { loadSharedEarthTexture } from '../utils/earthTexture';
 
 export function getCategoryEmoji(category: string): string {
   const cat = (category || '')
@@ -571,6 +572,7 @@ interface Portal2026Props {
   onCodexConsoleClick?: () => void;
   onStarClick?: (starId: number) => void;
   customPlayersList?: any[];
+  isActive?: boolean;
 }
 
 // Cache des textures de lentille stellaire (flare à croisillons lumineux)
@@ -820,7 +822,7 @@ function ConstellationStars({ onStarClick }: { onStarClick?: (id: number) => voi
   );
 }
 
-export default function Portal2026({ 
+function Portal2026Component({ 
   categories = [], 
   onSelectSector,
   onSelectPlayer,
@@ -843,6 +845,7 @@ export default function Portal2026({
   onCodexConsoleClick: _onCodexConsoleClick,
   onStarClick,
   customPlayersList,
+  isActive = true,
 }: Portal2026Props) {
   const portalRef = useRef<THREE.Mesh>(null);
   const earthGroupRef = useRef<THREE.Group>(null);
@@ -878,21 +881,19 @@ export default function Portal2026({
   }, [me?.health]);
 
   useEffect(() => {
+    if (!isActive) return;
     camera.position.set(0, 5, 10);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
-  }, [camera]);
+  }, [camera, isActive]);
 
-  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
+  const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(() => loadSharedEarthTexture());
   useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      '/earth.webp',
-      (tex) => setEarthTexture(tex)
-    );
+    loadSharedEarthTexture((tex) => setEarthTexture(tex));
   }, []);
 
   useFrame((state) => {
+    if (!isActive) return;
     if (portalRef.current) {
       portalRef.current.rotation.y = state.clock.getElapsedTime() * 0.2;
     }
@@ -975,7 +976,7 @@ export default function Portal2026({
   const remainingPlayers = useMemo(() => rankedPlayers.slice(3), [rankedPlayers]);
 
   return (
-    <group>
+    <group visible={isActive}>
       {/* Voûte Céleste Naturelle (Chantier 3.1) */}
       <AmbientStarfield />
 
@@ -984,6 +985,7 @@ export default function Portal2026({
 
       <RadialShockwave pulseTime={pulseTime} />
       <OrbitControls 
+        enabled={isActive}
         enableZoom={false} 
         enablePan={false} 
         minPolarAngle={Math.PI / 2 - 0.2} 
@@ -1156,3 +1158,6 @@ export default function Portal2026({
     </group>
   );
 }
+
+const Portal2026 = memo(Portal2026Component);
+export default Portal2026;

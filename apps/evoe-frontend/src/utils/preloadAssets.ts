@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { loadSharedEarthTexture } from './earthTexture';
 
 let isPreloaded = false;
 
@@ -11,16 +11,12 @@ export function preloadEvoeAssets() {
   isPreloaded = true;
 
   try {
-    // Pre-load 3D Earth textures into browser & GPU cache
-    const loader = new THREE.TextureLoader();
-    
-    loader.load('/earth_texture.jpg', undefined, undefined, () => {
-      loader.load('/earth_texture.png');
-    });
+    // Pre-load 3D Earth texture into browser & GPU cache singleton
+    loadSharedEarthTexture();
 
     // Warm up image cache
     const img = new Image();
-    img.src = '/earth_texture.jpg';
+    img.src = '/earth.webp';
   } catch (err) {
     console.warn('[EVOE Preloader] Non-critical warning:', err);
   }

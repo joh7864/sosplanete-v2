@@ -35,6 +35,11 @@ export class LegacyApiController {
     return this.legacyApiService.checkAuthChild(pseudo, password);
   }
 
+  @Get('public_config')
+  getPublicConfig() {
+    return this.legacyApiService.getPublicConfig();
+  }
+
   @Get('categories')
   getCategories(
     @Headers('origin') origin: string,

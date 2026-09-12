@@ -10,6 +10,8 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .canvas-container {
@@ -57,12 +59,19 @@ body {
   pointer-events: auto; /* Réactive les clics pour le header */
 }
 
+.mobile-only {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
+  .mobile-only {
+    display: flex !important;
+    align-items: center;
+  }
   .header {
-    padding: 10px 12px 20px 12px !important;
-    /* Plus de flex-wrap : les icônes restent sur la même ligne que l'avatar */
+    padding: 10px 14px 20px 14px !important;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
   }
 }
@@ -149,15 +158,15 @@ body {
     padding: 8px 12px;
     font-size: 0.85rem;
   }
-  /* Boutons d'action du header : taille compacte sur mobile pour tenir en 1 ligne */
+  /* Boutons d'action du header : espacement harmonieux pour Recherche et Menu Système */
   .header-actions {
-    gap: 6px !important;
+    gap: 8px !important;
   }
   .header-actions .switch-btn,
   .header-actions a.switch-btn {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
     padding: 0 !important;
     font-size: 0.9rem !important;
   }
@@ -177,11 +186,12 @@ body {
   margin: 20px 40px;
   width: 320px;
   max-width: calc(100% - 40px);
-  background: rgba(10, 15, 30, 0.6);
+  background: rgba(10, 15, 30, 0.88);
   border: 1px solid rgba(0, 255, 204, 0.2);
   border-radius: 12px;
   padding: 15px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   pointer-events: auto;
   box-sizing: border-box; /* Pour inclure le padding dans le max-width */
   box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,255,204,0.05);
@@ -428,11 +438,12 @@ body {
   position: absolute;
   left: 140px; /* Aligné à droite du dock (margin 40 + width 90 + gap 10) */
   width: 300px;
-  background: rgba(10, 15, 30, 0.85);
+  background: rgba(10, 15, 30, 0.92);
   border: 1px solid rgba(0, 255, 204, 0.4);
   border-radius: 12px;
   padding: 20px;
-  backdrop-filter: blur(25px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,255,204,0.1);
   z-index: 100;
   pointer-events: auto;
@@ -483,7 +494,8 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(5, 10, 20, 0.95);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 9999;
   align-items: center;
   justify-content: center;
@@ -574,12 +586,12 @@ body {
   max-width: 85vw;
   height: auto;
   max-height: calc(100vh - 150px);
-  background: rgba(10, 15, 30, 0.45);
+  background: rgba(10, 15, 30, 0.88);
   border: 1px solid rgba(0, 255, 204, 0.25);
   border-radius: 16px;
   padding: 20px;
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(0, 255, 204, 0.03);
   pointer-events: auto;
   overflow-y: auto;
@@ -673,12 +685,12 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 105;
-  background: rgba(10, 15, 30, 0.75);
+  background: rgba(10, 15, 30, 0.88);
   border: 1px solid rgba(0, 255, 204, 0.35);
   border-radius: 30px;
   padding: 8px 16px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 255, 204, 0.15);
   pointer-events: auto;
 }
@@ -1007,8 +1019,8 @@ body {
   bottom: calc(100% + 8px);
   width: min(210px, calc(100vw - 80px));
   background: rgba(10, 16, 30, 0.98);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1.5px solid rgba(0, 255, 204, 0.45);
   border-radius: 10px;
   padding: 8px 12px;
@@ -1158,9 +1170,9 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(4, 8, 16, 0.7);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: rgba(4, 8, 16, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1562,7 +1574,8 @@ body {
   border: 1px solid rgba(0, 255, 204, 0.25);
   border-radius: 10px;
   overflow: hidden;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 255, 204, 0.08) inset;
   animation: selectDropIn 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -2308,8 +2321,8 @@ body {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(10, 16, 32, 0.9);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 24px;
     padding: 6px 14px;
@@ -2341,8 +2354,8 @@ body {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(10, 20, 36, 0.96);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1.5px solid;
     border-radius: 10px;
     padding: 6px 12px;
@@ -2548,9 +2561,9 @@ body {
 }
 
 @media (max-width: 768px) {
-  /* Restructure main dashboard to leave room for bottom nav */
+  /* Restructure main dashboard to leave room for bottom nav with safe-area */
   .app-container {
-    padding-bottom: 70px !important;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
     box-sizing: border-box;
   }
 
@@ -2560,17 +2573,20 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 65px;
-    background: rgba(10, 16, 30, 0.85);
+    height: calc(65px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(8, 14, 28, 0.94);
     border-top: 1.5px solid rgba(0, 255, 204, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     justify-content: space-around;
     align-items: center;
     z-index: 9998; /* Under chat sidebar (9999) but above standard content */
-    padding: 0 10px;
+    padding-left: 10px;
+    padding-right: 10px;
     box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
     pointer-events: auto;
+    box-sizing: border-box;
   }
 
   .mobile-bottom-nav .nav-item {
@@ -2712,7 +2728,8 @@ body {
   z-index: 9999;
   background: rgba(5, 8, 16, 0.94);
   border-left: 1px solid rgba(0, 255, 204, 0.25);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
   display: none;
   flex-direction: column;
@@ -2869,6 +2886,14 @@ body {
   box-shadow: 0 0 16px rgba(0, 255, 204, 0.55), 0 4px 12px rgba(0, 0, 0, 0.6) !important;
   color: #ffffff !important;
   background: rgba(0, 255, 204, 0.22) !important;
+}
+
+@media (max-width: 768px) {
+  .app-version-badge {
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 12px !important;
+    z-index: 9999 !important;
+  }
 }
 
 
