@@ -2,7 +2,6 @@ import { useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Sphere, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import Vessel2070 from './Vessel2070';
 import Arch2070 from './Arch2070';
 import { SpeedParticles, CosmicScale, TemporalEchoPulse } from './3d/CosmicEnvironment';
@@ -257,14 +256,13 @@ function Portal2070Component({
         target={[0, 0, 4]}
       />
 
-      <ambientLight intensity={0.45} />
+      <ambientLight intensity={0.6} />
       {/* Lumière principale du portail à Z = -10 */}
       <pointLight position={[0, 0.4, -9.5]} intensity={2.8} color={globalProgression >= 50 ? '#00e5ff' : '#ff4500'} distance={25} decay={1.5} />
       {/* Lumière directionnelle principale (Soleil de côté) */}
-      <directionalLight position={[5, 12, 6]} intensity={0.8} />
-      {/* Lumière de face depuis l'arrière de la caméra pour éclairer les vaisseaux */}
-      <directionalLight position={[0, 5, 20]} intensity={1.4} color="#ffffff" />
-      <pointLight position={[0, 4, 15]} intensity={1.2} color="#ffffff" distance={15} />
+      <directionalLight position={[5, 12, 6]} intensity={0.9} />
+      {/* Lumière frontale douce pour éclairer uniformément les vaisseaux */}
+      <directionalLight position={[2, 8, 14]} intensity={1.1} color="#ffffff" />
       
       {/* Effet d'tunnel d'étoiles (hyperespace) */}
       <SpeedParticles isMobile={isMobile} />
@@ -325,18 +323,6 @@ function Portal2070Component({
 
       </group>
       {/* L'orbite des avatars a été retirée pour laisser la vedette absolue aux vaisseaux et épurer la scène spatiale. */}
-
-      {/* Post-processing pour l'effet Bloom optimisé (uniquement actif quand 2070 est affiché) */}
-      {!isMobile && isActive && (
-        <EffectComposer>
-          <Bloom 
-            luminanceThreshold={0.7} 
-            luminanceSmoothing={0.3} 
-            intensity={0.6} 
-            kernelSize={2}
-          />
-        </EffectComposer>
-      )}
     </group>
   );
 }

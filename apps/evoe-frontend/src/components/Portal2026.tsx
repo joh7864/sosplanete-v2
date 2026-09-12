@@ -898,7 +898,7 @@ function Portal2026Component({
 
   useEffect(() => {
     if (!isActive) return;
-    camera.position.set(0, 5, 10);
+    camera.position.set(0, 2.4, 10.9);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
   }, [camera, isActive]);
@@ -944,7 +944,7 @@ function Portal2026Component({
           const camAngle = Math.atan2(camera.position.z, camera.position.x);
           const effectiveMyIndex = teamList.findIndex(p => p.isCurrent);
           const myIdx = effectiveMyIndex !== -1 ? effectiveMyIndex : 0;
-          targetAngle = camAngle - (Math.PI / 2) - ((foundIdx - myIdx) / teamList.length) * Math.PI * 2;
+          targetAngle = (Math.PI / 2 - camAngle) + ((foundIdx - myIdx) / teamList.length) * Math.PI * 2;
         }
       }
 
@@ -959,7 +959,7 @@ function Portal2026Component({
       avatarRingRef.current.rotation.y = rotYRef.current;
 
       // Légère inclinaison gyroscopique (banking tilt) durant la rotation pour donner de l'inertie
-      const targetTilt = Math.max(-0.06, Math.min(0.06, diff * 0.08));
+      const targetTilt = Math.max(-0.06, Math.min(0.06, -diff * 0.08));
       avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(
         avatarRingRef.current.rotation.z,
         targetTilt,
@@ -1043,8 +1043,8 @@ function Portal2026Component({
         enabled={isActive}
         enableZoom={false} 
         enablePan={false} 
-        minPolarAngle={Math.PI / 2 - 0.2} 
-        maxPolarAngle={Math.PI / 2 + 0.2} 
+        minPolarAngle={Math.PI / 2 - 0.25} 
+        maxPolarAngle={Math.PI / 2 + 0.18} 
         target={[0, 0, 0]}
       />
 
@@ -1130,9 +1130,9 @@ function Portal2026Component({
         <group ref={avatarRingRef}>
           {(() => {
             const playerCount = teamList.length;
-            const baseRadius = 6.5;
-            const radius = playerCount > 20 ? baseRadius + (playerCount - 20) * 0.08 : baseRadius;
-            const avatarScale = Math.max(0.4, Math.min(1.0, 1.0 - (playerCount - 10) * 0.015));
+            const baseRadius = 5.85;
+            const radius = playerCount > 20 ? baseRadius + (playerCount - 20) * 0.04 : baseRadius;
+            const avatarScale = Math.max(0.42, Math.min(0.92, 0.92 - (playerCount - 10) * 0.013));
 
             const myIndex = teamList.findIndex(p => p.isCurrent);
             const effectiveMyIndex = myIndex !== -1 ? myIndex : 0;

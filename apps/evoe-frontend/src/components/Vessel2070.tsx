@@ -112,7 +112,7 @@ export default function Vessel2070({
       scale={[1.4, 1.4, 1.4]}
     >
       <group ref={innerGroupRef}>
-        <pointLight position={[0, -0.2, 0]} color={colorHex} intensity={1.2} distance={4.0} decay={2.0} />
+        <pointLight position={[0, -0.2, 0]} color={colorHex} intensity={0.8} distance={3.0} decay={2.0} />
 
         {/* Hitbox d'interaction 3D : englobe avec précision le vaisseau et son badge N */}
         <mesh 
@@ -140,56 +140,79 @@ export default function Vessel2070({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
 
-        {/* --- GÉOMÉTRIE DU CHASSIS (Couleur d'équipe préservée) --- */}
+        {/* --- GÉOMÉTRIE DU CHASSIS (Couleur d'équipe préservée et visible sous tous les angles) --- */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.2]}>
           <coneGeometry args={[0.18, 0.8, 4]} />
-          <meshStandardMaterial ref={matCentralRef} color={colorHex} metalness={0.92} roughness={0.15} wireframe={level === 4} />
+          <meshStandardMaterial 
+            ref={matCentralRef} 
+            color={colorHex} 
+            emissive={colorHex}
+            emissiveIntensity={0.22}
+            metalness={0.35} 
+            roughness={0.45} 
+            wireframe={level === 4} 
+          />
         </mesh>
         
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.58]}>
           <coneGeometry args={[0.07, 0.25, 4]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.95} roughness={0.05} />
+          <meshStandardMaterial color="#1e293b" metalness={0.5} roughness={0.4} />
         </mesh>
 
         <mesh position={[0.11, -0.02, -0.42]} rotation={[0, -0.1, 0.12]}>
           <boxGeometry args={[0.14, 0.015, 0.08]} />
-          <meshStandardMaterial color={colorHex} metalness={0.8} />
+          <meshStandardMaterial color={colorHex} emissive={colorHex} emissiveIntensity={0.18} metalness={0.35} roughness={0.45} />
         </mesh>
         <mesh position={[-0.11, -0.02, -0.42]} rotation={[0, 0.1, -0.12]}>
           <boxGeometry args={[0.14, 0.015, 0.08]} />
-          <meshStandardMaterial color={colorHex} metalness={0.8} />
+          <meshStandardMaterial color={colorHex} emissive={colorHex} emissiveIntensity={0.18} metalness={0.35} roughness={0.45} />
         </mesh>
 
         <mesh position={[0.16, 0.03, -0.14]} rotation={[0, 0, 0.3]}>
           <cylinderGeometry args={[0.045, 0.045, 0.16, 8]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+          <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.3} />
         </mesh>
         <mesh position={[-0.16, 0.03, -0.14]} rotation={[0, 0, -0.3]}>
           <cylinderGeometry args={[0.045, 0.045, 0.16, 8]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+          <meshStandardMaterial color="#1e293b" metalness={0.6} roughness={0.3} />
         </mesh>
         
         <mesh position={[0, 0.22, 0.18]} rotation={[-0.3, 0, 0]}>
           <boxGeometry args={[0.02, 0.24, 0.15]} />
-          <meshStandardMaterial color={colorHex} metalness={0.8} />
+          <meshStandardMaterial color={colorHex} emissive={colorHex} emissiveIntensity={0.22} metalness={0.35} roughness={0.45} />
         </mesh>
 
         <mesh position={[0.34, 0.04, 0.1]} rotation={[0, 0.2, 0.25]}>
           <boxGeometry args={[0.36, 0.02, 0.22]} />
-          <meshStandardMaterial ref={matAilesRef} color={colorHex} metalness={0.9} wireframe={level === 4} />
+          <meshStandardMaterial 
+            ref={matAilesRef} 
+            color={colorHex} 
+            emissive={colorHex}
+            emissiveIntensity={0.22}
+            metalness={0.35} 
+            roughness={0.45} 
+            wireframe={level === 4} 
+          />
         </mesh>
         <mesh position={[-0.34, 0.04, 0.1]} rotation={[0, -0.2, -0.25]}>
           <boxGeometry args={[0.36, 0.02, 0.22]} />
-          <meshStandardMaterial color={colorHex} metalness={0.9} wireframe={level === 4} />
+          <meshStandardMaterial 
+            color={colorHex} 
+            emissive={colorHex}
+            emissiveIntensity={0.22}
+            metalness={0.35} 
+            roughness={0.45} 
+            wireframe={level === 4} 
+          />
         </mesh>
 
         <mesh position={[0.5, 0.08, 0.12]} rotation={[0, 0.2, 0.6]}>
           <boxGeometry args={[0.01, 0.12, 0.16]} />
-          <meshStandardMaterial color={colorHex} metalness={0.9} />
+          <meshStandardMaterial color={colorHex} emissive={colorHex} emissiveIntensity={0.25} metalness={0.35} roughness={0.45} />
         </mesh>
         <mesh position={[-0.5, 0.08, 0.12]} rotation={[0, -0.2, -0.6]}>
           <boxGeometry args={[0.01, 0.12, 0.16]} />
-          <meshStandardMaterial color={colorHex} metalness={0.9} />
+          <meshStandardMaterial color={colorHex} emissive={colorHex} emissiveIntensity={0.25} metalness={0.35} roughness={0.45} />
         </mesh>
 
         <mesh position={[0.5, 0.14, 0.12]}>
@@ -241,7 +264,7 @@ export default function Vessel2070({
               />
             </mesh>
             {/* Point lumineux d'ambiance */}
-            <pointLight color={colorHex} intensity={2.5} distance={3.5} />
+            <pointLight color={colorHex} intensity={1.6} distance={3.0} />
           </group>
         )}
 

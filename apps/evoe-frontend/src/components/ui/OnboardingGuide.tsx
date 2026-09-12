@@ -114,10 +114,10 @@ const DEFAULT_STEPS: OnboardingStep[] = [
   {
     id: 12,
     badge: 'Étape 12 / 12',
-    title: '📡 Canal WhatsApp Équipe & Alertes',
-    targetId: 'hud-btn-whatsapp',
+    title: '⚙️ Options Système, WhatsApp & Paramètres',
+    targetId: 'hud-system-menu',
     position: 'left',
-    explanation: "Rejoignez le groupe WhatsApp officiel de votre équipe pour recevoir instantanément les notifications de défis reçus, les alertes d'impact et rester connecté !"
+    explanation: "Accédez en un clic à la bulle d'options pour rejoindre le canal WhatsApp d'équipe, relancer ce guide, ajuster la qualité 3D ou consulter le Journal de bord !"
   }
 ];
 

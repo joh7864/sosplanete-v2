@@ -240,7 +240,7 @@ export function EngineN2() {
 
   return (
     <group>
-      <pointLight ref={flashRef} color="#ffd700" intensity={5.0} distance={10} />
+      <pointLight ref={flashRef} color="#ffd700" intensity={1.5} distance={4} />
       <EngineDebris />
 
       <group ref={sailRef} scale={[0.1, 1, 1]} position={[0, 0.1, 0.2]}>
@@ -279,13 +279,13 @@ export function EngineN3() {
   return (
     <group>
       <mesh ref={shockwaveRef} position={[0, 0, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.5, 32, 32]} />
-        <meshBasicMaterial color="#a855f7" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
+        <sphereGeometry args={[0.25, 24, 24]} />
+        <meshBasicMaterial color="#a855f7" transparent opacity={0.4} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
       <mesh position={[0, -0.02, 0.35]} rotation={[0, 0, 0]} raycast={() => null}>
         <torusGeometry args={[0.15, 0.04, 16, 32]} />
-        <meshStandardMaterial color="#a855f7" emissive="#d8b4fe" emissiveIntensity={2.0} />
+        <meshStandardMaterial color="#a855f7" emissive="#d8b4fe" emissiveIntensity={1.2} />
       </mesh>
 
       <mesh position={[0, -0.02, 1.5]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
@@ -298,7 +298,7 @@ export function EngineN3() {
         <meshBasicMaterial color="#ffffff" transparent opacity={0.09} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       
-      <pointLight position={[0, -0.02, 0.4]} color="#a855f7" intensity={4.0} distance={6.0} />
+      <pointLight position={[0, -0.02, 0.4]} color="#a855f7" intensity={1.2} distance={3.0} />
     </group>
   );
 }
@@ -394,7 +394,7 @@ export function EngineN5() {
   return (
     <group position={[0, -0.02, 0.4]}>
       {/* Implosion (Lumière) */}
-      <pointLight ref={flashRef} color="#ffffff" intensity={8.0} distance={15} />
+      <pointLight ref={flashRef} color="#ffffff" intensity={2.0} distance={5} />
 
       {/* Bras magnétiques */}
       <mesh position={[-0.15, 0, -0.1]} rotation={[0, 0.3, 0]} raycast={() => null}>

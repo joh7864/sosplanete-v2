@@ -895,7 +895,7 @@ export function PlayerAvatar({
       const dot = avatarDir.dot(camDir);
       let scaleFactor = 1.0 + (dot * 0.4);
       if (isSearchFocused) {
-        scaleFactor += 0.22 + Math.sin(t * 6.0) * 0.08;
+        scaleFactor += 0.08 + Math.sin(t * 4.0) * 0.03;
       }
       
       groupRef.current.scale.lerp(new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor), 0.1);
@@ -927,32 +927,50 @@ export function PlayerAvatar({
       <pointLight 
         position={[0, 0.5, 0]} 
         color={isSearchFocused ? '#00ffcc' : (isBirthday ? '#ffd700' : color)} 
-        intensity={isSearchFocused ? 2.8 : (isBirthday ? 1.8 : (isMe ? 1.2 : 0.3))} 
-        distance={isSearchFocused ? 4.5 : (isBirthday ? 3 : 2)} 
+        intensity={isSearchFocused ? 2.2 : (isBirthday ? 1.8 : (isMe ? 1.2 : 0.3))} 
+        distance={isSearchFocused ? 3.5 : (isBirthday ? 3 : 2)} 
       />
-      
-      <Billboard follow={true}>
-        {/* Anneau holographique de focus recherche */}
-        {isSearchFocused && (
-          <mesh position={[0, 0, -0.015]} raycast={() => null}>
-            <ringGeometry args={[haloScale * 0.55, haloScale * 0.72, 32]} />
+
+      {/* Anneau / Halo de Sélection Holographique en Perspective 3D (identique aux vaisseaux 2070) */}
+      {isSearchFocused && (
+        <group position={[0, -0.34 * avatarScale, 0]}>
+          {/* Anneau principal horizontal au sol */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+            <ringGeometry args={[0.52 * avatarScale, 0.60 * avatarScale, 48]} />
             <meshBasicMaterial 
               color="#00ffcc" 
               transparent 
               opacity={0.88} 
               blending={THREE.AdditiveBlending} 
+              side={THREE.DoubleSide} 
               depthWrite={false} 
             />
           </mesh>
-        )}
-
+          {/* Halo externe diffus horizontal */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+            <ringGeometry args={[0.66 * avatarScale, 0.74 * avatarScale, 48]} />
+            <meshBasicMaterial 
+              color="#00ffcc" 
+              transparent 
+              opacity={0.42} 
+              blending={THREE.AdditiveBlending} 
+              side={THREE.DoubleSide} 
+              depthWrite={false} 
+            />
+          </mesh>
+          {/* Lueur ponctuelle au sol */}
+          <pointLight color="#00ffcc" intensity={1.8} distance={2.5} />
+        </group>
+      )}
+      
+      <Billboard follow={true}>
         <mesh position={[0, 0, -0.01]}>
           <planeGeometry args={[haloScale, haloScale]} />
           <meshBasicMaterial 
-            map={haloTexture}
+            map={haloTexture} 
             color={isSearchFocused ? '#00ffcc' : (isSelfStealth ? '#38bdf8' : (isBirthday ? '#ffd700' : color))} 
             transparent={true} 
-            opacity={isSearchFocused ? 1.0 : (isBirthday ? 0.95 : (isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6)))} 
+            opacity={isSearchFocused ? 0.9 : (isBirthday ? 0.95 : (isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6)))} 
             depthWrite={false} 
           />
         </mesh>

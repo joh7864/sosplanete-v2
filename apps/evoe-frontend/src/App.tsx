@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, LogOut, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles, Cpu } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+import { Radio, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles } from 'lucide-react';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
@@ -1009,7 +1008,7 @@ function MainApp() {
       {/* Three.js Canvas Container */}
       <div className="canvas-container">
         <Canvas 
-          camera={{ position: [0, 5, 10], fov: 60 }} 
+          camera={{ position: [0, 2.4, 10.9], fov: 60 }} 
           dpr={dpr}
           frameloop={isHeavyModalOpen ? 'demand' : 'always'}
           gl={{
@@ -1522,7 +1521,7 @@ function MainApp() {
               />
             </button>
 
-            {/* SÉPARATEUR VISUEL NET (DESKTOP) */}
+            {/* SÉPARATEUR VISUEL NET (DESKTOP & PAYSAGE) */}
             <div 
               className="desktop-only"
               style={{
@@ -1534,132 +1533,17 @@ function MainApp() {
               }}
             />
 
-            {/* Menu Système Holographique (Affiché sur Mobile dans le Header) */}
-            <div className="mobile-only">
-              <SystemMenuHUD
-                whatsappInviteUrl={whatsappInviteUrl}
-                onOpenHelp={() => setShowOnboardingGuide(true)}
-                onOpenAbout={() => setShowAboutModal(true)}
-                onLogout={logoutUser}
-                version={pkg.version}
-                isMobile={true}
-                isUnbridledDpr={isUnbridledDpr}
-                onToggleUnbridledDpr={toggleUnbridledDpr}
-              />
-            </div>
-
-            {/* BARRE DE DROITE : WHATSAPP, AIDE (VIOLET/MAGENTA) & QUITTER (DESKTOP) */}
-
-            {/* WhatsApp Équipe */}
-            {whatsappInviteUrl && (
-              <a
-                id="hud-btn-whatsapp"
-                href={whatsappInviteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Rejoindre le WhatsApp de mon Équipe"
-                className="switch-btn desktop-only"
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  padding: '0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(37, 211, 102, 0.2)',
-                  border: '1.5px solid #25D366',
-                  color: '#25D366',
-                  boxShadow: '0 0 10px rgba(37, 211, 102, 0.3)',
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  transition: 'all 0.2s',
-                  pointerEvents: 'auto',
-                  zIndex: 20
-                }}
-              >
-                  <FaWhatsapp size={20} />
-              </a>
-            )}
-
-            {/* Bouton d'Aide ? (Cercle Homogène & Typographie Premium) */}
-            <button 
-              id="hud-btn-help"
-              className="switch-btn desktop-only" 
-              onClick={() => setShowOnboardingGuide(true)} 
-              title="Relancer le guide interactif (Aide)"
-              style={{ 
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(254, 243, 199, 0.15)',
-                border: '1.5px solid #fef3c7',
-                color: '#fef3c7',
-                fontSize: '1.35rem',
-                fontWeight: '800',
-                fontFamily: 'Inter, system-ui, sans-serif',
-                boxShadow: '0 0 10px rgba(254, 243, 199, 0.25)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              ?
-            </button>
-
-            {/* Bouton Rendu 3D GPU (Desktop) */}
-            <button
-              id="hud-btn-dpr-toggle"
-              className="switch-btn desktop-only"
-              onClick={() => toggleUnbridledDpr()}
-              title={isUnbridledDpr 
-                ? "Qualité 3D : ULTRA (DPR débridé). Cliquez pour basculer en mode FLUIDE (recommandé 60 FPS)" 
-                : "Qualité 3D : FLUIDE (DPR bridé à 1.25). Cliquez pour activer le mode ULTRA (débridé)"}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: isUnbridledDpr ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.15)',
-                border: isUnbridledDpr ? '1.5px solid #f59e0b' : '1.5px solid #10b981',
-                color: isUnbridledDpr ? '#f59e0b' : '#10b981',
-                boxShadow: isUnbridledDpr ? '0 0 10px rgba(245, 158, 11, 0.35)' : '0 0 10px rgba(16, 185, 129, 0.25)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              <Cpu size={18} />
-            </button>
-
-            {/* Quitter */}
-            <button 
-              className="switch-btn desktop-only" 
-              onClick={logoutUser} 
-              title="Quitter la simulation"
-              style={{ 
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(255, 59, 59, 0.15)',
-                border: '1.5px solid #ff3b3b',
-                color: '#ff3b3b',
-                boxShadow: '0 0 10px rgba(255, 59, 59, 0.2)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}
-            >
-              <LogOut size={18} />
-            </button>
+            {/* Menu Système Holographique Universel (Bulle flottante "..." accessible sur tous les supports) */}
+            <SystemMenuHUD
+              whatsappInviteUrl={whatsappInviteUrl}
+              onOpenHelp={() => setShowOnboardingGuide(true)}
+              onOpenAbout={() => setShowAboutModal(true)}
+              onLogout={logoutUser}
+              version={pkg.version}
+              isMobile={isMobile}
+              isUnbridledDpr={isUnbridledDpr}
+              onToggleUnbridledDpr={toggleUnbridledDpr}
+            />
           </div>
         </header>
 
