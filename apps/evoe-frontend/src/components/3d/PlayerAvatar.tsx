@@ -744,6 +744,7 @@ interface PlayerAvatarProps {
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
+  isSearchFocused?: boolean;
 }
 
 export function PlayerAvatar({ 
@@ -762,7 +763,8 @@ export function PlayerAvatar({
   missionsWeekCount = 0,
   showHealth = true,
   showChatIcon = true,
-  rankTag
+  rankTag,
+  isSearchFocused = false,
 }: PlayerAvatarProps) {
   const color = player.color || '#40916C';
   const isMe = player.isCurrent;
@@ -891,7 +893,10 @@ export function PlayerAvatar({
       const avatarDir = worldPos.clone().sub(center).normalize();
       
       const dot = avatarDir.dot(camDir);
-      const scaleFactor = 1.0 + (dot * 0.4);
+      let scaleFactor = 1.0 + (dot * 0.4);
+      if (isSearchFocused) {
+        scaleFactor += 0.22 + Math.sin(t * 6.0) * 0.08;
+      }
       
       groupRef.current.scale.lerp(new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor), 0.1);
     }
@@ -921,19 +926,33 @@ export function PlayerAvatar({
     >
       <pointLight 
         position={[0, 0.5, 0]} 
-        color={isBirthday ? '#ffd700' : color} 
-        intensity={isBirthday ? 1.8 : (isMe ? 1.2 : 0.3)} 
-        distance={isBirthday ? 3 : 2} 
+        color={isSearchFocused ? '#00ffcc' : (isBirthday ? '#ffd700' : color)} 
+        intensity={isSearchFocused ? 2.8 : (isBirthday ? 1.8 : (isMe ? 1.2 : 0.3))} 
+        distance={isSearchFocused ? 4.5 : (isBirthday ? 3 : 2)} 
       />
       
       <Billboard follow={true}>
+        {/* Anneau holographique de focus recherche */}
+        {isSearchFocused && (
+          <mesh position={[0, 0, -0.015]} raycast={() => null}>
+            <ringGeometry args={[haloScale * 0.55, haloScale * 0.72, 32]} />
+            <meshBasicMaterial 
+              color="#00ffcc" 
+              transparent 
+              opacity={0.88} 
+              blending={THREE.AdditiveBlending} 
+              depthWrite={false} 
+            />
+          </mesh>
+        )}
+
         <mesh position={[0, 0, -0.01]}>
           <planeGeometry args={[haloScale, haloScale]} />
           <meshBasicMaterial 
             map={haloTexture}
-            color={isSelfStealth ? '#38bdf8' : (isBirthday ? '#ffd700' : color)} 
+            color={isSearchFocused ? '#00ffcc' : (isSelfStealth ? '#38bdf8' : (isBirthday ? '#ffd700' : color))} 
             transparent={true} 
-            opacity={isBirthday ? 0.95 : (isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6))} 
+            opacity={isSearchFocused ? 1.0 : (isBirthday ? 0.95 : (isSelfStealth ? 0.4 : (isMe ? 0.9 : 0.6)))} 
             depthWrite={false} 
           />
         </mesh>

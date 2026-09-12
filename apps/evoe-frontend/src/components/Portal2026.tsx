@@ -494,7 +494,8 @@ function AnimatedAvatar({
   missionsWeekCount,
   showHealth,
   showChatIcon,
-  rankTag
+  rankTag,
+  isSearchFocused = false,
 }: {
   player: any;
   targetPosition: [number, number, number];
@@ -512,6 +513,7 @@ function AnimatedAvatar({
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
+  isSearchFocused?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -542,6 +544,7 @@ function AnimatedAvatar({
         showHealth={showHealth}
         showChatIcon={showChatIcon}
         rankTag={rankTag}
+        isSearchFocused={isSearchFocused}
       />
     </group>
   );
@@ -573,6 +576,7 @@ interface Portal2026Props {
   onStarClick?: (starId: number) => void;
   customPlayersList?: any[];
   isActive?: boolean;
+  focusedPlayerId?: number | string | null;
 }
 
 // Cache des textures de lentille stellaire (flare à croisillons lumineux)
@@ -846,6 +850,7 @@ function Portal2026Component({
   onStarClick,
   customPlayersList,
   isActive = true,
+  focusedPlayerId,
 }: Portal2026Props) {
   const portalRef = useRef<THREE.Mesh>(null);
   const earthGroupRef = useRef<THREE.Group>(null);
@@ -1084,7 +1089,14 @@ function Portal2026Component({
         const arcStartCodex = Math.PI / 2 - arcSpanCodex / 2;
 
         const currentIndex = teamList.findIndex(p => p.isCurrent);
-        const shift = currentIndex !== -1 ? currentIndex : 0;
+        let targetIndex = currentIndex !== -1 ? currentIndex : 0;
+        if (focusedPlayerId !== null && focusedPlayerId !== undefined) {
+          const foundIdx = teamList.findIndex(p => String(p.childId || p.id) === String(focusedPlayerId));
+          if (foundIdx !== -1) {
+            targetIndex = foundIdx;
+          }
+        }
+        const shift = targetIndex;
         const midIndex = Math.floor(playerCount / 2);
 
         const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
@@ -1133,6 +1145,7 @@ function Portal2026Component({
           const isMe = player.isCurrent;
           const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
           const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
+          const isSearchFocused = focusedPlayerId !== null && focusedPlayerId !== undefined && String(player.childId || player.id) === String(focusedPlayerId);
 
           return (
             <AnimatedAvatar 
@@ -1153,6 +1166,7 @@ function Portal2026Component({
               showHealth={view === 'codex'}
               showChatIcon={view === 'codex'}
               rankTag={view === 'leaderboard' ? `#${rankNumber} • ${rankMatch?.score ?? player.score ?? 0} IT` : undefined}
+              isSearchFocused={isSearchFocused}
             />
           );
         });

@@ -156,6 +156,7 @@ function MainApp() {
   const [missionSearchQuery, setMissionSearchQuery] = useState('');
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [selectedRadarTeamId, setSelectedRadarTeamId] = useState<number | string | null>(null);
+  const [searchedPlayerId, setSearchedPlayerId] = useState<number | string | null>(null);
 
 
   // Easter Egg System
@@ -1023,6 +1024,7 @@ function MainApp() {
           {era === '2026' && (
             <Portal2026 
               isActive={true}
+              focusedPlayerId={searchedPlayerId}
               categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
               onSelectSector={handleSelectSector} 
               onSelectPlayer={handleSelectPlayer}
@@ -1440,6 +1442,9 @@ function MainApp() {
               players={players || []}
               onSelectPlayer={(player) => {
                 setSelectedProfileId(player.childId || player.id);
+              }}
+              onSearchMatchChange={(player) => {
+                setSearchedPlayerId(player ? (player.childId || player.id) : null);
               }}
               isMobile={isMobile}
             />

@@ -7,12 +7,14 @@ const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011
 export interface PlayerSearchHUDProps {
   players: any[];
   onSelectPlayer: (player: any) => void;
+  onSearchMatchChange?: (player: any | null) => void;
   isMobile?: boolean;
 }
 
 export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
   players = [],
   onSelectPlayer,
+  onSearchMatchChange,
   isMobile = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +23,26 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Premier joueur correspondant à la saisie (priorise startsWith puis includes)
+  const firstMatch = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return null;
+    const startsWith = players.find((p: any) => (p.pseudo || '').toLowerCase().startsWith(trimmed));
+    if (startsWith) return startsWith;
+    return players.find((p: any) => (p.pseudo || '').toLowerCase().includes(trimmed)) || null;
+  }, [players, query]);
+
+  // Notification temps réel du joueur correspondant pour synchroniser la vue 3D
+  useEffect(() => {
+    onSearchMatchChange?.(isOpen ? firstMatch : null);
+  }, [firstMatch, isOpen, onSearchMatchChange]);
+
+  useEffect(() => {
+    return () => {
+      onSearchMatchChange?.(null);
+    };
+  }, [onSearchMatchChange]);
 
   // Suggestions filtrées en temps réel selon le pseudo
   const suggestions = useMemo(() => {
