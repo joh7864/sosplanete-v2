@@ -975,8 +975,10 @@ function Portal2026Component({
   const top3 = useMemo(() => rankedPlayers.slice(0, 3), [rankedPlayers]);
   const remainingPlayers = useMemo(() => rankedPlayers.slice(3), [rankedPlayers]);
 
+  if (!isActive) return null;
+
   return (
-    <group visible={isActive}>
+    <group>
       {/* Voûte Céleste Naturelle (Chantier 3.1) */}
       <AmbientStarfield />
 

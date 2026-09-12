@@ -1020,71 +1020,75 @@ function MainApp() {
             precision: 'mediump',
           }}
         >
-          <Portal2026 
-            isActive={era === '2026'}
-            categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
-            onSelectSector={handleSelectSector} 
-            onSelectPlayer={handleSelectPlayer}
-            onGlobeClick={handleGlobeClick}
-            onCodexConsoleClick={handleCodexConsoleClick}
-            onStarClick={handleStarClick}
-            onSelectChallenges={() => {
-              if (childInfos && childInfos.isPeriodOpen === false) {
-                setShowNoPeriodModal(true);
-                return;
-              }
-              setSelectedProfileId(null);
-              setChatOpen(false);
-              setCodexTab('challenges');
-              setIsCodexCollapsed(false);
-              if (era !== '2026') handleSwitchEra();
-              if (!selectedSector) {
-                const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                if (cats.length > 0) setSelectedSector(cats[0]);
-              }
-            }}
-            onSelectChallengeBadge={() => {
-              if (childInfos && childInfos.isPeriodOpen === false) {
-                setShowNoPeriodModal(true);
-                return;
-              }
-              setSelectedProfileId(null);
-              setChatOpen(false);
-              setCodexTab('challenges');
-              setIsCodexCollapsed(false);
-              if (era !== '2026') handleSwitchEra();
-              if (!selectedSector) {
-                const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                if (cats.length > 0) setSelectedSector(cats[0]);
-              }
-            }}
-            onlineUsers={onlineUsers}
-            unreadTeam={unreadChat.team}
-            unreadMps={unreadChat.unreadMps}
-            isMobile={isMobile}
-            view={view2026}
-            dashboardStatus={dashboardStatus}
-            challenges={challenges}
-            missionsWeekCount={impulsedMissionsCount}
-            isStealthMode={isStealthMode}
-            onToggleStealth={toggleStealthMode}
-            customPlayersList={enrichedPlayers}
-            onSelectBirthdayCake={handleSelectBirthdayCake}
-            onSelectMissionsWeek={() => {
-              setSelectedProfileId(null);
-              setChatOpen(false);
-              setShowMissionsWeekModal(true);
-            }}
-            onCloseLeaderboard={() => setView2026('codex')}
-          />
-          <Portal2070 
-            isActive={era === '2070'}
-            dashboardStatus={dashboardStatus} 
-            selectedTeamId={selectedRadarTeamId}
-            onEarthClick={handleEarthClick} 
-            onVesselClick={handleVesselClick}
-            isMobile={isMobile}
-          />
+          {era === '2026' && (
+            <Portal2026 
+              isActive={true}
+              categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
+              onSelectSector={handleSelectSector} 
+              onSelectPlayer={handleSelectPlayer}
+              onGlobeClick={handleGlobeClick}
+              onCodexConsoleClick={handleCodexConsoleClick}
+              onStarClick={handleStarClick}
+              onSelectChallenges={() => {
+                if (childInfos && childInfos.isPeriodOpen === false) {
+                  setShowNoPeriodModal(true);
+                  return;
+                }
+                setSelectedProfileId(null);
+                setChatOpen(false);
+                setCodexTab('challenges');
+                setIsCodexCollapsed(false);
+                if (era !== '2026') handleSwitchEra();
+                if (!selectedSector) {
+                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                  if (cats.length > 0) setSelectedSector(cats[0]);
+                }
+              }}
+              onSelectChallengeBadge={() => {
+                if (childInfos && childInfos.isPeriodOpen === false) {
+                  setShowNoPeriodModal(true);
+                  return;
+                }
+                setSelectedProfileId(null);
+                setChatOpen(false);
+                setCodexTab('challenges');
+                setIsCodexCollapsed(false);
+                if (era !== '2026') handleSwitchEra();
+                if (!selectedSector) {
+                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
+                  if (cats.length > 0) setSelectedSector(cats[0]);
+                }
+              }}
+              onlineUsers={onlineUsers}
+              unreadTeam={unreadChat.team}
+              unreadMps={unreadChat.unreadMps}
+              isMobile={isMobile}
+              view={view2026}
+              dashboardStatus={dashboardStatus}
+              challenges={challenges}
+              missionsWeekCount={impulsedMissionsCount}
+              isStealthMode={isStealthMode}
+              onToggleStealth={toggleStealthMode}
+              customPlayersList={enrichedPlayers}
+              onSelectBirthdayCake={handleSelectBirthdayCake}
+              onSelectMissionsWeek={() => {
+                setSelectedProfileId(null);
+                setChatOpen(false);
+                setShowMissionsWeekModal(true);
+              }}
+              onCloseLeaderboard={() => setView2026('codex')}
+            />
+          )}
+          {era === '2070' && (
+            <Portal2070 
+              isActive={true}
+              dashboardStatus={dashboardStatus} 
+              selectedTeamId={selectedRadarTeamId}
+              onEarthClick={handleEarthClick} 
+              onVesselClick={handleVesselClick}
+              isMobile={isMobile}
+            />
+          )}
         </Canvas>
       </div>
 

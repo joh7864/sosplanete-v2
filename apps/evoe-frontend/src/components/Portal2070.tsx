@@ -241,8 +241,10 @@ function Portal2070Component({
     }
   });
 
+  if (!isActive) return null;
+
   return (
-    <group visible={isActive}>
+    <group>
       {/* Contrôles orbitaux sécurisés pour le confort visuel */}
       <OrbitControls 
         enabled={isActive}
