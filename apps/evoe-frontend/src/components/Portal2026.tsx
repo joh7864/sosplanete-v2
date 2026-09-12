@@ -516,17 +516,26 @@ function AnimatedAvatar({
   isSearchFocused?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const targetPosRef = useRef(targetPosition);
+  targetPosRef.current = targetPosition;
+
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(...targetPosition);
+    }
+  }, []);
 
   useFrame(() => {
     if (groupRef.current) {
-      groupRef.current.position.x += (targetPosition[0] - groupRef.current.position.x) * 0.08;
-      groupRef.current.position.y += (targetPosition[1] - groupRef.current.position.y) * 0.08;
-      groupRef.current.position.z += (targetPosition[2] - groupRef.current.position.z) * 0.08;
+      const tp = targetPosRef.current;
+      groupRef.current.position.x += (tp[0] - groupRef.current.position.x) * 0.08;
+      groupRef.current.position.y += (tp[1] - groupRef.current.position.y) * 0.08;
+      groupRef.current.position.z += (tp[2] - groupRef.current.position.z) * 0.08;
     }
   });
 
   return (
-    <group ref={groupRef} position={targetPosition}>
+    <group ref={groupRef}>
       <PlayerAvatar 
         player={player} 
         position={[0, 0, 0]} 
@@ -856,6 +865,8 @@ function Portal2026Component({
   const earthGroupRef = useRef<THREE.Group>(null);
   const podiumGroupRef = useRef<THREE.Group>(null);
   const sectorsGroupRef = useRef<THREE.Group>(null);
+  const avatarRingRef = useRef<THREE.Group>(null);
+  const rotYRef = useRef(0);
 
   const { players } = useAuth();
   const { camera } = useThree();
@@ -922,6 +933,43 @@ function Portal2026Component({
       const targetScale = isLb ? 0 : 1;
       const s = sectorsGroupRef.current.scale.x + (targetScale - sectorsGroupRef.current.scale.x) * 0.08;
       sectorsGroupRef.current.scale.setScalar(s);
+    }
+
+    // ─── ROTATION CINÉMATIQUE DU CERCLE DES AVATARS (EFFET WOW) ──────────────
+    if (view === 'codex' && avatarRingRef.current) {
+      let targetAngle = 0;
+      if (focusedPlayerId !== null && focusedPlayerId !== undefined) {
+        const foundIdx = teamList.findIndex(p => String(p.childId || p.id) === String(focusedPlayerId));
+        if (foundIdx !== -1 && teamList.length > 0) {
+          const camAngle = Math.atan2(camera.position.z, camera.position.x);
+          const effectiveMyIndex = teamList.findIndex(p => p.isCurrent);
+          const myIdx = effectiveMyIndex !== -1 ? effectiveMyIndex : 0;
+          targetAngle = camAngle - (Math.PI / 2) - ((foundIdx - myIdx) / teamList.length) * Math.PI * 2;
+        }
+      }
+
+      // Différence angulaire sur le chemin le plus court (-PI à PI)
+      const diff = Math.atan2(
+        Math.sin(targetAngle - rotYRef.current),
+        Math.cos(targetAngle - rotYRef.current)
+      );
+
+      // Rotation fluide avec décélération cinématique (effet spectaculaire)
+      rotYRef.current += diff * 0.055;
+      avatarRingRef.current.rotation.y = rotYRef.current;
+
+      // Légère inclinaison gyroscopique (banking tilt) durant la rotation pour donner de l'inertie
+      const targetTilt = Math.max(-0.06, Math.min(0.06, diff * 0.08));
+      avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(
+        avatarRingRef.current.rotation.z,
+        targetTilt,
+        0.1
+      );
+    } else if (avatarRingRef.current) {
+      // Mode Leaderboard : stabilisation et retour doux à l'horizontale
+      rotYRef.current = THREE.MathUtils.lerp(rotYRef.current, 0, 0.08);
+      avatarRingRef.current.rotation.y = rotYRef.current;
+      avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(avatarRingRef.current.rotation.z, 0, 0.08);
     }
   });
 
@@ -1078,99 +1126,90 @@ function Portal2026Component({
       </group>
 
       {/* Avatars en Orbite (Codex / Leaderboard) */}
-      {teamList.length > 0 && (() => {
-        const playerCount = teamList.length;
-        const baseRadius = 6.5;
-        const radius = playerCount > 20 ? baseRadius + (playerCount - 20) * 0.08 : baseRadius;
-        const avatarScale = Math.max(0.4, Math.min(1.0, 1.0 - (playerCount - 10) * 0.015));
-        
-        // Arc Codex (240°)
-        const arcSpanCodex = Math.min(Math.PI * 2, Math.PI * 1.33 + playerCount * 0.015);
-        const arcStartCodex = Math.PI / 2 - arcSpanCodex / 2;
+      {teamList.length > 0 && (
+        <group ref={avatarRingRef}>
+          {(() => {
+            const playerCount = teamList.length;
+            const baseRadius = 6.5;
+            const radius = playerCount > 20 ? baseRadius + (playerCount - 20) * 0.08 : baseRadius;
+            const avatarScale = Math.max(0.4, Math.min(1.0, 1.0 - (playerCount - 10) * 0.015));
 
-        const currentIndex = teamList.findIndex(p => p.isCurrent);
-        let targetIndex = currentIndex !== -1 ? currentIndex : 0;
-        if (focusedPlayerId !== null && focusedPlayerId !== undefined) {
-          const foundIdx = teamList.findIndex(p => String(p.childId || p.id) === String(focusedPlayerId));
-          if (foundIdx !== -1) {
-            targetIndex = foundIdx;
-          }
-        }
-        const shift = targetIndex;
-        const midIndex = Math.floor(playerCount / 2);
+            const myIndex = teamList.findIndex(p => p.isCurrent);
+            const effectiveMyIndex = myIndex !== -1 ? myIndex : 0;
 
-        const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
+            const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
 
-        // Pas angulaire pour les rangs 4+ en mode Leaderboard (sur l'arc 240°)
-        const remCount = Math.max(1, remainingPlayers.length);
-        const stepAngleLb = remCount > 1 ? (Math.PI * 1.2) / (remCount - 1) : 0;
+            // Pas angulaire pour les rangs 4+ en mode Leaderboard (sur l'arc 240°)
+            const remCount = Math.max(1, remainingPlayers.length);
+            const stepAngleLb = remCount > 1 ? (Math.PI * 1.2) / (remCount - 1) : 0;
 
-        return teamList.map((player, i) => {
-          // 1. Position Codex
-          const normalizedIndex = (i - shift + midIndex + playerCount) % playerCount;
-          const angleCodex = arcStartCodex + (normalizedIndex / (playerCount - 1 || 1)) * arcSpanCodex;
-          const codexX = Math.cos(angleCodex) * radius;
-          const codexZ = Math.sin(angleCodex) * radius;
+            return teamList.map((player, i) => {
+              // 1. Position Codex : Répartition uniforme sur l'anneau orbital 360° (2*PI)
+              const baseAngle = Math.PI / 2 + ((i - effectiveMyIndex) / playerCount) * Math.PI * 2;
+              const codexX = Math.cos(baseAngle) * radius;
+              const codexZ = Math.sin(baseAngle) * radius;
 
-          // 2. Position Leaderboard
-          let lbX = codexX;
-          let lbY = 0;
-          let lbZ = codexZ;
-          let isTop3 = false;
-          let rankNumber = 0;
+              // 2. Position Leaderboard
+              let lbX = codexX;
+              let lbY = 0;
+              let lbZ = codexZ;
+              let isTop3 = false;
+              let rankNumber = 0;
 
-          const pPseudo = (player.pseudo || '').toLowerCase();
-          const rankMatch = rankedPlayers.find((rp: any) => (rp.pseudo || '').toLowerCase() === pPseudo);
+              const pPseudo = (player.pseudo || '').toLowerCase();
+              const rankMatch = rankedPlayers.find((rp: any) => (rp.pseudo || '').toLowerCase() === pPseudo);
 
-          if (rankMatch) {
-            rankNumber = rankMatch.rankNumber;
-            if (rankNumber <= 3) {
-              isTop3 = true;
-            } else {
-              // 4ème (remIndex = 0) au premier plan face caméra (x=0, z=radius)
-              // 5ème (remIndex = 1), 6ème... vers la droite (x > 0)
-              const remIndex = rankNumber - 4;
-              const angleLb = remIndex * stepAngleLb;
-              lbX = Math.sin(angleLb) * radius;
-              lbY = -0.4;
-              lbZ = Math.cos(angleLb) * radius;
-            }
-          }
+              if (rankMatch) {
+                rankNumber = rankMatch.rankNumber;
+                if (rankNumber <= 3) {
+                  isTop3 = true;
+                } else {
+                  // 4ème (remIndex = 0) au premier plan face caméra (x=0, z=radius)
+                  // 5ème (remIndex = 1), 6ème... vers la droite (x > 0)
+                  const remIndex = rankNumber - 4;
+                  const angleLb = remIndex * stepAngleLb;
+                  lbX = Math.sin(angleLb) * radius;
+                  lbY = -0.4;
+                  lbZ = Math.cos(angleLb) * radius;
+                }
+              }
 
-          const targetPos: [number, number, number] = view === 'leaderboard'
-            ? (isTop3 ? [0, -20, 0] : [lbX, lbY, lbZ])
-            : [codexX, 0, codexZ];
+              const targetPos: [number, number, number] = view === 'leaderboard'
+                ? (isTop3 ? [0, -20, 0] : [lbX, lbY, lbZ])
+                : [codexX, 0, codexZ];
 
-          const isOnline = onlineUsers.has(pPseudo);
-          const isMe = player.isCurrent;
-          const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
-          const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
-          const isSearchFocused = focusedPlayerId !== null && focusedPlayerId !== undefined && String(player.childId || player.id) === String(focusedPlayerId);
+              const isOnline = onlineUsers.has(pPseudo);
+              const isMe = player.isCurrent;
+              const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
+              const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
+              const isSearchFocused = focusedPlayerId !== null && focusedPlayerId !== undefined && String(player.childId || player.id) === String(focusedPlayerId);
 
-          return (
-            <AnimatedAvatar 
-              key={player.id || player.childId || player.pseudo || i} 
-              player={player} 
-              targetPosition={targetPos} 
-              avatarScale={avatarScale} 
-              onSelectPlayer={onSelectPlayer} 
-              onSelectChallengeBadge={onSelectChallengeBadge}
-              onSelectMissionsWeek={onSelectMissionsWeek}
-              onSelectBirthdayCake={onSelectBirthdayCake}
-              isOnline={isOnline}
-              hasUnread={hasUnread}
-              isStealthMode={isMe ? isStealthMode : false}
-              onToggleStealth={isMe ? onToggleStealth : undefined}
-              challengeCount={pChallengeCount}
-              missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
-              showHealth={view === 'codex'}
-              showChatIcon={view === 'codex'}
-              rankTag={view === 'leaderboard' ? `#${rankNumber} • ${rankMatch?.score ?? player.score ?? 0} IT` : undefined}
-              isSearchFocused={isSearchFocused}
-            />
-          );
-        });
-      })()}
+              return (
+                <AnimatedAvatar 
+                  key={player.id || player.childId || player.pseudo || i} 
+                  player={player} 
+                  targetPosition={targetPos} 
+                  avatarScale={avatarScale} 
+                  onSelectPlayer={onSelectPlayer} 
+                  onSelectChallengeBadge={onSelectChallengeBadge}
+                  onSelectMissionsWeek={onSelectMissionsWeek}
+                  onSelectBirthdayCake={onSelectBirthdayCake}
+                  isOnline={isOnline}
+                  hasUnread={hasUnread}
+                  isStealthMode={isMe ? isStealthMode : false}
+                  onToggleStealth={isMe ? onToggleStealth : undefined}
+                  challengeCount={pChallengeCount}
+                  missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
+                  showHealth={view === 'codex'}
+                  showChatIcon={view === 'codex'}
+                  rankTag={view === 'leaderboard' ? `#${rankNumber} • ${rankMatch?.score ?? player.score ?? 0} IT` : undefined}
+                  isSearchFocused={isSearchFocused}
+                />
+              );
+            });
+          })()}
+        </group>
+      )}
     </group>
   );
 }

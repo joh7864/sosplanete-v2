@@ -1445,6 +1445,9 @@ function MainApp() {
               }}
               onSearchMatchChange={(player) => {
                 setSearchedPlayerId(player ? (player.childId || player.id) : null);
+                if (player && view2026 === 'leaderboard') {
+                  setView2026('codex');
+                }
               }}
               isMobile={isMobile}
             />
