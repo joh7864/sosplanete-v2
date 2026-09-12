@@ -40,17 +40,15 @@ export function SpeedParticles({ isMobile = false }: { isMobile?: boolean }) {
       }
       geo.attributes.position.needsUpdate = true;
     }
-  });
-
-  return (
-    <points ref={pointsRef} key={count}>
+  });  return (
+    <points ref={pointsRef} key={count} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute 
-          attach="attributes-position"
+          attach="attributes-position" 
           args={[positions, 3]} 
         />
         <bufferAttribute 
-          attach="attributes-color"
+          attach="attributes-color" 
           args={[colors, 3]} 
         />
       </bufferGeometry>
@@ -60,7 +58,7 @@ export function SpeedParticles({ isMobile = false }: { isMobile?: boolean }) {
         transparent 
         opacity={0.65} 
         sizeAttenuation={true} 
-        blending={THREE.AdditiveBlending}
+        blending={THREE.AdditiveBlending} 
       />
     </points>
   );
@@ -74,7 +72,7 @@ export function CosmicScale() {
   return (
     <group>
       {/* Ligne principale de l'échelle */}
-      <mesh position={[scaleX, -0.51, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[scaleX, -0.51, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.01, 0.01, 23, 8]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.15} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
@@ -86,7 +84,7 @@ export function CosmicScale() {
         return (
           <group key={pct} position={[scaleX, -0.51, markerZ]}>
             {/* Tiret de graduation pointant vers les vaisseaux */}
-            <mesh position={[0.25, 0, 0]}>
+            <mesh position={[0.25, 0, 0]} raycast={() => null}>
               <boxGeometry args={[0.5, 0.005, 0.02]} />
               <meshBasicMaterial color="#ffffff" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthWrite={false} />
             </mesh>
@@ -101,6 +99,7 @@ export function CosmicScale() {
                 outlineWidth={0.02}
                 outlineColor="#000000"
                 fillOpacity={0.85}
+                raycast={() => null}
               >
                 {pct}%
               </Text>
@@ -164,7 +163,7 @@ export function TemporalEchoPulse({ globalProgression }: { globalProgression: nu
   });
 
   return (
-    <mesh ref={pulseRef} position={[0, 0.4, 12.2]}>
+    <mesh ref={pulseRef} position={[0, 0.4, 12.2]} raycast={() => null}>
       <torusGeometry args={[1.6, 0.05, 8, 32]} />
       <meshBasicMaterial color="#00ffcc" transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} />
     </mesh>

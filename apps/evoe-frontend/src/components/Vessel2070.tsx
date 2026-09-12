@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,7 +18,7 @@ export default function Vessel2070({
   index: number; 
   total: number; 
   isSelected?: boolean;
-  onClick?: (teamId: number) => void;
+  onClick?: (teamId: number | string) => void;
 }) {
   const outerGroupRef = useRef<THREE.Group>(null);
   const innerGroupRef = useRef<THREE.Group>(null);
@@ -30,8 +30,16 @@ export default function Vessel2070({
   const navLightRRef = useRef<THREE.MeshBasicMaterial>(null);
   const navLightLRef = useRef<THREE.MeshBasicMaterial>(null);
 
+  const effectiveTeamId = team?.id ?? team?.teamId;
   const xOffset = total > 1 ? (index - (total - 1) / 2) * 2.5 : 0;
   const targetZ = 11 - (team.position / 100) * 17; // Modifié pour stopper plus tôt et rester grand
+
+  // Réinitialiser le curseur au démontage si nécessaire
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = 'auto';
+    };
+  }, []);
 
   // Niveau dynamique du vaisseau (fallback = 1)
   const level = team.level || 1;
@@ -102,27 +110,35 @@ export default function Vessel2070({
       ref={outerGroupRef} 
       position={[xOffset, 0, 11]} 
       scale={[1.4, 1.4, 1.4]}
-      onClick={(e) => {
-        if (onClick) {
-          e.stopPropagation();
-          onClick(team.id);
-        }
-      }}
-      onPointerOver={(e) => {
-        if (onClick) {
-          e.stopPropagation();
-          document.body.style.cursor = 'pointer';
-        }
-      }}
-      onPointerOut={(e) => {
-        if (onClick) {
-          e.stopPropagation();
-          document.body.style.cursor = 'auto';
-        }
-      }}
     >
       <group ref={innerGroupRef}>
         <pointLight position={[0, -0.2, 0]} color={colorHex} intensity={1.2} distance={4.0} decay={2.0} />
+
+        {/* Hitbox d'interaction 3D : englobe avec précision le vaisseau et son badge N */}
+        <mesh 
+          position={[0, 0.2, -0.1]}
+          onClick={(e) => {
+            if (onClick && effectiveTeamId !== undefined) {
+              e.stopPropagation();
+              onClick(effectiveTeamId);
+            }
+          }}
+          onPointerOver={(e) => {
+            if (onClick) {
+              e.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }
+          }}
+          onPointerOut={(e) => {
+            if (onClick) {
+              e.stopPropagation();
+              document.body.style.cursor = 'auto';
+            }
+          }}
+        >
+          <boxGeometry args={[1.6, 1.4, 2.0]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
 
         {/* --- GÉOMÉTRIE DU CHASSIS (Couleur d'équipe préservée) --- */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -0.2]}>
@@ -201,7 +217,7 @@ export default function Vessel2070({
         {isSelected && (
           <group position={[0, -0.15, -0.2]}>
             {/* Anneau principal */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
               <ringGeometry args={[0.55, 0.62, 36]} />
               <meshBasicMaterial 
                 color={colorHex} 
@@ -213,7 +229,7 @@ export default function Vessel2070({
               />
             </mesh>
             {/* Halo externe diffus */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
               <ringGeometry args={[0.7, 0.76, 36]} />
               <meshBasicMaterial 
                 color={colorHex} 
@@ -231,7 +247,7 @@ export default function Vessel2070({
 
         {/* Panneau holographique au-dessus du vaisseau */}
         <Billboard position={[0, 0.6, 0]} follow={true}>
-          <mesh>
+          <mesh raycast={() => null}>
             <ringGeometry args={[0.16, 0.2, 6]} />
             <meshBasicMaterial color={colorHex} transparent opacity={0.6} blending={THREE.AdditiveBlending} depthWrite={false} />
           </mesh>
@@ -243,6 +259,7 @@ export default function Vessel2070({
             anchorY="middle"
             outlineWidth={0.015}
             outlineColor="#000000"
+            raycast={() => null}
           >
             N{level}
           </Text>

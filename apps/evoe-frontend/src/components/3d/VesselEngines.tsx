@@ -36,7 +36,7 @@ function BlackSmokeParticles() {
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -76,7 +76,7 @@ function SparkParticles() {
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -104,32 +104,32 @@ export function EngineN1({ flameColor, flameInnerColor }: { flameColor: string, 
 
   return (
     <group>
-      <mesh position={[-0.12, -0.02, 0.28]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[-0.12, -0.02, 0.28]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.075, 0.075, 0.18, 12]} />
         <meshStandardMaterial color="#0f172a" metalness={0.95} roughness={0.15} />
       </mesh>
-      <mesh position={[0.12, -0.02, 0.28]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0.12, -0.02, 0.28]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.075, 0.075, 0.18, 12]} />
         <meshStandardMaterial color="#0f172a" metalness={0.95} roughness={0.15} />
       </mesh>
 
       <group position={[-0.12, -0.02, 0.38]}>
-        <mesh ref={flameLRef} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={flameLRef} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
           <coneGeometry args={[0.08, 0.7, 8, 1, true]} />
           <meshBasicMaterial color={flameColor} transparent opacity={0.85} />
         </mesh>
-        <mesh ref={flameLInnerRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.08]}>
+        <mesh ref={flameLInnerRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.08]} raycast={() => null}>
           <coneGeometry args={[0.04, 0.4, 8, 1, true]} />
           <meshBasicMaterial color={flameInnerColor} transparent opacity={0.95} />
         </mesh>
       </group>
       
       <group position={[0.12, -0.02, 0.38]}>
-        <mesh ref={flameRRef} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={flameRRef} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
           <coneGeometry args={[0.08, 0.7, 8, 1, true]} />
           <meshBasicMaterial color={flameColor} transparent opacity={0.85} />
         </mesh>
-        <mesh ref={flameRInnerRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.08]}>
+        <mesh ref={flameRInnerRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.08]} raycast={() => null}>
           <coneGeometry args={[0.04, 0.4, 8, 1, true]} />
           <meshBasicMaterial color={flameInnerColor} transparent opacity={0.95} />
         </mesh>
@@ -175,7 +175,7 @@ function StellarWindParticles() {
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -204,6 +204,11 @@ function EngineDebris() {
         child.rotation.x += debrisData[i].rotVel[0];
         child.rotation.y += debrisData[i].rotVel[1];
         child.rotation.z += debrisData[i].rotVel[2];
+
+        // Réinitialiser les débris qui s'éloignent trop
+        if (child.position.z > 2.5) {
+          child.position.set(debrisData[i].pos[0], debrisData[i].pos[1], debrisData[i].pos[2]);
+        }
       });
     }
   });
@@ -211,7 +216,7 @@ function EngineDebris() {
   return (
     <group ref={groupRef}>
       {debrisData.map((_, i) => (
-        <mesh key={i} position={debrisData[i].pos as any}>
+        <mesh key={i} position={debrisData[i].pos as any} raycast={() => null}>
           <boxGeometry args={[0.05, 0.05, 0.08]} />
           <meshStandardMaterial color="#333" metalness={0.8} />
         </mesh>
@@ -239,11 +244,11 @@ export function EngineN2() {
       <EngineDebris />
 
       <group ref={sailRef} scale={[0.1, 1, 1]} position={[0, 0.1, 0.2]}>
-        <mesh position={[-0.8, 0, 0]} rotation={[0.2, 0.1, 0.1]}>
+        <mesh position={[-0.8, 0, 0]} rotation={[0.2, 0.1, 0.1]} raycast={() => null}>
           <planeGeometry args={[1.2, 0.4]} />
           <meshPhysicalMaterial color="#ffd700" transparent opacity={0.6} side={THREE.DoubleSide} clearcoat={1.0} roughness={0.1} />
         </mesh>
-        <mesh position={[0.8, 0, 0]} rotation={[0.2, -0.1, -0.1]}>
+        <mesh position={[0.8, 0, 0]} rotation={[0.2, -0.1, -0.1]} raycast={() => null}>
           <planeGeometry args={[1.2, 0.4]} />
           <meshPhysicalMaterial color="#ffd700" transparent opacity={0.6} side={THREE.DoubleSide} clearcoat={1.0} roughness={0.1} />
         </mesh>
@@ -260,32 +265,35 @@ export function EngineN2() {
 export function EngineN3() {
   const shockwaveRef = useRef<THREE.Mesh>(null);
   
-  useFrame(() => {
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
     if (shockwaveRef.current) {
-      shockwaveRef.current.scale.addScalar(0.2);
+      const cycle = (t * 1.5) % 1;
+      const scale = 0.5 + cycle * 1.2;
+      shockwaveRef.current.scale.set(scale, scale, scale);
       const mat = shockwaveRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0, 0.1);
+      mat.opacity = Math.max(0, (1 - cycle) * 0.4);
     }
   });
 
   return (
     <group>
-      <mesh ref={shockwaveRef} position={[0, 0, 0]}>
+      <mesh ref={shockwaveRef} position={[0, 0, 0]} raycast={() => null}>
         <sphereGeometry args={[0.5, 32, 32]} />
         <meshBasicMaterial color="#a855f7" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      <mesh position={[0, -0.02, 0.35]} rotation={[0, 0, 0]}>
+      <mesh position={[0, -0.02, 0.35]} rotation={[0, 0, 0]} raycast={() => null}>
         <torusGeometry args={[0.15, 0.04, 16, 32]} />
         <meshStandardMaterial color="#a855f7" emissive="#d8b4fe" emissiveIntensity={2.0} />
       </mesh>
 
-      <mesh position={[0, -0.02, 1.5]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.02, 1.5]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.08, 0.02, 2.5, 16]} />
         <meshBasicMaterial color="#a855f7" transparent opacity={0.06} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       
-      <mesh position={[0, -0.02, 1.0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.02, 1.0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.03, 0.01, 1.5, 16]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.09} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
@@ -331,7 +339,7 @@ function QuantumPixelParticles() {
   });
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
@@ -343,17 +351,20 @@ function QuantumPixelParticles() {
 export function EngineN4() {
   const explosionRef = useRef<THREE.Mesh>(null);
 
-  useFrame(() => {
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
     if (explosionRef.current) {
-      explosionRef.current.scale.addScalar(0.3);
+      const cycle = (t * 2.0) % 1;
+      const scale = 0.3 + cycle * 1.0;
+      explosionRef.current.scale.set(scale, scale, scale);
       const mat = explosionRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = THREE.MathUtils.lerp(mat.opacity, 0, 0.1);
+      mat.opacity = Math.max(0, (1 - cycle) * 0.5);
     }
   });
 
   return (
     <group>
-      <mesh ref={explosionRef} position={[0, 0, 0]}>
+      <mesh ref={explosionRef} position={[0, 0, 0]} raycast={() => null}>
         <sphereGeometry args={[0.3, 32, 32]} />
         <meshBasicMaterial color="#00ffff" transparent opacity={0.8} wireframe />
       </mesh>
@@ -386,37 +397,37 @@ export function EngineN5() {
       <pointLight ref={flashRef} color="#ffffff" intensity={8.0} distance={15} />
 
       {/* Bras magnétiques */}
-      <mesh position={[-0.15, 0, -0.1]} rotation={[0, 0.3, 0]}>
+      <mesh position={[-0.15, 0, -0.1]} rotation={[0, 0.3, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.01, 0.01, 0.2]} />
         <meshStandardMaterial color="#333" metalness={0.9} />
       </mesh>
-      <mesh position={[0.15, 0, -0.1]} rotation={[0, -0.3, 0]}>
+      <mesh position={[0.15, 0, -0.1]} rotation={[0, -0.3, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.01, 0.01, 0.2]} />
         <meshStandardMaterial color="#333" metalness={0.9} />
       </mesh>
 
       {/* Micro trou noir */}
-      <mesh>
+      <mesh raycast={() => null}>
         <sphereGeometry args={[0.12, 32, 32]} />
         <meshBasicMaterial color="#000000" />
       </mesh>
 
       {/* Disque d'accrétion */}
-      <mesh ref={diskRef} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh ref={diskRef} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <torusGeometry args={[0.18, 0.02, 16, 64]} />
         <meshBasicMaterial color="#ffd700" transparent opacity={0.9} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <torusGeometry args={[0.22, 0.04, 16, 64]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.4} blending={THREE.AdditiveBlending} />
       </mesh>
 
       {/* Cône de lumière continue */}
-      <mesh position={[0, 0, 1.5]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, 1.5]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <coneGeometry args={[0.5, 3.0, 32, 1, true]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0.04} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      <mesh position={[0, 0, 2.0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, 2.0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
         <cylinderGeometry args={[0.2, 0.0, 4.0, 32]} />
         <meshBasicMaterial color="#00ffff" transparent opacity={0.02} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>

@@ -354,8 +354,9 @@ function MainApp() {
   };
 
   const handleVesselClick = (teamId: number | string) => {
+    if (teamId === null || teamId === undefined) return;
     setShowRadar(true);
-    setSelectedRadarTeamId((prev) => (prev === teamId ? null : teamId));
+    setSelectedRadarTeamId((prev) => (prev !== null && prev !== undefined && String(prev) === String(teamId) ? null : teamId));
   };
 
   useEffect(() => {
@@ -2423,14 +2424,14 @@ function MainApp() {
                 {dashboardStatus ? (
                   <div className="vessels-list">
                     {[...dashboardStatus.teams].sort((a, b) => b.position - a.position).map((t: any) => {
-                      const isSelected = selectedRadarTeamId === t.id;
+                      const isSelected = selectedRadarTeamId !== null && selectedRadarTeamId !== undefined && String(selectedRadarTeamId) === String(t.id);
                       const vibrantColor = getVibrantTeamColor(t.color);
                       return (
                         <div 
                           key={t.id} 
                           id={`radar-team-${t.id}`}
                           className={`vessel-row ${isSelected ? 'highlighted-vessel' : ''}`} 
-                          onClick={() => setSelectedRadarTeamId((prev) => (prev === t.id ? null : t.id))}
+                          onClick={() => setSelectedRadarTeamId((prev) => (prev !== null && prev !== undefined && String(prev) === String(t.id) ? null : t.id))}
                           style={{ 
                             cursor: 'pointer',
                             border: isSelected ? `1.5px solid ${vibrantColor}` : '1px solid rgba(255, 255, 255, 0.06)',

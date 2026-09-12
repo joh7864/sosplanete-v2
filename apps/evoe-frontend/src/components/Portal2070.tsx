@@ -19,7 +19,7 @@ function Portal2070Component({
   dashboardStatus: any; 
   selectedTeamId?: number | string | null;
   onEarthClick?: (level: number) => void;
-  onVesselClick?: (teamId: number) => void;
+  onVesselClick?: (teamId: number | string) => void;
   isMobile?: boolean;
   isActive?: boolean;
 }) {
@@ -268,7 +268,7 @@ function Portal2070Component({
       <SpeedParticles isMobile={isMobile} />
 
       {/* Ciel Spatial sombre */}
-      <Sphere args={[50, isMobile ? 12 : 32, isMobile ? 12 : 32]}>
+      <Sphere args={[50, isMobile ? 12 : 32, isMobile ? 12 : 32]} raycast={() => null}>
         <meshBasicMaterial color="#010108" side={THREE.BackSide} />
       </Sphere>
 
@@ -276,16 +276,20 @@ function Portal2070Component({
       <CosmicScale />
 
       {/* Vaisseaux des équipes */}
-      {teams.map((t: any, i: number) => (
-        <Vessel2070 
-          key={t.id} 
-          team={t} 
-          index={i} 
-          total={teams.length} 
-          isSelected={selectedTeamId === t.id}
-          onClick={onVesselClick} 
-        />
-      ))}
+      {teams.map((t: any, i: number) => {
+        const teamId = t.id ?? t.teamId;
+        const isSelected = selectedTeamId !== null && selectedTeamId !== undefined && String(selectedTeamId) === String(teamId);
+        return (
+          <Vessel2070 
+            key={teamId || i} 
+            team={t} 
+            index={i} 
+            total={teams.length} 
+            isSelected={isSelected}
+            onClick={onVesselClick} 
+          />
+        );
+      })}
 
       {/* L'Arche EVOE (Origine en Z = 12.2) */}
       <group position={[0, 0.4, 12.2]}>
