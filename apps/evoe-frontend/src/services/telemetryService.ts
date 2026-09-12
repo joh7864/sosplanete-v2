@@ -294,30 +294,6 @@ class TelemetryService {
       console.warn('[Telemetry] Échec de fermeture de session:', e);
     }
   }
-
-  /**
-   * Clôture rapide par balise Beacon lors du déchargement de fenêtre
-   */
-  private endSessionBeacon() {
-    if (!this.sessionId) return;
-    const sid = this.sessionId;
-
-    // Envoi du reliquat d'événements et fermeture
-    const closeUrl = `${BASE_API_URL}/tracking/telemetry/close`;
-    const payload = JSON.stringify({ sessionId: sid });
-
-    if (navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon(closeUrl, blob);
-    } else {
-      fetch(closeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    }
-  }
 }
 
 export const telemetry = new TelemetryService();
