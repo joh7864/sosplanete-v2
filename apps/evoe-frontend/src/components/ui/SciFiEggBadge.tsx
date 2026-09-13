@@ -66,11 +66,6 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       type="button"
       id="hud-easter-egg-badge"
       className="hud-easter-egg-badge"
-      title={
-        !isInteractable
-          ? "Signal quantique verrouillé : accomplissez des missions pour réveiller l'œuf."
-          : "Anomalie temporelle détectée"
-      }
       onClick={(e) => {
         e.stopPropagation();
         if (!isInteractable) return;
@@ -107,7 +102,7 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
         background: 'transparent',
         border: 'none',
         outline: 'none',
-        cursor: isInteractable ? 'pointer' : 'not-allowed',
+        cursor: isInteractable ? 'pointer' : 'default',
         zIndex: 25,
         display: 'flex',
         alignItems: 'center',
