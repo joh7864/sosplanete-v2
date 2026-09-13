@@ -182,8 +182,6 @@ export async function playCryptexSound(): Promise<number> {
   const candidateUrls = [
     `${getBackendOrigin()}/uploads/easter-eggs/cryptex.wav?t=${t}`,
     `/uploads/easter-eggs/cryptex.wav?t=${t}`,
-    `${getBackendOrigin()}/uploads/audio/cryptex.wav?t=${t}`,
-    `/uploads/audio/cryptex.wav?t=${t}`,
   ];
 
   for (const url of candidateUrls) {
