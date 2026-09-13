@@ -2896,5 +2896,13 @@ body {
   }
 }
 
+/* Masquer le badge de version en bas à gauche en mode portrait sur mobile (accessible via le menu bulle) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .app-version-badge {
+    display: none !important;
+  }
+}
+
+
 
 
