@@ -988,6 +988,14 @@ function MainApp() {
     setSelectedProfileId(player.childId || player.id);
   };
 
+  const handleSearchMatchChange = useCallback((player: any | null) => {
+    const targetId = player ? (player.childId || player.id) : null;
+    setSearchedPlayerId((prev) => (prev === targetId ? prev : targetId));
+    if (player) {
+      setView2026((prevView) => (prevView === 'leaderboard' ? 'codex' : prevView));
+    }
+  }, []);
+
   return (
     <div className="app-container">
 
@@ -1495,12 +1503,7 @@ function MainApp() {
               onSelectPlayer={(player) => {
                 setSelectedProfileId(player.childId || player.id);
               }}
-              onSearchMatchChange={(player) => {
-                setSearchedPlayerId(player ? (player.childId || player.id) : null);
-                if (player && view2026 === 'leaderboard') {
-                  setView2026('codex');
-                }
-              }}
+              onSearchMatchChange={handleSearchMatchChange}
               isMobile={isMobile}
             />
 

@@ -932,36 +932,32 @@ export function PlayerAvatar({
       />
 
       {/* Anneau / Halo de Sélection Holographique en Perspective 3D (identique aux vaisseaux 2070) */}
-      {isSearchFocused && (
-        <group position={[0, -0.34 * avatarScale, 0]}>
-          {/* Anneau principal horizontal au sol */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-            <ringGeometry args={[0.52 * avatarScale, 0.60 * avatarScale, 48]} />
-            <meshBasicMaterial 
-              color="#00ffcc" 
-              transparent 
-              opacity={0.88} 
-              blending={THREE.AdditiveBlending} 
-              side={THREE.DoubleSide} 
-              depthWrite={false} 
-            />
-          </mesh>
-          {/* Halo externe diffus horizontal */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-            <ringGeometry args={[0.66 * avatarScale, 0.74 * avatarScale, 48]} />
-            <meshBasicMaterial 
-              color="#00ffcc" 
-              transparent 
-              opacity={0.42} 
-              blending={THREE.AdditiveBlending} 
-              side={THREE.DoubleSide} 
-              depthWrite={false} 
-            />
-          </mesh>
-          {/* Lueur ponctuelle au sol */}
-          <pointLight color="#00ffcc" intensity={1.8} distance={2.5} />
-        </group>
-      )}
+      <group position={[0, -0.34 * avatarScale, 0]} visible={isSearchFocused}>
+        {/* Anneau principal horizontal au sol */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <ringGeometry args={[0.52 * avatarScale, 0.60 * avatarScale, 48]} />
+          <meshBasicMaterial 
+            color="#00ffcc" 
+            transparent 
+            opacity={0.88} 
+            blending={THREE.AdditiveBlending} 
+            side={THREE.DoubleSide} 
+            depthWrite={false} 
+          />
+        </mesh>
+        {/* Halo externe diffus horizontal */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <ringGeometry args={[0.66 * avatarScale, 0.74 * avatarScale, 48]} />
+          <meshBasicMaterial 
+            color="#00ffcc" 
+            transparent 
+            opacity={0.42} 
+            blending={THREE.AdditiveBlending} 
+            side={THREE.DoubleSide} 
+            depthWrite={false} 
+          />
+        </mesh>
+      </group>
       
       <Billboard follow={true}>
         <mesh position={[0, 0, -0.01]}>
@@ -983,7 +979,8 @@ export function PlayerAvatar({
               map={texture} 
               transparent={true}
               opacity={isSelfStealth ? 0.55 : 1}
-              depthWrite={false}
+              depthWrite={true}
+              alphaTest={0.05}
             />
           </mesh>
         ) : (

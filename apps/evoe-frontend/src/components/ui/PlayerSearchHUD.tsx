@@ -33,16 +33,45 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
     return players.find((p: any) => (p.pseudo || '').toLowerCase().includes(trimmed)) || null;
   }, [players, query]);
 
-  // Notification temps réel du joueur correspondant pour synchroniser la vue 3D
+  const onSearchMatchChangeRef = useRef(onSearchMatchChange);
   useEffect(() => {
-    onSearchMatchChange?.(isOpen ? firstMatch : null);
-  }, [firstMatch, isOpen, onSearchMatchChange]);
+    onSearchMatchChangeRef.current = onSearchMatchChange;
+  });
 
+  const lastNotifiedMatchIdRef = useRef<number | string | null>(null);
+
+  // Notification avec debounce du joueur correspondant pour synchroniser la vue 3D sans bloquer la saisie
+  useEffect(() => {
+    if (!isOpen || !firstMatch) {
+      if (lastNotifiedMatchIdRef.current !== null) {
+        lastNotifiedMatchIdRef.current = null;
+        onSearchMatchChangeRef.current?.(null);
+      }
+      return;
+    }
+
+    const matchId = firstMatch.childId || firstMatch.id;
+    if (lastNotifiedMatchIdRef.current === matchId) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      lastNotifiedMatchIdRef.current = matchId;
+      onSearchMatchChangeRef.current?.(firstMatch);
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [firstMatch, isOpen]);
+
+  // Nettoyage au démontage uniquement
   useEffect(() => {
     return () => {
-      onSearchMatchChange?.(null);
+      if (lastNotifiedMatchIdRef.current !== null) {
+        lastNotifiedMatchIdRef.current = null;
+        onSearchMatchChangeRef.current?.(null);
+      }
     };
-  }, [onSearchMatchChange]);
+  }, []);
 
   // Suggestions filtrées en temps réel selon le pseudo
   const suggestions = useMemo(() => {
