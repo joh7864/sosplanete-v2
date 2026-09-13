@@ -22,15 +22,9 @@ const isValidImageFilename = (s: string | null | undefined): boolean => {
 };
 
 const getCurrentSchoolYear = (date: Date = new Date()): string => {
-  const year = date.getFullYear();
-  const month = date.getMonth(); // 0-11 (Jan-Dec)
-  if (month >= 8) {
-    // September to December
-    return `${year}-${year + 1}`;
-  } else {
-    // January to August
-    return `${year - 1}-${year}`;
-  }
+  const currentYear = date.getFullYear();
+  // Période de jeu incluant l'année courante (ex: "2025-2026" pour l'année 2026)
+  return `${currentYear - 1}-${currentYear}`;
 };
 
 @Injectable()
@@ -100,10 +94,25 @@ export class LegacyApiService {
       activeChildren = validChildren;
     }
 
-    const currentSchoolYear = getCurrentSchoolYear();
+    // Déterminer la période de jeu qui inclut l'année courante (ex: "2025-2026" pour l'année 2026)
+    const currentYear = new Date().getFullYear();
+    const targetSchoolYear = getCurrentSchoolYear();
+
+    // 1. Chercher d'abord parmi les inscriptions ouvertes celle qui correspond à la période de jeu courante
     let currentYearChildren = activeChildren.filter(
-      (c) => c.group.team.instanceYear.schoolYear === currentSchoolYear,
+      (c) =>
+        c.group.team.instanceYear.schoolYear === targetSchoolYear ||
+        c.group.team.instanceYear.schoolYear.includes(currentYear.toString()),
     );
+
+    // 2. Si aucune inscription ouverte pour cette période, chercher dans toutes les inscriptions valides
+    if (currentYearChildren.length === 0) {
+      currentYearChildren = validChildren.filter(
+        (c) =>
+          c.group.team.instanceYear.schoolYear === targetSchoolYear ||
+          c.group.team.instanceYear.schoolYear.includes(currentYear.toString()),
+      );
+    }
 
     if (currentYearChildren.length === 0) {
       // Fallback : Si l'année courante n'est pas encore enregistrée en DB,

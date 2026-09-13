@@ -123,6 +123,8 @@ export interface DiscoveryLogItem {
   discoveredAt: string;
   resolutionTimeSeconds: number | null;
   answerSubmitted?: string | null;
+  periodId?: number;
+  periodIndex?: number;
   easterEggId?: number;
   easterEggTitle?: string;
   easterEggCode?: string;

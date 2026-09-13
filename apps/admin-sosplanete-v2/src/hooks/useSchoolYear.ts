@@ -19,7 +19,8 @@ import { getAuthData, setAuthData } from '@/utils/storage';
  */
 
 const SCHOOL_YEAR_KEY = 'active_school_year';
-const DEFAULT_SCHOOL_YEAR = '2024-2025';
+const currentYear = new Date().getFullYear();
+const DEFAULT_SCHOOL_YEAR = `${currentYear - 1}-${currentYear}`;
 const SCHOOL_YEAR_EVENT = 'schoolYearChange';
 
 export function useSchoolYear() {

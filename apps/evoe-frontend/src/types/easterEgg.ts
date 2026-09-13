@@ -39,12 +39,23 @@ export interface DiscoveredPlayer {
   discoveredAt: string;
 }
 
+export interface CycleEggItem extends EasterEggItem {
+  name?: string;
+  isDiscovered?: boolean;
+  firstInteractionAt?: string | null;
+  discoveredAt?: string | null;
+  resolutionTimeSeconds?: number | null;
+  prerequisiteDesc?: string;
+}
+
 export interface ActiveEasterEggResponse {
   enabled: boolean;
   hasActiveEgg?: boolean;
   isReplayMode?: boolean;
   message?: string;
   easterEgg?: EasterEggItem;
+  cycleEggs?: CycleEggItem[];
+  hasAnyInteractable?: boolean;
   multiEggProgress?: {
     total: number;
     solved: number;

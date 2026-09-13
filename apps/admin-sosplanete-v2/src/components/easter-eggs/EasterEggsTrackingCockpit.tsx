@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Radar,
@@ -21,6 +21,11 @@ import {
   Check,
   Plus,
   RotateCcw,
+  Search,
+  X,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -36,6 +41,7 @@ import {
   resetAdminEggProgress,
 } from '@/utils/easterEggApi';
 import { ManualActivationModal } from './ManualActivationModal';
+import { EggGlyphIcon } from './EggGlyphIcon';
 
 interface EasterEggsTrackingCockpitProps {
   instanceYearId: number;
@@ -64,16 +70,24 @@ function formatTime(seconds: number | null): string {
   return `${s} s`;
 }
 
-function formatDateTime(iso: string): string {
+function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = new Date(iso);
-  return (
-    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
-    ' (' +
-    d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) +
-    ')'
-  );
+  if (isNaN(d.getTime())) return '—';
+  const dateStr = d.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+  const timeStr = d.toLocaleTimeString('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${dateStr} (${timeStr})`;
 }
+
+type DiscoverySortField = 'rank' | 'pseudo' | 'teamName' | 'discoveredAt' | 'resolutionTime' | 'egg';
+type SortDirection = 'asc' | 'desc';
 
 export function EasterEggsTrackingCockpit({
   instanceYearId,
@@ -108,6 +122,69 @@ export function EasterEggsTrackingCockpit({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [targetResetEgg, setTargetResetEgg] = useState<{ id: number; title: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Table Discovery Filter & Sort
+  const [discoverySortField, setDiscoverySortField] = useState<DiscoverySortField>('discoveredAt');
+  const [discoverySortDirection, setDiscoverySortDirection] = useState<SortDirection>('desc');
+  const [playerFilter, setPlayerFilter] = useState('');
+
+  const handleSort = (field: DiscoverySortField) => {
+    if (discoverySortField === field) {
+      setDiscoverySortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setDiscoverySortField(field);
+      setDiscoverySortDirection(field === 'discoveredAt' ? 'desc' : 'asc');
+    }
+  };
+
+  const processedDiscoveries = useMemo(() => {
+    if (!data?.individualDiscoveries) return [];
+
+    const items = data.individualDiscoveries.map((d, idx) => ({
+      ...d,
+      originalRank: idx + 1,
+    }));
+
+    const filtered = playerFilter.trim()
+      ? items.filter((d) =>
+          d.pseudo.toLowerCase().includes(playerFilter.trim().toLowerCase())
+        )
+      : items;
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (discoverySortField) {
+        case 'rank':
+          comparison = a.originalRank - b.originalRank;
+          break;
+        case 'pseudo':
+          comparison = a.pseudo.localeCompare(b.pseudo, 'fr', { sensitivity: 'base' });
+          break;
+        case 'teamName':
+          comparison = (a.teamName || '').localeCompare(b.teamName || '', 'fr', { sensitivity: 'base' });
+          break;
+        case 'discoveredAt': {
+          const timeA = a.discoveredAt ? new Date(a.discoveredAt).getTime() : 0;
+          const timeB = b.discoveredAt ? new Date(b.discoveredAt).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+        case 'resolutionTime': {
+          const resA = a.resolutionTimeSeconds ?? 999999;
+          const resB = b.resolutionTimeSeconds ?? 999999;
+          comparison = resA - resB;
+          break;
+        }
+        case 'egg': {
+          const titleA = a.easterEggTitle || a.easterEggCode || '';
+          const titleB = b.easterEggTitle || b.easterEggCode || '';
+          comparison = titleA.localeCompare(titleB, 'fr', { sensitivity: 'base' });
+          break;
+        }
+      }
+      return discoverySortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [data?.individualDiscoveries, playerFilter, discoverySortField, discoverySortDirection]);
 
   const loadTracking = async (showSpinner = true, targetEggId?: number) => {
     if (showSpinner) setRefreshing(true);
@@ -374,41 +451,37 @@ export function EasterEggsTrackingCockpit({
                   <GlassCard
                     key={pEgg.instanceId || pEgg.eggId}
                     onClick={() => handleSelectEgg(pEgg.eggId)}
-                    className={`p-5 rounded-3xl transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between border ${
+                    className={`p-4 sm:p-4.5 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between border ${
                       isSelected
                         ? 'bg-gradient-to-b from-purple-50/70 to-white border-purple-400 shadow-md shadow-purple-500/10 ring-2 ring-purple-400/40'
                         : 'bg-white/95 border-slate-200/80 hover:border-purple-300 hover:shadow-md'
                     }`}
                   >
                     <div>
-                      {/* Top Header */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
+                      {/* Top Header : Titre dans la pastille + Points IT */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                            isSelected ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600'
+                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider truncate max-w-[210px] sm:max-w-[240px] ${
+                            isSelected
+                              ? 'bg-purple-600 text-white shadow-xs'
+                              : 'bg-slate-100 text-slate-700 hover:bg-purple-50 hover:text-purple-700'
                           }`}
+                          title={pEgg.title}
                         >
-                          Easter Egg #{idx + 1}
+                          {pEgg.title}
                         </span>
 
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                           +{pEgg.rewardPointsIT} IT
                         </span>
                       </div>
 
-                      <h4 className="font-black text-base text-slate-800 leading-snug mb-1.5 line-clamp-2">
-                        {pEgg.title}
-                      </h4>
-                      <p className="text-[11px] font-mono text-slate-400 truncate mb-3">
-                        {pEgg.code}
-                      </p>
-
-                      {/* Section Équipe et Joueurs Déclencheurs - Liste épurée et premium */}
-                      <div className="pt-3 pb-2 border-t border-slate-100 space-y-2.5">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
-                          <span className="uppercase tracking-wider">Déclencheurs</span>
+                      {/* Section Équipe et Joueurs Déclencheurs - Liste compacte sur une seule ligne */}
+                      <div className="pt-2 pb-1.5 border-t border-slate-100 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                          <span>Déclencheurs</span>
                           {discoverersCount > 0 && (
-                            <span className="font-mono text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded-full text-[10px] font-bold border border-purple-100">
+                            <span className="font-mono text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded-full text-[10px] font-bold border border-purple-100 normal-case">
                               {discoverersCount} {discoverersCount > 1 ? 'joueurs' : 'joueur'}
                             </span>
                           )}
@@ -419,18 +492,21 @@ export function EasterEggsTrackingCockpit({
                             Non déclenché pour le moment
                           </p>
                         ) : (
-                          <div className="space-y-2.5">
+                          <div className="space-y-1">
                             {discoverersByTeam.map((group, gIdx) => {
                               const isCompleted = pEgg.teamsCompleted?.some(tc => tc.teamId === group.teamId);
                               const rewardInfo = pEgg.teamsCompleted?.find(tc => tc.teamId === group.teamId);
                               const required = data?.settings?.easterEggRequiredPlayers ?? 2;
 
                               return (
-                                <div key={gIdx} className="space-y-1">
-                                  {/* Ligne En-tête équipe : Nom + Statut */}
-                                  <div className="flex items-center justify-between text-xs">
+                                <div
+                                  key={gIdx}
+                                  className="flex items-center justify-between gap-2 py-1 px-1.5 rounded-xl hover:bg-slate-50/80 transition-colors"
+                                >
+                                  {/* Gauche : Logo/Pastille + Nom équipe + Avatars stack */}
+                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                     <div
-                                      className="flex items-center gap-1.5 font-bold"
+                                      className="flex items-center gap-1.5 font-bold text-xs shrink-0"
                                       style={{ color: group.teamColor || '#10b981' }}
                                     >
                                       {group.teamIcon ? (
@@ -445,31 +521,15 @@ export function EasterEggsTrackingCockpit({
                                           style={{ backgroundColor: group.teamColor || '#10b981' }}
                                         />
                                       )}
-                                      <span className="truncate max-w-[140px]">{group.teamName}</span>
+                                      <span className="truncate max-w-[120px]">{group.teamName}</span>
                                     </div>
 
-                                    {isCompleted ? (
-                                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1 shrink-0">
-                                        <Check size={12} className="stroke-[3]" />
-                                        <span>Validé</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-black">
-                                          +{rewardInfo?.awardedPointsIT || pEgg.rewardPointsIT} IT
-                                        </span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[11px] font-semibold text-slate-400 shrink-0">
-                                        {group.players.length} / {required} joueur{required > 1 ? 's' : ''}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {/* Rangée élégante des joueurs : Avatar stack + pseudos fluides */}
-                                  <div className="flex items-center gap-2 pl-4">
-                                    <div className="flex -space-x-1.5 overflow-hidden py-0.5 shrink-0">
+                                    {/* Avatars stack avec tooltip au survol */}
+                                    <div className="flex -space-x-1.5 overflow-visible shrink-0 py-0.5">
                                       {group.players?.map((pl) => (
                                         <div
                                           key={pl.childId}
-                                          className="w-5 h-5 rounded-full ring-2 ring-white bg-slate-100 flex items-center justify-center overflow-hidden text-[8px] font-bold text-slate-700 relative shrink-0 shadow-2xs"
+                                          className="w-5 h-5 rounded-full ring-2 ring-white bg-slate-100 flex items-center justify-center overflow-hidden text-[8px] font-bold text-slate-700 relative shrink-0 shadow-2xs hover:scale-115 hover:z-20 transition-transform cursor-pointer"
                                           title={`@${pl.pseudo}`}
                                         >
                                           <span className="select-none">{pl.pseudo.slice(0, 2).toUpperCase()}</span>
@@ -484,17 +544,23 @@ export function EasterEggsTrackingCockpit({
                                         </div>
                                       ))}
                                     </div>
+                                  </div>
 
-                                    <div className="text-[11px] text-slate-600 font-medium truncate">
-                                      {group.players?.map((pl, pIdx) => (
-                                        <span key={pl.childId}>
-                                          <span className="font-semibold text-slate-700">@{pl.pseudo}</span>
-                                          {pIdx < (group.players?.length || 0) - 1 && (
-                                            <span className="text-slate-400 mr-1.5">,</span>
-                                          )}
+                                  {/* Droite : Statut */}
+                                  <div className="shrink-0 pl-1">
+                                    {isCompleted ? (
+                                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                                        <Check size={12} className="stroke-[3]" />
+                                        <span>Validé</span>
+                                        <span className="font-mono text-[10px] text-emerald-700 font-black">
+                                          +{rewardInfo?.awardedPointsIT || pEgg.rewardPointsIT} IT
                                         </span>
-                                      ))}
-                                    </div>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] font-semibold text-slate-400">
+                                        {group.players.length} / {required} joueur{required > 1 ? 's' : ''}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -506,7 +572,7 @@ export function EasterEggsTrackingCockpit({
 
                     {/* Actions bar at bottom of each card */}
                     <div
-                      className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2"
+                      className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-2"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div>
@@ -541,6 +607,7 @@ export function EasterEggsTrackingCockpit({
                         <IconButtonWithTooltip
                           tooltip="Réinitialiser la progression (comme non résolu)"
                           tooltipPosition="top"
+                          tooltipAlign="end"
                           variant="amber"
                           size="sm"
                           onClick={() => {
@@ -771,19 +838,46 @@ export function EasterEggsTrackingCockpit({
 
           {/* Section 2: Individual Discoveries Timeline */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Clock size={18} className="text-amber-500" />
+                <Clock size={18} className="text-amber-500 shrink-0" />
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
-                  Journal Horodaté des Découvreurs ({data?.individualDiscoveries.length || 0})
+                  Journal Horodaté des Découvreurs (
+                  {playerFilter.trim()
+                    ? `${processedDiscoveries.length} / ${data?.individualDiscoveries.length || 0}`
+                    : data?.individualDiscoveries.length || 0}
+                  )
                 </h3>
               </div>
-              <span className="text-xs text-slate-500">En direct par ordre chronologique</span>
+
+              {/* Filtre par joueur à la place de l'ancien libellé textuel */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={playerFilter}
+                    onChange={(e) => setPlayerFilter(e.target.value)}
+                    placeholder="Filtrer par joueur..."
+                    className="w-48 sm:w-56 pl-8 pr-7 py-1.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400 transition-all shadow-2xs"
+                  />
+                  {playerFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayerFilter('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      aria-label="Effacer le filtre joueur"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             {data?.individualDiscoveries.length === 0 ? (
               <div className="p-8 text-center bg-white rounded-3xl border border-slate-200/80 text-xs text-slate-400">
-                Aucun agent n'a encore découvert d'Easter Egg pour cette période.
+                Aucun agent n&apos;a encore découvert d&apos;Easter Egg depuis le début du jeu.
               </div>
             ) : (
               <GlassCard className="bg-white/95 border-slate-200/80 shadow-sm rounded-3xl overflow-hidden">
@@ -791,80 +885,129 @@ export function EasterEggsTrackingCockpit({
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50/80 text-slate-600 font-black uppercase tracking-wider border-b border-slate-200/80">
                       <tr>
-                        <th className="py-3.5 px-4">Rang</th>
-                        <th className="py-3.5 px-4">Agent Découvreur</th>
-                        <th className="py-3.5 px-4">Équipe</th>
-                        <th className="py-3.5 px-4">Heure de Découverte</th>
-                        <th className="py-3.5 px-4">Temps de Résolution</th>
-                        <th className="py-3.5 px-4">Easter Egg Déclenché</th>
+                        {[
+                          { key: 'rank' as const, label: 'Rang' },
+                          { key: 'pseudo' as const, label: 'Agent Découvreur' },
+                          { key: 'teamName' as const, label: 'Équipe' },
+                          { key: 'discoveredAt' as const, label: 'Date & Heure' },
+                          { key: 'resolutionTime' as const, label: 'Temps de Résolution' },
+                          { key: 'egg' as const, label: 'Easter Egg Déclenché' },
+                        ].map((col) => {
+                          const isActive = discoverySortField === col.key;
+                          return (
+                            <th
+                              key={col.key}
+                              onClick={() => handleSort(col.key)}
+                              className="py-3.5 px-4 cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className={isActive ? 'text-purple-700' : ''}>{col.label}</span>
+                                {isActive ? (
+                                  discoverySortDirection === 'asc' ? (
+                                    <ArrowUp size={13} className="text-purple-600 shrink-0" />
+                                  ) : (
+                                    <ArrowDown size={13} className="text-purple-600 shrink-0" />
+                                  )
+                                ) : (
+                                  <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40 transition-opacity text-slate-400 shrink-0" />
+                                )}
+                              </div>
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {data?.individualDiscoveries.map((d, index) => (
-                        <tr key={d.childId + '-' + index} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-slate-500">
-                            #{index + 1}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 font-bold text-[10px] text-slate-700 relative">
-                                <span className="select-none">{d.pseudo.slice(0, 2).toUpperCase()}</span>
-                                <img
-                                  src={resolvePlayerAvatar(d.avatar, d.pseudo, d.gender)}
-                                  alt={d.pseudo}
-                                  className="w-full h-full object-cover absolute inset-0 z-10"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                              <span className="font-bold text-slate-800">@{d.pseudo}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-bold text-[11px]"
-                              style={{
-                                backgroundColor: `${d.teamColor || '#10b981'}15`,
-                                color: d.teamColor || '#10b981',
-                              }}
+                      {processedDiscoveries.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-xs text-slate-400">
+                            Aucun joueur ne correspond à &quot;<strong className="text-slate-600">{playerFilter}</strong>&quot;.
+                            <button
+                              type="button"
+                              onClick={() => setPlayerFilter('')}
+                              className="ml-2 text-purple-600 hover:text-purple-800 font-bold underline cursor-pointer"
                             >
-                              {d.teamIcon ? (
-                                <img
-                                  src={resolveTeamLogo(d.teamIcon)!}
-                                  alt=""
-                                  className="w-4 h-4 rounded-full object-cover shrink-0"
-                                />
-                              ) : (
-                                <span
-                                  className="w-2 h-2 rounded-full shrink-0"
-                                  style={{ backgroundColor: d.teamColor || '#10b981' }}
-                                />
-                              )}
-                              {d.teamName || 'Équipe'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-600 font-mono">
-                            {formatDateTime(d.discoveredAt)}
-                          </td>
-                          <td className="py-3 px-4 text-slate-500 font-mono">
-                            {formatTime(d.resolutionTimeSeconds)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="px-2.5 py-1 rounded-xl bg-purple-50 border border-purple-200/80 text-purple-900 font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs">
-                                <Sparkles size={13} className="text-purple-600 shrink-0" />
-                                <span>{d.easterEggTitle || d.easterEggCode || `Easter Egg #${d.easterEggId || ''}`}</span>
-                              </span>
-                              {d.rewardPointsIT ? (
-                                <span className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 font-mono font-bold text-amber-700 text-[11px] shrink-0">
-                                  +{d.rewardPointsIT} IT
-                                </span>
-                              ) : null}
-                            </div>
+                              Réinitialiser
+                            </button>
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        processedDiscoveries.map((d) => (
+                          <tr key={d.childId + '-' + d.originalRank} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3 px-4 font-mono font-bold text-slate-500">
+                              #{d.originalRank}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 font-bold text-[10px] text-slate-700 relative">
+                                  <span className="select-none">{d.pseudo.slice(0, 2).toUpperCase()}</span>
+                                  <img
+                                    src={resolvePlayerAvatar(d.avatar, d.pseudo, d.gender)}
+                                    alt={d.pseudo}
+                                    className="w-full h-full object-cover absolute inset-0 z-10"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                                <span className="font-bold text-slate-800">@{d.pseudo}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-bold text-[11px]"
+                                style={{
+                                  backgroundColor: `${d.teamColor || '#10b981'}15`,
+                                  color: d.teamColor || '#10b981',
+                                }}
+                              >
+                                {d.teamIcon ? (
+                                  <img
+                                    src={resolveTeamLogo(d.teamIcon)!}
+                                    alt=""
+                                    className="w-4 h-4 rounded-full object-cover shrink-0"
+                                  />
+                                ) : (
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: d.teamColor || '#10b981' }}
+                                  />
+                                )}
+                                {d.teamName || 'Équipe'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-600 font-mono">
+                              {formatDateTime(d.discoveredAt)}
+                            </td>
+                            <td className="py-3 px-4 text-slate-500 font-mono">
+                              {formatTime(d.resolutionTimeSeconds)}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <EggGlyphIcon
+                                  easterEggId={d.easterEggId}
+                                  periodIndex={d.periodIndex ?? data?.currentPeriod?.periodIndex}
+                                  title={d.easterEggTitle || d.easterEggCode || `Easter Egg #${d.easterEggId || ''}`}
+                                  size="sm"
+                                />
+                                {d.periodIndex ? (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded-md bg-purple-50 border border-purple-200/80 font-mono font-bold text-purple-700 text-[10px] shrink-0"
+                                    title={`Période ${d.periodIndex}`}
+                                  >
+                                    P{d.periodIndex}
+                                  </span>
+                                ) : null}
+                                {d.rewardPointsIT ? (
+                                  <span className="px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 font-mono font-bold text-amber-700 text-[11px] shrink-0">
+                                    +{d.rewardPointsIT} IT
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

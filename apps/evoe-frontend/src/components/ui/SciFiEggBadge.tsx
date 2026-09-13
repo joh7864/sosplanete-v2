@@ -27,8 +27,8 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
     isInteractable && !isDiscovered && !isTeamRewarded && !!eggData.playerProgress?.firstInteractionAt;
 
   // Teinte de bordure selon l'état d'interaction
-  let rimColor = '#38bdf8'; // Cyan d'origine
-  let rimGlow = 'rgba(56, 189, 248, 0.5)';
+  let rimColor = isInteractable ? '#38bdf8' : '#64748b'; // Cyan d'origine ou ardoise si inerte
+  let rimGlow = isInteractable ? 'rgba(56, 189, 248, 0.5)' : 'rgba(100, 116, 139, 0.2)';
 
   if (isTeamRewarded) {
     rimColor = '#fbbf24';
@@ -66,7 +66,11 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       type="button"
       id="hud-easter-egg-badge"
       className="hud-easter-egg-badge"
-      title=""
+      title={
+        !isInteractable
+          ? "Signal quantique verrouillé : accomplissez des missions pour réveiller l'œuf."
+          : "Anomalie temporelle détectée"
+      }
       onClick={(e) => {
         e.stopPropagation();
         if (!isInteractable) return;
@@ -75,7 +79,7 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       initial={{ scale: 0, opacity: 0 }}
       animate={{
         scale: 1,
-        opacity: isInteractable ? 1 : 0.65,
+        opacity: isInteractable ? 1 : 0.45,
         y: [0, -3, 0],
       }}
       transition={{
@@ -103,7 +107,7 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
         background: 'transparent',
         border: 'none',
         outline: 'none',
-        cursor: isInteractable ? 'pointer' : 'default',
+        cursor: isInteractable ? 'pointer' : 'not-allowed',
         zIndex: 25,
         display: 'flex',
         alignItems: 'center',

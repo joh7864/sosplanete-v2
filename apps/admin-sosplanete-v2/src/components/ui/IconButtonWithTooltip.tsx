@@ -79,6 +79,9 @@ export function IconButtonWithTooltip({
   children,
   ...props
 }: IconButtonWithTooltipProps) {
+  // Exclut explicitement tout attribut `title` afin d'éviter le double affichage (infobulle native du navigateur)
+  const { title: _title, ...buttonProps } = props;
+
   const activeStyle = active
     ? 'ring-2 ring-emerald-500/40 border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
     : '';
@@ -89,11 +92,10 @@ export function IconButtonWithTooltip({
     <div className="relative inline-flex group">
       <button
         type="button"
-        title={tooltip}
         aria-label={tooltip}
         disabled={disabled}
         className={`flex items-center justify-center transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${SIZE_STYLES[size]} ${VARIANT_STYLES[variant]} ${activeStyle} ${className}`}
-        {...props}
+        {...buttonProps}
       >
         {children}
       </button>

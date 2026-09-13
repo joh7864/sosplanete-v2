@@ -28,8 +28,13 @@ export const removeAuthData = (key: string): void => {
 
 export const clearAuthData = (): void => {
   if (typeof window === 'undefined') return;
-  // Nettoyer uniquement les données liées à l'auth, ou tout vider
-  // Dans notre cas, l'app utilisait localStorage.clear() partout, on reproduit le comportement :
+  // Conserver les préférences d'affichage utilisateur (ex: durée de rafraîchissement auto)
+  const savedAutoRefresh = localStorage.getItem('tracking_auto_refresh_sec');
+
   localStorage.clear();
   sessionStorage.clear();
+
+  if (savedAutoRefresh !== null) {
+    localStorage.setItem('tracking_auto_refresh_sec', savedAutoRefresh);
+  }
 };

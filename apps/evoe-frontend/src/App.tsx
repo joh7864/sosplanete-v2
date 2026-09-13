@@ -175,6 +175,13 @@ function MainApp() {
   } = useEasterEgg();
   const [showMascotBubble, setShowMascotBubble] = useState(false);
   const [showEggCelebration, setShowEggCelebration] = useState(false);
+  const [celebrationEgg, setCelebrationEgg] = useState<{
+    code?: string;
+    triggerType?: string;
+    title: string;
+    pointsIT: number;
+    isTeamRewarded?: boolean;
+  } | null>(null);
   const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
 
   // Méta-Énigme 2070 & Modales Spéciales
@@ -245,16 +252,38 @@ function MainApp() {
     setShowTemporalEchoModal(true);
   };
 
-  const handleEasterEggTrigger = async (triggerType: string, metadata?: any) => {
-    const result = await validateTrigger(triggerType as any, metadata);
+  const handleEasterEggTrigger = async (triggerType: string, metadata?: any, targetEggId?: number) => {
+    let triggeredEgg = targetEggId
+      ? activeEggData?.cycleEggs?.find((e) => e.id === targetEggId)
+      : undefined;
+    if (!triggeredEgg && activeEggData?.cycleEggs) {
+      triggeredEgg = activeEggData.cycleEggs.find(
+        (e) => e.triggerType === triggerType && (!metadata?.target || e.triggerConfig?.target === metadata.target),
+      );
+    }
+    if (!triggeredEgg) {
+      triggeredEgg = activeEggData?.easterEgg;
+    }
+
+    const result = await validateTrigger(triggerType as any, metadata, undefined, triggeredEgg?.id);
     if (result.success) {
       const freshEgg = await fetchActiveEgg();
+      if (triggeredEgg) {
+        setCelebrationEgg({
+          code: triggeredEgg.code,
+          triggerType: triggeredEgg.triggerType,
+          title: triggeredEgg.title,
+          pointsIT: triggeredEgg.rewardPointsIT || 60,
+          isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+        });
+      }
       setShowEggCelebration(true);
       setChatActiveTab('team');
+      const title = triggeredEgg?.title || activeEggData?.easterEgg?.title || '2070';
       if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-        setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" et remporté les points IT ! 🎉`);
+        setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
       } else {
-        setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${activeEggData?.easterEgg?.title || '2070'}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
+        setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
       }
     }
   };
@@ -275,67 +304,91 @@ function MainApp() {
     activeTriggerType: activeEggData?.easterEgg?.triggerType,
     triggerConfig: activeEggData?.easterEgg?.triggerConfig,
     activeEggCode: activeEggData?.easterEgg?.code,
+    cycleEggs: activeEggData?.cycleEggs,
     onTrigger: handleEasterEggTrigger,
   });
 
   const handleVerifyCommand = useCallback(
-    async (commandStr: string): Promise<{ success: boolean; message?: string }> => {
+    async (commandStr: string, targetEggId?: number): Promise<{ success: boolean; message?: string }> => {
       const raw = (commandStr || '').trim().toLowerCase();
       if (!raw) return { success: false, message: 'Veuillez saisir une commande ou un mot-clé.' };
 
       const cleanCmd = raw.replace(/^[!/]+/, '').trim();
-      const currentTriggerType = activeEggData?.easterEgg?.triggerType;
-      const currentEggCode = activeEggData?.easterEgg?.code;
 
       // 1. Cas Konami Code (alternative textuelle pour mobile/desktop)
       if (
-        (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') &&
-        (currentTriggerType === 'KONAMI_CODE' || currentEggCode === 'EE_KONAMI_80S')
+        cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade'
       ) {
-        const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' });
+        const konamiEgg =
+          (targetEggId ? activeEggData?.cycleEggs?.find((e) => e.id === targetEggId) : undefined) ||
+          activeEggData?.cycleEggs?.find((e) => e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') ||
+          activeEggData?.easterEgg;
+        const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' }, undefined, konamiEgg?.id);
         if (result.success) {
           const freshEgg = await fetchActiveEgg(true);
+          if (konamiEgg) {
+            setCelebrationEgg({
+              code: konamiEgg.code,
+              triggerType: konamiEgg.triggerType,
+              title: konamiEgg.title,
+              pointsIT: konamiEgg.rewardPointsIT || 60,
+              isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+            });
+          }
           setShowEggCelebration(true);
           setChatActiveTab('team');
+          const title = konamiEgg?.title || 'Konami Arcade';
           if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-            setPrefilledChatText("Victoire ! Notre équipe a décodé le secret Konami Arcade et remporté les points IT ! 🎉");
+            setPrefilledChatText(`Victoire ! Notre équipe a décodé le secret "${title}" et remporté les points IT ! 🎉`);
           } else {
-            setPrefilledChatText("J'ai décodé le secret Konami Arcade ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀");
+            setPrefilledChatText(`J'ai décodé le secret "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
           }
           return { success: true };
         }
         return { success: false, message: result.message || 'Validation échouée pour le code Konami.' };
       }
 
-      // 2. Cas Commande Comm-Link / Mot-clé
-      const expectedConfig = ((activeEggData?.easterEgg?.triggerConfig as any)?.command || '').trim().toLowerCase().replace(/^[!/]+/, '');
-      const expectedAnswer = ((activeEggData?.easterEgg as any)?.expectedAnswer || '').trim().toLowerCase().replace(/^[!/]+/, '');
+      // 2. Cas Commande Comm-Link / Mot-clé parmi les œufs du cycle
+      let cmdEgg = targetEggId ? activeEggData?.cycleEggs?.find((e) => e.id === targetEggId) : undefined;
+      if (!cmdEgg) {
+        cmdEgg = activeEggData?.cycleEggs?.find((e) => {
+          const expectedConfig = ((e.triggerConfig as any)?.command || '').trim().toLowerCase().replace(/^[!/]+/, '');
+          const expectedAnswer = ((e as any)?.expectedAnswer || '').trim().toLowerCase().replace(/^[!/]+/, '');
+          return (
+            (expectedConfig && cleanCmd === expectedConfig) ||
+            (expectedAnswer && cleanCmd === expectedAnswer) ||
+            (e.code === 'EE_TEMPORAL_1985' && cleanCmd === '1985') ||
+            (e.code === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') ||
+            (e.code === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') ||
+            (e.code === 'EE_PARTY_DISCO' && cleanCmd === 'party')
+          );
+        }) || (activeEggData?.easterEgg?.triggerType === 'COMM_LINK_COMMAND' ? activeEggData.easterEgg : undefined);
+      }
 
-      const isMatch =
-        (expectedConfig && cleanCmd === expectedConfig) ||
-        (expectedAnswer && cleanCmd === expectedAnswer) ||
-        (currentEggCode === 'EE_TEMPORAL_1985' && cleanCmd === '1985') ||
-        (currentEggCode === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') ||
-        (currentEggCode === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') ||
-        (currentEggCode === 'EE_PARTY_DISCO' && cleanCmd === 'party') ||
-        (!expectedConfig && !expectedAnswer);
-
-      if (!isMatch) {
+      if (!cmdEgg) {
         return {
           success: false,
           message: 'Mot-clé ou commande non reconnu. Croisez attentivement vos indices.',
         };
       }
 
-      const result = await validateTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}`, source: 'bubble_input' });
+      const result = await validateTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}`, source: 'bubble_input' }, undefined, cmdEgg.id);
       if (result.success) {
         const freshEgg = await fetchActiveEgg(true);
+        setCelebrationEgg({
+          code: cmdEgg.code,
+          triggerType: cmdEgg.triggerType,
+          title: cmdEgg.title,
+          pointsIT: cmdEgg.rewardPointsIT || 60,
+          isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+        });
         setShowEggCelebration(true);
         setChatActiveTab('team');
+        const title = cmdEgg.title || 'Easter Egg 2070';
         if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-          setPrefilledChatText(`Victoire ! Notre équipe a validé l'ordre "${cleanCmd.toUpperCase()}" et remporté les points IT ! 🎉`);
+          setPrefilledChatText(`Victoire ! Notre équipe a validé l'ordre "${title}" et remporté les points IT ! 🎉`);
         } else {
-          setPrefilledChatText(`J'ai découvert l'ordre "${cleanCmd.toUpperCase()}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
+          setPrefilledChatText(`J'ai découvert l'ordre "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
         }
         return { success: true };
       }
@@ -2670,6 +2723,7 @@ function MainApp() {
         <MascotBubble3D
           isOpen={showMascotBubble}
           onClose={() => setShowMascotBubble(false)}
+          cycleEggs={activeEggData.cycleEggs}
           title={activeEggData.easterEgg.title}
           crypticMessage={activeEggData.easterEgg.crypticMessage || ''}
           explicitHint={activeEggData.easterEgg.explicitHint}
@@ -2683,14 +2737,36 @@ function MainApp() {
           isReplayMode={!!activeEggData.isReplayMode}
           replayedCycleIndex={activeEggData.period?.cycleIndex}
           onExitReplay={exitReplayMode}
-          onVerifyAnswer={verifyEasterEggAnswer}
-          onVerifyCommand={handleVerifyCommand}
-          onReplayVictoryAnimation={() => setShowEggCelebration(true)}
-          onSuccess={async () => {
+          onVerifyAnswer={(answer, targetEggId) => verifyEasterEggAnswer(answer, undefined, targetEggId)}
+          onVerifyCommand={(command, targetEggId) => handleVerifyCommand(command, targetEggId)}
+          onReplayVictoryAnimation={(targetEggId) => {
+            const egg = (targetEggId ? activeEggData.cycleEggs?.find(e => e.id === targetEggId) : undefined) || activeEggData.easterEgg;
+            if (egg) {
+              setCelebrationEgg({
+                code: egg.code,
+                triggerType: egg.triggerType,
+                title: egg.title,
+                pointsIT: egg.rewardPointsIT || 60,
+                isTeamRewarded: !!activeEggData.teamProgress?.isTeamRewarded,
+              });
+            }
+            setShowEggCelebration(true);
+          }}
+          onSuccess={async (targetEggId) => {
+            const triggeredEgg = (targetEggId ? activeEggData.cycleEggs?.find(e => e.id === targetEggId) : undefined) || activeEggData?.easterEgg;
             const freshEgg = await fetchActiveEgg(true);
+            if (triggeredEgg) {
+              setCelebrationEgg({
+                code: triggeredEgg.code,
+                triggerType: triggeredEgg.triggerType,
+                title: triggeredEgg.title,
+                pointsIT: triggeredEgg.rewardPointsIT || 60,
+                isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+              });
+            }
             setShowEggCelebration(true);
             setChatActiveTab('team');
-            const title = activeEggData?.easterEgg?.title || 'Easter Egg 2070';
+            const title = triggeredEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg 2070';
             if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
               setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
             } else {
@@ -2707,14 +2783,18 @@ function MainApp() {
       {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT DÉDIÉ + SFX + PARTICULES) */}
       <EasterEggVictoryDispatcher
         isOpen={showEggCelebration}
-        onClose={() => setShowEggCelebration(false)}
-        eggCode={activeEggData?.easterEgg?.code}
-        triggerType={activeEggData?.easterEgg?.triggerType}
-        eggTitle={activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
-        pointsIT={activeEggData?.easterEgg?.rewardPointsIT || 60}
-        isTeamRewarded={!!activeEggData?.teamProgress?.isTeamRewarded}
+        onClose={() => {
+          setShowEggCelebration(false);
+          setCelebrationEgg(null);
+        }}
+        eggCode={celebrationEgg?.code || activeEggData?.easterEgg?.code}
+        triggerType={celebrationEgg?.triggerType || activeEggData?.easterEgg?.triggerType}
+        eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
+        pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
+        isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
         onOpenCommLink={() => {
           setShowEggCelebration(false);
+          setCelebrationEgg(null);
           setShowMascotBubble(false);
           setChatActiveTab('team');
           setChatOpen(true);

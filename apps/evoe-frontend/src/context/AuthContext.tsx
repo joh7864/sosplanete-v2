@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             childId: res.data.childInfos.id,
             childPseudo: res.data.childInfos.pseudo || '',
             instanceId: parseInt(savedInstanceId, 10),
-            schoolYear: res.data.childInfos.schoolYear || '2024-2025',
+            schoolYear: res.data.childInfos.schoolYear || `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
             instanceYearId: res.data.childInfos.instanceYearId,
           });
         }
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             childId: res.data.childInfos.id,
             childPseudo: res.data.childInfos.pseudo || _loginPseudo,
             instanceId: parseInt(instId, 10),
-            schoolYear: res.data.childInfos.schoolYear || '2024-2025',
+            schoolYear: res.data.childInfos.schoolYear || `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`,
             instanceYearId: res.data.childInfos.instanceYearId,
           });
         }
@@ -138,6 +138,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const choices = result.data.choices;
 
         if (!selectedInstanceId) {
+          // Si un unique choix correspond à la période de jeu incluant l'année courante (ex: 2025-2026 pour 2026), on l'auto-sélectionne
+          const curYear = new Date().getFullYear().toString();
+          const targetYear = `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`;
+          const currentYearChoices = choices.filter(
+            (c: any) => c.schoolYear === targetYear || c.schoolYear?.includes(curYear),
+          );
+
+          if (currentYearChoices.length === 1) {
+            const choice = currentYearChoices[0];
+            const token = choice.token || choice.access_token || encodedAuth;
+            setUser(token);
+            setPseudo(resolvedPseudo);
+            setInstanceChoices(null);
+            setPendingAuth(null);
+
+            localStorage.removeItem("evoe_auth");
+            sessionStorage.removeItem("evoe_auth");
+
+            if (userInfo.keepLogged) {
+              localStorage.setItem("evoe_token", token);
+              sessionStorage.removeItem("evoe_token");
+            } else {
+              sessionStorage.setItem("evoe_token", token);
+              localStorage.removeItem("evoe_token");
+            }
+
+            const authHeader = token.includes('.') ? `Bearer ${token}` : `Basic ${token}`;
+            finishLogin(choice.instanceId, choice.schoolName, { ...headers, Authorization: authHeader }, resolvedPseudo);
+            navigate("/");
+            setLoading(false);
+            return;
+          }
+
           // 1er appel : on met les credentials en cache et on affiche les choix
           setPendingAuth(encodedAuth);
           setInstanceChoices(choices);

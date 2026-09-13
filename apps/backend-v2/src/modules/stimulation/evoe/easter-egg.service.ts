@@ -563,6 +563,17 @@ export class EasterEggService implements OnModuleInit {
     cyclePeriodIds: number[];
     periodStart: any;
     periodEnd: any;
+    cycleEggs?: Array<{
+      egg: EvoeEasterEgg;
+      instance: any;
+      isDiscovered: boolean;
+      isInteractable: boolean;
+      isExplicitHintVisible: boolean;
+      firstInteractionAt: Date | null;
+      discoveredAt: Date | null;
+      resolutionTimeSeconds: number | null;
+    }>;
+    hasAnyInteractable?: boolean;
     multiEggProgress?: {
       total: number;
       solved: number;
@@ -608,46 +619,117 @@ export class EasterEggService implements OnModuleInit {
       );
       const totalCount = Math.max(1, validInstances.length);
       let solvedCount = 0;
-      let currentEgg: EvoeEasterEgg | null = null;
-      let explicitInstance: any | null = null;
 
-      if (childId) {
-        // S'il y a plusieurs Easter Eggs dans la période :
-        // Dès que le premier est résolu par le joueur, on passe au suivant dans la période !
-        for (const inst of validInstances) {
-          const hasDiscovered = await this.prisma.evoeEasterEggPlayerProgress.count({
+      const targetPeriodIds =
+        cyclePeriodIds.length > 0
+          ? cyclePeriodIds
+          : (currentPeriod ? [currentPeriod.id] : []);
+
+      const cycleEggDetails: Array<{
+        egg: EvoeEasterEgg;
+        instance: any;
+        isDiscovered: boolean;
+        isInteractable: boolean;
+        isExplicitHintVisible: boolean;
+        firstInteractionAt: Date | null;
+        discoveredAt: Date | null;
+        resolutionTimeSeconds: number | null;
+      }> = [];
+
+      const nowTime = new Date();
+
+      for (const inst of validInstances) {
+        let isDiscovered = false;
+        let firstInteractionAt: Date | null = null;
+        let discoveredAt: Date | null = null;
+        let resolutionTimeSeconds: number | null = null;
+        let isInteractable = true;
+
+        if (childId) {
+          const progress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
             where: {
               easterEggId: inst.easterEggId,
               childId,
-              discoveredAt: { not: null },
+              ...(targetPeriodIds.length > 0 ? { periodId: { in: targetPeriodIds } } : {}),
             },
+            orderBy: { id: 'desc' },
           });
 
-          if (hasDiscovered > 0) {
+          if (progress?.discoveredAt) {
+            isDiscovered = true;
+            discoveredAt = progress.discoveredAt;
+            resolutionTimeSeconds = progress.resolutionTimeSeconds || null;
             solvedCount++;
-          } else if (!currentEgg) {
-            currentEgg = inst.easterEgg;
-            explicitInstance = inst;
+          }
+          firstInteractionAt = progress?.firstInteractionAt || null;
+
+          // Vérification stricte et indépendante du prérequis de chaque œuf
+          isInteractable = await this.checkPrerequisites(
+            inst.easterEgg,
+            childId,
+            currentPeriod ? currentPeriod.id : 0,
+          );
+
+          if (!isInteractable && firstInteractionAt && !isDiscovered) {
+            await this.prisma.evoeEasterEggPlayerProgress.update({
+              where: { id: progress!.id },
+              data: { firstInteractionAt: null },
+            });
+            firstInteractionAt = null;
           }
         }
+
+        let isExplicitHintVisible = false;
+        if (inst.forceHint) {
+          isExplicitHintVisible = true;
+        } else if (isInteractable && firstInteractionAt) {
+          const delayMs = (inst.easterEgg.hintDelayMinutes || 120) * 60 * 1000;
+          if (nowTime.getTime() - firstInteractionAt.getTime() >= delayMs) {
+            isExplicitHintVisible = true;
+          }
+        }
+
+        cycleEggDetails.push({
+          egg: inst.easterEgg,
+          instance: inst,
+          isDiscovered,
+          isInteractable,
+          isExplicitHintVisible,
+          firstInteractionAt,
+          discoveredAt,
+          resolutionTimeSeconds,
+        });
       }
 
-      // Si tous sont résolus par le joueur ou pour la vue admin globale : on prend le dernier
-      if (!currentEgg && validInstances.length > 0) {
-        const targetInst = validInstances[validInstances.length - 1];
-        currentEgg = targetInst.easterEgg;
-        explicitInstance = targetInst;
+      // Sélection du currentEgg mis en avant par défaut sur le badge HUD :
+      // 1. Premier œuf non résolu dont le prérequis est atteint (interactif)
+      // 2. À défaut, premier œuf non résolu (même si prérequis non encore rempli)
+      // 3. Si tous résolus, le dernier œuf résolu
+      let chosen = cycleEggDetails.find((d) => !d.isDiscovered && d.isInteractable);
+      if (!chosen) {
+        chosen = cycleEggDetails.find((d) => !d.isDiscovered);
       }
+      if (!chosen && cycleEggDetails.length > 0) {
+        chosen = cycleEggDetails[cycleEggDetails.length - 1];
+      }
+
+      // Le badge est interactif / cliquable SI ET SEULEMENT SI :
+      // Au moins un œuf du cycle a son prérequis rempli (ou a été résolu)
+      const hasAnyInteractable = cycleEggDetails.some(
+        (d) => d.isInteractable || d.isDiscovered,
+      );
 
       const currentIndex = Math.min(totalCount, solvedCount + 1);
 
       return {
-        currentEgg,
-        explicitInstance,
+        currentEgg: chosen?.egg || null,
+        explicitInstance: chosen?.instance || null,
         cycleIndex,
         cyclePeriodIds,
         periodStart,
         periodEnd,
+        cycleEggs: cycleEggDetails,
+        hasAnyInteractable,
         multiEggProgress: {
           total: totalCount,
           solved: solvedCount,
@@ -781,6 +863,8 @@ export class EasterEggService implements OnModuleInit {
       cyclePeriodIds,
       periodStart,
       periodEnd,
+      cycleEggs,
+      hasAnyInteractable,
       multiEggProgress: rawMultiProgress,
     } = await this.resolveEggForInstance(
       instanceYear.id,
@@ -864,11 +948,17 @@ export class EasterEggService implements OnModuleInit {
 
     // --- Immersive Scenario Logic ---
     const nowTime = new Date();
-    const isInteractable = await this.checkPrerequisites(
+    const chosenDetail = cycleEggs?.find(d => d.egg.id === currentEgg.id);
+    const isInteractable = chosenDetail ? chosenDetail.isInteractable : await this.checkPrerequisites(
       currentEgg,
       child.id,
       currentPeriod ? currentPeriod.id : 0,
     );
+
+    // Le badge HUD n'est cliquable QUE SI au moins un œuf du cycle a son prérequis rempli
+    const badgeInteractable = hasAnyInteractable !== undefined
+      ? hasAnyInteractable
+      : (isInteractable || !!playerProgress?.discoveredAt);
 
     // Si les prérequis ne sont plus atteints (ex: actions désimpulsées par le joueur) :
     // On réinitialise l'interaction pour revenir strictement à l'état initial (œuf inerte, pas de 2ème indice)
@@ -901,8 +991,8 @@ export class EasterEggService implements OnModuleInit {
         explicitHint: currentEgg.explicitHint,
         mascotDurationSeconds: currentEgg.mascotDurationSeconds,
         triggerAction: currentEgg.triggerAction,
-        isInteractable,
-        isExplicitHintVisible,
+        isInteractable: badgeInteractable,
+        isExplicitHintVisible: chosenDetail?.isExplicitHintVisible ?? isExplicitHintVisible,
         clues: currentEgg.clues,
         imageUrl: currentEgg.imageUrl,
         triggerType: currentEgg.triggerType,
@@ -914,6 +1004,32 @@ export class EasterEggService implements OnModuleInit {
             ? null
             : currentEgg.triggerConfig,
       },
+      cycleEggs: (cycleEggs || []).map((d) => ({
+        id: d.egg.id,
+        code: d.egg.code,
+        title: d.egg.title,
+        crypticMessage: d.egg.crypticMessage,
+        explicitHint: d.egg.explicitHint,
+        mascotDurationSeconds: d.egg.mascotDurationSeconds,
+        triggerAction: d.egg.triggerAction,
+        isInteractable: d.isInteractable,
+        isDiscovered: d.isDiscovered,
+        isExplicitHintVisible: d.isExplicitHintVisible,
+        clues: d.egg.clues,
+        imageUrl: d.egg.imageUrl,
+        triggerType: d.egg.triggerType,
+        complexity: d.egg.complexity,
+        rewardPointsIT: d.egg.rewardPointsIT,
+        orderIndex: d.egg.orderIndex,
+        triggerConfig:
+          d.egg.triggerType === EasterEggTriggerType.RIDDLE_ANSWER_INPUT
+            ? null
+            : d.egg.triggerConfig,
+        firstInteractionAt: d.firstInteractionAt,
+        discoveredAt: d.discoveredAt,
+        resolutionTimeSeconds: d.resolutionTimeSeconds,
+      })),
+      hasAnyInteractable: badgeInteractable,
       period: {
         id: currentPeriod ? currentPeriod.id : 0,
         periodStartId: periodStart ? periodStart.id : 0,
@@ -1152,12 +1268,50 @@ export class EasterEggService implements OnModuleInit {
   }
 
   async validateTrigger(childId: number, dto: ValidateTriggerDto) {
-    const { child, team, instanceYear, currentPeriod } =
+    const { child, team, instanceYear, currentPeriod, periods, currentPeriodIndex } =
       await this.getPlayerContext(childId);
 
-    const egg = await this.prisma.evoeEasterEgg.findUnique({
-      where: { id: dto.easterEggId },
-    });
+    let egg: EvoeEasterEgg | null = null;
+    if (dto.easterEggId) {
+      egg = await this.prisma.evoeEasterEgg.findUnique({
+        where: { id: dto.easterEggId },
+      });
+    }
+
+    // Si aucun œuf spécifié ou si le triggerType ne correspond pas à l'ID envoyé,
+    // on recherche l'œuf correspondant dans les œufs actifs du cycle
+    if (!egg || egg.triggerType !== dto.triggerType) {
+      const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+      const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
+      const cycleStartPeriodIndex = cycleIndex * frequency;
+      const cycleEndPeriodIndex = Math.min(
+        periods.length - 1,
+        cycleStartPeriodIndex + frequency - 1,
+      );
+      const cyclePeriods = periods.slice(cycleStartPeriodIndex, cycleEndPeriodIndex + 1);
+      const cyclePeriodIds = cyclePeriods.map((p) => p.id);
+      const targetPeriodIds = cyclePeriodIds.length > 0 ? cyclePeriodIds : (currentPeriod ? [currentPeriod.id] : []);
+
+      const candidateInstances = await this.prisma.evoeEasterEggInstance.findMany({
+        where: {
+          instanceYearId: instanceYear.id,
+          isClosed: false,
+          periodStartId: { in: targetPeriodIds },
+          easterEgg: { isActive: true, triggerType: dto.triggerType },
+        },
+        include: { easterEgg: true },
+      });
+
+      const matchedInstance = candidateInstances.find((inst) => {
+        if (!dto.metadata?.target) return true;
+        const config = inst.easterEgg.triggerConfig as any;
+        return !config?.target || config.target === dto.metadata.target;
+      });
+
+      if (matchedInstance) {
+        egg = matchedInstance.easterEgg;
+      }
+    }
 
     if (!egg || !egg.isActive) {
       throw new NotFoundException('Énigme introuvable ou inactive');
@@ -1168,6 +1322,12 @@ export class EasterEggService implements OnModuleInit {
     }
 
     const effectivePeriodId = dto.periodId || (currentPeriod ? currentPeriod.id : 0);
+
+    // Vérification stricte des prérequis pour cet œuf spécifique
+    const isInteractable = await this.checkPrerequisites(egg, child.id, effectivePeriodId);
+    if (!isInteractable) {
+      throw new BadRequestException('Prérequis non atteints pour cet Easter Egg');
+    }
 
     return this.processPlayerDiscovery(
       child,
@@ -2001,6 +2161,54 @@ export class EasterEggService implements OnModuleInit {
       orderBy: { completedAt: 'asc' },
     });
 
+    // 2b. Récupération de toutes les découvertes depuis le début du jeu (pour le journal horodaté complet)
+    const periodMap = new Map(periods.map((p, idx) => [p.id, idx + 1]));
+    const allPeriodIds = periods.map(p => p.id);
+    const allGameDiscoveries = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+      where: {
+        OR: [
+          { periodId: { in: allPeriodIds } },
+          { child: { group: { team: { instanceYearId } } } },
+        ],
+        discoveredAt: { not: null },
+      },
+      include: {
+        easterEgg: {
+          select: {
+            id: true,
+            title: true,
+            code: true,
+            rewardPointsIT: true,
+          },
+        },
+        child: {
+          select: {
+            id: true,
+            pseudo: true,
+            avatar: true,
+            gender: true,
+            groupId: true,
+            group: {
+              select: {
+                id: true,
+                name: true,
+                teamId: true,
+                team: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                    icon: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { discoveredAt: 'asc' },
+    });
+
     const cyclePeriodsForAdmin = periods.slice(
       cycleIndex * frequency,
       cycleIndex * frequency + frequency,
@@ -2184,7 +2392,7 @@ export class EasterEggService implements OnModuleInit {
         easterEggMaxWinningTeams: instanceYear.easterEggMaxWinningTeams ?? 0,
       },
       teamsTracking,
-      individualDiscoveries: allPeriodDiscoveries.map(d => ({
+      individualDiscoveries: allGameDiscoveries.map(d => ({
         childId: d.child.id,
         pseudo: d.child.pseudo,
         avatar: d.child.avatar,
@@ -2192,6 +2400,8 @@ export class EasterEggService implements OnModuleInit {
         teamName: d.child.group?.team.name,
         teamColor: d.child.group?.team.color,
         teamIcon: d.child.group?.team.icon || null,
+        periodId: d.periodId,
+        periodIndex: periodMap.get(d.periodId) || 1,
         discoveredAt: d.discoveredAt,
         resolutionTimeSeconds: d.resolutionTimeSeconds,
         easterEggId: d.easterEgg.id,

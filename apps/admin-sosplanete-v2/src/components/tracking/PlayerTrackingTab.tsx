@@ -85,7 +85,18 @@ export function PlayerTrackingTab({
   const [searchPseudo, setSearchPseudo] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [autoRefreshSec, setAutoRefreshSec] = useState<number>(15);
+  const [autoRefreshSec, setAutoRefreshSec] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tracking_auto_refresh_sec');
+      if (saved !== null) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 120) {
+          return parsed;
+        }
+      }
+    }
+    return 15;
+  });
 
   // Modals & Drawers
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -167,6 +178,13 @@ export function PlayerTrackingTab({
 
     return () => clearInterval(interval);
   }, [fetchKpis, fetchSessions, currentPage, autoRefreshSec]);
+
+  // Sauvegarde automatique et transparente du délai de rafraîchissement dans localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tracking_auto_refresh_sec', autoRefreshSec.toString());
+    }
+  }, [autoRefreshSec]);
 
   // Déportation du champ de rafraîchissement auto et du bouton actualiser dans la TopBar (à gauche des notifications)
   useEffect(() => {

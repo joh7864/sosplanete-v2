@@ -105,14 +105,23 @@ export function useEasterEgg() {
   }, [activeEggData, getHeaders]);
 
   const verifyAnswer = useCallback(
-    async (answer: string, resolutionTimeSeconds?: number) => {
-      if (!activeEggData?.easterEgg) return { success: false };
+    async (answer: string, resolutionTimeSeconds?: number, targetEggId?: number) => {
+      let resolvedEggId = targetEggId;
+      if (!resolvedEggId && activeEggData?.cycleEggs) {
+        const candidate = activeEggData.cycleEggs.find(
+          (e) => e.triggerType === 'RIDDLE_ANSWER_INPUT' && !e.isDiscovered,
+        );
+        if (candidate) resolvedEggId = candidate.id;
+      }
+      if (!resolvedEggId) resolvedEggId = activeEggData?.easterEgg?.id;
+
+      if (!resolvedEggId) return { success: false };
       try {
         const res = await evoeClient.post(
           `${EVOE_API_URL}/easter-eggs/verify-answer`,
           {
-            easterEggId: activeEggData.easterEgg.id,
-            periodId: activeEggData.period?.id,
+            easterEggId: resolvedEggId,
+            periodId: activeEggData?.period?.id,
             answer,
             resolutionTimeSeconds,
           },
@@ -131,7 +140,7 @@ export function useEasterEgg() {
                 }
               : prev,
           );
-          if (!activeEggData.isReplayMode) {
+          if (!activeEggData?.isReplayMode) {
             await fetchActiveEgg();
           }
         }
@@ -151,14 +160,27 @@ export function useEasterEgg() {
       triggerType: EasterEggTriggerType,
       metadata?: any,
       resolutionTimeSeconds?: number,
+      targetEggId?: number,
     ) => {
-      if (!activeEggData?.easterEgg) return { success: false };
+      // Trouver l'œuf ciblé dans cycleEggs si non spécifié
+      let resolvedEggId = targetEggId;
+      if (!resolvedEggId && activeEggData?.cycleEggs) {
+        const candidate = activeEggData.cycleEggs.find(
+          (e) =>
+            e.triggerType === triggerType &&
+            (!metadata?.target || e.triggerConfig?.target === metadata.target),
+        );
+        if (candidate) resolvedEggId = candidate.id;
+      }
+      if (!resolvedEggId) resolvedEggId = activeEggData?.easterEgg?.id;
+
+      if (!resolvedEggId) return { success: false };
       try {
         const res = await evoeClient.post(
           `${EVOE_API_URL}/easter-eggs/validate-trigger`,
           {
-            easterEggId: activeEggData.easterEgg.id,
-            periodId: activeEggData.period?.id,
+            easterEggId: resolvedEggId,
+            periodId: activeEggData?.period?.id,
             triggerType,
             metadata,
             resolutionTimeSeconds,
@@ -178,7 +200,7 @@ export function useEasterEgg() {
                 }
               : prev,
           );
-          if (!activeEggData.isReplayMode) {
+          if (!activeEggData?.isReplayMode) {
             await fetchActiveEgg();
           }
         }

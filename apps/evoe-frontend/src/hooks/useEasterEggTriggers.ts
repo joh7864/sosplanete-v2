@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { EasterEggTriggerType } from '../types/easterEgg';
+import type { EasterEggTriggerType, CycleEggItem } from '../types/easterEgg';
 import {
   playKonamiStepSound,
   playKonamiErrorSound,
@@ -10,13 +10,15 @@ interface UseEasterEggTriggersProps {
   activeTriggerType?: EasterEggTriggerType;
   triggerConfig?: any;
   activeEggCode?: string;
-  onTrigger: (triggerType: EasterEggTriggerType, metadata?: any) => void;
+  cycleEggs?: CycleEggItem[];
+  onTrigger: (triggerType: EasterEggTriggerType, metadata?: any, targetEggId?: number) => void;
 }
 
 export function useEasterEggTriggers({
   activeTriggerType,
   triggerConfig,
   activeEggCode,
+  cycleEggs,
   onTrigger,
 }: UseEasterEggTriggersProps) {
   // 1. KONAMI CODE STATE & HUD
@@ -48,6 +50,44 @@ export function useEasterEggTriggers({
   // 6. CONSTELLATION 3D STARS STATE
   const clickedStarsRef = useRef<Set<number>>(new Set());
 
+  // Helper pour trouver un œuf actif dans le cycle répondant au type et aux prérequis
+  const findCandidateEgg = useCallback(
+    (
+      type: EasterEggTriggerType,
+      matcher?: (egg: CycleEggItem) => boolean,
+    ): CycleEggItem | null => {
+      if (cycleEggs && cycleEggs.length > 0) {
+        const found = cycleEggs.find(
+          (e) =>
+            e.triggerType === type &&
+            !e.isDiscovered &&
+            e.isInteractable !== false &&
+            (!matcher || matcher(e)),
+        );
+        if (found) return found;
+      }
+      if (
+        activeTriggerType === type &&
+        (!matcher ||
+          matcher({
+            id: 0,
+            code: activeEggCode || '',
+            triggerType: activeTriggerType,
+            triggerConfig,
+          } as any))
+      ) {
+        return {
+          id: 0,
+          code: activeEggCode || '',
+          triggerType: activeTriggerType,
+          triggerConfig,
+        } as any;
+      }
+      return null;
+    },
+    [cycleEggs, activeTriggerType, activeEggCode, triggerConfig],
+  );
+
   // Avance dans la séquence Konami (touches clavier, swipes mobiles ou boutons virtuels)
   const advanceKonamiSequence = useCallback(
     (key: string) => {
@@ -72,7 +112,8 @@ export function useEasterEggTriggers({
 
         if (nextIndex === konamiSequence.length) {
           playKonamiSuccessSound();
-          onTrigger('KONAMI_CODE', { sequence: 'konami' });
+          const matched = findCandidateEgg('KONAMI_CODE') || (activeEggCode === 'EE_KONAMI_80S' ? { id: undefined } : null);
+          onTrigger('KONAMI_CODE', { sequence: 'konami' }, matched?.id || undefined);
           konamiTimer.current = setTimeout(() => {
             setKonamiHUD({
               isVisible: false,
@@ -115,12 +156,17 @@ export function useEasterEggTriggers({
         }
       }
     },
-    [onTrigger],
+    [findCandidateEgg, onTrigger, activeEggCode],
   );
 
   // --- EFFECT: GLOBAL LISTENERS (Keyboard Konami + Touch Swipes + Device Motion) ---
   useEffect(() => {
-    if (!activeTriggerType) return;
+    const isKonamiActive =
+      Boolean(findCandidateEgg('KONAMI_CODE')) ||
+      activeTriggerType === 'KONAMI_CODE' ||
+      activeEggCode === 'EE_KONAMI_80S';
+
+    if (!isKonamiActive && !activeTriggerType && (!cycleEggs || cycleEggs.length === 0)) return;
 
     // 1. Konami Code Listener (Touches Clavier)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -128,7 +174,7 @@ export function useEasterEggTriggers({
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === 'input' || targetTag === 'textarea') return;
 
-      if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
+      if (!isKonamiActive) return;
 
       advanceKonamiSequence(e.key);
     };
@@ -141,7 +187,7 @@ export function useEasterEggTriggers({
     let touchStartTime = 0;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
+      if (!isKonamiActive) return;
       if (e.touches.length !== 1) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
@@ -149,74 +195,62 @@ export function useEasterEggTriggers({
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (activeTriggerType !== 'KONAMI_CODE' && activeEggCode !== 'EE_KONAMI_80S') return;
+      if (!isKonamiActive) return;
       if (e.changedTouches.length !== 1) return;
-
-      const elapsed = Date.now() - touchStartTime;
-      if (elapsed > 1200) return; // Glissement trop lent ignoré
 
       const touchEndX = e.changedTouches[0].clientX;
       const touchEndY = e.changedTouches[0].clientY;
-      const dx = touchEndX - touchStartX;
-      const dy = touchEndY - touchStartY;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
+      const elapsed = Date.now() - touchStartTime;
 
-      const minSwipeDistance = 35;
-      if (Math.max(absDx, absDy) < minSwipeDistance) return;
+      if (elapsed > 1200) return; // Glissement trop lent ignoré
 
-      if (absDx > absDy) {
-        // Balayage horizontal
-        advanceKonamiSequence(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      const minDistance = 35;
+      if (absX < minDistance && absY < minDistance) return;
+
+      if (absX > absY) {
+        if (deltaX > 0) {
+          advanceKonamiSequence('ArrowRight');
+        } else {
+          advanceKonamiSequence('ArrowLeft');
+        }
       } else {
-        // Balayage vertical
-        advanceKonamiSequence(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+        if (deltaY > 0) {
+          advanceKonamiSequence('ArrowDown');
+        } else {
+          advanceKonamiSequence('ArrowUp');
+        }
       }
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
-    // 3. Mobile Device Shake (pour Antigravity ou custom action)
-    let lastX: number | null = null;
-    let lastY: number | null = null;
-    let lastZ: number | null = null;
-    let shakeHits = 0;
-    let lastShakeTimestamp = 0;
-
+    // 3. Accelerometer / Device Motion (Shakes rapides pour easter eggs mobiles)
+    let lastShakeTime = 0;
     const handleDeviceMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc || acc.x === null || acc.y === null || acc.z === null) return;
 
-      const now = Date.now();
-      if (lastX !== null && lastY !== null && lastZ !== null) {
-        const delta = Math.abs(lastX - acc.x) + Math.abs(lastY - acc.y) + Math.abs(lastZ - acc.z);
-        if (delta > 25) {
-          if (now - lastShakeTimestamp > 300) {
-            shakeHits++;
-            lastShakeTimestamp = now;
-            if (shakeHits >= 3) {
-              if (
-                activeTriggerType === 'COMM_LINK_COMMAND' &&
-                (triggerConfig?.command === '!antigravity' || triggerConfig?.command === '/antigravity' || activeEggCode === 'EE_ANTIGRAVITY')
-              ) {
-                onTrigger('COMM_LINK_COMMAND', { command: '!antigravity', source: 'device_shake' });
-              } else if (activeTriggerType === 'CUSTOM_ACTION') {
-                onTrigger('CUSTOM_ACTION', { action: 'shake' });
-              }
-              shakeHits = 0;
-            }
+      const totalAcc = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+      if (totalAcc > 28) {
+        const now = Date.now();
+        if (now - lastShakeTime > 2000) {
+          lastShakeTime = now;
+          const shakeEgg = findCandidateEgg('SCREEN_EDGE', (egg) => egg.triggerConfig?.shake);
+          if (shakeEgg) {
+            onTrigger('SCREEN_EDGE', { shake: true, magnitude: totalAcc }, shakeEgg.id || undefined);
           }
         }
       }
-
-      lastX = acc.x;
-      lastY = acc.y;
-      lastZ = acc.z;
     };
 
     if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
-      window.addEventListener('devicemotion', handleDeviceMotion);
+      window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
     }
 
     return () => {
@@ -227,23 +261,24 @@ export function useEasterEggTriggers({
         window.removeEventListener('devicemotion', handleDeviceMotion);
       }
     };
-  }, [activeTriggerType, activeEggCode, triggerConfig, onTrigger, advanceKonamiSequence]);
+  }, [findCandidateEgg, activeTriggerType, activeEggCode, cycleEggs, advanceKonamiSequence, onTrigger]);
 
   // --- GENERIC REPEATED CLICK HANDLER ---
   const handleTargetClick = useCallback(
     (targetName: string, defaultRequiredClicks = 5) => {
-      if (activeTriggerType !== 'CLICK_REPEATED') return;
+      const matched = findCandidateEgg('CLICK_REPEATED', (egg) => {
+        const expected = egg.triggerConfig?.target;
+        return !expected || expected === targetName;
+      });
 
-      const expectedTarget = triggerConfig?.target;
-      // If a specific target is required by config, check match
-      if (expectedTarget && expectedTarget !== targetName) return;
+      if (!matched) return;
 
-      const requiredClicks = triggerConfig?.clicks || defaultRequiredClicks;
+      const requiredClicks = matched.triggerConfig?.clicks || defaultRequiredClicks;
       const current = (clickCounts.current[targetName] || 0) + 1;
       clickCounts.current[targetName] = current;
 
       if (current >= requiredClicks) {
-        onTrigger('CLICK_REPEATED', { target: targetName, clicks: current });
+        onTrigger('CLICK_REPEATED', { target: targetName, clicks: current }, matched.id || undefined);
         clickCounts.current[targetName] = 0;
       }
 
@@ -254,7 +289,7 @@ export function useEasterEggTriggers({
         clickCounts.current[targetName] = 0;
       }, 2500);
     },
-    [activeTriggerType, triggerConfig, onTrigger],
+    [findCandidateEgg, onTrigger],
   );
 
   // --- COMM-LINK SLASH & EXCLAMATION COMMANDS & DIRECT INPUT ---
@@ -267,33 +302,31 @@ export function useEasterEggTriggers({
       const cleanCmd = raw.replace(/^[!/]+/, '').trim();
 
       // Alternative textuelle pour le Konami Code sur mobile ou desktop
-      if (
-        (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') &&
-        (activeTriggerType === 'KONAMI_CODE' || activeEggCode === 'EE_KONAMI_80S')
-      ) {
-        playKonamiSuccessSound();
-        onTrigger('KONAMI_CODE', { sequence: 'konami', source: 'text_input' });
-        return;
+      if (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') {
+        const konamiEgg = findCandidateEgg('KONAMI_CODE') || (activeEggCode === 'EE_KONAMI_80S' ? { id: undefined } : null);
+        if (konamiEgg) {
+          playKonamiSuccessSound();
+          onTrigger('KONAMI_CODE', { sequence: 'konami', source: 'text_input' }, konamiEgg.id || undefined);
+          return;
+        }
       }
 
-      const expectedRaw = (triggerConfig?.command || '').toLowerCase();
-      const expectedClean = expectedRaw.replace(/^[!/]+/, '').trim();
+      const cmdEgg = findCandidateEgg('COMM_LINK_COMMAND', (egg) => {
+        const expectedRaw = (egg.triggerConfig?.command || '').toLowerCase();
+        const expectedClean = expectedRaw.replace(/^[!/]+/, '').trim();
+        if (expectedClean && cleanCmd === expectedClean) return true;
+        if (egg.code === 'EE_TEMPORAL_1985' && cleanCmd === '1985') return true;
+        if (egg.code === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') return true;
+        if (egg.code === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') return true;
+        if (egg.code === 'EE_PARTY_DISCO' && cleanCmd === 'party') return true;
+        return false;
+      });
 
-      const isExpectedMatch = expectedClean && cleanCmd === expectedClean;
-
-      if (activeTriggerType === 'COMM_LINK_COMMAND' && (isExpectedMatch || !expectedClean)) {
-        onTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}` });
-      } else if (activeEggCode === 'EE_TEMPORAL_1985' && cleanCmd === '1985') {
-        onTrigger('COMM_LINK_COMMAND', { command: '!1985' });
-      } else if (activeEggCode === 'EE_MATRIX_COMM_LINK' && cleanCmd === 'matrix') {
-        onTrigger('COMM_LINK_COMMAND', { command: '!matrix' });
-      } else if (activeEggCode === 'EE_ANTIGRAVITY' && cleanCmd === 'antigravity') {
-        onTrigger('COMM_LINK_COMMAND', { command: '!antigravity' });
-      } else if (activeEggCode === 'EE_PARTY_DISCO' && cleanCmd === 'party') {
-        onTrigger('COMM_LINK_COMMAND', { command: '!party' });
+      if (cmdEgg) {
+        onTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}` }, cmdEgg.id || undefined);
       }
     },
-    [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
+    [findCandidateEgg, activeEggCode, onTrigger],
   );
 
   // Fermeture manuelle du HUD Konami
@@ -328,30 +361,25 @@ export function useEasterEggTriggers({
     ];
 
     if (eraSwitchesRef.current.length >= requiredSwitches) {
-      if (activeTriggerType === 'TIMELINE_WARP') {
-        onTrigger('TIMELINE_WARP', { switches: eraSwitchesRef.current.length });
-      } else if (
-        activeTriggerType === 'COMM_LINK_COMMAND' &&
-        (triggerConfig?.command === '!1985' || triggerConfig?.command === '/1985' || activeEggCode === 'EE_TEMPORAL_1985')
-      ) {
-        onTrigger('COMM_LINK_COMMAND', {
-          command: '!1985',
-          source: 'era_switch_warp',
-          switches: eraSwitchesRef.current.length,
-        });
+      const warpEgg =
+        findCandidateEgg('TIMELINE_WARP') ||
+        findCandidateEgg('COMM_LINK_COMMAND', (e) => e.code === 'EE_TEMPORAL_1985');
+      if (warpEgg) {
+        onTrigger('TIMELINE_WARP', { switches: eraSwitchesRef.current.length }, warpEgg.id || undefined);
       }
       eraSwitchesRef.current = [];
     }
-  }, [activeTriggerType, triggerConfig, activeEggCode, onTrigger]);
+  }, [findCandidateEgg, triggerConfig, onTrigger]);
 
   // --- METRIC SEQUENCE (Carbone -> Eau -> Déchets -> Carbone -> Eau) ---
   const handleMetricClick = useCallback(
     (metricName: 'carbon' | 'water' | 'waste') => {
-      if (activeTriggerType !== 'METRIC_SEQUENCE' && activeEggCode !== 'EE_FIVE_NOTES_PROFILE') {
-        return;
-      }
+      const metricEgg =
+        findCandidateEgg('METRIC_SEQUENCE') ||
+        (activeEggCode === 'EE_FIVE_NOTES_PROFILE' ? { id: undefined, triggerConfig } : null);
+      if (!metricEgg) return;
 
-      const expectedSequence = triggerConfig?.sequence || ['carbon', 'water', 'waste', 'carbon', 'water'];
+      const expectedSequence = metricEgg.triggerConfig?.sequence || ['carbon', 'water', 'waste', 'carbon', 'water'];
       const currentList = [...metricSequenceRef.current, metricName];
       const currentIndex = currentList.length - 1;
 
@@ -361,7 +389,7 @@ export function useEasterEggTriggers({
       } else {
         metricSequenceRef.current = currentList;
         if (metricSequenceRef.current.length === expectedSequence.length) {
-          onTrigger('METRIC_SEQUENCE', { sequence: metricSequenceRef.current });
+          onTrigger('METRIC_SEQUENCE', { sequence: metricSequenceRef.current }, metricEgg.id || undefined);
           metricSequenceRef.current = [];
         }
       }
@@ -371,23 +399,26 @@ export function useEasterEggTriggers({
         metricSequenceRef.current = [];
       }, 7000);
     },
-    [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
+    [findCandidateEgg, activeEggCode, triggerConfig, onTrigger],
   );
 
   // --- 3D CONSTELLATION STARS CLICK HANDLER ---
   const handleStarClick = useCallback(
     (starId: number) => {
-      if (activeTriggerType !== 'SCREEN_EDGE' && activeEggCode !== 'EE_CONSTELLATION_3D') return;
+      const starEgg =
+        findCandidateEgg('SCREEN_EDGE') ||
+        (activeEggCode === 'EE_CONSTELLATION_3D' ? { id: undefined, triggerConfig } : null);
+      if (!starEgg) return;
 
-      const requiredStarsCount = triggerConfig?.stars || 3;
+      const requiredStarsCount = starEgg.triggerConfig?.stars || 3;
       clickedStarsRef.current.add(starId);
 
       if (clickedStarsRef.current.size >= requiredStarsCount) {
-        onTrigger('SCREEN_EDGE', { stars: clickedStarsRef.current.size, constellation: true });
+        onTrigger('SCREEN_EDGE', { stars: clickedStarsRef.current.size, constellation: true }, starEgg.id || undefined);
         clickedStarsRef.current.clear();
       }
     },
-    [activeTriggerType, triggerConfig, activeEggCode, onTrigger],
+    [findCandidateEgg, activeEggCode, triggerConfig, onTrigger],
   );
 
   // Handlers and states attached to React elements
@@ -399,10 +430,13 @@ export function useEasterEggTriggers({
 
     // Logo Hold
     handleLogoMouseDown: () => {
-      if (activeTriggerType !== 'LOGO_HOLD' && activeEggCode !== 'EE_LOGO_ROCKET') return;
-      const duration = (triggerConfig?.durationSeconds || 3) * 1000;
+      const logoEgg =
+        findCandidateEgg('LOGO_HOLD') ||
+        (activeEggCode === 'EE_LOGO_ROCKET' ? { id: undefined, triggerConfig } : null);
+      if (!logoEgg) return;
+      const duration = (logoEgg.triggerConfig?.durationSeconds || 3) * 1000;
       logoHoldTimer.current = setTimeout(() => {
-        onTrigger('LOGO_HOLD', { durationSeconds: duration / 1000 });
+        onTrigger('LOGO_HOLD', { durationSeconds: duration / 1000 }, logoEgg.id || undefined);
       }, duration);
     },
     handleLogoMouseUpOrLeave: () => {

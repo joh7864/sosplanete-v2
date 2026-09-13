@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw, Terminal, Gamepad2, Trophy } from 'lucide-react';
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
+import type { CycleEggItem } from '../../types/easterEgg';
 
 interface MascotBubble3DProps {
   isOpen: boolean;
@@ -23,13 +24,14 @@ interface MascotBubble3DProps {
     solved: number;
     currentIndex: number;
   };
+  cycleEggs?: CycleEggItem[];
   isReplayMode?: boolean;
   replayedCycleIndex?: number;
   onExitReplay?: () => void;
-  onVerifyAnswer?: (answer: string) => Promise<{ success: boolean; message?: string }>;
-  onVerifyCommand?: (command: string) => Promise<{ success: boolean; message?: string }>;
-  onReplayVictoryAnimation?: () => void;
-  onSuccess?: () => void;
+  onVerifyAnswer?: (answer: string, targetEggId?: number) => Promise<{ success: boolean; message?: string }>;
+  onVerifyCommand?: (command: string, targetEggId?: number) => Promise<{ success: boolean; message?: string }>;
+  onReplayVictoryAnimation?: (targetEggId?: number) => void;
+  onSuccess?: (targetEggId?: number) => void;
   onOpenCommLink?: () => void;
 }
 
@@ -47,6 +49,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   mascotImageUrl = '/images/robot-mascot.png',
   mascotDurationSeconds: _mascotDurationSeconds = 60,
   multiEggProgress,
+  cycleEggs,
   isReplayMode = false,
   replayedCycleIndex,
   onExitReplay,
@@ -118,9 +121,55 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  const currentMessage =
-    (showExplicitHint && explicitHint ? explicitHint : crypticMessage) ||
-    "Transmission prioritaire 2070 : Décodez l'anomalie temporelle...";
+  const [selectedEggIndex, setSelectedEggIndex] = useState(0);
+
+  // Synchroniser la sélection de l'œuf à l'ouverture ou quand cycleEggs change
+  useEffect(() => {
+    if (isOpen && cycleEggs && cycleEggs.length > 0) {
+      // Priorité 1 : premier œuf dont le prérequis est satisfait et non encore résolu
+      const firstInteractableIdx = cycleEggs.findIndex(
+        (e) => e.isInteractable !== false && !e.isDiscovered,
+      );
+      if (firstInteractableIdx >= 0) {
+        setSelectedEggIndex(firstInteractableIdx);
+      } else {
+        // Priorité 2 : n'importe quel œuf interactif
+        const anyInteractableIdx = cycleEggs.findIndex((e) => e.isInteractable !== false);
+        setSelectedEggIndex(anyInteractableIdx >= 0 ? anyInteractableIdx : 0);
+      }
+    } else {
+      setSelectedEggIndex(0);
+    }
+  }, [isOpen, cycleEggs]);
+
+  useEffect(() => {
+    setDigits(['', '', '', '']);
+    setCommandInput('');
+    setErrorMessage(null);
+    setLocalSuccess(false);
+    setShowLightbox(false);
+    setIsCryptexActive(false);
+  }, [selectedEggIndex]);
+
+  const currentEgg = cycleEggs && cycleEggs.length > 0 ? cycleEggs[selectedEggIndex] : null;
+  const currentTitle = currentEgg ? (currentEgg.title || currentEgg.name || '') : title;
+  const effectiveTriggerType = currentEgg ? currentEgg.triggerType : triggerType;
+  const effectiveIsDiscovered = currentEgg ? !!currentEgg.isDiscovered : isDiscovered;
+  const currentIsInteractable = currentEgg ? (currentEgg.isInteractable !== false) : true;
+  const currentPrereqDesc = currentEgg?.prerequisiteDesc;
+  const effectiveRewardPointsIT = currentEgg ? currentEgg.rewardPointsIT : rewardPointsIT;
+  const currentImageUrl = currentEgg ? currentEgg.imageUrl : imageUrl;
+  const currentExplicitHint = currentEgg ? currentEgg.explicitHint : explicitHint;
+  const currentShowExplicitHint = currentEgg ? !!currentEgg.isExplicitHintVisible : showExplicitHint;
+  const currentEggId = currentEgg?.id;
+
+  const currentRawMessage = currentEgg ? (currentEgg.crypticMessage || '') : (crypticMessage || '');
+  const isEggLocked = !currentIsInteractable && !effectiveIsDiscovered;
+
+  const currentMessage = isEggLocked
+    ? `Signal quantique scellé. Accomplissez les missions prioritaires dans le jeu pour déverrouiller l'accès à cette anomalie.${currentPrereqDesc ? `\n\nConditions requises : ${currentPrereqDesc}` : ''}`
+    : ((currentShowExplicitHint && currentExplicitHint ? currentExplicitHint : currentRawMessage) ||
+      "Transmission prioritaire 2070 : Décodez l'anomalie temporelle...");
 
   const resetTimer = useCallback(() => {
     setTimeLeft(initialDuration);
@@ -249,12 +298,12 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     try {
       setIsVerifying(true);
       setErrorMessage(null);
-      const res = await onVerifyAnswer(answer);
+      const res = await onVerifyAnswer(answer, currentEggId);
       if (res.success) {
         setLocalSuccess(true);
         setIsCryptexActive(true);
         setShowLightbox(false);
-        onSuccess?.();
+        onSuccess?.(currentEggId);
       } else {
         setErrorMessage(res.message || 'Code erroné. Croisez bien les 5 règles du schéma !');
         triggerShake();
@@ -282,14 +331,14 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 
     try {
       setIsVerifyingCommand(true);
-      const res = await onVerifyCommand(raw);
+      const res = await onVerifyCommand(raw, currentEggId);
       if (res.success) {
         setLocalSuccess(true);
-        if (triggerType === 'RIDDLE_ANSWER_INPUT') {
+        if (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT') {
           setIsCryptexActive(true);
         }
         setShowLightbox(false);
-        onSuccess?.();
+        onSuccess?.(currentEggId);
       } else {
         setErrorMessage(res.message || 'Mot-clé ou commande non reconnu.');
         triggerShake();
@@ -495,7 +544,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         letterSpacing: '-0.2px',
                       }}
                     >
-                      {title}
+                      {currentTitle}
                     </h4>
                     {isReplayMode && (
                       <span
@@ -537,7 +586,73 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         Retour cycle actif
                       </button>
                     )}
-                    {multiEggProgress && multiEggProgress.total > 1 && (
+                    {cycleEggs && cycleEggs.length > 1 ? (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'rgba(59, 130, 246, 0.12)',
+                          padding: '2px 6px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(59, 130, 246, 0.28)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          disabled={selectedEggIndex <= 0}
+                          onClick={() => {
+                            setSelectedEggIndex((prev) => Math.max(0, prev - 1));
+                            resetTimer();
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: selectedEggIndex > 0 ? 'pointer' : 'default',
+                            opacity: selectedEggIndex > 0 ? 1 : 0.3,
+                            color: '#2563eb',
+                            fontWeight: 900,
+                            fontSize: '11px',
+                            padding: '0 3px',
+                          }}
+                          title="Énigme précédente"
+                        >
+                          ◀
+                        </button>
+                        <span
+                          style={{
+                            color: '#2563eb',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {selectedEggIndex + 1} / {cycleEggs.length}
+                          {effectiveIsDiscovered ? ' ✓' : isEggLocked ? ' 🔒' : ''}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={selectedEggIndex >= cycleEggs.length - 1}
+                          onClick={() => {
+                            setSelectedEggIndex((prev) => Math.min(cycleEggs.length - 1, prev + 1));
+                            resetTimer();
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: selectedEggIndex < cycleEggs.length - 1 ? 'pointer' : 'default',
+                            opacity: selectedEggIndex < cycleEggs.length - 1 ? 1 : 0.3,
+                            color: '#2563eb',
+                            fontWeight: 900,
+                            fontSize: '11px',
+                            padding: '0 3px',
+                          }}
+                          title="Énigme suivante"
+                        >
+                          ▶
+                        </button>
+                      </div>
+                    ) : multiEggProgress && multiEggProgress.total > 1 ? (
                       <span
                         style={{
                           background: 'rgba(59, 130, 246, 0.12)',
@@ -554,7 +669,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       >
                         ⚡ Anomalie {multiEggProgress.currentIndex} / {multiEggProgress.total}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <span
@@ -587,7 +702,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      +{rewardPointsIT} IT
+                      +{effectiveRewardPointsIT} IT
                     </span>
                     <button
                       type="button"
@@ -625,7 +740,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 </div>
 
                 {/* Badge Alerte 2ème Indice Débloqué si hh:mm écoulé */}
-                {showExplicitHint && explicitHint && (
+                {!isEggLocked && currentShowExplicitHint && currentExplicitHint && (
                   <div
                     style={{
                       background: '#fef3c7',
@@ -657,7 +772,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     marginBottom: '14px',
                     cursor: isTypingComplete ? 'default' : 'pointer',
                     userSelect: 'none',
-                    color: showExplicitHint ? '#92400e' : '#1e293b',
+                    color: isEggLocked ? '#64748b' : currentShowExplicitHint ? '#92400e' : '#1e293b',
                   }}
                   title={isTypingComplete ? '' : 'Cliquez pour afficher tout le texte'}
                 >
@@ -674,7 +789,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 </div>
 
                 {/* Vignette Schéma / Infographie (1.3) */}
-                {imageUrl && (
+                {!isEggLocked && currentImageUrl && (
                   <div
                     style={{
                       background: '#f8fafc',
@@ -705,7 +820,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         }}
                       >
                         <img
-                          src={imageUrl}
+                          src={currentImageUrl}
                           alt="Schéma"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
@@ -746,8 +861,48 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   </div>
                 )}
 
-                {/* Zone interactive de saisie : Pavé 4 chiffres pour RIDDLE_ANSWER_INPUT OU Champ texte premium pour COMM_LINK_COMMAND / KONAMI_CODE */}
-                {(triggerType === 'RIDDLE_ANSWER_INPUT' || triggerType === 'COMM_LINK_COMMAND' || triggerType === 'KONAMI_CODE') && (
+                {/* Zone interactive de saisie ou statut verrouillé */}
+                {isEggLocked ? (
+                  <div
+                    style={{
+                      background: '#0f172a',
+                      borderRadius: '14px',
+                      padding: '20px 16px',
+                      color: '#ffffff',
+                      border: '2px dashed #475569',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        border: '1.5px solid rgba(239, 68, 68, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 12px',
+                        color: '#f87171',
+                      }}
+                    >
+                      <Lock size={22} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#f87171', marginBottom: '6px' }}>
+                      Énigme Actuellement Verrouillée
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.45 }}>
+                      {currentPrereqDesc
+                        ? `Conditions de déblocage : ${currentPrereqDesc}`
+                        : 'Accomplissez vos missions prioritaires dans le jeu pour débloquer l’accès à cette énigme.'}
+                    </p>
+                  </div>
+                ) : (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ||
+                  effectiveTriggerType === 'COMM_LINK_COMMAND' ||
+                  effectiveTriggerType === 'KONAMI_CODE' ||
+                  effectiveIsDiscovered ||
+                  localSuccess) ? (
                   <div
                     style={{
                       background: '#0f172a',
@@ -757,7 +912,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       border: '2px solid #334155',
                     }}
                   >
-                    {isDiscovered || localSuccess ? (
+                    {effectiveIsDiscovered || localSuccess ? (
                       /* État Succès : Énigme résolue avec animation wow */
                       <motion.div
                         initial={{ scale: 0.85, opacity: 0 }}
@@ -766,7 +921,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         style={{ textAlign: 'center', padding: '8px 0' }}
                       >
                         {/* Visuel de Victoire Spécifique selon le Déclencheur */}
-                        {triggerType === 'RIDDLE_ANSWER_INPUT' ? (
+                        {effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ? (
                           /* Mini Cadenas Déverrouillé Animé pour les énigmes cadenas */
                           <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px' }}>
                             <motion.div
@@ -816,7 +971,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               <Unlock size={20} color="#ffffff" />
                             </div>
                           </div>
-                        ) : triggerType === 'COMM_LINK_COMMAND' ? (
+                        ) : effectiveTriggerType === 'COMM_LINK_COMMAND' ? (
                           /* Emblème Terminal pour les Commandes Comm-Link */
                           <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <motion.div
@@ -848,7 +1003,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               <Terminal size={22} color="#38bdf8" />
                             </motion.div>
                           </div>
-                        ) : triggerType === 'KONAMI_CODE' ? (
+                        ) : effectiveTriggerType === 'KONAMI_CODE' ? (
                           /* Emblème Arcade pour le Konami Code */
                           <div style={{ position: 'relative', width: '64px', height: '64px', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <motion.div
@@ -920,18 +1075,18 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '8px',
-                            color: triggerType === 'KONAMI_CODE' ? '#fb7185' : triggerType === 'COMM_LINK_COMMAND' ? '#38bdf8' : '#34d399',
+                            color: effectiveTriggerType === 'KONAMI_CODE' ? '#fb7185' : effectiveTriggerType === 'COMM_LINK_COMMAND' ? '#38bdf8' : '#34d399',
                             fontWeight: 900,
                             fontSize: '1.05rem',
                             marginBottom: '6px',
                             textShadow: '0 0 12px rgba(56, 189, 248, 0.4)',
                           }}
                         >
-                          {triggerType === 'RIDDLE_ANSWER_INPUT'
+                          {effectiveTriggerType === 'RIDDLE_ANSWER_INPUT'
                             ? 'Cadenas 2070 Déverrouillé !'
-                            : triggerType === 'COMM_LINK_COMMAND'
+                            : effectiveTriggerType === 'COMM_LINK_COMMAND'
                               ? 'Protocole 2070 Validé !'
-                              : triggerType === 'KONAMI_CODE'
+                              : effectiveTriggerType === 'KONAMI_CODE'
                                 ? 'Code Secret Arcade Débloqué !'
                                 : 'Anomalie Temporelle Résolue !'}
                         </div>
@@ -952,13 +1107,13 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           }}
                         >
                           <Sparkles size={14} />
-                          +{rewardPointsIT} IT remportés
+                          +{effectiveRewardPointsIT} IT remportés
                         </div>
 
                         <p style={{ margin: '0 0 14px 0', fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.45 }}>
-                          {triggerType === 'COMM_LINK_COMMAND'
+                          {effectiveTriggerType === 'COMM_LINK_COMMAND'
                             ? "Ordre prioritaire transmis avec succès aux relais de l'Arche spatiale. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"
-                            : triggerType === 'KONAMI_CODE'
+                            : effectiveTriggerType === 'KONAMI_CODE'
                               ? "Séquence rétro-arcade authentifiée par l'ordinateur central. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"
                               : "Anomalie temporelle neutralisée. Partagez la découverte avec votre équipe pour remporter le bonus collectif !"}
                         </p>
@@ -978,10 +1133,10 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                             <motion.button
                               type="button"
                               onClick={() => {
-                                if (triggerType === 'RIDDLE_ANSWER_INPUT') {
+                                if (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT') {
                                   setIsCryptexActive(true);
                                 } else if (onReplayVictoryAnimation) {
-                                  onReplayVictoryAnimation();
+                                  onReplayVictoryAnimation(currentEggId);
                                 }
                               }}
                               onMouseEnter={() => setActiveTooltip('replay')}
@@ -1129,7 +1284,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           )}
                         </div>
                       </motion.div>
-                    ) : triggerType === 'RIDDLE_ANSWER_INPUT' ? (
+                    ) : effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ? (
                       /* Formulaire de saisie des 4 chiffres (Cadenas Cryptex conservé) */
                       <div>
                         <div
@@ -1259,7 +1414,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         >
                           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Terminal size={14} />
-                            {triggerType === 'KONAMI_CODE' ? 'COMMANDE ARCADE OU SÉQUENCE' : 'COMMANDE OU MOT-CLÉ DIRECT'}
+                            {effectiveTriggerType === 'KONAMI_CODE' ? 'COMMANDE ARCADE OU SÉQUENCE' : 'COMMANDE OU MOT-CLÉ DIRECT'}
                           </span>
                           <span style={{ fontSize: '0.70rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '2px 7px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700 }}>
                             DIRECT PROTOCOL
@@ -1292,7 +1447,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                                 resetTimer();
                               }}
                               placeholder={
-                                triggerType === 'KONAMI_CODE'
+                                effectiveTriggerType === 'KONAMI_CODE'
                                   ? "Tapez 'konami' ou utilisez les touches arcade..."
                                   : "Saisissez votre code ou mot-clé (ex: matrix)..."
                               }
@@ -1371,10 +1526,10 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       </div>
                     )}
                   </div>
-                )}
+                ) : null}
 
                 {/* Panneau de Déduction Agrandit (Modal Centré sur Mobile & Tablettes, Docké à droite sur Desktop Large) */}
-                {showLightbox && imageUrl && (
+                {showLightbox && currentImageUrl && (
                   isDesktopWide ? (
                     /* Version Desktop Écran Large : Panneau flottant docké à droite de la bulle avec drag */
                     <motion.div
@@ -1448,7 +1603,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           background: 'radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%)',
                         }}
                       >
-                        {imageUrl.includes('cadenas') ? (
+                        {currentImageUrl?.includes('cadenas') ? (
                           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             {/* Cadenas 3D Stylisé */}
                             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
@@ -1647,7 +1802,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                           </div>
                         ) : (
                           <img
-                            src={imageUrl}
+                            src={currentImageUrl || undefined}
                             alt="Schéma Plein Écran"
                             style={{
                               maxWidth: '100%',
@@ -1763,7 +1918,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               gap: isLandscapeMobile ? '6px' : '10px',
                             }}
                           >
-                            {imageUrl.includes('cadenas') ? (
+                            {currentImageUrl?.includes('cadenas') ? (
                               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 {/* Cadenas 3D Stylisé */}
                                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: isLandscapeMobile ? '6px' : '10px' }}>
@@ -1966,7 +2121,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                                 </div>
 
                                 {/* Saisie directe du code dans le schéma (ultra pratique sur mobile) */}
-                                {triggerType === 'RIDDLE_ANSWER_INPUT' && (
+                                {effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' && (
                                   <div
                                     style={{
                                       width: '100%',
@@ -2085,7 +2240,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               </div>
                             ) : (
                               <img
-                                src={imageUrl}
+                                src={currentImageUrl || undefined}
                                 alt="Schéma Plein Écran"
                                 style={{
                                   maxWidth: '100%',
