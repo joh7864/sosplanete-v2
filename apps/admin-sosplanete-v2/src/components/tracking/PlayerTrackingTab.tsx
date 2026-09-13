@@ -35,6 +35,7 @@ interface PlayerTrackingTabProps {
   instanceYearId?: number;
   teams?: Array<{ id: number; name: string }>;
   groups?: Array<{ id: number; name: string }>;
+  onRenderTopBarActions?: (actions: React.ReactNode | null) => void;
 }
 
 export function PlayerTrackingTab({
@@ -43,6 +44,7 @@ export function PlayerTrackingTab({
   instanceYearId,
   teams = [],
   groups = [],
+  onRenderTopBarActions,
 }: PlayerTrackingTabProps) {
   // KPIs state
   const [kpis, setKpis] = useState<{
@@ -82,8 +84,8 @@ export function PlayerTrackingTab({
   // Filters state
   const [searchPseudo, setSearchPseudo] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('all');
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [autoRefreshSec, setAutoRefreshSec] = useState<number>(15);
 
   // Modals & Drawers
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -125,7 +127,6 @@ export function PlayerTrackingTab({
         });
 
         if (selectedTeamId !== 'all') params.append('teamId', selectedTeamId);
-        if (selectedGroupId !== 'all') params.append('groupId', selectedGroupId);
         if (selectedStatus !== 'all') params.append('status', selectedStatus);
         if (searchPseudo.trim()) params.append('childPseudo', searchPseudo.trim());
 
@@ -148,21 +149,75 @@ export function PlayerTrackingTab({
         setSessionsLoading(false);
       }
     },
-    [instanceId, schoolYear, selectedTeamId, selectedGroupId, selectedStatus, searchPseudo],
+    [instanceId, schoolYear, selectedTeamId, selectedStatus, searchPseudo],
   );
 
   useEffect(() => {
     fetchKpis();
     fetchSessions(1);
+  }, [fetchKpis, fetchSessions]);
 
-    // Auto-rafraîchissement toutes les 15 secondes pour le suivi LIVE
+  // Auto-rafraîchissement configurable en secondes (0 = désactivé)
+  useEffect(() => {
+    if (autoRefreshSec <= 0) return;
     const interval = setInterval(() => {
       fetchKpis();
       fetchSessions(currentPage);
-    }, 15000);
+    }, autoRefreshSec * 1000);
 
     return () => clearInterval(interval);
-  }, [fetchKpis, fetchSessions, currentPage]);
+  }, [fetchKpis, fetchSessions, currentPage, autoRefreshSec]);
+
+  // Déportation du champ de rafraîchissement auto et du bouton actualiser dans la TopBar (à gauche des notifications)
+  useEffect(() => {
+    if (!onRenderTopBarActions) return;
+
+    onRenderTopBarActions(
+      <div className="flex items-center gap-2">
+        {/* Champ de saisie numérique en secondes */}
+        <div 
+          className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-600 shadow-sm"
+          title="Intervalle de rafraîchissement automatique en secondes (0 = désactivé, choix recommandé : 15s à 120s)"
+        >
+          <Clock size={13} className="text-slate-400 shrink-0" />
+          <span className="text-[11px] text-slate-400 font-semibold">Auto :</span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            step={15}
+            value={autoRefreshSec}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setAutoRefreshSec(isNaN(val) ? 0 : Math.max(0, Math.min(120, val)));
+            }}
+            className="w-12 px-1 py-0.5 text-center font-mono font-bold text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+          <span className="text-[11px] text-slate-500 font-mono">s</span>
+        </div>
+
+        {/* Bouton-icône Actualiser */}
+        <button
+          onClick={() => {
+            fetchKpis();
+            fetchSessions(currentPage);
+          }}
+          disabled={sessionsLoading || kpisLoading}
+          className="p-2 bg-white hover:bg-slate-50 text-slate-600 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 rounded-xl transition-all shadow-sm disabled:opacity-40 flex items-center justify-center group"
+          title="Actualiser les données (KPIs en direct et historique)"
+        >
+          <RotateCcw
+            size={16}
+            className={`${sessionsLoading || kpisLoading ? 'animate-spin text-emerald-600' : 'group-hover:rotate-180 transition-transform duration-500'}`}
+          />
+        </button>
+      </div>
+    );
+
+    return () => {
+      onRenderTopBarActions(null);
+    };
+  }, [onRenderTopBarActions, autoRefreshSec, sessionsLoading, kpisLoading, fetchKpis, fetchSessions, currentPage]);
 
   const handleExportSessionsCsv = () => {
     if (!sessions || sessions.length === 0) {
@@ -400,30 +455,6 @@ export function PlayerTrackingTab({
         </GlassCard>
       </div>
 
-      {/* RGPD Alert / Information Banner */}
-      <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="p-2 bg-amber-100 rounded-xl text-amber-600 shrink-0 mt-0.5 sm:mt-0">
-            <AlertTriangle size={18} />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-amber-900 leading-snug">
-              Conformité RGPD & Minimisation des Données
-            </p>
-            <p className="text-[11px] text-amber-700 mt-0.5 leading-snug">
-              Les traces de parcours sont des données techniques temporaires d'élèves. Il est
-              recommandé de purger les historiques de plus de 90 jours ou en fin d'année.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowPurgeModal(true)}
-          className="shrink-0 flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 rounded-xl text-xs font-bold transition-all shadow-sm"
-        >
-          <Trash2 size={14} />
-          Purger l'historique
-        </button>
-      </div>
 
       {/* Filters & Actions Bar */}
       <div className="bg-white/60 backdrop-blur-md border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -457,20 +488,6 @@ export function PlayerTrackingTab({
             ))}
           </select>
 
-          {/* Group Filter */}
-          <select
-            value={selectedGroupId}
-            onChange={(e) => setSelectedGroupId(e.target.value)}
-            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-          >
-            <option value="all">Tous les groupes</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id.toString()}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-
           {/* Status Filter */}
           <select
             value={selectedStatus}
@@ -484,15 +501,11 @@ export function PlayerTrackingTab({
           </select>
 
           {/* Reset Filters */}
-          {(searchPseudo ||
-            selectedTeamId !== 'all' ||
-            selectedGroupId !== 'all' ||
-            selectedStatus !== 'all') && (
+          {(searchPseudo || selectedTeamId !== 'all' || selectedStatus !== 'all') && (
             <button
               onClick={() => {
                 setSearchPseudo('');
                 setSelectedTeamId('all');
-                setSelectedGroupId('all');
                 setSelectedStatus('all');
               }}
               className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition-all"
@@ -503,28 +516,25 @@ export function PlayerTrackingTab({
           )}
         </div>
 
+        {/* Actions : Exporter CSV & Purger l'historique sous forme de boutons-icônes avec tooltips */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => {
-              fetchKpis();
-              fetchSessions(currentPage);
-            }}
-            disabled={sessionsLoading || kpisLoading}
-            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-40"
-            title="Rafraîchir les données en direct"
-          >
-            <RotateCcw size={14} className={sessionsLoading || kpisLoading ? 'animate-spin text-emerald-600' : ''} />
-            Actualiser
-          </button>
-
-          {/* CSV Export */}
+          {/* CSV Export icon-button */}
           <button
             onClick={handleExportSessionsCsv}
             disabled={sessions.length === 0}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-40"
+            className="p-2 bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 rounded-xl transition-all shadow-sm disabled:opacity-40 flex items-center justify-center group"
+            title="Exporter l'historique en CSV"
           >
-            <Download size={15} />
-            Exporter CSV
+            <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
+          </button>
+
+          {/* Purge History icon-button */}
+          <button
+            onClick={() => setShowPurgeModal(true)}
+            className="p-2 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-rose-200 hover:border-rose-300 rounded-xl transition-all shadow-sm flex items-center justify-center group"
+            title="Purger l'historique des sessions (RGPD)"
+          >
+            <Trash2 size={16} className="group-hover:scale-110 transition-transform" />
           </button>
         </div>
       </div>
@@ -536,7 +546,7 @@ export function PlayerTrackingTab({
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="py-3.5 px-4">Joueur</th>
-                <th className="py-3.5 px-4">Équipe & Classe</th>
+                <th className="py-3.5 px-4">Équipe</th>
                 <th className="py-3.5 px-4">Appareil</th>
                 <th className="py-3.5 px-4">Connexion</th>
                 <th className="py-3.5 px-4">Durée</th>
@@ -564,7 +574,6 @@ export function PlayerTrackingTab({
                   const pseudo = s.childPseudo || s.child?.pseudo || 'Joueur';
                   const avatar = s.avatar || s.child?.avatar;
                   const teamName = s.teamName || s.child?.team?.name;
-                  const groupName = s.groupName || s.child?.group?.name;
                   const isMobile = s.deviceType?.includes('MOBILE');
 
                   return (
@@ -584,128 +593,107 @@ export function PlayerTrackingTab({
                             />
                           </div>
                           <div>
-                            <span className="font-black text-slate-800 block text-xs">
+                            <span className="font-black text-slate-800 block text-xs whitespace-nowrap">
                               {pseudo}
                             </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* Team & Group */}
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-1">
-                          {teamName ? (
-                            <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full w-fit">
-                              {teamName}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400">Sans équipe</span>
-                          )}
-                          {groupName && (
-                            <span className="text-[10px] text-slate-500 font-bold">
-                              {groupName}
-                            </span>
-                          )}
-                        </div>
+                      {/* Team */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {teamName ? (
+                          <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full inline-block">
+                            {teamName}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic">Sans équipe</span>
+                        )}
                       </td>
 
-                      {/* Device & Browser */}
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="flex items-center gap-1 font-bold text-slate-700">
-                            {isMobile ? (
-                              <Smartphone size={13} className="text-sky-500" />
-                            ) : (
-                              <Monitor size={13} className="text-indigo-500" />
-                            )}
-                            {isMobile
+                      {/* Device with complete info in tooltip */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/70 text-slate-700 cursor-help transition-colors hover:bg-slate-100"
+                          title={`Appareil : ${
+                            isMobile
                               ? s.deviceType === 'MOBILE_LANDSCAPE'
-                                ? 'Mobile Paysage'
-                                : 'Mobile'
-                              : 'Ordinateur'}
-                          </span>
-                          {s.browser && (
-                            <span className="text-[10px] text-slate-400 font-normal">
-                              {s.browser} {s.os ? `• ${s.os}` : ''}
-                            </span>
+                                ? 'Mobile (Paysage)'
+                                : 'Mobile (Portrait)'
+                              : 'Ordinateur / Bureau'
+                          }\nNavigateur : ${s.browser || 'Non renseigné'}\nSystème : ${s.os || 'Non renseigné'}`}
+                        >
+                          {isMobile ? (
+                            <Smartphone size={13} className="text-sky-500 shrink-0" />
+                          ) : (
+                            <Monitor size={13} className="text-indigo-500 shrink-0" />
                           )}
-                        </div>
-                      </td>
-
-                      {/* Timestamp */}
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-bold text-slate-800">
-                            {s.startedAt
-                              ? new Date(s.startedAt).toLocaleDateString('fr-FR', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                })
-                              : '---'}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {s.startedAt
-                              ? new Date(s.startedAt).toLocaleTimeString('fr-FR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : ''}
+                          <span className="text-xs font-bold">
+                            {isMobile ? 'Mobile' : 'Ordinateur'}
                           </span>
                         </div>
                       </td>
 
-                      {/* Duration */}
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-bold text-slate-700">
+                      {/* Timestamp (single line) */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="font-bold text-slate-800">
+                          {s.startedAt
+                            ? new Date(s.startedAt).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: 'short',
+                              })
+                            : '---'}
+                        </span>
+                        {s.startedAt && (
+                          <span className="text-[11px] font-mono text-slate-400 ml-1.5">
+                            {new Date(s.startedAt).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Duration (single line) */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="font-mono font-bold text-slate-700 text-xs">
                           {formatDuration(s.durationSeconds || 0)}
                         </span>
                       </td>
 
-                      {/* Activity Summary */}
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                s.missionsCount > 0
-                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                                  : 'text-slate-400 bg-slate-50'
-                              }`}
-                              title={
-                                s.missionsDone && s.missionsDone.length > 0
-                                  ? `Missions impulsées :\n• ${s.missionsDone.join('\n• ')}`
-                                  : 'Aucune mission impulsée'
-                              }
-                            >
-                              <CheckCircle2 size={11} className={s.missionsCount > 0 ? 'text-amber-600' : 'text-slate-400'} />
-                              {s.missionsCount || 0} mission{s.missionsCount > 1 ? 's' : ''}
-                            </span>
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-100">
-                              <Eye size={11} />
-                              {s.pagesVisitedCount || 0} vues
-                            </span>
-                          </div>
-                          {s.missionsDone && s.missionsDone.length > 0 && (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {s.missionsDone.slice(0, 2).map((mName: string, idx: number) => (
-                                <span
-                                  key={idx}
-                                  className="text-[9px] font-medium bg-amber-50/80 text-amber-900 border border-amber-200/70 rounded px-1.5 py-0.5 truncate max-w-[130px]"
-                                  title={mName}
-                                >
-                                  ⚡ {mName}
-                                </span>
-                              ))}
-                              {s.missionsDone.length > 2 && (
-                                <span
-                                  className="text-[9px] text-amber-700 font-bold bg-amber-100/60 px-1 py-0.5 rounded"
-                                  title={s.missionsDone.slice(2).join('\n• ')}
-                                >
-                                  +{s.missionsDone.length - 2}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                      {/* Activity Micro-badges with rich tooltips */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          {/* Missions Badge */}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold cursor-help transition-all ${
+                              s.missionsCount > 0
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200/80 shadow-xs hover:bg-amber-100'
+                                : 'text-slate-400 bg-slate-50 border border-slate-100'
+                            }`}
+                            title={
+                              s.missionsDone && s.missionsDone.length > 0
+                                ? `Missions impulsées (${s.missionsCount}) :\n• ${s.missionsDone.join('\n• ')}`
+                                : s.missionsCount > 0
+                                ? `${s.missionsCount} mission(s) impulsée(s) (détails dans le parcours)`
+                                : 'Aucune mission impulsée'
+                            }
+                          >
+                            <CheckCircle2
+                              size={12}
+                              className={s.missionsCount > 0 ? 'text-amber-600 shrink-0' : 'text-slate-300 shrink-0'}
+                            />
+                            <span>{s.missionsCount || 0}</span>
+                          </span>
+
+                          {/* Page Views Badge */}
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200/80 shadow-xs cursor-help hover:bg-sky-100 transition-all"
+                            title={`Écrans & pages consultés : ${s.pagesVisitedCount || 0}`}
+                          >
+                            <Eye size={12} className="text-sky-500 shrink-0" />
+                            <span>{s.pagesVisitedCount || 0}</span>
+                          </span>
                         </div>
                       </td>
 

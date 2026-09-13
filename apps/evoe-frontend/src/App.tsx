@@ -1017,7 +1017,7 @@ function MainApp() {
             alpha: true,
             stencil: false,
             depth: true,
-            precision: 'mediump',
+            precision: 'highp',
           }}
         >
           {era === '2026' && (

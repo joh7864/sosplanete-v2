@@ -198,13 +198,15 @@ function ThematicSector({
       <Billboard follow={true} raycast={() => null}>
         <Text
           position={[0, -0.65, 0]}
+          font="/fonts/Roboto-Bold.ttf"
           fontSize={0.2}
           fontWeight="bold"
           color={hovered ? '#ffffff' : sectorColor}
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.02}
+          outlineWidth={0.008}
           outlineColor="#000000"
+          outlineBlur={0.003}
         >
           {shortName}
         </Text>
@@ -401,13 +403,15 @@ function MoonChallengeArenaNode({
         {/* Chiffre du total des défis en cours (Rapproché au-dessus des épées) */}
         <Text
           position={[0, 0.18, 0.45]}
+          font="/fonts/Roboto-Bold.ttf"
           fontSize={0.11}
           fontWeight="bold"
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.02}
+          outlineWidth={0.008}
           outlineColor="#000000"
+          outlineBlur={0.003}
         >
           {totalChallenges}
         </Text>
@@ -426,13 +430,15 @@ function MoonChallengeArenaNode({
         {/* Le mot "Défis" sous les épées (Rapproché au-dessous des épées) */}
         <Text
           position={[0, -0.21, 0.45]}
+          font="/fonts/Roboto-Bold.ttf"
           fontSize={0.11}
           fontWeight="bold"
           color={totalChallenges > 0 ? '#ffb703' : '#ffffff'}
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.02}
+          outlineWidth={0.008}
           outlineColor="#000000"
+          outlineBlur={0.003}
         >
           Défis
         </Text>

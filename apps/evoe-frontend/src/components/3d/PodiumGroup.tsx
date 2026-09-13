@@ -271,13 +271,15 @@ export default function PodiumGroup({
           {/* Numéro 1 garanti visible à l'avant */}
           <Billboard follow={true} position={[0, 0.15, 0.65]}>
             <Text
+              font="/fonts/Roboto-Bold.ttf"
               fontSize={0.55}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
-              outlineWidth={0.035}
+              outlineWidth={0.02}
               outlineColor="#ffd700"
+              outlineBlur={0.005}
               onClick={() => handleSelectPlayer(goldPlayer)}
             >
               1
@@ -348,13 +350,15 @@ export default function PodiumGroup({
           {/* Numéro 2 garanti visible à l'avant */}
           <Billboard follow={true} position={[-1.25, -0.1, 0.58]}>
             <Text
+              font="/fonts/Roboto-Bold.ttf"
               fontSize={0.44}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
-              outlineWidth={0.03}
+              outlineWidth={0.02}
               outlineColor="#00ffcc"
+              outlineBlur={0.005}
               onClick={() => handleSelectPlayer(silverPlayer)}
             >
               2
@@ -425,13 +429,15 @@ export default function PodiumGroup({
           {/* Numéro 3 garanti visible à l'avant */}
           <Billboard follow={true} position={[1.25, -0.25, 0.58]}>
             <Text
+              font="/fonts/Roboto-Bold.ttf"
               fontSize={0.40}
               fontWeight="900"
               color="#ffffff"
               anchorX="center"
               anchorY="middle"
-              outlineWidth={0.03}
+              outlineWidth={0.02}
               outlineColor="#ff7700"
+              outlineBlur={0.005}
               onClick={() => handleSelectPlayer(bronzePlayer)}
             >
               3

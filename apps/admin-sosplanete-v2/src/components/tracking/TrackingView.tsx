@@ -70,13 +70,15 @@ export function TrackingView({
   schoolYear, 
   instanceYearId, 
   activeInstanceName,
-  managedInstances
+  managedInstances,
+  onRenderTopBarActions,
 }: { 
   instanceId: number;
   schoolYear: string;
   instanceYearId?: number;
   activeInstanceName?: string;
   managedInstances: any[];
+  onRenderTopBarActions?: (actions: React.ReactNode | null) => void;
 }) {
   const [data, setData] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,18 +99,21 @@ export function TrackingView({
     return 'indicators';
   });
 
-  useEffect(() => {
-    sessionStorage.setItem('trackingActiveTab', activeTab);
-  }, [activeTab]);
-
   const [helpOpen, setHelpOpen] = useState(false);
   const [animalsRefreshKey, setAnimalsRefreshKey] = useState(0);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Valeurs de configuration pour la densification
   const CELL_WIDTH = 32; // px
   const STATIC_COLS_WIDTH = 340; // Total des colonnes de gauche
 
+  useEffect(() => {
+    sessionStorage.setItem('trackingActiveTab', activeTab);
+    if (activeTab !== 'player-tracking') {
+      onRenderTopBarActions?.(null);
+    }
+  }, [activeTab, onRenderTopBarActions]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -146,8 +151,6 @@ export function TrackingView({
       setLoading(false);
     }
   };
-
-  const [isExporting, setIsExporting] = useState(false);
 
   const handleExportActionsCsv = async () => {
     if (!instanceId) return;
@@ -298,6 +301,7 @@ export function TrackingView({
     }
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${pseudo}&backgroundColor=f1f5f9`;
   };
+
 
 
   return (
@@ -529,6 +533,7 @@ export function TrackingView({
           instanceYearId={instanceYearId ?? undefined}
           teams={teams}
           groups={groups}
+          onRenderTopBarActions={onRenderTopBarActions}
         />
       )}
     </div>

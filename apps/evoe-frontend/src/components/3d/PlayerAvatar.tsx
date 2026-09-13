@@ -989,6 +989,7 @@ export function PlayerAvatar({
         ) : (
           <Text
             position={[0, 0, 0.01]}
+            font="/fonts/Roboto-Bold.ttf"
             fontSize={haloScale * 0.6}
             color="#ffffff"
             anchorX="center"
@@ -1191,6 +1192,7 @@ export function PlayerAvatar({
             {player.health !== undefined && (
               <Text
                 position={[0, 0, 0.003]}
+                font="/fonts/Roboto-Bold.ttf"
                 fontSize={0.042}
                 fontWeight="bold"
                 color="#050a15"
@@ -1218,14 +1220,16 @@ export function PlayerAvatar({
                   <group>
                     <Text
                       position={[-0.015, 0, 0]}
+                      font="/fonts/Roboto-Bold.ttf"
                       fontSize={fontSize * 0.58}
                       fontWeight="900"
                       letterSpacing={0.04}
                       color={color || '#ffd700'}
                       anchorX="right"
                       anchorY="middle"
-                      outlineWidth={0.014}
+                      outlineWidth={0.008}
                       outlineColor="#050a16"
+                      outlineBlur={0.003}
                       material-depthWrite={false}
                       frustumCulled={false}
                     >
@@ -1233,14 +1237,16 @@ export function PlayerAvatar({
                     </Text>
                     <Text
                       position={[0.015, 0, 0]}
+                      font="/fonts/Roboto-Bold.ttf"
                       fontSize={fontSize * 0.48}
                       fontWeight="400"
                       letterSpacing={0.02}
                       color="#94a3b8"
                       anchorX="left"
                       anchorY="middle"
-                      outlineWidth={0.01}
+                      outlineWidth={0.006}
                       outlineColor="#050a16"
+                      outlineBlur={0.003}
                       material-depthWrite={false}
                       frustumCulled={false}
                     >
@@ -1249,14 +1255,16 @@ export function PlayerAvatar({
                   </group>
                 ) : (
                   <Text
+                    font="/fonts/Roboto-Bold.ttf"
                     fontSize={fontSize * 0.58}
                     fontWeight="900"
                     letterSpacing={0.04}
                     color={color || '#ffd700'}
                     anchorX="center"
                     anchorY="middle"
-                    outlineWidth={0.014}
+                    outlineWidth={0.008}
                     outlineColor="#050a16"
+                    outlineBlur={0.003}
                     material-depthWrite={false}
                     frustumCulled={false}
                   >
@@ -1272,14 +1280,16 @@ export function PlayerAvatar({
       <Billboard follow={true}>
         <Text
           position={[0, -(haloScale * 0.5 + (rankTag && !showHealth ? 0.17 : 0.20)), 0]}
+          font="/fonts/Roboto-Bold.ttf"
           fontSize={fontSize * 1.05}
           fontWeight="800"
           letterSpacing={0.03}
           color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.025}
+          outlineWidth={0.008}
           outlineColor="#000000"
+          outlineBlur={0.004}
           material-depthWrite={false}
           frustumCulled={false}
         >

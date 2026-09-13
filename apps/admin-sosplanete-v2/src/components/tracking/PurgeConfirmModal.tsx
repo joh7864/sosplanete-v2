@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Trash2, X, Loader2, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { getAuthData } from '@/utils/storage';
 
 interface PurgeConfirmModalProps {
@@ -108,10 +108,12 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
               </div>
             ) : (
               <>
-                <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                  Cette opération supprime les logs techniques de sessions et de parcours.
-                  <strong className="text-emerald-400"> Les totaux d'impact et les missions réalisées dans l'application restent 100% conservés.</strong>
-                </p>
+                <div className="mb-4 p-3 rounded-xl bg-slate-800/80 border border-slate-700 flex items-start gap-2.5">
+                  <ShieldCheck size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-slate-300 leading-relaxed m-0">
+                    <strong className="text-white">Conformité RGPD & Minimisation :</strong> Les traces de parcours sont des données techniques temporaires d'élèves. Il est recommandé de purger les historiques de plus de 90 jours ou en fin d'année scolaire. <strong className="text-emerald-400">Les totaux d'impact et les missions réalisées restent 100% conservés.</strong>
+                  </p>
+                </div>
 
                 <div className="space-y-3 mb-6">
                   <label

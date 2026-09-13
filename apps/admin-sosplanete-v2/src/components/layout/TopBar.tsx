@@ -230,15 +230,15 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
 
-          {actions && (
-            <div className="flex items-center gap-2 shrink-0">
-              {actions}
-            </div>
-          )}
-
           {selector && (
             <div className="flex items-center shrink-0">
               {selector}
+            </div>
+          )}
+
+          {actions && (
+            <div className="flex items-center gap-2 shrink-0">
+              {actions}
             </div>
           )}
           

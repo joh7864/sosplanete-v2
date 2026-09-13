@@ -114,10 +114,13 @@ function TrackingContent() {
     router.replace(`/dashboard/tracking?instanceId=${id}`);
   };
 
+  const [topBarActions, setTopBarActions] = useState<React.ReactNode | null>(null);
+
   return (
     <div className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar bg-slate-50/50">
       {/* TopBar */}
       <TopBar
+        actions={topBarActions}
         title={
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
@@ -229,6 +232,7 @@ function TrackingContent() {
             instanceYearId={instanceYearId ?? undefined}
             activeInstanceName={activeInstanceName}
             managedInstances={managedInstances}
+            onRenderTopBarActions={setTopBarActions}
           />
         )}
       </div>
