@@ -54,7 +54,8 @@ export const LocalList: React.FC<LocalListProps> = ({
   const filteredLocal = useMemo(() => {
     const list = actions.filter(la => {
       const matchSearch = la.label.toLowerCase().includes(globalSearch.toLowerCase()) || la.actionRef.code.toLowerCase().includes(globalSearch.toLowerCase());
-      const matchCat = !filterCategory || (la.category && (typeof la.category === 'string' ? la.category === filterCategory : la.category.name === filterCategory));
+      const actualCat = (typeof la.category === 'string' ? la.category : la.category?.name) || la.actionRef.category;
+      const matchCat = !filterCategory || actualCat === filterCategory;
       const matchStars = (la.actionRef.weightedStars || 0) >= minStars;
       
       const matchCo2 = !impactFilters.co2 || (la.actionRef.defaultCo2 ?? 0) > 0;
@@ -69,7 +70,7 @@ export const LocalList: React.FC<LocalListProps> = ({
         const co2 = item.actionRef.defaultCo2 || 0;
         const water = item.actionRef.defaultWater || 0;
         const waste = item.actionRef.defaultWaste || 0;
-        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+        return Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
       };
       if (sortBy === 'it-desc') {
         const itA = getIT(a);
@@ -125,6 +126,7 @@ export const LocalList: React.FC<LocalListProps> = ({
   return (
     <div 
       ref={setNodeRef} 
+      onDragOver={(e) => e.preventDefault()}
       className={`flex flex-col gap-3 h-full p-5 rounded-2xl border transition-all duration-300 ${isOver ? 'bg-emerald-50/80 border-emerald-400 border-dashed shadow-2xl shadow-emerald-500/10' : 'bg-white border-slate-200 shadow-xl'}`}
     >
       {/* Header Compact with COUNT (Fixed height for alignment) */}
@@ -198,7 +200,7 @@ export const LocalList: React.FC<LocalListProps> = ({
   );
 };
 
-const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
+export const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `local-${action.id}`,
     data: { type: 'local', action }
@@ -214,12 +216,11 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEv
     <div 
       ref={setNodeRef}
       style={style}
-      onClick={onEdit}
-      className={`group relative flex items-center gap-3 p-2.5 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-lg'} ${isDragging ? 'opacity-50 grayscale scale-95' : ''}`}
+      className={`group relative flex items-center gap-3 p-2.5 rounded-2xl border transition-all select-none ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-lg'} ${isDragging ? 'opacity-50 grayscale scale-95' : ''}`}
     >
       <div 
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all ${isSelected ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 group-hover:border-emerald-300'}`}
+        className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 cursor-pointer transition-all shrink-0 ${isSelected ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-200 group-hover:border-emerald-300'}`}
       >
         {isSelected && <Check size={14} strokeWidth={4} />}
       </div>
@@ -227,7 +228,7 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEv
       <div 
         {...listeners} 
         {...attributes}
-        className="cursor-grab active:cursor-grabbing text-slate-200 hover:text-emerald-400 transition-colors"
+        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-emerald-500 transition-colors p-1"
       >
         <GripVertical size={16} />
       </div>
@@ -265,8 +266,11 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEv
 
       <div className="flex items-center gap-1.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
          <button 
+           type="button"
+           onPointerDown={(e) => e.stopPropagation()}
            onClick={(e) => { e.stopPropagation(); onRemove(); }}
            className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+           title="Supprimer du catalogue"
          >
            <Trash2 size={14} />
          </button>
@@ -275,7 +279,7 @@ const CompactLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEv
   );
 };
 
-const DraggableGridLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
+export const DraggableGridLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove, isEvoe }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `local-${action.id}`,
     data: { type: 'local', action }
@@ -291,7 +295,7 @@ const DraggableGridLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove
     <div 
       ref={setNodeRef}
       style={style}
-      className={`relative group transition-all ${isSelected ? 'scale-95' : ''} ${isDragging ? 'opacity-50 grayscale' : 'hover:scale-[1.02]'}`}
+      className={`relative group transition-all select-none ${isSelected ? 'scale-95' : ''} ${isDragging ? 'opacity-50 grayscale' : 'hover:scale-[1.02]'}`}
     >
       {/* Checkbox Overlay */}
       <div 
@@ -301,34 +305,32 @@ const DraggableGridLocalCard = ({ action, isSelected, onToggle, onEdit, onRemove
         {isSelected && <Check size={14} strokeWidth={4} />}
       </div>
 
+      {/* Grip Handle */}
       <div 
         {...listeners} 
         {...attributes}
-        className="absolute top-10 right-2 z-20 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border-2 border-slate-100 flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-300 hover:text-emerald-500 hover:border-emerald-300 hover:shadow-lg transition-all opacity-0 group-hover:opacity-100"
+        className="absolute top-2 left-2 z-20 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/50 flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-emerald-500 hover:border-emerald-300 hover:shadow-lg transition-all shadow-md opacity-70 group-hover:opacity-100"
       >
-        <GripVertical size={14} />
+        <GripVertical size={18} />
       </div>
 
       {/* Quick Edit/Remove Mini Overlay */}
       <div className="absolute bottom-2 right-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="w-7 h-7 rounded-lg bg-white/90 text-slate-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-md"
-        >
-          <Settings2 size={12} />
-        </button>
-        <button 
+          type="button"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          className="w-7 h-7 rounded-lg bg-white/90 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"
+          className="w-7 h-7 rounded-lg bg-white/90 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md cursor-pointer"
+          title="Supprimer du catalogue"
         >
           <Trash2 size={12} />
         </button>
       </div>
 
-      <div onClick={onEdit}>
+      <div onClick={(e) => { e.stopPropagation(); onEdit(); }}>
         <ActionGalleryCard 
           action={{
             ...action.actionRef,
+            ...action,
             referenceName: action.label,
             category: (typeof action.category === 'string' ? action.category : action.category?.name) || action.actionRef.category || 'Général'
           }}

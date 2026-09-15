@@ -272,7 +272,7 @@ export class EvoeService {
       const water = action.specificWater ?? action.actionRef?.defaultWater ?? 0;
       const waste = action.specificWaste ?? action.actionRef?.defaultWaste ?? 0;
       // Formule de pondération 60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT
-      const calculated = 10 + Math.round(12 * co2 + 4 * waste + 0.04 * water);
+      const calculated = Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
       const amplitude = calculated;
 
       // Fusion of physical action and SF mapping
@@ -795,58 +795,16 @@ export class EvoeService {
     children: any[],
   ): Promise<Map<number, number>> {
     const healthMap = new Map<number, number>();
-    if (!periodId) {
+    if (!periodId || !children.length) {
       children.forEach((c) => healthMap.set(c.id, 0));
       return healthMap;
     }
-
-    const config = await this.prisma.gameConfig.findUnique({
-      where: { instanceId_schoolYear: { instanceId, schoolYear } },
-    });
-    const avgActions = config?.avgActionsPerChildPerPeriod || 12;
-    const gamePeriodsCount = config?.gamePeriodsCount || 24;
-
-    const localActionsCtx = await this.prisma.localAction.findMany({
-      where: { instanceId, schoolYear },
-      include: { actionRef: true },
-    });
-
-    let catMaxCo2 = 0;
-    let catMaxWater = 0;
-    let catMaxWaste = 0;
-
-    localActionsCtx.forEach((a) => {
-      const isYearly = (a.actionRef?.co2Year ?? 0) > 0;
-      const factor = isYearly ? 52 / gamePeriodsCount : 1;
-      catMaxCo2 += (a.specificCo2 ?? a.actionRef?.defaultCo2 ?? 0) * factor;
-      catMaxWater +=
-        (a.specificWater ?? a.actionRef?.defaultWater ?? 0) * factor;
-      catMaxWaste +=
-        (a.specificWaste ?? a.actionRef?.defaultWaste ?? 0) * factor;
-    });
-
-    const actionCount = localActionsCtx.length || 1;
-    const avgCo2Catalog = catMaxCo2 / actionCount;
-    const avgWaterCatalog = catMaxWater / actionCount;
-    const avgWasteCatalog = catMaxWaste / actionCount;
-
-    const targetCo2 =
-      avgCo2Catalog * avgActions > 0 ? avgCo2Catalog * avgActions : 1;
-    const targetWater =
-      avgWaterCatalog * avgActions > 0 ? avgWaterCatalog * avgActions : 1;
-    const targetWaste =
-      avgWasteCatalog * avgActions > 0 ? avgWasteCatalog * avgActions : 1;
 
     const childIds = children.map((c) => c.id);
     const actionsDone = await this.prisma.actionDone.findMany({
       where: {
         periodId,
         childId: { in: childIds },
-      },
-      include: {
-        localAction: {
-          include: { actionRef: true },
-        },
       },
     });
 
@@ -857,19 +815,6 @@ export class EvoeService {
       childActionsMap.set(ad.childId, list);
     });
 
-    const period = await this.prisma.period.findUnique({
-      where: { id: periodId },
-    });
-    let decay = 0;
-    if (period) {
-      const totalDuration =
-        period.endDate.getTime() - period.startDate.getTime();
-      const elapsed = Math.max(0, Date.now() - period.startDate.getTime());
-      const elapsedRatio =
-        totalDuration > 0 ? Math.min(1, elapsed / totalDuration) : 0;
-      decay = Math.round(elapsedRatio * 85); // Perte max de 85 IT (finit à 15 IT si aucune action)
-    }
-
     const activeChallenges = await this.prisma.evoeChallenge.findMany({
       where: {
         periodId,
@@ -879,42 +824,22 @@ export class EvoeService {
 
     for (const child of children) {
       const childActions = childActionsMap.get(child.id) || [];
-
-      let childCo2 = 0;
-      let childWater = 0;
-      let childWaste = 0;
+      let totalIt = 0;
 
       childActions.forEach((ad) => {
-        const isYearly = (ad.localAction.actionRef?.co2Year ?? 0) > 0;
-        const factor = isYearly ? 52 / gamePeriodsCount : 1;
-        childCo2 += ad.savedCo2 * factor;
-        childWater += ad.savedWater * factor;
-        childWaste += ad.savedWaste * factor;
-      });
+        let actionIt = Math.round(1 + 1.2 * ad.savedCo2 + 4.7 * ad.savedWaste + 0.0042 * ad.savedWater);
 
-      const itCo2 = Math.min(60, (childCo2 / targetCo2) * 60);
-      const itWater = Math.min(20, (childWater / targetWater) * 20);
-      const itWaste = Math.min(20, (childWaste / targetWaste) * 20);
-      const baseRegen = itCo2 + itWater + itWaste;
-
-      // IT Decay model: start at 100, lose decay, heal baseRegen
-      const baseIt = Math.max(0, Math.min(100, 100 - decay + baseRegen));
-
-      let challengeBonus = 0;
-      activeChallenges.forEach((ch) => {
-        if (ch.targetTeamId === child.teamId) {
-          const didIt = childActions.some(
-            (ad) => ad.localActionId === ch.localActionId,
-          );
-          if (didIt) {
-            challengeBonus += 15;
-          } else {
-            challengeBonus += 5;
-          }
+        // Si l'action fait l'objet d'un défi remporté, x2
+        const isChallenge = activeChallenges.some(
+          (ch) => ch.targetTeamId === child.teamId && ch.localActionId === ad.localActionId
+        );
+        if (isChallenge) {
+          actionIt *= 2;
         }
+
+        totalIt += actionIt;
       });
 
-      const totalIt = Math.min(120, Math.round(baseIt + challengeBonus));
       healthMap.set(child.id, totalIt);
     }
 
@@ -1555,8 +1480,10 @@ export class EvoeService {
       const co2 = localAction.specificCo2 ?? localAction.actionRef?.defaultCo2 ?? 0;
       const water = localAction.specificWater ?? localAction.actionRef?.defaultWater ?? 0;
       const waste = localAction.specificWaste ?? localAction.actionRef?.defaultWaste ?? 0;
-      // Formule de pondération officielle EVOE (60% CO2e, 20% Déchets, 20% Eau avec socle de 10 IT)
-      return 10 + Math.round(12 * co2 + 4 * waste + 0.04 * water);
+      const calculateActionIT = (co2: number, water: number, waste: number) => {
+        return Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
+      };
+      return calculateActionIT(co2, water, waste);
     };
 
     const child = await this.prisma.child.findUnique({
@@ -1654,22 +1581,11 @@ export class EvoeService {
       totalWaste += a.savedWaste ?? 0;
     }
 
-    const year = parseInt(schoolYear.split('-')[0], 10);
-    const annualData = await this.prisma.annualImpactData.findUnique({
-      where: { year },
-    });
-    const moyCo2Monde = annualData?.moyCo2Monde ?? 4.7;
-    const moyEauMonde = annualData?.moyEauMonde ?? 1385000;
-    const moyDechetsMonde = annualData?.moyDechetsMonde ?? 270;
-
     const totalIT = this.calculateNormalizedScore(
       totalCo2,
       totalWater,
       totalWaste,
       allActionsDone.length,
-      moyCo2Monde * 1000,
-      moyEauMonde,
-      moyDechetsMonde,
     );
 
     const personalMetrics = {
@@ -1679,6 +1595,11 @@ export class EvoeService {
       totalIT,
       totalActionsCount: allActionsDone.length,
     };
+
+    const playerBadges = await this.prisma.playerBadge.findMany({
+      where: { childId },
+      orderBy: { createdAt: 'asc' }
+    });
 
     // 4. Éco-missions réalisées sur la période active
     let actionsDonePeriod: any[] = [];
@@ -1827,7 +1748,21 @@ export class EvoeService {
       top5Missions,
       totalMissionsCount: allActionsDone.length,
       challenges: mappedChallenges,
+      playerBadges,
     };
+  }
+
+  calculateNormalizedScore(
+    co2: number,
+    water: number,
+    waste: number,
+    count: number,
+    _moyCo2?: number,
+    _moyEau?: number,
+    _moyDechets?: number
+  ): number {
+    if (count === 0 && co2 === 0 && water === 0 && waste === 0) return 0;
+    return Math.round(1 * count + 1.2 * (co2 || 0) + 4.7 * (waste || 0) + 0.0042 * (water || 0));
   }
 
   async verifyAuth(authHeader: string, instanceIdStr?: string) {
@@ -2062,20 +1997,4 @@ export class EvoeService {
     return { success: true };
   }
 
-  private calculateNormalizedScore(
-    co2Kg: number,
-    waterL: number,
-    wasteKg: number,
-    actionsCount: number,
-    refCo2Kg = 4700,
-    refWaterL = 1385000,
-    refWasteKg = 270,
-  ): number {
-    const pCo2 = refCo2Kg > 0 ? co2Kg / refCo2Kg : 0;
-    const pWater = refWaterL > 0 ? waterL / refWaterL : 0;
-    const pWaste = refWasteKg > 0 ? wasteKg / refWasteKg : 0;
-    const rawImpact = (pCo2 * 0.5 + pWater * 0.2 + pWaste * 0.2) * 1000;
-    const bonusActions = Math.min(100, (actionsCount || 0) * 2);
-    return Math.round(rawImpact + bonusActions);
-  }
 }

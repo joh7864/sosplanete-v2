@@ -1110,13 +1110,25 @@ export class EasterEggService implements OnModuleInit {
 
       const childActions = await this.prisma.actionDone.findMany({
         where: { childId, periodId },
-        include: { localAction: true },
+        include: {
+          localAction: {
+            include: { actionRef: true },
+          },
+        },
       });
 
       const distinctSectors = new Set(
         childActions
-          .map((a) => a.localAction?.categoryId)
-          .filter((catId) => catId != null),
+          .map((a) => {
+            if (a.localAction?.categoryId != null) {
+              return `cat_${a.localAction.categoryId}`;
+            }
+            if (a.localAction?.actionRef?.category) {
+              return `ref_${a.localAction.actionRef.category.toLowerCase().trim()}`;
+            }
+            return null;
+          })
+          .filter(Boolean),
       );
 
       return childActions.length >= countReq && distinctSectors.size >= sectorsReq;

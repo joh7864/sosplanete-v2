@@ -539,20 +539,51 @@ export class LegacyApiService {
         },
       });
 
-      const childImpacts = await this.prisma.actionDone.groupBy({
-        by: ['childId'],
-        _count: { id: true },
-        _sum: { savedCo2: true },
+      const actionsDone = await this.prisma.actionDone.findMany({
         where: {
           period: { instanceYearId },
         },
+        select: {
+          childId: true,
+          localActionId: true,
+          savedCo2: true,
+          savedWater: true,
+          savedWaste: true,
+          periodId: true,
+        },
       });
 
-      const impactMap = new Map<number, { count: number; co2: number }>();
-      childImpacts.forEach((ci) => {
-        impactMap.set(ci.childId, {
-          count: ci._count.id || 0,
-          co2: ci._sum.savedCo2 || 0,
+      const activeChallenges = await this.prisma.evoeChallenge.findMany({
+        where: {
+          period: { instanceYearId },
+          status: 'SUCCESS',
+        },
+        select: {
+          localActionId: true,
+          targetTeamId: true,
+          periodId: true,
+        }
+      });
+
+      const impactMap = new Map<number, { count: number; itPoints: number }>();
+
+      actionsDone.forEach((ad) => {
+        let actionIt = Math.round(1 + 1.2 * ad.savedCo2 + 4.7 * ad.savedWaste + 0.0042 * ad.savedWater);
+        
+        const childTeamId = teams.find(t => t.groups.some(g => g.children.some(c => c.id === ad.childId)))?.id;
+        
+        const isChallenge = activeChallenges.some(
+          (ch) => ch.targetTeamId === childTeamId && ch.localActionId === ad.localActionId && ch.periodId === ad.periodId
+        );
+
+        if (isChallenge) {
+          actionIt *= 2;
+        }
+
+        const current = impactMap.get(ad.childId) || { count: 0, itPoints: 0 };
+        impactMap.set(ad.childId, {
+          count: current.count + 1,
+          itPoints: current.itPoints + actionIt,
         });
       });
 
@@ -563,16 +594,16 @@ export class LegacyApiService {
         score: number;
         count: number;
       }> = [];
+      
       teams.forEach((t) => {
         t.groups.forEach((g) => {
           g.children.forEach((c) => {
-            const impact = impactMap.get(c.id) || { count: 0, co2: 0 };
-            const score = impact.count * 10 + impact.co2;
+            const impact = impactMap.get(c.id) || { count: 0, itPoints: 0 };
             list.push({
               childId: c.id,
               pseudo: c.pseudo,
               teamName: t.name,
-              score,
+              score: impact.itPoints,
               count: impact.count,
             });
           });

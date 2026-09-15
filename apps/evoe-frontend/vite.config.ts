@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/uploads': {
-          target: env.VITE_API_URL || 'http://localhost:3011',
+          target: env.VITE_API_URL ? new URL(env.VITE_API_URL).origin : 'http://localhost:3011',
           changeOrigin: true,
         },
       },

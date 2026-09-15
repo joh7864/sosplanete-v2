@@ -30,6 +30,7 @@ interface LocalActionEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (updated: LocalAction) => void;
+  initialUniverse?: 'legacy' | 'evoe';
 }
 
 export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({ 
@@ -37,9 +38,10 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
   categories = [],
   isOpen, 
   onClose, 
-  onSave 
+  onSave,
+  initialUniverse = 'legacy'
 }) => {
-  const [activeTab, setActiveTab] = useState<'legacy' | 'evoe'>('legacy');
+  const [activeTab, setActiveTab] = useState<'legacy' | 'evoe'>(initialUniverse);
 
   // Champs SOS Planète (Local)
   const [label, setLabel] = useState('');
@@ -63,6 +65,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
 
   useEffect(() => {
     if (action) {
+      setActiveTab(initialUniverse || 'legacy');
       setLabel(action.label || '');
       setDescription(action.description || '');
       setImage(action.image || '');
@@ -75,7 +78,7 @@ export const LocalActionEditModal: React.FC<LocalActionEditModalProps> = ({
 
       setError(null);
     }
-  }, [action]);
+  }, [action, isOpen, initialUniverse]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, folder: 'actions' | 'missions') => {
     const file = e.target.files?.[0];

@@ -34,6 +34,7 @@ interface ActionRefEditModalProps {
   onClose: () => void;
   onSave: (updated: ActionRef) => void;
   onDelete?: (id: number) => void;
+  initialUniverse?: 'legacy' | 'evoe';
 }
 
 export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({ 
@@ -41,9 +42,10 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
   isOpen, 
   onClose, 
   onSave,
-  onDelete
+  onDelete,
+  initialUniverse = 'legacy'
 }) => {
-  const [activeTab, setActiveTab] = useState<'legacy' | 'evoe'>('legacy');
+  const [activeTab, setActiveTab] = useState<'legacy' | 'evoe'>(initialUniverse);
   
   // Champs SOS Planète (Legacy)
   const [referenceName, setReferenceName] = useState('');
@@ -79,11 +81,12 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
     const co2 = Number(defaultCo2) || 0;
     const water = Number(defaultWater) || 0;
     const waste = Number(defaultWaste) || 0;
-    return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+    return Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
   }, [defaultCo2, defaultWater, defaultWaste]);
 
   useEffect(() => {
     if (action) {
+      setActiveTab(initialUniverse || 'legacy');
       setReferenceName(action.referenceName || '');
       setCategory(action.category || 'Général');
       setDescription(action.description || '');
@@ -103,14 +106,14 @@ export const ActionRefEditModal: React.FC<ActionRefEditModalProps> = ({
       const co2 = action.defaultCo2 ?? 0;
       const water = action.defaultWater ?? 0;
       const waste = action.defaultWaste ?? 0;
-      const autoIT = 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+      const autoIT = Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
       setPointsIT(autoIT);
       setIsManualIT(false);
 
       setError(null);
       setSuccess(false);
     }
-  }, [action]);
+  }, [action, isOpen, initialUniverse]);
 
   if (!isOpen || !action) return null;
 

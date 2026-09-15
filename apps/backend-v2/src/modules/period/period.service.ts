@@ -260,6 +260,7 @@ export class PeriodService {
         });
 
         if (!existingNext) {
+          await this.generateBadgesForPeriod(openPeriod.id, this.prisma);
           await this.prisma.period.update({
             where: { id: openPeriod.id },
             data: { isOpen: false },
@@ -311,6 +312,13 @@ export class PeriodService {
     });
 
     if (period) {
+      const openPeriods = await client.period.findMany({
+        where: { instanceYearId, isOpen: true },
+      });
+      for (const op of openPeriods) {
+        await this.generateBadgesForPeriod(op.id, client);
+      }
+      
       await client.period.updateMany({
         where: { instanceYearId, isOpen: true },
         data: { isOpen: false },
@@ -420,6 +428,72 @@ export class PeriodService {
         where: { id: config.id },
         data: { gamePeriodsCount: generatedPeriods.length },
       });
+    }
+  }
+
+  private async generateBadgesForPeriod(periodId: number, client: any) {
+    console.log(`[Badges] Evaluation des médailles pour la période ${periodId}...`);
+    // 1. Fetch all actions done in this period
+    const actionsDone = await client.actionDone.findMany({
+      where: { periodId },
+      select: { childId: true, localActionId: true, savedCo2: true, savedWater: true, savedWaste: true },
+    });
+    if (!actionsDone.length) return;
+
+    // 2. Fetch challenges for the period
+    const activeChallenges = await client.evoeChallenge.findMany({
+      where: { periodId, status: 'SUCCESS' },
+      select: { localActionId: true, targetTeamId: true },
+    });
+
+    // We need to know child's team
+    const children = await client.child.findMany({
+      where: { id: { in: [...new Set(actionsDone.map((a: any) => a.childId))] } },
+      include: { group: true },
+    });
+    const childTeamMap = new Map();
+    children.forEach((c: any) => childTeamMap.set(c.id, c.group.teamId));
+
+    // 3. Compute IT points per child
+    const childItMap = new Map<number, number>();
+    actionsDone.forEach((ad: any) => {
+      let actionIt = Math.round(1 + 1.2 * ad.savedCo2 + 4.7 * ad.savedWaste + 0.0042 * ad.savedWater);
+      const childTeamId = childTeamMap.get(ad.childId);
+      const isChallenge = activeChallenges.some((ch: any) => ch.targetTeamId === childTeamId && ch.localActionId === ad.localActionId);
+      if (isChallenge) actionIt *= 2;
+
+      const current = childItMap.get(ad.childId) || 0;
+      childItMap.set(ad.childId, current + actionIt);
+    });
+
+    // 4. Distribute Badges
+    for (const [childId, totalIt] of childItMap.entries()) {
+      if (totalIt > 150) {
+        // Dépassement
+        const extraIt = totalIt - 150;
+        const stars = Math.floor(extraIt / 30);
+        if (stars >= 1) {
+          let badgeType = "Noyau en Surcharge";
+          if (stars >= 5) badgeType = "Légende du Nexus";
+          else if (stars >= 3) badgeType = "Gardien de Nova";
+
+          // Upsert badge
+          const existing = await client.playerBadge.findFirst({
+            where: { childId, badgeType },
+          });
+
+          if (existing) {
+            await client.playerBadge.update({
+              where: { id: existing.id },
+              data: { count: existing.count + 1 },
+            });
+          } else {
+            await client.playerBadge.create({
+              data: { childId, badgeType, count: 1 },
+            });
+          }
+        }
+      }
     }
   }
 }

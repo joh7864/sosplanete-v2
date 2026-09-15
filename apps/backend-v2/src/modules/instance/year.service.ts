@@ -104,6 +104,9 @@ export class YearService {
         await tx.period.deleteMany({
           where: { instanceYearId: existingIy.id },
         });
+        await tx.localAction.deleteMany({
+          where: { instanceId, schoolYear: targetYear },
+        });
         await tx.instanceYear.delete({
           where: { id: existingIy.id },
         });
@@ -414,6 +417,9 @@ export class YearService {
         });
         await tx.period.deleteMany({
           where: { instanceYearId: existingIy.id },
+        });
+        await tx.localAction.deleteMany({
+          where: { instanceId, schoolYear: toYear },
         });
         await tx.instanceYear.delete({
           where: { id: existingIy.id },

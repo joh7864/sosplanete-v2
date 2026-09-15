@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   DndContext, 
   DragOverlay, 
+  pointerWithin,
   rectIntersection, 
   KeyboardSensor, 
   PointerSensor, 
@@ -46,10 +47,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { LocalList } from './mapping/LocalList';
-import { ReferenceList } from './mapping/ReferenceList';
+import { LocalList, CompactLocalCard, DraggableGridLocalCard } from './mapping/LocalList';
+import { ReferenceList, CompactReferenceCard, GridReferenceCard } from './mapping/ReferenceList';
 import { CatalogCsvModal } from './CatalogCsvModal';
 import { LocalActionEditModal } from './LocalActionEditModal';
+import { ActionRefEditModal } from './ActionRefEditModal';
+import { ConfirmDeleteLocalActionModal } from './ConfirmDeleteLocalActionModal';
 
 import { ActionRef, LocalAction } from '@/types';
 import { getAuthData, setAuthData, removeAuthData, clearAuthData } from '@/utils/storage';
@@ -81,8 +84,19 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
 
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [editingAction, setEditingAction] = useState<LocalAction | null>(null);
+  const [selectedRefAction, setSelectedRefAction] = useState<ActionRef | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    ids: number[];
+    actionsCount: number;
+    actionsDoneCount: number;
+    actionTitle?: string;
+  } | null>(null);
+  const [deletingLocal, setDeletingLocal] = useState(false);
+
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [viewUniverse, setViewUniverse] = useState<'legacy' | 'evoe'>('legacy');
+
+  const [activeDragItem, setActiveDragItem] = useState<{type: 'reference'|'local', action: any} | null>(null);
 
   // DnD Sensors
   const sensors = useSensors(
@@ -148,7 +162,25 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
     }
   };
 
+  const requestUnmapActions = (localIds: number[]) => {
+    if (localIds.length === 0) return;
+    const targetActions = localActions.filter(la => localIds.includes(la.id));
+    const totalDone = targetActions.reduce((acc, la) => acc + (la._count?.actionsDone || 0), 0);
+
+    if (totalDone > 0) {
+      setPendingDelete({
+        ids: localIds,
+        actionsCount: localIds.length,
+        actionsDoneCount: totalDone,
+        actionTitle: targetActions[0]?.label,
+      });
+    } else {
+      handleUnmapActions(localIds);
+    }
+  };
+
   const handleUnmapActions = async (localIds: number[]) => {
+    setDeletingLocal(true);
     try {
       const token = getAuthData('access_token');
       await Promise.all(localIds.map(id => 
@@ -161,10 +193,29 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
       setSelectedLocalIds([]);
     } catch (e) {
       console.error("Unmap error:", e);
+    } finally {
+      setDeletingLocal(false);
+      setPendingDelete(null);
     }
   };
 
+  const collisionDetectionStrategy = (args: any) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    return rectIntersection(args);
+  };
+
+  const onDragStart = (event: DragStartEvent) => {
+    setActiveDragItem({
+      type: event.active.data.current?.type,
+      action: event.active.data.current?.action
+    });
+  };
+
   const onDragEnd = (event: DragEndEvent) => {
+    setActiveDragItem(null);
     const { active, over } = event;
     if (!over) return;
     
@@ -175,7 +226,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
     }
     if (active.data.current?.type === 'local' && over.id === 'reference-drop-zone') {
       const id = parseInt(activeIdStr.replace('local-', ''), 10);
-      handleUnmapActions(selectedLocalIds.includes(id) ? selectedLocalIds : [id]);
+      requestUnmapActions(selectedLocalIds.includes(id) ? selectedLocalIds : [id]);
     }
   };
 
@@ -268,9 +319,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
                     animate={{ opacity: 1, scale: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.8, x: 20 }}
                     onClick={() => {
-                      if (window.confirm(`Voulez-vous vraiment supprimer les ${selectedLocalIds.length} actions sélectionnées ?`)) {
-                        handleUnmapActions(selectedLocalIds);
-                      }
+                      requestUnmapActions(selectedLocalIds);
                     }}
                     title="Supprimer la sélection du catalogue local"
                     className="w-11 h-11 flex items-center justify-center rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20"
@@ -427,7 +476,9 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}
+        onDragStart={onDragStart}
         onDragEnd={onDragEnd}
+        onDragCancel={() => setActiveDragItem(null)}
       >
         <div className="grid grid-cols-[1fr_auto_1fr] gap-0 h-full flex-grow items-start overflow-hidden">
           
@@ -438,7 +489,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
                 selectedIds={selectedLocalIds}
                 onSelect={setSelectedLocalIds}
                 onEdit={(action) => setEditingAction(action)}
-                onRemove={(id) => handleUnmapActions([id])}
+                onRemove={(id) => requestUnmapActions([id])}
                 loading={loading}
                 globalSearch={searchQuery}
                 filterCategory={filterCategory}
@@ -473,6 +524,7 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
                    actions={referenceActions}
                    selectedIds={selectedRefIds}
                    onSelect={setSelectedRefIds}
+                   onOpenDetail={(action) => setSelectedRefAction(action)}
                    mappedIds={localActions.map(la => la.actionRefId)}
                    loading={loading}
                    globalSearch={searchQuery}
@@ -489,7 +541,17 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
         </div>
 
         <DragOverlay>
-           {/* Custom drag overlay if needed */}
+           {activeDragItem ? (
+             activeDragItem.type === 'reference' ? (
+               viewMode === 'list' ? 
+                 <CompactReferenceCard action={activeDragItem.action} isSelected={false} onToggle={()=>{}} /> :
+                 <GridReferenceCard action={activeDragItem.action} isSelected={false} onToggle={()=>{}} isEvoe={viewUniverse === 'evoe'} />
+             ) : (
+               viewMode === 'list' ? 
+                 <CompactLocalCard action={activeDragItem.action} isSelected={false} onToggle={()=>{}} onEdit={()=>{}} onRemove={()=>{}} /> :
+                 <DraggableGridLocalCard action={activeDragItem.action} isSelected={false} onToggle={()=>{}} onEdit={()=>{}} onRemove={()=>{}} isEvoe={viewUniverse === 'evoe'} />
+             )
+           ) : null}
         </DragOverlay>
       </DndContext>
 
@@ -506,11 +568,37 @@ export const CatalogMapping: React.FC<CatalogMappingProps> = ({ instanceId, scho
         action={editingAction}
         categories={instanceCategories}
         isOpen={!!editingAction}
+        initialUniverse={viewUniverse}
         onClose={() => setEditingAction(null)}
         onSave={() => {
           fetchData();
           setEditingAction(null);
         }}
+      />
+
+      <ActionRefEditModal 
+        action={selectedRefAction}
+        isOpen={!!selectedRefAction}
+        initialUniverse={viewUniverse}
+        onClose={() => setSelectedRefAction(null)}
+        onSave={(updated) => {
+          setReferenceActions(prev => prev.map(a => a.id === updated.id ? updated : a));
+          setSelectedRefAction(null);
+        }}
+      />
+
+      <ConfirmDeleteLocalActionModal 
+        isOpen={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) {
+            handleUnmapActions(pendingDelete.ids);
+          }
+        }}
+        loading={deletingLocal}
+        actionsCount={pendingDelete?.actionsCount ?? 0}
+        actionsDoneCount={pendingDelete?.actionsDoneCount ?? 0}
+        actionTitle={pendingDelete?.actionTitle}
       />
     </div>
   );

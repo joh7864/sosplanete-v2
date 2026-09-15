@@ -331,6 +331,34 @@ export function AgentProfileModal({
                   </div>
                 )}
 
+                {/* Badges temporels accumulés */}
+                {profileData.playerBadges?.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {profileData.playerBadges.map((badge: any, i: number) => (
+                      <div
+                        key={i}
+                        title={`Badge de Période : ${badge.badgeType} — Remporté ${badge.count} fois`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(59, 130, 246, 0.12) 100%)',
+                          border: '1.2px solid #06b6d4',
+                          borderRadius: '12px',
+                          padding: '2px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: '800',
+                          color: '#06b6d4',
+                          boxShadow: '0 0 10px rgba(6, 182, 212, 0.3)',
+                        }}
+                      >
+                        <span>★</span>
+                        <span>{badge.badgeType} {badge.count > 1 ? `x${badge.count}` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {profileData.profile?.whatsappInviteUrl && (
                     <a

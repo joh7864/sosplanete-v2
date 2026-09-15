@@ -203,6 +203,7 @@ interface PodiumGroupProps {
   childInfos: any;
   setSelectedProfileId: (id: number | null) => void;
   visible: boolean;
+  focusedPlayerId?: number | string | null;
 }
 
 export default function PodiumGroup({
@@ -210,6 +211,7 @@ export default function PodiumGroup({
   childInfos,
   setSelectedProfileId,
   visible,
+  focusedPlayerId,
 }: PodiumGroupProps) {
   const groupRef = useRef<THREE.Group>(null);
   
@@ -330,6 +332,7 @@ export default function PodiumGroup({
               showHealth={false}
               rankTag={`#1 • ${goldPlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
+              isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(goldPlayer.childId || goldPlayer.id) === String(focusedPlayerId)}
             />
           </group>
         </>
@@ -340,7 +343,7 @@ export default function PodiumGroup({
         <>
           {/* Capsule de verre argentée */}
           <ColoredCapsule 
-            position={[-1.25, -0.1, 0]} 
+            position={[-1.5, -0.1, 0]} 
             height={1.25} 
             radius={0.46} 
             color="#00ffcc" 
@@ -348,7 +351,7 @@ export default function PodiumGroup({
           />
 
           {/* Numéro 2 garanti visible à l'avant */}
-          <Billboard follow={true} position={[-1.25, -0.1, 0.58]}>
+          <Billboard follow={true} position={[-1.5, -0.1, 0.58]}>
             <Text
               font="/fonts/Roboto-Bold.ttf"
               fontSize={0.44}
@@ -366,18 +369,18 @@ export default function PodiumGroup({
           </Billboard>
 
           {/* Anneaux orbitaux */}
-          <OrbitalRings position={[-1.25, -0.1, 0]} color="#00ffcc" radius={0.62} />
+          <OrbitalRings position={[-1.5, -0.1, 0]} color="#00ffcc" radius={0.62} />
 
           {/* Fontaine de particules */}
-          <PodiumParticles count={35} color="#00ffcc" basePosition={[-1.25, 0.5, 0]} />
+          <PodiumParticles count={35} color="#00ffcc" basePosition={[-1.5, 0.5, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[-1.25, 4.2, 0]} targetPos={[-1.25, 0.5, 0]} color="#e2e8f0" />
+          <SweepingSpotlight position={[-1.5, 4.2, 0]} targetPos={[-1.5, 0.5, 0]} color="#e2e8f0" />
 
           {/* Avatar */}
           <group 
             name="avatar-container" 
-            position={[-1.25, 1.3, 0]} 
+            position={[-1.5, 1.3, 0]} 
             userData={{ baseY: 1.3 }}
           >
             {/* Hitbox sphérique invisible */}
@@ -409,6 +412,7 @@ export default function PodiumGroup({
               showHealth={false}
               rankTag={`#2 • ${silverPlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
+              isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(silverPlayer.childId || silverPlayer.id) === String(focusedPlayerId)}
             />
           </group>
         </>
@@ -419,7 +423,7 @@ export default function PodiumGroup({
         <>
           {/* Capsule de verre bronze */}
           <ColoredCapsule 
-            position={[1.25, -0.25, 0]} 
+            position={[1.5, -0.25, 0]} 
             height={0.95} 
             radius={0.46} 
             color="#ff7700" 
@@ -427,7 +431,7 @@ export default function PodiumGroup({
           />
 
           {/* Numéro 3 garanti visible à l'avant */}
-          <Billboard follow={true} position={[1.25, -0.25, 0.58]}>
+          <Billboard follow={true} position={[1.5, -0.25, 0.58]}>
             <Text
               font="/fonts/Roboto-Bold.ttf"
               fontSize={0.40}
@@ -445,18 +449,18 @@ export default function PodiumGroup({
           </Billboard>
 
           {/* Anneaux orbitaux */}
-          <OrbitalRings position={[1.25, -0.25, 0]} color="#ff7700" radius={0.62} />
+          <OrbitalRings position={[1.5, -0.25, 0]} color="#ff7700" radius={0.62} />
 
           {/* Fontaine de particules */}
-          <PodiumParticles count={35} color="#ff7700" basePosition={[1.25, 0.2, 0]} />
+          <PodiumParticles count={35} color="#ff7700" basePosition={[1.5, 0.2, 0]} />
 
           {/* Projecteur */}
-          <SweepingSpotlight position={[1.25, 4.2, 0]} targetPos={[1.25, 0.2, 0]} color="#ff7700" />
+          <SweepingSpotlight position={[1.5, 4.2, 0]} targetPos={[1.5, 0.2, 0]} color="#ff7700" />
 
           {/* Avatar */}
           <group 
             name="avatar-container" 
-            position={[1.25, 1.0, 0]} 
+            position={[1.5, 1.0, 0]} 
             userData={{ baseY: 1.0 }}
           >
             {/* Hitbox sphérique invisible */}
@@ -488,6 +492,7 @@ export default function PodiumGroup({
               showHealth={false}
               rankTag={`#3 • ${bronzePlayer.score ?? 0} IT`}
               onSelectPlayer={handleSelectPlayer}
+              isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(bronzePlayer.childId || bronzePlayer.id) === String(focusedPlayerId)}
             />
           </group>
         </>

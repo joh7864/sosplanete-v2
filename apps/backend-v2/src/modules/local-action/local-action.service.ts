@@ -85,17 +85,52 @@ export class LocalActionService {
       throw new ForbiddenException('Action non autorisée sur cet espace');
     }
 
-    const actionRefs = await this.prisma.actionRef.findMany({
-      where: { id: { in: actionRefIds } },
-    });
+    const sy = schoolYear || '2024-2025';
 
-    const data = actionRefs.map((ref) => ({
-      instanceId,
-      actionRefId: ref.id,
-      label: ref.referenceName,
-      description: ref.description,
-      schoolYear,
-    }));
+    const [actionRefs, instanceYear] = await Promise.all([
+      this.prisma.actionRef.findMany({
+        where: { id: { in: actionRefIds } },
+      }),
+      this.prisma.instanceYear.findUnique({
+        where: { instanceId_schoolYear: { instanceId, schoolYear: sy } },
+      }),
+    ]);
+
+    const categories = instanceYear
+      ? await this.prisma.category.findMany({
+          where: { instanceYearId: instanceYear.id },
+        })
+      : [];
+    const catMap = new Map<string, number>();
+    for (const c of categories) {
+      catMap.set(
+        c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+        c.id,
+      );
+    }
+
+    const data = actionRefs.map((ref) => {
+      let categoryId: number | null = null;
+      if (ref.category) {
+        const norm = ref.category
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        categoryId = catMap.get(norm) || null;
+      }
+      return {
+        instanceId,
+        actionRefId: ref.id,
+        label: ref.referenceName,
+        description: ref.description,
+        schoolYear: sy,
+        categoryId,
+        specificCo2: ref.defaultCo2 || 0,
+        specificWater: ref.defaultWater || 0,
+        specificWaste: ref.defaultWaste || 0,
+        specificEnergy: ref.defaultEnergy || 0,
+      };
+    });
 
     // On utilise createMany avec skipDuplicates car nous avons maintenant une contrainte @unique
     return this.prisma.localAction.createMany({
@@ -313,8 +348,13 @@ export class LocalActionService {
       user.instanceIds?.includes(localAction.instanceId);
     if (!isAllowed) throw new ForbiddenException('Action non autorisée');
 
-    return this.prisma.localAction.delete({
-      where: { id },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.actionDone.deleteMany({
+        where: { localActionId: id },
+      });
+      return tx.localAction.delete({
+        where: { id },
+      });
     });
   }
 }

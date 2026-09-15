@@ -942,40 +942,61 @@ function Portal2026Component({
     }
 
     // ─── ROTATION CINÉMATIQUE DU CERCLE DES AVATARS (EFFET WOW) ──────────────
-    if (view === 'codex' && avatarRingRef.current) {
+    if (avatarRingRef.current) {
       let targetAngle = 0;
+      
       if (focusedPlayerId !== null && focusedPlayerId !== undefined) {
-        const foundIdx = teamList.findIndex(p => String(p.childId || p.id) === String(focusedPlayerId));
-        if (foundIdx !== -1 && teamList.length > 0) {
-          const camAngle = Math.atan2(camera.position.z, camera.position.x);
-          const effectiveMyIndex = teamList.findIndex(p => p.isCurrent);
-          const myIdx = effectiveMyIndex !== -1 ? effectiveMyIndex : 0;
-          targetAngle = (Math.PI / 2 - camAngle) + ((foundIdx - myIdx) / teamList.length) * Math.PI * 2;
+        if (view === 'leaderboard') {
+          // Mode Leaderboard : on pivote pour ramener le joueur sélectionné face caméra (sur l'arc arrière)
+          const pPseudo = teamList.find(p => String(p.childId || p.id) === String(focusedPlayerId))?.pseudo || '';
+          const rankMatch = rankedPlayers.find((rp: any) => (rp.pseudo || '').toLowerCase() === pPseudo.toLowerCase());
+          
+          if (rankMatch && rankMatch.rankNumber > 3) {
+            const remIndex = rankMatch.rankNumber - 4;
+            const remCount = Math.max(1, remainingPlayers.length);
+            const gapAngle = remCount > 1 ? Math.min(Math.PI * 0.35, Math.max(0.55, (Math.PI * 2 / remCount) * 1.8)) : 0;
+            const availableArc = Math.PI * 2 - gapAngle;
+            const stepAngleLb = remCount > 1 ? availableArc / (remCount - 1) : 0;
+            const playerAngle = remIndex * stepAngleLb;
+            // Pour ramener le joueur sélectionné face caméra (angle 0)
+            targetAngle = -playerAngle;
+          }
+        } else {
+          // Mode Codex : rotation orbitale 360 classique
+          const foundIdx = teamList.findIndex(p => String(p.childId || p.id) === String(focusedPlayerId));
+          if (foundIdx !== -1 && teamList.length > 0) {
+            const camAngle = Math.atan2(camera.position.z, camera.position.x);
+            const effectiveMyIndex = teamList.findIndex(p => p.isCurrent);
+            const myIdx = effectiveMyIndex !== -1 ? effectiveMyIndex : 0;
+            targetAngle = (Math.PI / 2 - camAngle) + ((foundIdx - myIdx) / teamList.length) * Math.PI * 2;
+          }
         }
       }
 
-      // Différence angulaire sur le chemin le plus court (-PI à PI)
-      const diff = Math.atan2(
-        Math.sin(targetAngle - rotYRef.current),
-        Math.cos(targetAngle - rotYRef.current)
-      );
+      // Mode Leaderboard sans joueur focus ou focus sur Top 3 : on stabilise à 0
+      if (view === 'leaderboard' && targetAngle === 0) {
+        rotYRef.current = THREE.MathUtils.lerp(rotYRef.current, 0, 0.08);
+        avatarRingRef.current.rotation.y = rotYRef.current;
+        avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(avatarRingRef.current.rotation.z, 0, 0.08);
+      } else {
+        // Différence angulaire sur le chemin le plus court (-PI à PI)
+        const diff = Math.atan2(
+          Math.sin(targetAngle - rotYRef.current),
+          Math.cos(targetAngle - rotYRef.current)
+        );
 
-      // Rotation fluide avec décélération cinématique (effet spectaculaire)
-      rotYRef.current += diff * 0.055;
-      avatarRingRef.current.rotation.y = rotYRef.current;
+        // Rotation fluide avec décélération cinématique (effet spectaculaire)
+        rotYRef.current += diff * 0.055;
+        avatarRingRef.current.rotation.y = rotYRef.current;
 
-      // Légère inclinaison gyroscopique (banking tilt) durant la rotation pour donner de l'inertie
-      const targetTilt = Math.max(-0.06, Math.min(0.06, -diff * 0.08));
-      avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(
-        avatarRingRef.current.rotation.z,
-        targetTilt,
-        0.1
-      );
-    } else if (avatarRingRef.current) {
-      // Mode Leaderboard : stabilisation et retour doux à l'horizontale
-      rotYRef.current = THREE.MathUtils.lerp(rotYRef.current, 0, 0.08);
-      avatarRingRef.current.rotation.y = rotYRef.current;
-      avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(avatarRingRef.current.rotation.z, 0, 0.08);
+        // Légère inclinaison gyroscopique (banking tilt) durant la rotation pour donner de l'inertie
+        const targetTilt = view === 'codex' ? Math.max(-0.06, Math.min(0.06, -diff * 0.08)) : 0;
+        avatarRingRef.current.rotation.z = THREE.MathUtils.lerp(
+          avatarRingRef.current.rotation.z,
+          targetTilt,
+          0.1
+        );
+      }
     }
   });
 
@@ -1096,6 +1117,7 @@ function Portal2026Component({
             }
           }}
           visible={true}
+          focusedPlayerId={focusedPlayerId}
         />
         {view === 'leaderboard' && (
           <Html center position={[0, 0.5, 0]} zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
@@ -1145,9 +1167,11 @@ function Portal2026Component({
 
             const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
 
-            // Pas angulaire pour les rangs 4+ en mode Leaderboard (sur l'arc 240°)
+            // Mode Leaderboard : espacement aéré avec le même rayon/échelle que le Codex + espace marqué entre le 1er et dernier
             const remCount = Math.max(1, remainingPlayers.length);
-            const stepAngleLb = remCount > 1 ? (Math.PI * 1.2) / (remCount - 1) : 0;
+            const gapAngle = remCount > 1 ? Math.min(Math.PI * 0.35, Math.max(0.55, (Math.PI * 2 / remCount) * 1.8)) : 0;
+            const availableArc = Math.PI * 2 - gapAngle;
+            const stepAngleLb = remCount > 1 ? availableArc / (remCount - 1) : 0;
 
             return teamList.map((player, i) => {
               // 1. Position Codex : Répartition uniforme sur l'anneau orbital 360° (2*PI)
@@ -1171,11 +1195,11 @@ function Portal2026Component({
                   isTop3 = true;
                 } else {
                   // 4ème (remIndex = 0) au premier plan face caméra (x=0, z=radius)
-                  // 5ème (remIndex = 1), 6ème... vers la droite (x > 0)
+                  // Les suivants tournent vers la droite, laissant l'espace à gauche du 4ème
                   const remIndex = rankNumber - 4;
                   const angleLb = remIndex * stepAngleLb;
                   lbX = Math.sin(angleLb) * radius;
-                  lbY = -0.4;
+                  lbY = 0;
                   lbZ = Math.cos(angleLb) * radius;
                 }
               }

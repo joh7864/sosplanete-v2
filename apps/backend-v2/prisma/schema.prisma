@@ -167,6 +167,7 @@ model Child {
   actionsDone     ActionDone[]
   easterEggProgress EvoeEasterEggPlayerProgress[]
   playerSessions  PlayerSession[]
+  playerBadges    PlayerBadge[]
   group           Group        @relation(fields: [groupId], references: [id])
 
   @@unique([pseudo, groupId])
@@ -570,3 +571,14 @@ model SessionEvent {
   @@map("evoe_session_event")
 }
 
+model PlayerBadge {
+  id        Int      @id @default(autoincrement())
+  childId   Int
+  badgeType String   
+  count     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  child     Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@map("evoe_player_badge")
+}

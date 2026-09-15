@@ -42,6 +42,11 @@ export class InstanceCleanupService {
       await tx.period.deleteMany({ where: { instanceYearId: iy.id } });
       await tx.category.deleteMany({ where: { instanceYearId: iy.id } });
 
+      // Actions locales associées à cette instance et année
+      await tx.localAction.deleteMany({
+        where: { instanceId: iy.instanceId, schoolYear: iy.schoolYear },
+      });
+
       // InstanceYear elle-même
       await tx.instanceYear.delete({ where: { id: iy.id } });
       return { success: true };

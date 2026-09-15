@@ -28,6 +28,7 @@ interface ReferenceListProps {
   viewMode?: 'list' | 'grid';
   isEvoe?: boolean;
   sortBy?: string;
+  onOpenDetail?: (action: ActionRef) => void;
 }
 
 export const ReferenceList: React.FC<ReferenceListProps> = ({ 
@@ -42,9 +43,10 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   impactFilters = { co2: false, water: false, waste: false },
   viewMode = 'list',
   isEvoe = false,
-  sortBy = 'code-asc'
+  sortBy = 'code-asc',
+  onOpenDetail
 }) => {
-  const { setNodeRef } = useDroppable({ id: 'reference-drop-zone' });
+  const { setNodeRef, isOver } = useDroppable({ id: 'reference-drop-zone' });
 
   const filteredActions = useMemo(() => {
     return actions.filter(a => {
@@ -63,7 +65,7 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
         const co2 = act.defaultCo2 || 0;
         const water = act.defaultWater || 0;
         const waste = act.defaultWaste || 0;
-        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+        return Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
       };
       if (sortBy === 'it-desc') return getIT(b) - getIT(a);
       if (sortBy === 'it-asc') return getIT(a) - getIT(b);
@@ -98,17 +100,27 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 rounded-3xl p-4 border border-slate-100/80 shadow-inner">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200/40">
+    <div 
+      ref={setNodeRef}
+      onDragOver={(e) => e.preventDefault()}
+      className={`flex flex-col gap-3 h-full p-5 rounded-2xl border transition-all duration-300 ${
+        isOver 
+          ? 'bg-rose-50/80 border-rose-400 border-dashed shadow-2xl shadow-rose-500/10' 
+          : 'bg-white border-slate-200 shadow-xl'
+      }`}
+    >
+      {/* Header Compact with COUNT (Fixed height for alignment) */}
+      <div className="flex items-center justify-between h-12">
           <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                 Actions Disponibles
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100 shadow-xs">
-                 {filteredActions.length}
-              </span>
+              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shadow-md">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                   <h3 className="text-xs font-black text-slate-800 tracking-tight leading-none uppercase">Actions Disponibles</h3>
+                   <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-black">{filteredActions.length}</span>
+                </div>
+              </div>
           </div>
 
           <button 
@@ -135,6 +147,7 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
                 action={action} 
                 isSelected={selectedIds.includes(action.id)}
                 onToggle={() => toggleSelect(action.id)}
+                onOpenDetail={onOpenDetail}
               />
             ))
           ) : (
@@ -145,6 +158,7 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
                   action={action}
                   isSelected={selectedIds.includes(action.id)}
                   onToggle={() => toggleSelect(action.id)}
+                  onOpenDetail={onOpenDetail}
                   isEvoe={isEvoe}
                 />
               ))}
@@ -162,7 +176,7 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
   );
 };
 
-const CompactReferenceCard = ({ action, isSelected, onToggle }: any) => {
+export const CompactReferenceCard = ({ action, isSelected, onToggle, onOpenDetail }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `ref-${action.id}`,
     data: { type: 'reference', action }
@@ -178,11 +192,11 @@ const CompactReferenceCard = ({ action, isSelected, onToggle }: any) => {
     <div 
       ref={setNodeRef} 
       style={style}
-      className={`group relative flex items-center gap-3 p-3 rounded-2xl border transition-all ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-lg' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-xl'} ${isDragging ? 'opacity-50 grayscale scale-95' : ''}`}
+      className={`group relative flex items-center gap-3 p-3 rounded-2xl border transition-all select-none ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-lg' : 'bg-white border-slate-100 hover:border-emerald-200 hover:shadow-xl'} ${isDragging ? 'opacity-50 grayscale scale-95' : ''}`}
     >
       <div 
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 cursor-pointer transition-all ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'bg-slate-50 border-slate-100 group-hover:border-emerald-200'}`}
+        className={`w-6 h-6 rounded-lg flex items-center justify-center border-2 cursor-pointer transition-all shrink-0 ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' : 'bg-slate-50 border-slate-100 group-hover:border-emerald-200'}`}
       >
         {isSelected && <Check size={14} strokeWidth={4} />}
       </div>
@@ -190,7 +204,7 @@ const CompactReferenceCard = ({ action, isSelected, onToggle }: any) => {
       <div 
         {...listeners} 
         {...attributes}
-        className="cursor-grab active:cursor-grabbing text-slate-100 group-hover:text-emerald-400 transition-colors"
+        className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-emerald-500 transition-colors p-1"
       >
         <GripVertical size={20} />
       </div>
@@ -216,7 +230,8 @@ const CompactReferenceCard = ({ action, isSelected, onToggle }: any) => {
     </div>
   );
 };
-const GridReferenceCard = ({ action, isSelected, onToggle, isEvoe }: any) => {
+
+export const GridReferenceCard = ({ action, isSelected, onToggle, onOpenDetail, isEvoe }: any) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `ref-${action.id}`,
     data: { type: 'reference', action }
@@ -234,7 +249,7 @@ const GridReferenceCard = ({ action, isSelected, onToggle, isEvoe }: any) => {
     <div 
       ref={setNodeRef} 
       style={style}
-      className={`relative group ${isDragging ? 'z-50' : ''}`}
+      className={`relative group select-none ${isDragging ? 'z-50' : ''}`}
     >
         {/* Checkbox Overlay */}
         <div 
@@ -248,12 +263,14 @@ const GridReferenceCard = ({ action, isSelected, onToggle, isEvoe }: any) => {
         <div 
           {...listeners} 
           {...attributes}
-          className="absolute top-2 left-2 z-20 w-8 h-8 rounded-lg bg-white/90 text-slate-300 flex items-center justify-center cursor-grab active:cursor-grabbing hover:text-emerald-500 transition-all shadow-sm opacity-0 group-hover:opacity-100"
+          className="absolute top-2 left-2 z-20 w-8 h-8 rounded-lg bg-white/95 text-slate-400 flex items-center justify-center cursor-grab active:cursor-grabbing hover:text-emerald-500 transition-all shadow-md opacity-70 group-hover:opacity-100 border border-slate-200/50"
         >
           <GripVertical size={18} />
         </div>
 
-        <ActionGalleryCard action={action} isEvoe={isEvoe} />
+        <div onClick={(e) => { e.stopPropagation(); onOpenDetail?.(action); }}>
+          <ActionGalleryCard action={action} isEvoe={isEvoe} onEdit={() => onOpenDetail?.(action)} />
+        </div>
     </div>
   );
 };

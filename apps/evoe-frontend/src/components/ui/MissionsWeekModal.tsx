@@ -33,7 +33,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
 
   // Totals computation
   const totalIT = impulsedMissions.reduce((sum, m) => {
-    const autoIT = 10 + Math.round((12 * (m.co2 ?? 0)) + (4 * (m.waste ?? 0)) + (0.04 * (m.water ?? 0)));
+    const autoIT = Math.round(1 + 1.2 * (m.co2 ?? 0) + 4.7 * (m.waste ?? 0) + 0.0042 * (m.water ?? 0));
     return sum + (m.evoeMission?.amplitude || m.pointsIT || autoIT);
   }, 0);
 
@@ -257,7 +257,7 @@ export const MissionsWeekModal: React.FC<MissionsWeekModalProps> = ({
               </div>
             ) : (
               impulsedMissions.map((mission) => {
-                const autoIT = 10 + Math.round((12 * (mission.co2 ?? 0)) + (4 * (mission.waste ?? 0)) + (0.04 * (mission.water ?? 0)));
+                const autoIT = Math.round(1 + 1.2 * (mission.co2 ?? 0) + 4.7 * (mission.waste ?? 0) + 0.0042 * (mission.water ?? 0));
                 const itPoints = mission.evoeMission?.amplitude || mission.pointsIT || autoIT;
                 const title = mission.evoeMission?.titreSF || mission.label;
 

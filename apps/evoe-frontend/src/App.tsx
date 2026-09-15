@@ -991,9 +991,6 @@ function MainApp() {
   const handleSearchMatchChange = useCallback((player: any | null) => {
     const targetId = player ? (player.childId || player.id) : null;
     setSearchedPlayerId((prev) => (prev === targetId ? prev : targetId));
-    if (player) {
-      setView2026((prevView) => (prevView === 'leaderboard' ? 'codex' : prevView));
-    }
   }, []);
 
   return (
@@ -1501,7 +1498,11 @@ function MainApp() {
             <PlayerSearchHUD
               players={players || []}
               onSelectPlayer={(player) => {
-                setSelectedProfileId(player.childId || player.id);
+                if (view2026 === 'leaderboard') {
+                  setSearchedPlayerId(player.childId || player.id);
+                } else {
+                  setSelectedProfileId(player.childId || player.id);
+                }
               }}
               onSearchMatchChange={handleSearchMatchChange}
               isMobile={isMobile}

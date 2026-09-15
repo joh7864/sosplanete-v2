@@ -159,7 +159,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
   };
 
   const getITGroupLabel = (action: ActionRef): string => {
-    const it = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
+    const it = Math.round(1 + 1.2 * (action.defaultCo2 || 0) + 4.7 * (action.defaultWaste || 0) + 0.0042 * (action.defaultWater || 0));
     if (it <= 15) return '⚡ 10 à 15 IT (Impact Modéré)';
     if (it <= 35) return '⚡ 16 à 35 IT (Impact Significatif)';
     if (it <= 70) return '⚡ 36 à 70 IT (Impact Majeur)';
@@ -182,7 +182,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
         const co2 = act.defaultCo2 || 0;
         const water = act.defaultWater || 0;
         const waste = act.defaultWaste || 0;
-        return 10 + Math.round((12 * co2) + (4 * waste) + (0.04 * water));
+        return Math.round(1 + 1.2 * co2 + 4.7 * waste + 0.0042 * water);
       };
       if (sortBy === 'it-desc') return getIT(b) - getIT(a);
       if (sortBy === 'it-asc') return getIT(a) - getIT(b);
@@ -545,7 +545,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
               </div>
               <div className="max-h-[60vh] overflow-y-auto divide-y divide-slate-50">
                 {filteredActions.map((action) => {
-                  const itPts = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
+                  const itPts = Math.round(1 + 1.2 * (action.defaultCo2 || 0) + 4.7 * (action.defaultWaste || 0) + 0.0042 * (action.defaultWater || 0));
                   return (
                     <div 
                       key={action.id} 
@@ -635,6 +635,7 @@ export const CatalogSection: React.FC<CatalogSectionProps> = ({ role, instanceId
         }}
         onSave={handleSaveAction}
         onDelete={handleDeleteAction}
+        initialUniverse={viewUniverse}
       />
 
       {/* Modal d'import CSV */}

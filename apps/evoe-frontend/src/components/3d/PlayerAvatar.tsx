@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Billboard } from '@react-three/drei';
+import { Text, Billboard, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -727,6 +727,179 @@ const cakeHaloTexture = (() => {
   return tex;
 })();
 
+const rankPillTextureCache = new Map<string, THREE.Texture>();
+
+function getCryptexRankPillTexture(rankPart: string, scoreText: string): THREE.Texture {
+  const key = `${rankPart}_${scoreText}`;
+  if (rankPillTextureCache.has(key)) {
+    return rankPillTextureCache.get(key)!;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 440;
+  canvas.height = 96;
+  const ctx = canvas.getContext('2d')!;
+
+  const w = 422;
+  const h = 78;
+  const x = 9;
+  const y = 9;
+  const r = 20;
+
+  // 1. Ombre portée 3D sous la plaque
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = 'rgba(10, 15, 25, 0.95)';
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Définition des couleurs nobles selon le rang
+  let slabGradTop = '#1e293b';
+  let slabGradBottom = '#0b1322';
+  let rimColor = 'rgba(56, 189, 248, 0.45)';
+  let rankColor = '#4ade80'; // Vert lumineux inspiré du Cryptex 4259
+  let rankShadow = '#14532d';
+  let scoreColor = '#ffffff'; // Blanc pur éclatant 100% lisible
+
+  if (rankPart === '#1') {
+    slabGradTop = '#2a2214';
+    slabGradBottom = '#120d06';
+    rimColor = 'rgba(250, 204, 21, 0.65)';
+    rankColor = '#fde047'; // Or impérial
+    rankShadow = '#713f12';
+    scoreColor = '#fffbeb';
+  } else if (rankPart === '#2') {
+    slabGradTop = '#222b3d';
+    slabGradBottom = '#0f172a';
+    rimColor = 'rgba(226, 232, 240, 0.65)';
+    rankColor = '#ffffff'; // Platine argent
+    rankShadow = '#334155';
+    scoreColor = '#ffffff';
+  } else if (rankPart === '#3') {
+    slabGradTop = '#2e1c10';
+    slabGradBottom = '#140c06';
+    rimColor = 'rgba(251, 146, 60, 0.65)';
+    rankColor = '#fb923c'; // Bronze cuivré
+    rankShadow = '#7c2d12';
+    scoreColor = '#fff7ed';
+  } else {
+    slabGradTop = '#132832';
+    slabGradBottom = '#08141b';
+    rimColor = 'rgba(45, 212, 191, 0.4)';
+    rankColor = '#4ade80';
+    rankShadow = '#14532d';
+    scoreColor = '#ffffff';
+  }
+
+  // 3. Corps de la plaque 3D (Dégradé vertical noble)
+  const slabGrad = ctx.createLinearGradient(x, y, x, y + h);
+  slabGrad.addColorStop(0, slabGradTop);
+  slabGrad.addColorStop(0.5, slabGradTop);
+  slabGrad.addColorStop(1, slabGradBottom);
+  ctx.fillStyle = slabGrad;
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x, y, w, h, r);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+  ctx.fill();
+
+  // 4. Biseau 3D (Relief réaliste)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y + 1);
+  ctx.lineTo(x + w - r, y + 1);
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y + h - 1);
+  ctx.lineTo(x + w - r, y + h - 1);
+  ctx.stroke();
+
+  ctx.strokeStyle = rimColor;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  if (typeof (ctx as any).roundRect === 'function') {
+    (ctx as any).roundRect(x + 1, y + 1, w - 2, h - 2, r - 1);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  const centerY = y + h / 2;
+
+  // 5. Rendu du Rang JUSTIFIÉ À GAUCHE avec effet 3D embossé
+  const rankX = x + 24;
+  ctx.font = '900 44px "Roboto", "Segoe UI", sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+
+  // Ombre 3D extrudée
+  ctx.fillStyle = rankShadow;
+  ctx.fillText(rankPart, rankX + 2, centerY + 3.5);
+
+  // Face avant du rang
+  ctx.fillStyle = rankColor;
+  ctx.fillText(rankPart, rankX, centerY + 0.5);
+
+  const rankWidth = ctx.measureText(rankPart).width;
+
+  if (scoreText) {
+    // 6. Baguette séparatrice 3D métallique verticale
+    const divX = rankX + rankWidth + 22;
+    const divTop = y + 15;
+    const divBottom = y + h - 15;
+
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(divX + 1.5, divTop);
+    ctx.lineTo(divX + 1.5, divBottom);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(divX, divTop);
+    ctx.lineTo(divX, divBottom);
+    ctx.stroke();
+
+    // 7. Rendu du Score JUSTIFIÉ À DROITE (Blanc pur éclatant haute lisibilité)
+    const scoreX = x + w - 24;
+    ctx.font = '900 36px "Roboto", "Segoe UI", sans-serif';
+    ctx.textAlign = 'right';
+
+    // Ombre portée de contraste
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.fillText(scoreText, scoreX + 1.5, centerY + 2.5);
+
+    // Texte du score
+    ctx.fillStyle = scoreColor;
+    ctx.fillText(scoreText, scoreX, centerY + 0.5);
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.generateMipmaps = true;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  rankPillTextureCache.set(key, tex);
+  return tex;
+}
+
 interface PlayerAvatarProps {
   player: any;
   position: [number, number, number];
@@ -806,6 +979,73 @@ export function PlayerAvatar({
       return false;
     }
   }, [player?.birthDate, player?.isBirthdayActive, player?.id, isMe]);
+
+  const h = player.health !== undefined ? player.health : 0;
+  
+  const fluidJaugeTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 80; // Extra height for the glow
+    const ctx = canvas.getContext('2d')!;
+    
+    // Verre fumé background
+    ctx.beginPath();
+    ctx.roundRect(8, 16, 240, 48, 24);
+    
+    // Fill background
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fill();
+    
+    // Clip everything else to this capsule shape
+    ctx.save();
+    ctx.clip();
+
+    const fillRatio = Math.min(1, Math.max(0, h / 150));
+    
+    // Dynamic glow color
+    let glowColor = '#ff3b3b';
+    if (fillRatio > 0.57) glowColor = '#06b6d4';
+    else if (fillRatio > 0.34) glowColor = '#10b981';
+    else if (fillRatio > 0.14) glowColor = '#fcd34d';
+    else if (fillRatio > 0) glowColor = '#ff9f43';
+
+    if (fillRatio > 0) {
+      const grad = ctx.createLinearGradient(8, 0, 248, 0);
+      grad.addColorStop(0, '#ff3b3b');
+      grad.addColorStop(0.2, '#ff9f43');
+      grad.addColorStop(0.5, '#fcd34d');
+      grad.addColorStop(0.8, '#10b981');
+      grad.addColorStop(1, '#06b6d4');
+      
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 15;
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(8, 16, 240 * fillRatio, 48, 24);
+      ctx.fill();
+      
+      ctx.shadowBlur = 0;
+
+      // Bright edge tip
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.beginPath();
+      ctx.roundRect(8 + Math.max(0, 240 * fillRatio - 6), 16, 6, 48, 6);
+      ctx.fill();
+    }
+    
+    // Micro graduations
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    for(let i = 1; i <= 9; i++) {
+      ctx.fillRect(8 + i * 24, 52, 2, 10);
+    }
+    
+    ctx.restore();
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, [h]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1139,135 +1379,110 @@ export function PlayerAvatar({
 
       {showHealth ? (
         <Billboard follow={true}>
-          <group position={[0, -(haloScale * 0.5 + 0.08), 0.01]}>
-            <mesh renderOrder={998}>
-              <planeGeometry args={[0.5 * avatarScale, 0.065]} />
-              <meshBasicMaterial 
-                color="#ffffff" 
-                transparent 
-                opacity={0.25} 
-                toneMapped={false} 
-                depthWrite={false} 
-                depthTest={false} 
-              />
-            </mesh>
-            {player.health !== undefined && player.health > 0 && (
-              <mesh 
-                position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0, 0.001]}
-                renderOrder={999}
-              >
-                <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.052]} />
-                <meshBasicMaterial 
-                  color={
-                    player.health < 35 ? '#ff0055' 
-                    : player.health < 70 ? '#ff7700' 
-                    : '#00ff66'
-                  }
-                  transparent={true}
-                  toneMapped={false}
-                  depthWrite={false}
-                  depthTest={false}
-                />
-              </mesh>
-            )}
-            {player.health !== undefined && player.health > 0 && (
-              <mesh 
-                position={[-0.5 * avatarScale / 2 + (0.5 * avatarScale * (player.health / 100)) / 2, 0.027, 0.002]}
-                renderOrder={1000}
-              >
-                <planeGeometry args={[0.5 * avatarScale * (player.health / 100), 0.006]} />
-                <meshBasicMaterial 
+          {player.health !== undefined && (() => {
+            const h = player.health;
+            const totalWidth = 0.75 * avatarScale;
+            
+            const starsCount = Math.floor(Math.max(0, h - 150) / 30);
+            let tooltipName = `Niveau`;
+            if (starsCount >= 5) tooltipName = "Légende du Nexus";
+            else if (starsCount >= 3) tooltipName = "Gardien de Nova";
+            else if (starsCount >= 1) tooltipName = "Noyau en Surcharge";
+
+            return (
+              <group position={[0, -(haloScale * 0.5 + 0.12), 0.01]}>
+                <mesh renderOrder={998} position={[0, 0, 0]}>
+                  {/* height is totalWidth * (80/256) because canvas is 256x80 */}
+                  <planeGeometry args={[totalWidth, totalWidth * (80/256)]} />
+                  <meshBasicMaterial 
+                    map={fluidJaugeTexture}
+                    transparent 
+                    depthWrite={false} 
+                    depthTest={false} 
+                    toneMapped={false} 
+                  />
+                </mesh>
+                
+                <Text
+                  position={[0, 0.003, 0.003]}
+                  font="/fonts/Roboto-Bold.ttf"
+                  fontSize={0.052}
+                  fontWeight="900"
                   color="#ffffff"
-                  transparent
-                  opacity={0.8}
-                  toneMapped={false}
-                  depthWrite={false}
-                  depthTest={false}
-                />
-              </mesh>
-            )}
-            {player.health !== undefined && (
-              <Text
-                position={[0, 0, 0.003]}
-                font="/fonts/Roboto-Bold.ttf"
-                fontSize={0.042}
-                fontWeight="bold"
-                color="#050a15"
-                anchorX="center"
-                anchorY="middle"
-                material-depthTest={false}
-                material-depthWrite={false}
-                renderOrder={1001}
-              >
-                {`${player.health} IT`}
-              </Text>
-            )}
-          </group>
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.004}
+                  outlineColor="#050a15"
+                  renderOrder={1001}
+                  material-depthTest={false}
+                  material-depthWrite={false}
+                >
+                  {`${h} IT`}
+                </Text>
+
+                {/* Prestige Stars */}
+                {starsCount > 0 && (
+                  <group position={[0, 0.085, 0.002]}>
+                    {Array.from({ length: Math.min(starsCount, 5) }).map((_, i) => (
+                      <Text
+                        key={`star-${i}`}
+                        position={[
+                          (i - Math.min(starsCount, 5)/2 + 0.5) * 0.06, 
+                          0, 
+                          0
+                        ]}
+                        font="/fonts/Roboto-Bold.ttf"
+                        fontSize={0.06}
+                        color="#fbbf24"
+                        anchorX="center"
+                        anchorY="middle"
+                        outlineWidth={0.005}
+                        outlineColor="#000"
+                        renderOrder={1002}
+                      >
+                        ★
+                      </Text>
+                    ))}
+
+                    <Html center distanceFactor={10} zIndexRange={[100, 0]}>
+                      <div 
+                        title={tooltipName}
+                        style={{ width: '80px', height: '30px', cursor: 'help' }}
+                      />
+                    </Html>
+                  </group>
+                )}
+              </group>
+            );
+          })()}
         </Billboard>
       ) : (
         rankTag && (() => {
           const match = rankTag.match(/^(#\d+)\s*(?:[•\/\-]\s*)?(.*)$/);
           const rankPart = match ? match[1] : rankTag;
-          const scorePart = match && match[2] ? `• ${match[2]}` : '';
+          const rawScore = match && match[2] ? match[2] : '';
+          const cleanScoreNumber = rawScore.replace(/[^\d]/g, '');
+          const formattedScore = cleanScoreNumber 
+            ? `${Number(cleanScoreNumber).toLocaleString('fr-FR')} IT` 
+            : (rawScore.trim() || '');
+
+          const totalWidth = 1.05 * avatarScale;
+          const totalHeight = totalWidth * (96 / 440);
 
           return (
             <Billboard follow={true}>
-              <group position={[0, -(haloScale * 0.5 + 0.06), 0.01]}>
-                {scorePart ? (
-                  <group>
-                    <Text
-                      position={[-0.015, 0, 0]}
-                      font="/fonts/Roboto-Bold.ttf"
-                      fontSize={fontSize * 0.58}
-                      fontWeight="900"
-                      letterSpacing={0.04}
-                      color={color || '#ffd700'}
-                      anchorX="right"
-                      anchorY="middle"
-                      outlineWidth={0.008}
-                      outlineColor="#050a16"
-                      outlineBlur={0.003}
-                      material-depthWrite={false}
-                      frustumCulled={false}
-                    >
-                      {rankPart}
-                    </Text>
-                    <Text
-                      position={[0.015, 0, 0]}
-                      font="/fonts/Roboto-Bold.ttf"
-                      fontSize={fontSize * 0.48}
-                      fontWeight="400"
-                      letterSpacing={0.02}
-                      color="#94a3b8"
-                      anchorX="left"
-                      anchorY="middle"
-                      outlineWidth={0.006}
-                      outlineColor="#050a16"
-                      outlineBlur={0.003}
-                      material-depthWrite={false}
-                      frustumCulled={false}
-                    >
-                      {scorePart}
-                    </Text>
-                  </group>
-                ) : (
-                  <Text
-                    font="/fonts/Roboto-Bold.ttf"
-                    fontSize={fontSize * 0.58}
-                    fontWeight="900"
-                    letterSpacing={0.04}
-                    color={color || '#ffd700'}
-                    anchorX="center"
-                    anchorY="middle"
-                    outlineWidth={0.008}
-                    outlineColor="#050a16"
-                    outlineBlur={0.003}
-                    material-depthWrite={false}
-                    frustumCulled={false}
-                  >
-                    {rankTag}
-                  </Text>
-                )}
+              <group position={[0, -(haloScale * 0.5 + 0.10), 0.01]}>
+                {/* Plaque 3D biseautée style Cryptex avec relief, rang à gauche et score à droite */}
+                <mesh renderOrder={998} position={[0, 0, 0]}>
+                  <planeGeometry args={[totalWidth, totalHeight]} />
+                  <meshBasicMaterial 
+                    map={getCryptexRankPillTexture(rankPart, formattedScore)}
+                    transparent 
+                    depthWrite={false} 
+                    depthTest={true} 
+                    toneMapped={false} 
+                  />
+                </mesh>
               </group>
             </Billboard>
           );
@@ -1276,7 +1491,7 @@ export function PlayerAvatar({
 
       <Billboard follow={true}>
         <Text
-          position={[0, -(haloScale * 0.5 + (rankTag && !showHealth ? 0.17 : 0.20)), 0]}
+          position={[0, -(haloScale * 0.5 + (showHealth ? 0.26 : (rankTag ? 0.10 + (1.05 * avatarScale * 96 / 440) / 2 + fontSize * 0.58 : 0.15))), 0]}
           font="/fonts/Roboto-Bold.ttf"
           fontSize={fontSize * 1.05}
           fontWeight="800"

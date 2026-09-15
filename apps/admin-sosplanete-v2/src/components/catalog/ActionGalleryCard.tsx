@@ -79,8 +79,12 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
   const displayCategory = isEvoe ? getSectorSF(rawCategory) : (rawCategory || 'Général');
   const colorClasses = getCategoryColor(rawCategory);
 
-  // Calcul dynamique des points IT (Pondération 60% CO2e, 20% Déchets, 20% Eau, base 10)
-  const pointsIT = 10 + Math.round((12 * (action.defaultCo2 || 0)) + (4 * (action.defaultWaste || 0)) + (0.04 * (action.defaultWater || 0)));
+  const actualCo2 = (action as any).co2 !== undefined ? (action as any).co2 : (action.defaultCo2 || 0);
+  const actualWater = (action as any).water !== undefined ? (action as any).water : (action.defaultWater || 0);
+  const actualWaste = (action as any).waste !== undefined ? (action as any).waste : (action.defaultWaste || 0);
+
+  // Calcul dynamique des points IT: 5 (Base) + Impact Extrapolé (CO2e, Déchets, Eau)
+  const pointsIT = (action as any).amplitudeSF || (action as any).evoeMission?.amplitude || Math.round(1 + 1.2 * actualCo2 + 4.7 * actualWaste + 0.0042 * actualWater);
 
   // Résolution dynamique de l'image (Convention automatique: code.png pour legacy, code_evoe.jpg pour evoe)
   const legacyImgSrc = action.image 
@@ -94,7 +98,7 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
   const currentImgSrc = isEvoe ? evoeImgSrc : legacyImgSrc;
 
   return (
-    <div className="flex flex-col gap-1.5 w-full relative group">
+    <div className="flex flex-col gap-1.5 w-full relative group select-none">
       {/* Code Badge above the card */}
       <div className="flex items-center justify-between ml-1 mr-1">
         <span className="text-[10px] font-black text-slate-600 tracking-wider uppercase opacity-80">
@@ -117,37 +121,12 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Hover Buttons */}
-      {(onEdit || onRemove) && (
-        <div className="absolute top-8 right-2 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {onEdit && (
-            <button 
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="w-7 h-7 rounded-lg bg-white/95 text-slate-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all shadow-md border border-slate-200/50"
-              title="Modifier l'action"
-            >
-              <Settings2 size={13} />
-            </button>
-          )}
-          {onRemove && (
-            <button 
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              className="w-7 h-7 rounded-lg bg-white/95 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md border border-slate-200/50"
-              title="Supprimer du catalogue"
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Card Body */}
       <motion.div
         layoutId={`card-${action.id}`}
         whileHover={{ y: -5, scale: 1.02 }}
         onClick={onEdit}
+        onDragStart={(e) => e.preventDefault()}
         className={`relative flex flex-col h-[265px] rounded-2xl border-2 transition-all cursor-pointer overflow-hidden ${
           isEvoe 
             ? 'border-cyan-500/80 bg-slate-950 text-white shadow-xl shadow-cyan-950/30' 
@@ -186,7 +165,9 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             src={currentImgSrc} 
             alt={action.referenceName}
-            className={`w-full h-full object-contain mb-2 ${isEvoe ? 'drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]' : ''}`}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+            className={`w-full h-full object-contain mb-2 pointer-events-none select-none ${isEvoe ? 'drop-shadow-[0_0_8px_rgba(6,182,212,0.3)]' : ''}`}
             onError={(e: any) => { 
               e.target.onerror = null; 
               e.target.src = isEvoe ? legacyImgSrc : '/assets/logo.png'; 
@@ -210,15 +191,15 @@ export const ActionGalleryCard: React.FC<ActionGalleryCardProps> = ({
         }`}>
           <div className="flex items-center justify-between text-[9px] font-bold px-1">
              <div className="flex items-center gap-1"><Cloud size={10} className="text-rose-400" /> CO2e</div>
-             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{action.defaultCo2 || 0} kg</span>
+             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{actualCo2} kg</span>
           </div>
           <div className="flex items-center justify-between text-[9px] font-bold px-1">
              <div className="flex items-center gap-1"><Droplets size={10} className="text-sky-400" /> Eau</div>
-             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{action.defaultWater || 0} L</span>
+             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{actualWater} L</span>
           </div>
           <div className="flex items-center justify-between text-[9px] font-bold px-1">
              <div className="flex items-center gap-1"><Trash2 size={10} className="text-emerald-400" /> Déchets</div>
-             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{action.defaultWaste || 0} kg</span>
+             <span className={isEvoe ? 'text-white' : 'text-slate-700'}>{actualWaste} kg</span>
           </div>
         </div>
       </motion.div>

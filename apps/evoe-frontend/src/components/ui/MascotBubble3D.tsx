@@ -6,6 +6,14 @@ import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
 import type { CycleEggItem } from '../../types/easterEgg';
 
+/** Résout une URL relative /uploads/... en URL absolue pointant vers le backend */
+const resolveAssetUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  const root = (import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/').replace(/\/static\/?$/, '');
+  return `${root}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 interface MascotBubble3DProps {
   isOpen: boolean;
   onClose: () => void;
@@ -158,7 +166,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const currentIsInteractable = currentEgg ? (currentEgg.isInteractable !== false) : true;
   const currentPrereqDesc = currentEgg?.prerequisiteDesc;
   const effectiveRewardPointsIT = currentEgg ? currentEgg.rewardPointsIT : rewardPointsIT;
-  const currentImageUrl = currentEgg ? currentEgg.imageUrl : imageUrl;
+  const currentImageUrl = resolveAssetUrl(currentEgg ? currentEgg.imageUrl : imageUrl);
   const currentExplicitHint = currentEgg ? currentEgg.explicitHint : explicitHint;
   const currentShowExplicitHint = currentEgg ? !!currentEgg.isExplicitHintVisible : showExplicitHint;
   const currentEggId = currentEgg?.id;

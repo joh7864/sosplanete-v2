@@ -35,7 +35,7 @@ export const MissionCard3D: React.FC<MissionCard3DProps> = ({
   
   // Neon colors
   const neonColor = isCompleted ? '#10b981' : (mission.isChallengeActif ? '#ff3b3b' : '#00ffcc');
-  const autoIT = 10 + Math.round((12 * (mission.co2 ?? 0)) + (4 * (mission.waste ?? 0)) + (0.04 * (mission.water ?? 0)));
+  const autoIT = Math.round(1 + 1.2 * (mission.co2 ?? 0) + 4.7 * (mission.waste ?? 0) + 0.0042 * (mission.water ?? 0));
   const itPoints = mission.evoeMission?.amplitude || mission.pointsIT || autoIT;
 
   // Extraction propre de la consigne et de l'objectif
