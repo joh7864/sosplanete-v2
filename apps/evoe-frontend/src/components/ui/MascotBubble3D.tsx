@@ -864,7 +864,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                       onMouseLeave={(e) => (e.currentTarget.style.background = '#0284c7')}
                     >
                       <ZoomIn size={13} />
-                      Agrandir
+                      Résoudre
                     </button>
                   </div>
                 )}

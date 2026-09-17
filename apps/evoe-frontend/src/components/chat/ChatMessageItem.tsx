@@ -46,6 +46,7 @@ interface ChatMessageItemProps {
   onEditMessage: (messageId: string, text: string) => void;
   onDeleteMessage: (messageId: string) => void;
   onOpenImageLightbox?: (url: string) => void;
+  isHighlighted?: boolean;
 }
 
 export function ChatMessageItem({
@@ -76,7 +77,8 @@ export function ChatMessageItem({
   onAddReaction,
   onEditMessage,
   onDeleteMessage,
-  onOpenImageLightbox
+  onOpenImageLightbox,
+  isHighlighted = false
 }: ChatMessageItemProps) {
 
   const getRoleBadgeColor = (m: ChatMessage) => {
@@ -213,6 +215,7 @@ export function ChatMessageItem({
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Message Racine */}
       <div 
+        id={`chat-msg-${msg.id}`}
         className="chat-message-item"
         onMouseEnter={() => setHoveredMessageId(msg.id)}
         onMouseLeave={() => {
@@ -220,8 +223,11 @@ export function ChatMessageItem({
           setActiveEmojiPickerId(null);
         }}
         style={{ 
-          background: itemBg,
-          borderLeft: `2.5px solid ${borderLeftColor}`,
+          background: isHighlighted ? 'rgba(0, 255, 204, 0.15)' : itemBg,
+          boxShadow: isHighlighted ? '0 0 18px rgba(0, 255, 204, 0.4), inset 0 0 10px rgba(0, 255, 204, 0.12)' : undefined,
+          borderLeft: isHighlighted ? '3.5px solid #00ffcc' : `2.5px solid ${borderLeftColor}`,
+          borderRadius: isHighlighted ? '4px' : undefined,
+          transition: 'background 0.3s ease, box-shadow 0.3s ease, border-left 0.3s ease',
           padding: '6px 12px',
           fontSize: '0.85rem',
           lineHeight: '1.4',
@@ -324,6 +330,22 @@ export function ChatMessageItem({
               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               {msg.isEdited && <span style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', marginLeft: '4px', fontStyle: 'italic' }}>(modifié)</span>}
             </span>
+
+            {isHighlighted && (
+              <span style={{ 
+                fontSize: '0.6rem', 
+                background: '#00ffcc', 
+                color: '#000', 
+                fontWeight: 800, 
+                padding: '1px 6px', 
+                borderRadius: '4px', 
+                marginLeft: '6px',
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px' 
+              }}>
+                Nouveau
+              </span>
+            )}
           </div>
 
           {/* Corps de texte */}

@@ -3,14 +3,27 @@ import {
   ForbiddenException,
   NotFoundException,
   ConflictException,
+  Optional,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { Cron } from '@nestjs/schedule';
+import { WhatsAppService } from '../stimulation/whatsapp.service';
+import { ChatGateway } from '../stimulation/chat.gateway';
 
 @Injectable()
 export class PeriodService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional()
+    @Inject(forwardRef(() => WhatsAppService))
+    private readonly whatsappService?: WhatsAppService,
+    @Optional()
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway?: ChatGateway,
+  ) {}
 
   // ----------------------------------------------------------------
   // Helper : retrouver l'instanceYearId depuis une Period (pour les
@@ -25,6 +38,53 @@ export class PeriodService {
     });
     if (!iy) throw new NotFoundException('InstanceYear introuvable');
     return iy.instanceId;
+  }
+
+  /**
+   * Notifie l'ouverture d'un nouveau Cycle Orbital dans le Com-Link et sur WhatsApp
+   */
+  private async notifyNewCycleOrbital(instanceYearId: number, newPeriod: any) {
+    try {
+      const iy = await this.prisma.instanceYear.findUnique({
+        where: { id: instanceYearId },
+        include: {
+          periods: { orderBy: { startDate: 'asc' } },
+          teams: { select: { id: true, name: true } },
+        },
+      });
+      if (!iy) return;
+
+      const periods = iy.periods || [];
+      const frequency = iy.easterEggFrequency || 2;
+      const periodIndex =
+        periods.findIndex((p) => p.id === newPeriod.id) + 1 || 1;
+      const cycleIndex =
+        Math.floor(Math.max(0, periodIndex - 1) / frequency) + 1;
+
+      const message = `🚀 [TRANSMISSION PRIORITAIRE 2070]\n\nAlerte générale équipage ! Le Cycle Orbital ${cycleIndex} (Période ${periodIndex}) est officiellement initialisé ! 🌌\n\nLes réservoirs de propulsion sont réalignés : faites avancer vos vaisseaux, validez vos éco-missions et lancez vos défis inter-équipes.\n\nCap sur 2070 !`;
+
+      // 1. Diffusion Com-Link
+      if (this.chatGateway) {
+        this.chatGateway.broadcastPeriodAnnouncement(
+          instanceYearId,
+          iy.teams || [],
+          message,
+        );
+      }
+
+      // 2. Diffusion WhatsApp Général
+      if (this.whatsappService) {
+        await this.whatsappService.sendGeneralNotification(
+          message,
+          iy.schoolYear,
+        );
+      }
+    } catch (err: any) {
+      console.error(
+        '[PeriodService] Erreur lors de la notification du Cycle Orbital:',
+        err?.message,
+      );
+    }
   }
 
   async create(
@@ -164,6 +224,12 @@ export class PeriodService {
       }
     }
 
+    if (data.isOpen === true) {
+      this.notifyNewCycleOrbital(period.instanceYearId, updatedPeriod).catch((e) =>
+        console.error('[PeriodService] notify error:', e),
+      );
+    }
+
     return updatedPeriod;
   }
 
@@ -265,7 +331,7 @@ export class PeriodService {
             where: { id: openPeriod.id },
             data: { isOpen: false },
           });
-          await this.prisma.period.create({
+          const newCreatedPeriod = await this.prisma.period.create({
             data: {
               startDate: nextStartDate,
               endDate: nextEndDate,
@@ -273,6 +339,9 @@ export class PeriodService {
               instanceYearId: iy.id,
             },
           });
+          this.notifyNewCycleOrbital(iy.id, newCreatedPeriod).catch((e) =>
+            console.error('[PeriodService] notify error:', e),
+          );
           console.log(
             `[CRON] InstanceYear ${iy.id} : Période ${openPeriod.id} fermée. Nouvelle période créée.`,
           );
@@ -327,6 +396,9 @@ export class PeriodService {
         where: { id: period.id },
         data: { isOpen: true },
       });
+      this.notifyNewCycleOrbital(instanceYearId, period).catch((e) =>
+        console.error('[PeriodService] notify error:', e),
+      );
     }
   }
 

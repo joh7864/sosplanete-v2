@@ -871,4 +871,54 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`team_${data.teamId}`).emit('easter_egg_team_victory', data);
     this.server.to('global').emit('easter_egg_global_alert', data);
   }
+
+  /**
+   * Diffuse une annonce système (ex: ouverture d'un nouveau Cycle Orbital)
+   * à toutes les équipes et au canal global, avec persistance dans l'historique.
+   */
+  broadcastPeriodAnnouncement(
+    instanceYearId: number,
+    teams: Array<{ id: number; name: string }>,
+    text: string,
+  ) {
+    if (!this.server) return;
+    this.logger.log(
+      `[Chat WebSockets] 🚀 Annonce de Cycle Orbital diffusée pour instanceYear ${instanceYearId}`,
+    );
+
+    const timestamp = new Date();
+    const systemMessageId = 'sys-' + Math.random().toString(36).substring(2, 9);
+
+    const globalMsg = {
+      id: systemMessageId,
+      sender: 'Techno-Bot 2070',
+      role: 'SYSTEM',
+      teamName: null,
+      content: text,
+      imageUrl: null,
+      timestamp,
+      channel: 'global',
+    };
+    this.addToHistory(this.globalHistory, globalMsg);
+    this.server.to('global').emit('msgGlobal', globalMsg);
+
+    // Diffuser également dans chaque canal d'équipe pour que le badge / unreadTeam soit incrémenté
+    for (const team of teams) {
+      const teamMsg = {
+        id: 'sys-team-' + Math.random().toString(36).substring(2, 9),
+        sender: 'Techno-Bot 2070',
+        role: 'SYSTEM',
+        teamName: team.name,
+        content: text,
+        imageUrl: null,
+        timestamp,
+        channel: 'team',
+      };
+      if (!this.teamHistories.has(team.id)) {
+        this.teamHistories.set(team.id, []);
+      }
+      this.addToHistory(this.teamHistories.get(team.id)!, teamMsg);
+      this.server.to(`team_${team.id}`).emit('msgTeam', teamMsg);
+    }
+  }
 }

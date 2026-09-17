@@ -8,7 +8,7 @@ const getSocketUrl = () => {
   return evoeApiUrl.replace(/\/evoe\/?$/, '');
 };
 
-interface LastReadTimestamps {
+export interface LastReadTimestamps {
   global: number;
   team: number;
   system: number;
@@ -16,7 +16,7 @@ interface LastReadTimestamps {
   teams: Record<string, number>;
 }
 
-function getLastRead(pseudo: string): LastReadTimestamps {
+export function getLastRead(pseudo: string): LastReadTimestamps {
   if (!pseudo) return { global: 0, team: 0, system: 0, mps: {}, teams: {} };
   try {
     const raw = localStorage.getItem(`evoe_chat_last_read_v1_${pseudo.toLowerCase()}`);
@@ -152,7 +152,11 @@ function computeUnreadCounts(
     else if (m.role === 'SYSTEM') {
       if (isOpen && activeTab === 'system') continue;
       const cutoff = lastRead.system || 0;
-      if (cutoff > 0 && msgTime > cutoff) {
+      if (cutoff === 0) {
+        if (now - msgTime < maxHistoryAgeTeam) {
+          unreadSystem++;
+        }
+      } else if (msgTime > cutoff) {
         unreadSystem++;
       }
     }

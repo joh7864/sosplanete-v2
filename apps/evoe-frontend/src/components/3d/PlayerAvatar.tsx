@@ -1084,6 +1084,7 @@ interface PlayerAvatarProps {
   onSelectBirthdayCake?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  onSelectEnvelope?: (p: any) => void;
   isStealthMode?: boolean;
   onToggleStealth?: () => void;
   challengeCount?: number;
@@ -1104,6 +1105,7 @@ export function PlayerAvatar({
   onSelectBirthdayCake,
   isOnline = false,
   hasUnread = false,
+  onSelectEnvelope,
   isStealthMode = false,
   onToggleStealth,
   challengeCount = 0,
@@ -1280,8 +1282,13 @@ export function PlayerAvatar({
 
       {/* Anneau / Halo de Sélection Holographique en Perspective 3D (identique aux vaisseaux 2070) */}
       <group position={[0, -0.34 * avatarScale, 0]} visible={isSearchFocused}>
+        {/* Zone de clic circulaire invisible au sol pour attraper facilement les clics sur les anneaux */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.82 * avatarScale, 32]} />
+          <meshBasicMaterial visible={false} depthWrite={false} />
+        </mesh>
         {/* Anneau principal horizontal au sol */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.52 * avatarScale, 0.60 * avatarScale, 48]} />
           <meshBasicMaterial 
             color="#00ffcc" 
@@ -1293,7 +1300,7 @@ export function PlayerAvatar({
           />
         </mesh>
         {/* Halo externe diffus horizontal */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.66 * avatarScale, 0.74 * avatarScale, 48]} />
           <meshBasicMaterial 
             color="#00ffcc" 
@@ -1423,7 +1430,21 @@ export function PlayerAvatar({
         )}
 
         {showChatIcon && hasUnread && (
-          <mesh position={[-avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.02]}>
+          <mesh 
+            position={[-avatarSpriteScale * 0.36, avatarYOffset + avatarSpriteScale * 0.36, 0.02]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectEnvelope?.(player);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'pointer';
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              document.body.style.cursor = 'auto';
+            }}
+          >
             <planeGeometry args={[avatarSpriteScale * 0.24, avatarSpriteScale * 0.24]} />
             <meshBasicMaterial 
               map={envelopeTexture}

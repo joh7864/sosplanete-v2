@@ -494,6 +494,7 @@ function AnimatedAvatar({
   onSelectBirthdayCake,
   isOnline, 
   hasUnread,
+  onSelectEnvelope,
   isStealthMode,
   onToggleStealth,
   challengeCount,
@@ -512,6 +513,7 @@ function AnimatedAvatar({
   onSelectBirthdayCake?: (p: any) => void;
   isOnline?: boolean;
   hasUnread?: boolean;
+  onSelectEnvelope?: (p: any) => void;
   isStealthMode?: boolean;
   onToggleStealth?: () => void;
   challengeCount?: number;
@@ -552,6 +554,7 @@ function AnimatedAvatar({
         onSelectBirthdayCake={onSelectBirthdayCake}
         isOnline={isOnline}
         hasUnread={hasUnread}
+        onSelectEnvelope={onSelectEnvelope}
         isStealthMode={isStealthMode}
         onToggleStealth={onToggleStealth}
         challengeCount={challengeCount}
@@ -575,7 +578,10 @@ interface Portal2026Props {
   onSelectBirthdayCake?: (player: any) => void;
   onlineUsers?: Set<string>;
   unreadTeam?: number;
+  unreadGlobal?: number;
+  unreadSystem?: number;
   unreadMps?: Record<string, number>;
+  onSelectEnvelope?: (player: any) => void;
   isMobile?: boolean;
   view?: 'codex' | 'leaderboard';
   dashboardStatus?: any;
@@ -851,7 +857,10 @@ function Portal2026Component({
   onSelectBirthdayCake,
   onlineUsers = new Set(),
   unreadTeam = 0,
+  unreadGlobal = 0,
+  unreadSystem = 0,
   unreadMps = {},
+  onSelectEnvelope,
   isMobile = false,
   view = 'codex',
   dashboardStatus,
@@ -1165,8 +1174,6 @@ function Portal2026Component({
             const myIndex = teamList.findIndex(p => p.isCurrent);
             const effectiveMyIndex = myIndex !== -1 ? myIndex : 0;
 
-            const totalUnreadMp = unreadMps ? Object.values(unreadMps).reduce((a, b) => a + b, 0) : 0;
-
             // Mode Leaderboard : espacement aéré avec le même rayon/échelle que le Codex + espace marqué entre le 1er et dernier
             const remCount = Math.max(1, remainingPlayers.length);
             const gapAngle = remCount > 1 ? Math.min(Math.PI * 0.35, Math.max(0.55, (Math.PI * 2 / remCount) * 1.8)) : 0;
@@ -1210,7 +1217,11 @@ function Portal2026Component({
 
               const isOnline = onlineUsers.has(pPseudo);
               const isMe = player.isCurrent;
-              const hasUnread = isMe && (totalUnreadMp > 0 || unreadTeam > 0);
+              const totalUnreadMp = Object.values(unreadMps || {}).reduce((a, b) => a + b, 0);
+              const isOtherWithUnreadMp = !isMe && !!(player.pseudo && (unreadMps?.[player.pseudo.toLowerCase()] || 0) > 0);
+              const hasUnread = isMe 
+                ? (totalUnreadMp > 0 || unreadTeam > 0 || (unreadGlobal || 0) > 0 || (unreadSystem || 0) > 0)
+                : ((unreadGlobal || 0) > 0 || (unreadSystem || 0) > 0 || isOtherWithUnreadMp);
               const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
               const isSearchFocused = focusedPlayerId !== null && focusedPlayerId !== undefined && String(player.childId || player.id) === String(focusedPlayerId);
 
@@ -1226,6 +1237,7 @@ function Portal2026Component({
                   onSelectBirthdayCake={onSelectBirthdayCake}
                   isOnline={isOnline}
                   hasUnread={hasUnread}
+                  onSelectEnvelope={onSelectEnvelope}
                   isStealthMode={isMe ? isStealthMode : false}
                   onToggleStealth={isMe ? onToggleStealth : undefined}
                   challengeCount={pChallengeCount}

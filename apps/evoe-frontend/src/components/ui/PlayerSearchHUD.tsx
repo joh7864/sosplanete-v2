@@ -9,6 +9,7 @@ export interface PlayerSearchHUDProps {
   onSelectPlayer: (player: any) => void;
   onSearchMatchChange?: (player: any | null) => void;
   isMobile?: boolean;
+  forceCloseTrigger?: number | null;
 }
 
 export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
@@ -16,6 +17,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
   onSelectPlayer,
   onSearchMatchChange,
   isMobile = false,
+  forceCloseTrigger,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -87,6 +89,14 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
     setSelectedIndex(suggestions.length > 0 ? 0 : -1);
   }, [suggestions]);
 
+  // Réinitialisation forcée externe (ex: au clic sur le joueur sélectionné dans la scène 3D)
+  useEffect(() => {
+    if (forceCloseTrigger) {
+      setIsOpen(false);
+      setQuery('');
+    }
+  }, [forceCloseTrigger]);
+
   // Fermeture automatique au clic à l'extérieur
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -96,11 +106,15 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
       }
     };
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Écoute sur 'click' avec un léger délai pour que le clic d'ouverture ou le clic 3D se déroule normalement
+      const timer = setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+      }, 50);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('click', handleClickOutside);
+      };
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, [isOpen]);
 
   // Focus automatique du champ dès l'ouverture
@@ -501,9 +515,10 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
           overflow: 'hidden',
           cursor: isOpen ? 'default' : 'pointer',
         }}
-        onClick={() => {
+        onClick={(e) => {
           if (!isOpen) {
             setIsOpen(true);
+            e.stopPropagation();
           }
         }}
         title={!isOpen ? "Rechercher un joueur (Agent)" : undefined}

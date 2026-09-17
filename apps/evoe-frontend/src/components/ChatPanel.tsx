@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Shield, AlertTriangle, Send, X, Terminal, Radio, Info, Maximize2, Minimize2, Menu, Mail, ChevronDown, ChevronRight, Image as ImageIcon, ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useChatSocket } from '../hooks/useChatSocket';
+import { useChatSocket, getLastRead } from '../hooks/useChatSocket';
 import { ChatMessageItem } from './chat/ChatMessageItem';
 import { evoeClient } from '../lib/api';
 import pkg from '../../package.json';
@@ -29,6 +29,7 @@ interface ChatPanelProps {
   onEasterEggCommand?: (command: string) => void;
   prefilledText?: string | null;
   onPrefilledTextConsumed?: () => void;
+  scrollToUnreadTrigger?: number | null;
 }
 
 export default function ChatPanel({ 
@@ -45,7 +46,8 @@ export default function ChatPanel({
   isStealthMode,
   onEasterEggCommand,
   prefilledText,
-  onPrefilledTextConsumed
+  onPrefilledTextConsumed,
+  scrollToUnreadTrigger
 }: ChatPanelProps) {
   const { childInfos, user } = useAuth();
   // Composant entièrement contrôlé depuis App.tsx via isOpenProp
@@ -161,8 +163,13 @@ export default function ChatPanel({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const lastReadBeforeOpenRef = useRef<Record<string, number>>({});
+  const isScrollToUnreadPending = useRef<boolean>(false);
+  const prevScrollTrigger = useRef<number | null>(null);
 
   const myPseudo = childInfos?.pseudo || '';
   const myPseudoRef = useRef(myPseudo);
@@ -230,12 +237,83 @@ export default function ChatPanel({
     }
   }, [isOpen, activeTab]);
 
-  // Auto-scroll to bottom of messages (skipped for system tab since system logs are sorted newest-first at top)
   useEffect(() => {
-    if (activeTab !== 'system') {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollToUnreadTrigger && scrollToUnreadTrigger !== prevScrollTrigger.current) {
+      prevScrollTrigger.current = scrollToUnreadTrigger;
+      isScrollToUnreadPending.current = true;
     }
-  }, [messages, isOpen, activeTab]);
+  }, [scrollToUnreadTrigger]);
+
+  // Auto-scroll to bottom of messages or to first unread message when opening via envelope
+  useEffect(() => {
+    if (!isOpen) {
+      // Chat is closed: update the pre-open read timestamps
+      if (myPseudo) {
+        const lr = getLastRead(myPseudo);
+        const map: Record<string, number> = {
+          global: lr.global || 0,
+          team: lr.team || 0,
+          system: lr.system || 0,
+        };
+        Object.entries(lr.mps || {}).forEach(([k, v]) => {
+          map[`mp:${k.toLowerCase()}`] = v;
+        });
+        Object.entries(lr.teams || {}).forEach(([k, v]) => {
+          map[`team:${k.toLowerCase()}`] = v;
+        });
+        lastReadBeforeOpenRef.current = map;
+      }
+      return;
+    }
+
+    if (isScrollToUnreadPending.current) {
+      isScrollToUnreadPending.current = false;
+      const cutoff = lastReadBeforeOpenRef.current[activeTab.toLowerCase()] || 0;
+      
+      const timer = setTimeout(() => {
+        if (activeTab === 'system') {
+          // System messages are sorted newest first
+          const targetMsg = filteredMessages[0];
+          if (targetMsg) {
+            const el = document.getElementById(`chat-msg-${targetMsg.id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setHighlightedMessageId(targetMsg.id);
+              setTimeout(() => setHighlightedMessageId(null), 3500);
+              return;
+            }
+          }
+          messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          // Chronological tabs: find the first unread message from another sender
+          const unreads = filteredMessages.filter(m => {
+            const isFromMe = (m.sender || '').toLowerCase() === myPseudo.toLowerCase();
+            if (isFromMe) return false;
+            const t = new Date(m.timestamp).getTime();
+            return cutoff === 0 ? (Date.now() - t < 48 * 3600 * 1000) : (t > cutoff);
+          });
+
+          const targetMsg = unreads.length > 0 ? unreads[0] : filteredMessages[filteredMessages.length - 1];
+          if (targetMsg) {
+            const el = document.getElementById(`chat-msg-${targetMsg.id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setHighlightedMessageId(targetMsg.id);
+              setTimeout(() => setHighlightedMessageId(null), 3500);
+              return;
+            }
+          }
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+
+      return () => clearTimeout(timer);
+    } else {
+      if (activeTab !== 'system') {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [messages, isOpen, activeTab, scrollToUnreadTrigger, myPseudo]);
 
   const handleUploadFile = async (file: File) => {
     if (!file) return;
@@ -900,7 +978,7 @@ export default function ChatPanel({
         </div>
 
         {/* Messages Area */}
-        <div style={{ flex: 1, padding: '12px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(0,0,0,0.15)' }}>
+        <div ref={messagesContainerRef} style={{ flex: 1, padding: '12px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', background: 'rgba(0,0,0,0.15)' }}>
           {filteredMessages.length === 0 ? (
             <div style={{ margin: 'auto', textAlign: 'center', color: 'rgba(255, 255, 255, 0.25)', fontSize: '0.8rem', padding: '20px' }}>
               <Terminal size={32} style={{ margin: '0 auto 10px', opacity: 0.15 }} />
@@ -954,6 +1032,7 @@ export default function ChatPanel({
                     setDeleteConfirmId(messageId);
                   }}
                   onOpenImageLightbox={(url) => setLightboxImageUrl(url)}
+                  isHighlighted={highlightedMessageId === msg.id}
                 />
               );
             })

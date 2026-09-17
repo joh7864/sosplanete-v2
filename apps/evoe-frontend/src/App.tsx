@@ -137,6 +137,9 @@ function MainApp() {
     handleResetPropulsion, handleCompleteBriefing
   } = useEvoeData();
 
+  const [scrollToUnreadTrigger, setScrollToUnreadTrigger] = useState<number | null>(null);
+  const [searchCloseTrigger, setSearchCloseTrigger] = useState<number | null>(null);
+
   // Mémorisation via sessionStorage : le loader ne s'affiche qu'une seule fois par session d'onglet.
   // Si l'onglet est fermé ou rafraîci manuellement (F5), il revient normalement.
   const [loader2026Dismissed, setLoader2026Dismissed] = useState(
@@ -948,29 +951,49 @@ function MainApp() {
   const eodNPercent = extrapolation ? getEodPercent(extrapolation.dateDepassement) : 48.4;
 
   const handleSelectPlayer = (player: any) => {
+    // Si une recherche de joueur était active (joueur positionné face à l'écran avec les cercles),
+    // le clic sur ce joueur sélectionné doit ouvrir sa fiche profil, repositionner le cercle et fermer la recherche.
+    if (searchedPlayerId !== null) {
+      setSearchedPlayerId(null);
+      setSearchCloseTrigger(Date.now());
+      setSelectedProfileId(player.childId || player.id);
+      return;
+    }
+
     const isMe = player.childId === childInfos?.id || player.id === childInfos?.id || player.isCurrent;
     
     if (isMe) {
-      // Priorité 1 : message d'équipe (inter-équipes ou interne)
-      const unreadTeamNames = Object.keys(unreadChat.unreadTeams || {}).filter(k => (unreadChat.unreadTeams?.[k] || 0) > 0);
-      if (unreadChat.team > 0 || unreadTeamNames.length > 0) {
-        setChatActiveTab(unreadTeamNames.length > 0 ? `team:${unreadTeamNames[0]}` : 'team');
-        setChatOpen(true);
-        return;
-      }
-      
-      // Priorité 2 : message privé (le premier trouvé dans les MP)
+      // Priorité 1 : message privé (le premier trouvé dans les MP)
       const unreadMpUsers = Object.keys(unreadChat.unreadMps || {}).filter(k => (unreadChat.unreadMps?.[k] || 0) > 0);
       if (unreadMpUsers.length > 0) {
         setChatActiveTab(`mp:${unreadMpUsers[0]}`);
         setChatOpen(true);
+        setScrollToUnreadTrigger(Date.now());
+        return;
+      }
+
+      // Priorité 2 : message d'équipe (inter-équipes ou interne)
+      const unreadTeamNames = Object.keys(unreadChat.unreadTeams || {}).filter(k => (unreadChat.unreadTeams?.[k] || 0) > 0);
+      if (unreadChat.team > 0 || unreadTeamNames.length > 0) {
+        setChatActiveTab(unreadTeamNames.length > 0 ? `team:${unreadTeamNames[0]}` : 'team');
+        setChatOpen(true);
+        setScrollToUnreadTrigger(Date.now());
+        return;
+      }
+
+      // Priorité 3 : message système
+      if (unreadChat.system > 0) {
+        setChatActiveTab('system');
+        setChatOpen(true);
+        setScrollToUnreadTrigger(Date.now());
         return;
       }
       
-      // Priorité 3 : message global
+      // Priorité 4 : message global
       if (unreadChat.global > 0) {
         setChatActiveTab('global');
         setChatOpen(true);
+        setScrollToUnreadTrigger(Date.now());
         return;
       }
     } else {
@@ -980,6 +1003,7 @@ function MainApp() {
       if ((unreadChat.unreadMps?.[pseudo] || 0) > 0) {
         setChatActiveTab(`mp:${pseudo}`);
         setChatOpen(true);
+        setScrollToUnreadTrigger(Date.now());
         return;
       }
     }
@@ -987,6 +1011,53 @@ function MainApp() {
     // Comportement par défaut si pas de message : ouvrir la fiche profil
     setSelectedProfileId(player.childId || player.id);
   };
+
+  const handleSelectEnvelope = useCallback((player?: any) => {
+    // Priorité stricte au clic sur l'enveloppe :
+    // 1. Privée perso
+    const unreadMpUsers = Object.keys(unreadChat.unreadMps || {}).filter(k => (unreadChat.unreadMps?.[k] || 0) > 0);
+    const clickedPseudo = player?.pseudo?.toLowerCase();
+    const targetMp = (clickedPseudo && (unreadChat.unreadMps?.[clickedPseudo] || 0) > 0)
+      ? clickedPseudo
+      : unreadMpUsers[0];
+
+    if (targetMp) {
+      setChatActiveTab(`mp:${targetMp}`);
+      setChatOpen(true);
+      setScrollToUnreadTrigger(Date.now());
+      return;
+    }
+
+    // 2. Équipe
+    const unreadTeamNames = Object.keys(unreadChat.unreadTeams || {}).filter(k => (unreadChat.unreadTeams?.[k] || 0) > 0);
+    if (unreadChat.team > 0 || unreadTeamNames.length > 0) {
+      setChatActiveTab(unreadTeamNames.length > 0 ? `team:${unreadTeamNames[0]}` : 'team');
+      setChatOpen(true);
+      setScrollToUnreadTrigger(Date.now());
+      return;
+    }
+
+    // 3. Système
+    if (unreadChat.system > 0) {
+      setChatActiveTab('system');
+      setChatOpen(true);
+      setScrollToUnreadTrigger(Date.now());
+      return;
+    }
+
+    // 4. Général
+    if (unreadChat.global > 0) {
+      setChatActiveTab('global');
+      setChatOpen(true);
+      setScrollToUnreadTrigger(Date.now());
+      return;
+    }
+
+    // Fallback par défaut si cliqué sans non-lu
+    setChatActiveTab('team');
+    setChatOpen(true);
+    setScrollToUnreadTrigger(Date.now());
+  }, [unreadChat, setChatActiveTab, setChatOpen]);
 
   const handleSearchMatchChange = useCallback((player: any | null) => {
     const targetId = player ? (player.childId || player.id) : null;
@@ -1120,7 +1191,10 @@ function MainApp() {
               }}
               onlineUsers={onlineUsers}
               unreadTeam={unreadChat.team}
+              unreadGlobal={unreadChat.global}
+              unreadSystem={unreadChat.system}
               unreadMps={unreadChat.unreadMps}
+              onSelectEnvelope={handleSelectEnvelope}
               isMobile={isMobile}
               view={view2026}
               dashboardStatus={dashboardStatus}
@@ -1505,6 +1579,7 @@ function MainApp() {
                 }
               }}
               onSearchMatchChange={handleSearchMatchChange}
+              forceCloseTrigger={searchCloseTrigger}
               isMobile={isMobile}
             />
 
@@ -2876,6 +2951,7 @@ function MainApp() {
         onEasterEggCommand={handleCommLinkCommand}
         prefilledText={prefilledChatText}
         onPrefilledTextConsumed={() => setPrefilledChatText(null)}
+        scrollToUnreadTrigger={scrollToUnreadTrigger}
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}

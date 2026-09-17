@@ -663,11 +663,11 @@ export class EasterEggService implements OnModuleInit {
           }
           firstInteractionAt = progress?.firstInteractionAt || null;
 
-          // Vérification stricte et indépendante du prérequis de chaque œuf
+          // Vérification stricte et indépendante du prérequis de chaque œuf (sur l'ensemble du cycle orbital)
           isInteractable = await this.checkPrerequisites(
             inst.easterEgg,
             childId,
-            currentPeriod ? currentPeriod.id : 0,
+            targetPeriodIds,
           );
 
           if (!isInteractable && firstInteractionAt && !isDiscovered) {
@@ -952,7 +952,7 @@ export class EasterEggService implements OnModuleInit {
     const isInteractable = chosenDetail ? chosenDetail.isInteractable : await this.checkPrerequisites(
       currentEgg,
       child.id,
-      currentPeriod ? currentPeriod.id : 0,
+      effectivePeriodIds,
     );
 
     // Le badge HUD n'est cliquable QUE SI au moins un œuf du cycle a son prérequis rempli
@@ -1091,12 +1091,16 @@ export class EasterEggService implements OnModuleInit {
 
   /**
    * Vérifie si les prérequis de déverrouillage de l'énigme sont satisfaits par le joueur.
+   * Accepte un ID de période ou un tableau d'IDs (pour couvrir l'ensemble du cycle orbital).
    */
   private async checkPrerequisites(
     egg: { prerequisiteType?: string | null; prerequisiteConfig?: any },
     childId: number,
-    periodId: number,
+    periodIds: number | number[],
   ): Promise<boolean> {
+    const rawIds = Array.isArray(periodIds) ? periodIds : [periodIds];
+    const periodIdsList = rawIds.filter((id) => typeof id === 'number' && id > 0);
+
     const type = egg.prerequisiteType || 'MISSIONS_COUNT';
     const config = (egg.prerequisiteConfig as any) || {};
 
@@ -1109,7 +1113,10 @@ export class EasterEggService implements OnModuleInit {
       const sectorsReq = config.distinctSectors != null ? Number(config.distinctSectors) : 2;
 
       const childActions = await this.prisma.actionDone.findMany({
-        where: { childId, periodId },
+        where: {
+          childId,
+          ...(periodIdsList.length > 0 ? { periodId: { in: periodIdsList } } : {}),
+        },
         include: {
           localAction: {
             include: { actionRef: true },
@@ -1144,7 +1151,10 @@ export class EasterEggService implements OnModuleInit {
       }
 
       const childActions = await this.prisma.actionDone.findMany({
-        where: { childId, periodId },
+        where: {
+          childId,
+          ...(periodIdsList.length > 0 ? { periodId: { in: periodIdsList } } : {}),
+        },
         include: {
           localAction: {
             include: { actionRef: true },
@@ -1191,17 +1201,26 @@ export class EasterEggService implements OnModuleInit {
   }
 
   async recordInteraction(childId: number, easterEggId: number) {
-    const { child, currentPeriod } = await this.getPlayerContext(childId);
+    const { child, instanceYear, periods, currentPeriod, currentPeriodIndex } =
+      await this.getPlayerContext(childId);
 
     const egg = await this.prisma.evoeEasterEgg.findUnique({ where: { id: easterEggId } });
     if (!egg || !egg.isActive) {
       throw new NotFoundException('Énigme introuvable ou inactive');
     }
 
+    const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+    const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
+    const cycleStartPeriodIndex = cycleIndex * frequency;
+    const cycleEndPeriodIndex = Math.min(periods.length - 1, cycleStartPeriodIndex + frequency - 1);
+    const cyclePeriods = periods.slice(cycleStartPeriodIndex, cycleEndPeriodIndex + 1);
+    const cyclePeriodIds = cyclePeriods.map((p) => p.id);
+    const targetPeriodIds = cyclePeriodIds.length > 0 ? cyclePeriodIds : (currentPeriod ? [currentPeriod.id] : []);
+
     const isInteractable = await this.checkPrerequisites(
       egg,
       child.id,
-      currentPeriod ? currentPeriod.id : 0,
+      targetPeriodIds,
     );
     if (!isInteractable) {
       return { success: false, message: 'Prérequis non atteints' };
@@ -1283,6 +1302,17 @@ export class EasterEggService implements OnModuleInit {
     const { child, team, instanceYear, currentPeriod, periods, currentPeriodIndex } =
       await this.getPlayerContext(childId);
 
+    const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+    const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
+    const cycleStartPeriodIndex = cycleIndex * frequency;
+    const cycleEndPeriodIndex = Math.min(
+      periods.length - 1,
+      cycleStartPeriodIndex + frequency - 1,
+    );
+    const cyclePeriods = periods.slice(cycleStartPeriodIndex, cycleEndPeriodIndex + 1);
+    const cyclePeriodIds = cyclePeriods.map((p) => p.id);
+    const targetPeriodIds = cyclePeriodIds.length > 0 ? cyclePeriodIds : (currentPeriod ? [currentPeriod.id] : []);
+
     let egg: EvoeEasterEgg | null = null;
     if (dto.easterEggId) {
       egg = await this.prisma.evoeEasterEgg.findUnique({
@@ -1293,17 +1323,6 @@ export class EasterEggService implements OnModuleInit {
     // Si aucun œuf spécifié ou si le triggerType ne correspond pas à l'ID envoyé,
     // on recherche l'œuf correspondant dans les œufs actifs du cycle
     if (!egg || egg.triggerType !== dto.triggerType) {
-      const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
-      const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
-      const cycleStartPeriodIndex = cycleIndex * frequency;
-      const cycleEndPeriodIndex = Math.min(
-        periods.length - 1,
-        cycleStartPeriodIndex + frequency - 1,
-      );
-      const cyclePeriods = periods.slice(cycleStartPeriodIndex, cycleEndPeriodIndex + 1);
-      const cyclePeriodIds = cyclePeriods.map((p) => p.id);
-      const targetPeriodIds = cyclePeriodIds.length > 0 ? cyclePeriodIds : (currentPeriod ? [currentPeriod.id] : []);
-
       const candidateInstances = await this.prisma.evoeEasterEggInstance.findMany({
         where: {
           instanceYearId: instanceYear.id,
@@ -1335,8 +1354,8 @@ export class EasterEggService implements OnModuleInit {
 
     const effectivePeriodId = dto.periodId || (currentPeriod ? currentPeriod.id : 0);
 
-    // Vérification stricte des prérequis pour cet œuf spécifique
-    const isInteractable = await this.checkPrerequisites(egg, child.id, effectivePeriodId);
+    // Vérification stricte des prérequis pour cet œuf spécifique (sur le cycle orbital)
+    const isInteractable = await this.checkPrerequisites(egg, child.id, targetPeriodIds);
     if (!isInteractable) {
       throw new BadRequestException('Prérequis non atteints pour cet Easter Egg');
     }
