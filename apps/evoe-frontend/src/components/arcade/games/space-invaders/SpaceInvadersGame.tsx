@@ -320,6 +320,12 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
     let lastTime = performance.now();
 
     const loop = (currentTime: number) => {
+      if (document.hidden) {
+        lastTime = currentTime;
+        animId = requestAnimationFrame(loop);
+        return;
+      }
+
       const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
       lastTime = currentTime;
 
@@ -346,7 +352,11 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
         const cooldown = state.cannonLevel === 3 ? 180 : 320;
         const maxBullets = state.cannonLevel === 3 ? 3 : 1;
 
-        const currentPlBullets = state.bullets.filter((b) => b.isPlayer).length;
+        let currentPlBullets = 0;
+        for (let i = 0; i < state.bullets.length; i++) {
+          if (state.bullets[i].isPlayer) currentPlBullets++;
+        }
+
         if (state.keys.fire && now - state.lastFireTime > cooldown && currentPlBullets < maxBullets) {
           state.lastFireTime = now;
           spaceInvadersAudio.playPlayerLaser();
@@ -384,9 +394,13 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
           }
         }
 
-        // 3. Déplacement des aliens & tempo sonore
-        const aliveAliens = state.aliens.filter((a) => a.alive);
-        if (aliveAliens.length === 0) {
+        // 3. Déplacement des aliens & tempo sonore (zéro allocation de tableau par trame)
+        let aliveCount = 0;
+        for (let i = 0; i < state.aliens.length; i++) {
+          if (state.aliens[i].alive) aliveCount++;
+        }
+
+        if (aliveCount === 0) {
           // Vague nettoyée !
           state.status = 'wave_cleared';
           setGameStatus('wave_cleared');
@@ -413,7 +427,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
           }, 1800);
         } else {
           // Accélération progressive en fonction des aliens restants
-          const speedFactor = aliveAliens.length / 55;
+          const speedFactor = aliveCount / 55;
           const currentInterval = Math.max(
             state.alienStepInterval * speedFactor,
             65, // Tempo frénétique sur le dernier alien !
@@ -427,9 +441,11 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
             spaceInvadersAudio.playMarchSound(state.alienMarchNote);
             state.alienMarchNote = (state.alienMarchNote + 1) % 4;
 
-            // Vérifier si les aliens touchent le bord
+            // Vérifier si les aliens vivants touchent le bord
             let shouldDrop = false;
-            for (const alien of aliveAliens) {
+            for (let i = 0; i < state.aliens.length; i++) {
+              const alien = state.aliens[i];
+              if (!alien.alive) continue;
               if (
                 (state.alienDir === 1 && alien.x + alien.width >= CANVAS_WIDTH - 35) ||
                 (state.alienDir === -1 && alien.x <= 35)
@@ -442,7 +458,9 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
             if (shouldDrop) {
               state.alienDir = -state.alienDir;
               let reachedBunkerLine = false;
-              for (const alien of aliveAliens) {
+              for (let i = 0; i < state.aliens.length; i++) {
+                const alien = state.aliens[i];
+                if (!alien.alive) continue;
                 alien.y += 18;
                 alien.frame = alien.frame === 0 ? 1 : 0;
 
@@ -467,23 +485,37 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
               }
             } else {
               const stepX = state.alienDir * 12;
-              for (const alien of aliveAliens) {
+              for (let i = 0; i < state.aliens.length; i++) {
+                const alien = state.aliens[i];
+                if (!alien.alive) continue;
                 alien.x += stepX;
                 alien.frame = alien.frame === 0 ? 1 : 0;
               }
             }
 
             // Tirs aliens aléatoires
-            if (Math.random() < 0.35 + state.wave * 0.08 && aliveAliens.length > 0) {
-              const randomAlien = aliveAliens[Math.floor(Math.random() * aliveAliens.length)];
-              state.bullets.push({
-                x: randomAlien.x + randomAlien.width / 2,
-                y: randomAlien.y + randomAlien.height,
-                width: 3,
-                height: 10,
-                vy: 4.5 + state.wave * 0.4,
-                isPlayer: false,
-              });
+            if (Math.random() < 0.35 + state.wave * 0.08 && aliveCount > 0) {
+              let pick = Math.floor(Math.random() * aliveCount);
+              let randomAlien: Alien | null = null;
+              for (let i = 0; i < state.aliens.length; i++) {
+                if (state.aliens[i].alive) {
+                  if (pick === 0) {
+                    randomAlien = state.aliens[i];
+                    break;
+                  }
+                  pick--;
+                }
+              }
+              if (randomAlien) {
+                state.bullets.push({
+                  x: randomAlien.x + randomAlien.width / 2,
+                  y: randomAlien.y + randomAlien.height,
+                  width: 3,
+                  height: 10,
+                  vy: 4.5 + state.wave * 0.4,
+                  isPlayer: false,
+                });
+              }
             }
           }
         }
@@ -803,9 +835,17 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
       animId = requestAnimationFrame(loop);
     };
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        spaceInvadersAudio.stopUfoSound();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     animId = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (waveTimerRef.current) clearTimeout(waveTimerRef.current);
       spaceInvadersAudio.stopUfoSound();
     };
