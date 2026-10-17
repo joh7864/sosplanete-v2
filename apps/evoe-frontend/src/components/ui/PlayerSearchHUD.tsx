@@ -486,6 +486,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
   // -------------------------------------------------------------
   return (
     <div
+      id="hud-player-search"
       ref={containerRef}
       style={{
         position: 'relative',

@@ -13,7 +13,7 @@
 | US 1.4 | Restauration Automatique de Session | Joueur | US 1.4 - Restauration Session : En tant qu'agent temporel, je veux rester connecté automatiquement afin d'accéder directement au QG | S | Auth & Nexus | Evoe | 3 | 5 | done |
 | **Epic 02 - Immersion & Onboarding Temporel** | | | | | | | | |
 | US 2.1 | Briefing Temporel Initial & Vidéo FTUX | Joueur | US 2.1 - Briefing : En tant qu'agent temporel, je veux visionner le briefing vidéo afin de comprendre la mission 2026/2070 | M | Immersion & Onboarding | Evoe | 5 | 8 | done |
-| US 2.2 | Onboarding Guidé en 11 Étapes | Joueur | US 2.2 - Onboarding : En tant qu'agent temporel, je veux suivre le guide interactif 11 étapes afin de maîtriser la passerelle 3D | S | Immersion & Onboarding | Evoe | 8 | 13 | done |
+| US 2.2 | Onboarding Guidé en 13 Étapes | Joueur | US 2.2 - Onboarding : En tant qu'agent temporel, je veux suivre le guide interactif 13 étapes afin de maîtriser la passerelle 3D | S | Immersion & Onboarding | Evoe | 8 | 13 | done |
 | **Epic 03 - Passerelle Temporelle & Scène 3D (QG 2026)** | | | | | | | | |
 | US 3.1 | Rendu 3D Cosmique, Terre & Contrôles | Joueur | US 3.1 - Scène 3D : En tant qu'agent temporel, je veux explorer l'espace 3D avec Terre et Lune afin d'interagir avec le cosmos | M | Passerelle 3D | Evoe | 13 | 21 | done |
 | US 3.2 | Avatars 3D des Joueurs sur la Passerelle | Joueur | US 3.2 - Avatars 3D : En tant qu'agent temporel, je veux voir les avatars 3D de mes camarades afin d'identifier mon équipe | M | Passerelle 3D | Evoe | 8 | 13 | done |
@@ -61,3 +61,12 @@
 | US 12.2 | Script de recalcul global de l'historique des actions & Leaderboard | Dev | US 12.2 - Recalcul : En tant que dev, je veux recalculer l'historique ActionDone et fiabiliser les scores joueurs | M | Admin & Catalogue | Core | 8 | 21 | done |
 | US 12.3 | Harmonisation EOD & Simulateur d'algorithme multi-espaces | Admin | US 12.3 - EOD Simulator : En tant qu'admin, je veux tester l'algorithme d'impact par établissement et avoir un EOD juste | M | Admin & Catalogue | Core | 5 | 13 | done |
 | US 12.4 | Release Monorepo v1.2.0 & Déploiement Production Docker | Dev | US 12.4 - Release : En tant que dev, je veux packager et déployer la v1.2.0 avec migrations Prisma automatisées | M | Release & Ops | Core | 3 | 8 | done |
+| **Epic 13 - Télémétrie, Audit & Traçabilité des Sessions** | | | | | | | | |
+| US 13.1 | Télémétrie temps réel & Suivi des sessions joueurs | Dev | US 13.1 - Télémétrie : En tant que dev, je veux journaliser les actions et navigations joueurs via WebSocket/API | M | Télémétrie & Audit | Core | 8 | 21 | done |
+| US 13.2 | Cockpit d'audit, timeline de navigation et purges sécurisées | Admin | US 13.2 - Audit : En tant qu'admin, je veux inspecter la timeline chronologique d'un joueur et gérer les purges | M | Télémétrie & Audit | Core | 5 | 13 | done |
+| **Epic 14 - Secrets Temporels, Mascotte & Énigmes** | | | | | | | | |
+| US 14.1 | Architecture & Détection des Secrets Temporels | Dev | US 14.1 - Secrets : En tant que dev, je veux un moteur de déclenchement d'indices et énigmes temporelles | M | Mystères SF | Evoe | 8 | 21 | done |
+| US 14.2 | Composants interactifs Mascotte 3D, Cryptex audio/vidéo & Énigmes | Joueur | US 14.2 - Mascotte & Cryptex : En tant qu'agent, je veux interagir avec la mascotte et résoudre les énigmes cryptex | M | Mystères SF | Evoe | 8 | 13 | done |
+| **Epic 15 - Broadcasts WebSockets & Optimisations Graphiques** | | | | | | | | |
+| US 15.1 | Passerelle WebSocket & Broadcast automatique des messages de période | Dev | US 15.1 - Broadcast Période : En tant que dev, je veux diffuser les alertes début de cycle sur le Com-Link | M | Comm-Link & Broadcast | Evoe | 5 | 13 | done |
+| US 15.2 | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | Dev | US 15.2 - Perfs 3D : En tant que dev, je veux stabiliser le rendu 3D, éliminer les clignotements et affiner le mobile | S | Passerelle 3D | Evoe | 5 | 8 | done |

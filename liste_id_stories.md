@@ -8,7 +8,7 @@
 | US 1.3 | Déconnexion Quantique & Purge de Session | 2 | 5 | Must |
 | US 1.4 | Restauration Automatique de Session & Redirection | 3 | 5 | Should |
 | US 2.1 | Briefing Temporel Initial & Vidéo FTUX | 5 | 8 | Must |
-| US 2.2 | Onboarding Interactif & Visite Guidée en 11 Étapes | 8 | 13 | Should |
+| US 2.2 | Onboarding Interactif & Visite Guidée en 13 Étapes | 8 | 13 | Should |
 | US 3.1 | Rendu 3D Cosmique, Terre, Lune & Contrôles Caméra | 13 | 21 | Must |
 | US 3.2 | Affichage 3D des Avatars des Joueurs sur la Passerelle | 8 | 13 | Must |
 | US 3.3 | Vaisseaux d'Équipe & Effets de Combustion Moteurs | 8 | 13 | Must |
@@ -42,3 +42,13 @@
 | US 11.2 | Rôle d'Arbitre d'Équipe & Interface de Modération | 8 | 21 | Must |
 | US 11.3 | Notifications WhatsApp & Auto-Validation au Timeout | 5 | 13 | Should |
 | US 11.4 | Mascotte Gribouille & Scan Holographique Humoristique | 5 | 8 | Could |
+| US 12.1 | Rééquilibrage scientifique du catalogue & Hypothèses de calcul | 5 | 13 | Must |
+| US 12.2 | Script de recalcul global de l'historique des actions & Leaderboard | 8 | 21 | Must |
+| US 12.3 | Harmonisation EOD & Simulateur d'algorithme multi-espaces | 5 | 13 | Must |
+| US 12.4 | Release Monorepo v1.2.0 & Déploiement Production Docker | 3 | 8 | Must |
+| US 13.1 | Télémétrie temps réel & Suivi des sessions joueurs | 8 | 21 | Must |
+| US 13.2 | Cockpit d'audit, timeline de navigation et purges sécurisées | 5 | 13 | Must |
+| US 14.1 | Architecture & Détection des Secrets Temporels | 8 | 21 | Must |
+| US 14.2 | Composants interactifs Mascotte 3D, Cryptex audio/vidéo & Énigmes | 8 | 13 | Must |
+| US 15.1 | Passerelle WebSocket & Broadcast automatique des messages de période | 5 | 13 | Must |
+| US 15.2 | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | 5 | 8 | Should |

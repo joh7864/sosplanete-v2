@@ -12,6 +12,8 @@
 | **16/08** | 239 | 145.0 | 53.0 | 94.0 | 7.0 | 30/08 |
 | **23/08** | 239 | 170.0 | 58.0 | 69.0 | 7.0 | 30/08 |
 | **30/08** | 245 | 218.3 | - | 26.8 | - | - |
+| **03/09** | 266 | 239.3 | 62.5 | 26.7 | 7.0 | 17/09 |
+| **17/09** | 305 | 278.3 | 78.0 | 26.7 | 7.0 | - |
 
 ## ⏱️ Consommé Détaillé par Phase & Sprint
 
@@ -26,9 +28,10 @@
 | **28/08** | US-EVOE-15, 16, 35 | Dev & Antigravity | Assistant Espace, Modale Semaine, Désimpulser & Grayscale | 2.75h | done |
 | **29/08** | US-EVOE-06, 13, 27 | Dev & Antigravity | Recherche, Onboarding 11 étapes, Podium 3D (+45%), Mobile 100dvh | 2.58h | done |
 | **30/08** | US-EVOE-01 à 35 | Antigravity (IA) | Reverse Engineering, Backlog 35 US, Recette 62 Tests, Blyx Sync | 1.0h | done |
-
-
 | **02/09 - 03/09** | US 12.1, 12.2, 12.3, 12.4 | Dev & Antigravity | Rééquilibrage Catalogue, Recalcul 47k actions, EOD Fix, Release 1.2.0 | 4.5h | done |
+| **12/09 - 13/09** | US 13.1, 13.2 | Dev & Antigravity | Module de télémétrie, timeline de session et audit joueur (v2.0.0) | 5.5h | done |
+| **13/09 - 14/09** | US 14.1, 14.2 | Dev & Antigravity | Architecture secrets temporels, mascotte 3D, énigmes cryptex (v2.1.0) | 6.0h | done |
+| **15/09 - 17/09** | US 15.1, 15.2 | Dev & Antigravity | Broadcast WebSocket début de période, barres de santé, perfs 3D (v2.2.3) | 4.0h | done |
 
 ## 💰 Synthèse Effort Humain
 - **Temps IA (Gemini/Antigravity)** : 0.0h
@@ -46,7 +49,7 @@
 | US 1.3 | User | Déconnexion Quantique & Purge de Session | 2 | M | [x] | **2** | **5** | 0h00 |
 | US 1.4 | User | Restauration Automatique de Session & Redirection | 3 | S | [x] | **3** | **5** | 0h00 |
 | US 2.1 | User | Briefing Temporel Initial & Vidéo FTUX | 5 | M | [x] | **5** | **8** | 0h00 |
-| US 2.2 | User | Onboarding Interactif & Visite Guidée en 11 Étapes | 8 | S | [x] | **26.7** | **43.3** | 18 min |
+| US 2.2 | User | Onboarding Interactif & Visite Guidée en 13 Étapes | 8 | S | [x] | **26.7** | **43.3** | 18 min |
 | US 3.1 | User | Rendu 3D Cosmique, Terre, Lune & Contrôles Caméra | 13 | M | [x] | **18.6** | **30** | 42 min |
 | US 3.2 | User | Affichage 3D des Avatars des Joueurs sur la Passerelle | 8 | M | [x] | **8** | **13** | 0h00 |
 | US 3.3 | User | Vaisseaux d'Équipe & Effets de Combustion Moteurs | 8 | M | [x] | **8** | **13** | 0h00 |
@@ -84,3 +87,9 @@
 | US 12.2 | Dev | Script de recalcul global de l'historique des actions & Leaderboard | 8 | M | [x] | **8** | **21** | 0h00 |
 | US 12.3 | Admin | Harmonisation EOD & Simulateur d'algorithme multi-espaces | 5 | M | [x] | **5** | **13** | 0h00 |
 | US 12.4 | Dev | Release Monorepo v1.2.0 & Déploiement Production Docker | 3 | M | [x] | **3** | **8** | 0h00 |
+| US 13.1 | Dev | Télémétrie temps réel & Suivi des sessions joueurs | 8 | M | [x] | **8** | **21** | 0h00 |
+| US 13.2 | Admin | Cockpit d'audit, timeline de navigation et purges sécurisées | 5 | M | [x] | **5** | **13** | 0h00 |
+| US 14.1 | Dev | Architecture & Détection des Secrets Temporels | 8 | M | [x] | **8** | **21** | 0h00 |
+| US 14.2 | User | Composants interactifs Mascotte 3D, Cryptex audio/vidéo & Énigmes | 8 | M | [x] | **8** | **13** | 0h00 |
+| US 15.1 | Dev | Passerelle WebSocket & Broadcast automatique des messages de période | 5 | M | [x] | **5** | **13** | 0h00 |
+| US 15.2 | Dev | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | 5 | S | [x] | **5** | **8** | 0h00 |

@@ -15,6 +15,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Activity,
+  RadioTower,
 } from 'lucide-react';
 
 export interface AboutModalProps {
@@ -24,6 +26,7 @@ export interface AboutModalProps {
   releaseDate?: string;
   periodsTimeout?: number;
   daysPerPeriod?: number;
+  alwaysShowRecent?: boolean;
 }
 
 interface EpicItem {
@@ -177,16 +180,45 @@ const EPICS_DATA: EpicItem[] = [
       'Galerie d’avatars spatiaux personnalisables',
       'Consultation des profils d’autres Agents depuis le globe 3D ou le HUD'
     ]
+  },
+  {
+    id: 'epic-11',
+    code: 'EPIC-11',
+    title: 'Télémétrie, Audit & Traçabilité des Sessions',
+    icon: Activity,
+    color: '#06b6d4',
+    summary: 'Suivi transparent des actions des agents, audit de sécurité et traçabilité pour les encadrants.',
+    features: [
+      'Journalisation temps réel des connexions, impulsions et navigations d’agents',
+      'Timeline de parcours chronologique pour chaque session d’explorateur',
+      'Cockpit d’audit et de modération d’instance pour l’équipe pédagogique',
+      'Politique de purge et conformité de conservation des données d’activité'
+    ]
+  },
+  {
+    id: 'epic-12',
+    code: 'EPIC-12',
+    title: 'Secrets Temporels & Interactions Spéciales',
+    icon: Sparkles,
+    color: '#e879f9',
+    summary: 'Mécaniques de découvertes interactives, animations et ambiance sonore cryptex.',
+    features: [
+      'Présence interactive de la mascotte d’équipage guidant les explorateurs',
+      'Indices et énigmes temporelles immersives avec ambiance sonore dédiée',
+      'Déverrouillage progressif par cycle avec validation de cryptex visuel',
+      'Palmarès et célébration des découvertes collectives d’équipage'
+    ]
   }
 ];
 
 export const AboutModal: React.FC<AboutModalProps> = ({
   isOpen,
   onClose,
-  version = '1.6.3',
-  releaseDate = '2026-09-13T00:00:00.000Z',
+  version = '2.2.3',
+  releaseDate = '2026-09-17T12:34:00.000Z',
   periodsTimeout = 2, // 2 périodes avant retrait
   daysPerPeriod = 7,  // 7 jours par période (soit 14 jours de visibilité)
+  alwaysShowRecent = true,
 }) => {
   const [searchFilter, setSearchFilter] = useState('');
   const [expandedEpics, setExpandedEpics] = useState<Record<string, boolean>>({
@@ -195,13 +227,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({
     'epic-04': false,
   });
 
-  // Calcul du timeout des dernières évolutions (1 à 2 périodes de jeu)
+  // Calcul du timeout des dernières évolutions (toujours actif si alwaysShowRecent)
   const isReleaseRecent = useMemo(() => {
+    if (alwaysShowRecent) return true;
     const relTime = new Date(releaseDate).getTime();
     const totalDays = Math.max(1, periodsTimeout * daysPerPeriod);
     const maxAgeMs = totalDays * 24 * 60 * 60 * 1000;
     return Date.now() - relTime < maxAgeMs;
-  }, [releaseDate, periodsTimeout, daysPerPeriod]);
+  }, [releaseDate, periodsTimeout, daysPerPeriod, alwaysShowRecent]);
 
   // Fermeture par la touche Échap
   useEffect(() => {
@@ -447,17 +480,17 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                         background: 'rgba(5, 12, 28, 0.75)',
                         padding: '12px 14px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(0, 255, 204, 0.25)',
+                        border: '1px solid rgba(6, 182, 212, 0.35)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Layers size={15} color="#00ffcc" />
+                        <Activity size={15} color="#06b6d4" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Menu Bulle Flottante Universel (HUD)
+                          Télémétrie & Traçabilité des Sessions (v2.0)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Unification des commandes système (WhatsApp Équipe, Guide interactif, Qualité 3D GPU, Journal de bord, Déconnexion) dans une bulle d'options unique et élégante sur tous les supports (mobile portrait/paysage et grands écrans).
+                        Audit en temps réel des actions des explorateurs, timeline de navigation chronologique et tableau de bord sécurisé permettant aux encadrants de suivre la dynamique d'équipage.
                       </p>
                     </div>
 
@@ -466,17 +499,36 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                         background: 'rgba(5, 12, 28, 0.75)',
                         padding: '12px 14px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(0, 255, 204, 0.25)',
+                        border: '1px solid rgba(232, 121, 249, 0.35)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <Sparkles size={15} color="#e879f9" />
+                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
+                          Secrets Temporels & Découvertes (v2.1)
+                        </strong>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
+                        Mécaniques immersives de découvertes dans l'Arche Temporelle, avec ambiance sonore cryptex, indices évolutifs par cycle et récompenses collectives d'impact IT.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(5, 12, 28, 0.75)',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(0, 179, 255, 0.35)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                         <Search size={15} color="#00b3ff" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Recherche 3D & Anneau Holographique
+                          Mascotte 3D & Recherche Holographique (v2.2)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Rotation cinématique automatique avec inclinaison gyroscopique vers l'avatar ciblé. Nouveau ciblage par anneau holographique 3D au sol en perspective, synchronisé aux pulsations de couleur d'équipe.
+                        Présence interactive de la mascotte d'équipage dans l'Arche. Outil de recherche d'agent avec autocomplétion, rotation gyroscopique fluide et anneau holographique au sol.
                       </p>
                     </div>
 
@@ -485,36 +537,17 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                         background: 'rgba(5, 12, 28, 0.75)',
                         padding: '12px 14px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(0, 255, 204, 0.25)',
+                        border: '1px solid rgba(16, 185, 129, 0.35)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Globe size={15} color="#10b981" />
+                        <RadioTower size={15} color="#10b981" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Cadrage & Rayon Optimal de l'Orbite
+                          Diffusion Broadcast & Affichage Adaptatif (v2.2.3)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Ajustement harmonieux du cercle des avatars autour de la Terre spatiale. Dégagement total des bulles de secteurs éco-citoyens et garantie de parfaite lisibilité des pseudonymes et badges sans coupure visuelle.
-                      </p>
-                    </div>
-
-                    <div
-                      style={{
-                        background: 'rgba(5, 12, 28, 0.75)',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(0, 255, 204, 0.25)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Zap size={15} color="#ffd700" />
-                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Stabilité Graphique & Rendu 2070
-                        </strong>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Pipeline Three.js 60 FPS natif sans post-processing instable sur mobile. Matériaux PBR et reflets métalliques calibrés éliminant les variations d'exposition et assurant la fidélité des couleurs de vaisseaux sous tous les angles.
+                        Diffusion automatique des annonces de début de cycle sur le Com-Link WebSockets, nouvelle jauge de santé 2026 et optimisation ergonomique pour mobile portrait/paysage.
                       </p>
                     </div>
                   </div>
