@@ -169,40 +169,57 @@ export function useEvoeData() {
 
   const [isEvoeDataLoading, setIsEvoeDataLoading] = useState(true);
 
-  const fetchEvoeData = async () => {
+  const fetchEvoeData = async (isBackground = false) => {
     if (!instanceId) return;
     refreshContext();
 
     try {
-      setIsEvoeDataLoading(true);
+      if (!isBackground) {
+        setIsEvoeDataLoading(true);
+      }
       const [metricsRes, dashboardRes] = await Promise.allSettled([
         evoeClient.get(`${EVOE_API_URL}/extrapolation/metrics`),
         evoeClient.get(`${EVOE_API_URL}/dashboard/status/${instanceId}`),
       ]);
       if (metricsRes.status === 'fulfilled') {
-        setExtrapolation(metricsRes.value.data);
+        const nextMetrics = metricsRes.value.data;
+        setExtrapolation((prev: any) =>
+          JSON.stringify(prev) === JSON.stringify(nextMetrics) ? prev : nextMetrics,
+        );
       }
       if (dashboardRes.status === 'fulfilled') {
-        setDashboardStatus(dashboardRes.value.data);
+        const nextDash = dashboardRes.value.data;
+        setDashboardStatus((prev: any) =>
+          JSON.stringify(prev) === JSON.stringify(nextDash) ? prev : nextDash,
+        );
       }
     } catch (err) {
       console.error("Erreur récupération données Evoe:", err);
     } finally {
-      setIsEvoeDataLoading(false);
+      if (!isBackground) {
+        setIsEvoeDataLoading(false);
+      }
     }
   };
 
-  const fetchChallenges = async () => {
+  const fetchChallenges = async (isBackground = false) => {
     if (!instanceId) return;
     try {
-      setLoadingChallenges(true);
+      if (!isBackground) {
+        setLoadingChallenges(true);
+      }
       const res = await evoeClient.get(`${EVOE_API_URL}/challenges`);
-      setChallenges(Array.isArray(res.data) ? res.data : []);
+      const nextList = Array.isArray(res.data) ? res.data : [];
+      setChallenges((prev: any[]) =>
+        JSON.stringify(prev) === JSON.stringify(nextList) ? prev : nextList,
+      );
     } catch (err) {
       console.error("Erreur chargement défis:", err);
       setChallenges([]);
     } finally {
-      setLoadingChallenges(false);
+      if (!isBackground) {
+        setLoadingChallenges(false);
+      }
     }
   };
 

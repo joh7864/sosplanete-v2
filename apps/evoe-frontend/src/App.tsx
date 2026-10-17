@@ -696,25 +696,48 @@ function MainApp() {
     };
   }, [expandedMission]);
 
-  // Récupérer les données de projection / course / défis
+  // 2.A — Récupérer les données de projection / course / défis avec suspension intelligente
+  const isArcadeOpen = Boolean(showArcadeCabinet || showArcadeHub);
+
   useEffect(() => {
     fetchEvoeData();
-    let interval: any = null;
-
-    if (era === '2070') {
-      interval = setInterval(fetchEvoeData, 10000);
-    } else if (era === '2026') {
+    if (era === '2026') {
       fetchChallenges();
-      interval = setInterval(() => {
-        fetchEvoeData();
-        fetchChallenges();
-      }, 10000);
     }
 
-    return () => {
-      if (interval) clearInterval(interval);
+    const poll = () => {
+      // Suspension du polling si onglet masqué ou si borne/hub arcade ouvert
+      if (document.hidden || isArcadeOpen) {
+        return;
+      }
+      if (era === '2070') {
+        fetchEvoeData(true);
+      } else if (era === '2026') {
+        fetchEvoeData(true);
+        fetchChallenges(true);
+      }
     };
-  }, [era, instanceId]);
+
+    const interval = setInterval(poll, 10000);
+
+    // Rattrapage immédiat lors du retour sur l'onglet
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !isArcadeOpen) {
+        if (era === '2070') {
+          fetchEvoeData(true);
+        } else if (era === '2026') {
+          fetchEvoeData(true);
+          fetchChallenges(true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [era, instanceId, isArcadeOpen]);
 
 
 
