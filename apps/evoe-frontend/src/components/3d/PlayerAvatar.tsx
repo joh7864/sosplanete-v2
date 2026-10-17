@@ -5,6 +5,12 @@ import * as THREE from 'three';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
+// Vecteurs temporaires partagés pour zéro allocation dans useFrame (supprime le GC thrashing)
+const _tmpWorldPos = new THREE.Vector3();
+const _tmpCamDir = new THREE.Vector3();
+const _tmpAvatarDir = new THREE.Vector3();
+const _tmpScaleTarget = new THREE.Vector3();
+
 const globalTexturePromiseCache = new Map<string, Promise<THREE.Texture>>();
 
 function getTexture(url: string): Promise<THREE.Texture> {
@@ -1234,20 +1240,19 @@ export function PlayerAvatar({
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (groupRef.current) {
-      const worldPos = new THREE.Vector3();
-      groupRef.current.getWorldPosition(worldPos);
+      groupRef.current.getWorldPosition(_tmpWorldPos);
       
-      const center = new THREE.Vector3(0, 0, 0);
-      const camDir = state.camera.position.clone().sub(center).normalize();
-      const avatarDir = worldPos.clone().sub(center).normalize();
+      _tmpCamDir.copy(state.camera.position).normalize();
+      _tmpAvatarDir.copy(_tmpWorldPos).normalize();
       
-      const dot = avatarDir.dot(camDir);
+      const dot = _tmpAvatarDir.dot(_tmpCamDir);
       let scaleFactor = 1.0 + (dot * 0.4);
       if (isSearchFocused) {
         scaleFactor += 0.08 + Math.sin(t * 4.0) * 0.03;
       }
       
-      groupRef.current.scale.lerp(new THREE.Vector3(scaleFactor, scaleFactor, scaleFactor), 0.1);
+      _tmpScaleTarget.set(scaleFactor, scaleFactor, scaleFactor);
+      groupRef.current.scale.lerp(_tmpScaleTarget, 0.1);
     }
     if (bracketsRef.current) {
       const pulse = 1.0 + Math.sin(t * 5.0) * 0.04;

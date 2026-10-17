@@ -958,7 +958,7 @@ function Portal2026Component({
         if (view === 'leaderboard') {
           // Mode Leaderboard : on pivote pour ramener le joueur sélectionné face caméra (sur l'arc arrière)
           const pPseudo = teamList.find(p => String(p.childId || p.id) === String(focusedPlayerId))?.pseudo || '';
-          const rankMatch = rankedPlayers.find((rp: any) => (rp.pseudo || '').toLowerCase() === pPseudo.toLowerCase());
+          const rankMatch = rankedPlayersMapRef.current.get(pPseudo.toLowerCase());
           
           if (rankMatch && rankMatch.rankNumber > 3) {
             const remIndex = rankMatch.rankNumber - 4;
@@ -1060,6 +1060,20 @@ function Portal2026Component({
       rankNumber: idx + 1
     }));
   }, [dashboardStatus?.topPlayers, teamList]);
+
+  // Indexation O(1) par pseudo pour éliminer les recherches quadratiques
+  const rankedPlayersMap = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const rp of rankedPlayers) {
+      if (rp.pseudo) {
+        map.set(rp.pseudo.toLowerCase(), rp);
+      }
+    }
+    return map;
+  }, [rankedPlayers]);
+
+  const rankedPlayersMapRef = useRef(rankedPlayersMap);
+  rankedPlayersMapRef.current = rankedPlayersMap;
 
   const top3 = useMemo(() => rankedPlayers.slice(0, 3), [rankedPlayers]);
   const remainingPlayers = useMemo(() => rankedPlayers.slice(3), [rankedPlayers]);
@@ -1194,7 +1208,7 @@ function Portal2026Component({
               let rankNumber = 0;
 
               const pPseudo = (player.pseudo || '').toLowerCase();
-              const rankMatch = rankedPlayers.find((rp: any) => (rp.pseudo || '').toLowerCase() === pPseudo);
+              const rankMatch = rankedPlayersMap.get(pPseudo);
 
               if (rankMatch) {
                 rankNumber = rankMatch.rankNumber;
