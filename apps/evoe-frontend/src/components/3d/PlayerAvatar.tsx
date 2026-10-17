@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Billboard, Html } from '@react-three/drei';
+import { Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
@@ -1564,12 +1564,22 @@ export function PlayerAvatar({
                       </Text>
                     ))}
 
-                    <Html center distanceFactor={10} zIndexRange={[100, 0]}>
-                      <div 
-                        title={tooltipName}
-                        style={{ width: '80px', height: '30px', cursor: 'help' }}
-                      />
-                    </Html>
+                    <mesh 
+                      position={[0, 0, 0.01]}
+                      onPointerOver={(e) => {
+                        e.stopPropagation();
+                        document.body.style.cursor = 'help';
+                        document.body.title = tooltipName;
+                      }}
+                      onPointerOut={(e) => {
+                        e.stopPropagation();
+                        document.body.style.cursor = 'auto';
+                        document.body.title = '';
+                      }}
+                    >
+                      <planeGeometry args={[Math.min(starsCount, 5) * 0.08, 0.08]} />
+                      <meshBasicMaterial visible={false} />
+                    </mesh>
                   </group>
                 )}
               </group>
