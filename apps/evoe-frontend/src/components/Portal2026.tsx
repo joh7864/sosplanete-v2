@@ -125,19 +125,17 @@ function ThematicSector({
     >
       {/* Structure de l'Orbe de Cristal Premium */}
       <group scale={hovered ? 1.35 : 1}>
-        {/* 1. Coque extérieure en verre translucide haute réflexion */}
+        {/* 1. Coque extérieure en verre translucide haute réflexion (sans passe FBO transmission) */}
         <mesh>
           <sphereGeometry args={[0.34, 32, 32]} />
           <meshPhysicalMaterial 
             color={hovered ? '#ffffff' : sectorColor}
             transparent={true} 
-            opacity={0.55} 
+            opacity={0.48} 
             roughness={0.08}
-            metalness={0.3}
+            metalness={0.2}
             clearcoat={1.0}
             clearcoatRoughness={0.1}
-            transmission={0.8}
-            ior={1.45}
             reflectivity={0.9}
           />
         </mesh>
