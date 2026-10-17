@@ -582,3 +582,33 @@ model PlayerBadge {
 
   @@map("evoe_player_badge")
 }
+
+model ArcadeScore {
+  id             Int      @id @default(autoincrement())
+  gameKey        String   // 'space-invaders'
+  childId        Int
+  childPseudo    String
+  teamId         Int
+  teamName       String
+  instanceYearId Int
+  score          Int
+  waveReached    Int      @default(1)
+  createdAt      DateTime @default(now())
+
+  @@index([gameKey, instanceYearId, score(sort: Desc)])
+  @@index([gameKey, childId])
+  @@map("evoe_arcade_score")
+}
+
+model TeamUnlockedArcadeGame {
+  id                  Int      @id @default(autoincrement())
+  teamId              Int
+  gameKey             String   // 'space-invaders'
+  easterEggCode       String?  // 'EE_KONAMI_80S'
+  unlockedAt          DateTime @default(now())
+  discoveredByChildId Int?
+
+  @@unique([teamId, gameKey])
+  @@index([teamId])
+  @@map("evoe_team_unlocked_arcade_game")
+}

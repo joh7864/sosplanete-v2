@@ -70,3 +70,5 @@
 | **Epic 15 - Broadcasts WebSockets & Optimisations Graphiques** | | | | | | | | |
 | US 15.1 | Passerelle WebSocket & Broadcast automatique des messages de période | Dev | US 15.1 - Broadcast Période : En tant que dev, je veux diffuser les alertes début de cycle sur le Com-Link | M | Comm-Link & Broadcast | Evoe | 5 | 13 | done |
 | US 15.2 | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | Dev | US 15.2 - Perfs 3D : En tant que dev, je veux stabiliser le rendu 3D, éliminer les clignotements et affiner le mobile | S | Passerelle 3D | Evoe | 5 | 8 | done |
+| **Epic 16 - Salle d'Arcade & Mini-Jeux Rétro** | | | | | | | | |
+| US 16.1 | Salle d'Arcade & Space Invaders Couleur | Joueur | US 16.1 - Arcade : En tant qu'agent, je veux jouer à Space Invaders et concourir au classement de la borne | M | Mini-Jeux & Rétro | Evoe | 8 | 21 | done |

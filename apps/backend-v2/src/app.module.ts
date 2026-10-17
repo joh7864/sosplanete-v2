@@ -24,9 +24,11 @@ import { ImpactModule } from './modules/impact/impact.module';
 import { StimulationModule } from './modules/stimulation/stimulation.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { EvoeModule } from './modules/stimulation/evoe/evoe.module';
+import { ArcadeModule } from './modules/arcade/arcade.module';
 
 @Module({
   imports: [
+    ArcadeModule,
     CategoryModule,
     CategoryRefModule,
     ImpactModule,

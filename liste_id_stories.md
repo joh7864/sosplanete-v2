@@ -52,3 +52,4 @@
 | US 14.2 | Composants interactifs Mascotte 3D, Cryptex audio/vidéo & Énigmes | 8 | 13 | Must |
 | US 15.1 | Passerelle WebSocket & Broadcast automatique des messages de période | 5 | 13 | Must |
 | US 15.2 | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | 5 | 8 | Should |
+| US 16.1 | Salle d'Arcade & Mini-Jeu Space Invaders Rétro Couleur | 8 | 21 | Must |

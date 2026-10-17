@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoreHorizontal, HelpCircle, LogOut, ExternalLink, BookOpen, Cpu } from 'lucide-react';
+import { MoreHorizontal, HelpCircle, LogOut, ExternalLink, BookOpen, Cpu, Gamepad2 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 
 interface SystemMenuHUDProps {
@@ -12,6 +12,8 @@ interface SystemMenuHUDProps {
   isMobile?: boolean;
   isUnbridledDpr?: boolean;
   onToggleUnbridledDpr?: () => void;
+  hasUnlockedArcade?: boolean;
+  onOpenArcade?: () => void;
 }
 
 export const SystemMenuHUD: React.FC<SystemMenuHUDProps> = ({
@@ -23,6 +25,8 @@ export const SystemMenuHUD: React.FC<SystemMenuHUDProps> = ({
   isMobile = false,
   isUnbridledDpr = false,
   onToggleUnbridledDpr,
+  hasUnlockedArcade = false,
+  onOpenArcade,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,6 +253,80 @@ export const SystemMenuHUD: React.FC<SystemMenuHUDProps> = ({
                 </div>
                 <ExternalLink size={12} color="rgba(255, 255, 255, 0.4)" style={{ flexShrink: 0 }} />
               </a>
+            )}
+
+            {/* Item Débloqué : Salle d'Arcade & Mini-Jeux (Strictement invisible avant déblocage) */}
+            {hasUnlockedArcade && onOpenArcade && (
+              <button
+                id="hud-menu-arcade"
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenArcade();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '9px 10px',
+                  borderRadius: '10px',
+                  background: 'rgba(0, 255, 102, 0.1)',
+                  border: '1.5px solid rgba(0, 255, 102, 0.4)',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background 0.2s, border-color 0.2s',
+                  boxShadow: '0 0 14px rgba(0, 255, 102, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 255, 102, 0.22)';
+                  e.currentTarget.style.borderColor = '#00ff66';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 255, 102, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(0, 255, 102, 0.4)';
+                }}
+              >
+                <div
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    background: 'rgba(0, 255, 102, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#00ff66',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Gamepad2 size={16} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff' }}>
+                      Salle d'Arcade
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.55rem',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        background: '#00ff66',
+                        color: '#000000',
+                        fontWeight: 900,
+                        letterSpacing: '0.5px',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Rétro
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.65rem', color: '#00ff66' }}>
+                    Mini-jeux & High Scores
+                  </span>
+                </div>
+              </button>
             )}
 
             {/* Item 2 : Guide interactif (Onboarding) */}

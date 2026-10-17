@@ -1504,9 +1504,42 @@ export class EasterEggService implements OnModuleInit {
       unlockedArtifact = 'ROSETTA_STONE';
     }
 
+    // Déblocage éventuel d'un mini-jeu d'arcade pour toute l'équipe (dès la première découverte)
+    let unlockedMiniGame: string | null = null;
+    const EASTER_EGG_ARCADE_MAP: Record<string, string> = {
+      EE_KONAMI_80S: 'space-invaders',
+    };
+    const targetGameKey = EASTER_EGG_ARCADE_MAP[egg.code];
+    if (targetGameKey) {
+      try {
+        await this.prisma.teamUnlockedArcadeGame.upsert({
+          where: {
+            teamId_gameKey: {
+              teamId: team.id,
+              gameKey: targetGameKey,
+            },
+          },
+          create: {
+            teamId: team.id,
+            gameKey: targetGameKey,
+            easterEggCode: egg.code,
+            discoveredByChildId: child.id,
+          },
+          update: {},
+        });
+        unlockedMiniGame = targetGameKey;
+      } catch (err: any) {
+        this.logger.warn(`[EasterEggService] Erreur unlock arcade game ${targetGameKey}: ${err?.message}`);
+      }
+    }
+
     let customSuccessMsg = isQuotaReached
       ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
       : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`;
+
+    if (unlockedMiniGame === 'space-invaders') {
+      customSuccessMsg += " 👾 La borne Space Invaders a été débloquée dans la Salle d'Arcade pour toute votre équipe !";
+    }
 
     if (unlockedArtifact === 'CHRONO_EGG') {
       customSuccessMsg += " ⚡ L'outil Chrono-Egg a été débloqué dans votre équipement temporel !";
@@ -1518,6 +1551,7 @@ export class EasterEggService implements OnModuleInit {
       success: true,
       message: customSuccessMsg,
       unlockedArtifact,
+      unlockedMiniGame,
       pointsIT: hasTeamReward ? egg.rewardPointsIT : 0,
       discoveredByPlayer: true,
       teamDiscoveriesCount,

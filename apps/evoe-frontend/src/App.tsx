@@ -6,6 +6,7 @@ import { Radio, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, Refresh
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
+import { evoeClient } from './lib/api';
 import Login from './pages/Login';
 import TemporalBriefing from './components/TemporalBriefing';
 import ChatPanel from './components/ChatPanel';
@@ -38,6 +39,7 @@ import { useBirthday } from './hooks/useBirthday';
 import { GribouilleBirthdayBubble } from './components/birthday/GribouilleBirthdayBubble';
 import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
+import { ArcadeHubModal, ArcadeCabinetModal, getArcadeGame } from './components/arcade';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { KonamiArcadeHUD } from './components/ui/KonamiArcadeHUD';
 import { lazy, Suspense } from 'react';
@@ -196,6 +198,12 @@ function MainApp() {
   const [chronoPeriods, setChronoPeriods] = useState<ChronoPeriodItem[]>([]);
   const [chronoLoading, setChronoLoading] = useState(false);
 
+  // Salle d'Arcade & Mini-Jeux
+  const [unlockedArcadeGames, setUnlockedArcadeGames] = useState<string[]>([]);
+  const [showArcadeHub, setShowArcadeHub] = useState(false);
+  const [showArcadeCabinet, setShowArcadeCabinet] = useState(false);
+  const [arcadeSelectedGameKey, setArcadeSelectedGameKey] = useState<string>('space-invaders');
+
   const handleOpenChronoEgg = async () => {
     setShowChronoEggModal(true);
     setChronoLoading(true);
@@ -227,6 +235,8 @@ function MainApp() {
     showRosettaStoneModal ||
     showTerminalModal ||
     showTemporalEchoModal ||
+    showArcadeHub ||
+    showArcadeCabinet ||
     showNoPeriodModal ||
     cancelMissionConfirm ||
     showEggCelebration ||
@@ -270,6 +280,20 @@ function MainApp() {
 
     const result = await validateTrigger(triggerType as any, metadata, undefined, triggeredEgg?.id);
     if (result.success) {
+      if (
+        (result as any).unlockedMiniGame ||
+        triggeredEgg?.code === 'EE_KONAMI_80S' ||
+        triggerType === 'KONAMI_CODE'
+      ) {
+        setUnlockedArcadeGames((prev) =>
+          Array.from(
+            new Set([
+              ...prev,
+              (result as any).unlockedMiniGame || 'space-invaders',
+            ]),
+          ),
+        );
+      }
       const freshEgg = await fetchActiveEgg();
       if (triggeredEgg) {
         setCelebrationEgg({
@@ -328,6 +352,9 @@ function MainApp() {
           activeEggData?.easterEgg;
         const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' }, undefined, konamiEgg?.id);
         if (result.success) {
+          setUnlockedArcadeGames((prev) =>
+            Array.from(new Set([...prev, 'space-invaders'])),
+          );
           const freshEgg = await fetchActiveEgg(true);
           if (konamiEgg) {
             setCelebrationEgg({
@@ -625,6 +652,33 @@ function MainApp() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, shouldRedirect, hasSeenOnboarding]);
+
+  // Récupération des jeux d'arcade débloqués par l'équipe du joueur
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUnlockedArcade = async () => {
+      try {
+        const BASE_API_URL = (
+          import.meta.env.VITE_API_URL || 'http://localhost:3011/legacy'
+        ).replace('/legacy', '');
+        const res = await evoeClient.get<{ unlockedGames: string[] }>(
+          `${BASE_API_URL}/arcade/unlocked`,
+        );
+        if (isMounted && res.data?.unlockedGames) {
+          setUnlockedArcadeGames(res.data.unlockedGames);
+        }
+      } catch {
+        // Silencieux si non connecté
+      }
+    };
+
+    if (user) {
+      fetchUnlockedArcade();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   // Fermer le pop-over holographique si on clique n'importe où en dehors
   useEffect(() => {
@@ -1675,6 +1729,8 @@ function MainApp() {
               isMobile={isMobile}
               isUnbridledDpr={isUnbridledDpr}
               onToggleUnbridledDpr={toggleUnbridledDpr}
+              hasUnlockedArcade={unlockedArcadeGames.length > 0}
+              onOpenArcade={() => setShowArcadeHub(true)}
             />
           </div>
         </header>
@@ -2871,6 +2927,10 @@ function MainApp() {
         eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
         pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
         isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
+        onPlayArcadeGame={(gameKey) => {
+          setArcadeSelectedGameKey(gameKey);
+          setShowArcadeCabinet(true);
+        }}
         onOpenCommLink={() => {
           setShowEggCelebration(false);
           setCelebrationEgg(null);
@@ -2934,6 +2994,21 @@ function MainApp() {
         onClose={() => setShowTemporalEchoModal(false)}
         initialTheme={selectedEchoTheme}
       />
+
+      {/* SALLE D'ARCADE HUB (MINI-JEUX DÉCOUVERTS PAR L'ÉQUIPE) */}
+      <ArcadeHubModal
+        isOpen={showArcadeHub}
+        onClose={() => setShowArcadeHub(false)}
+      />
+
+      {/* BORNE D'ARCADE DIRECTE (LANCEMENT DE JEU SPÉCIFIQUE) */}
+      {showArcadeCabinet && getArcadeGame(arcadeSelectedGameKey) && (
+        <ArcadeCabinetModal
+          isOpen={showArcadeCabinet}
+          onClose={() => setShowArcadeCabinet(false)}
+          game={getArcadeGame(arcadeSelectedGameKey)!}
+        />
+      )}
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 

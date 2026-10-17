@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio } from 'lucide-react';
+import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio, Gamepad2 } from 'lucide-react';
 import { playUnlockCadenasSound, playConstellationChimeSound } from '../../utils/easterEggAudio';
 import { MatrixRainEffect } from './easter-egg-effects/MatrixRainEffect';
 import { CrtRetroSynthwaveEffect } from './easter-egg-effects/CrtRetroSynthwaveEffect';
@@ -18,6 +18,7 @@ export interface EasterEggVictoryDispatcherProps {
   pointsIT?: number;
   onOpenCommLink?: () => void;
   isTeamRewarded?: boolean;
+  onPlayArcadeGame?: (gameKey: string) => void;
 }
 
 interface Particle {
@@ -40,6 +41,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   pointsIT = 60,
   onOpenCommLink,
   isTeamRewarded = false,
+  onPlayArcadeGame,
 }) => {
   const [displayPoints, setDisplayPoints] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -134,7 +136,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
       case 'matrix':
         return 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
       case 'konami':
-        return 'Code d’arcade 1980s validé avec maestria ! L’esthétique rétro-futuriste vibre sur vos senseurs.';
+        return 'Protocole des Anciens validé avec succès ! La borne Space Invaders couleur d’origine (1978) est débloquée dans la Salle d’Arcade pour toute votre équipe !';
       case 'antigravity':
         return 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
       case 'rocket':
@@ -553,6 +555,39 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   width: '100%',
                 }}
               >
+                {effectType === 'konami' && onPlayArcadeGame && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onPlayArcadeGame('space-invaders');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px 20px',
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, #00ff66, #059669)',
+                      border: '2px solid #00ff66',
+                      color: '#000000',
+                      fontSize: '1rem',
+                      fontWeight: 900,
+                      fontFamily: '"Courier New", monospace',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      boxShadow: '0 4px 25px rgba(0, 255, 102, 0.6)',
+                      letterSpacing: '1px',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
+                  >
+                    <Gamepad2 size={20} /> JOUER À SPACE INVADERS 👾
+                  </button>
+                )}
+
                 {onOpenCommLink && (
                   <button
                     type="button"
