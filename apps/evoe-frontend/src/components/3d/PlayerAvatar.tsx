@@ -1278,12 +1278,15 @@ export function PlayerAvatar({
         document.body.style.cursor = 'auto';
       }}
     >
-      <pointLight 
-        position={[0, 0.5, 0]} 
-        color={isSearchFocused ? '#00ffcc' : (isBirthday ? '#ffd700' : color)} 
-        intensity={isSearchFocused ? 2.2 : (isBirthday ? 1.8 : (isMe ? 1.2 : 0.3))} 
-        distance={isSearchFocused ? 3.5 : (isBirthday ? 3 : 2)} 
-      />
+      {/* Lumière ponctuelle réservée aux agents mis en valeur pour soulager drastiquement le fragment shader */}
+      {(isSearchFocused || isBirthday || isMe) && (
+        <pointLight 
+          position={[0, 0.5, 0]} 
+          color={isSearchFocused ? '#00ffcc' : (isBirthday ? '#ffd700' : color)} 
+          intensity={isSearchFocused ? 2.2 : (isBirthday ? 1.8 : 1.2)} 
+          distance={isSearchFocused ? 3.5 : (isBirthday ? 3 : 2)} 
+        />
+      )}
 
       {/* Anneau / Halo de Sélection Holographique en Perspective 3D (identique aux vaisseaux 2070) */}
       <group position={[0, -0.34 * avatarScale, 0]} visible={isSearchFocused}>
