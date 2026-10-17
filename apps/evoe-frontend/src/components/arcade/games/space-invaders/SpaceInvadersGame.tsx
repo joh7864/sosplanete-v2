@@ -153,7 +153,12 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
 
   // États réactifs d'affichage pour les boutons et messages
   const [gameStatus, setGameStatus] = useState<GameStatus>('ready');
-  const [powerUpMessage, setPowerUpMessage] = useState<string | null>(null);
+
+  // Références stables pour éviter toute recréation de la boucle requestAnimationFrame
+  const onGameOverRef = useRef(onGameOver);
+  onGameOverRef.current = onGameOver;
+
+  const waveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Synchronisation audio
   useEffect(() => {
@@ -163,6 +168,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
   // Références d'état mutable pour la boucle 60 FPS
   const stateRef = useRef({
     score: 0,
+    powerUpMessage: null as string | null,
     wave: 1,
     lives: initialLives,
     cannonLevel: 1 as 1 | 2 | 3,
@@ -260,8 +266,8 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
     stateRef.current.status = 'playing';
     stateRef.current.startTime = Date.now();
     stateRef.current.playerX = CANVAS_WIDTH / 2 - 18;
+    stateRef.current.powerUpMessage = null;
     setGameStatus('playing');
-    setPowerUpMessage(null);
     initWave(1);
   }, [initialLives, initWave]);
 
@@ -386,17 +392,18 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
           setGameStatus('wave_cleared');
           spaceInvadersAudio.playWaveCleared();
 
-          setTimeout(() => {
+          if (waveTimerRef.current) clearTimeout(waveTimerRef.current);
+          waveTimerRef.current = setTimeout(() => {
             state.wave += 1;
 
             // Amélioration canon au passage de vague
             if (state.cannonLevel === 1) {
               state.cannonLevel = 2;
-              setPowerUpMessage('⚡ CANON AMÉLIORÉ : DOUBLE LASER !');
+              state.powerUpMessage = '⚡ CANON AMÉLIORÉ : DOUBLE LASER !';
               spaceInvadersAudio.playPowerUp();
             } else if (state.cannonLevel === 2 && state.wave >= 3) {
               state.cannonLevel = 3;
-              setPowerUpMessage('🔥 CANON ÉLITE : CADENCE RAPIDE !');
+              state.powerUpMessage = '🔥 CANON ÉLITE : CADENCE RAPIDE !';
               spaceInvadersAudio.playPowerUp();
             }
 
@@ -452,7 +459,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
                 spaceInvadersAudio.stopUfoSound();
                 spaceInvadersAudio.playPlayerExplosion();
                 const duration = Math.floor((Date.now() - state.startTime) / 1000);
-                onGameOver({
+                onGameOverRef.current({
                   score: state.score,
                   waveReached: state.wave,
                   durationSeconds: duration,
@@ -548,7 +555,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
               // Bonus : déblocage immédiat du double laser
               if (state.cannonLevel === 1) {
                 state.cannonLevel = 2;
-                setPowerUpMessage('⚡ UFO ABATTU : DOUBLE LASER DÉBLOQUÉ !');
+                state.powerUpMessage = '⚡ UFO ABATTU : DOUBLE LASER DÉBLOQUÉ !';
                 spaceInvadersAudio.playPowerUp();
               }
             }
@@ -583,7 +590,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
                 setGameStatus('game_over');
                 spaceInvadersAudio.stopUfoSound();
                 const duration = Math.floor((Date.now() - state.startTime) / 1000);
-                onGameOver({
+                onGameOverRef.current({
                   score: state.score,
                   waveReached: state.wave,
                   durationSeconds: duration,
@@ -744,11 +751,11 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
       ctx.fillText(cannonLabel, CANVAS_WIDTH - 240, 705);
 
       // Message d'amélioration temporaire
-      if (powerUpMessage) {
+      if (state.powerUpMessage) {
         ctx.fillStyle = '#00f0ff';
         ctx.font = 'bold 16px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(powerUpMessage, CANVAS_WIDTH / 2, 120);
+        ctx.fillText(state.powerUpMessage, CANVAS_WIDTH / 2, 120);
         ctx.textAlign = 'left';
       }
 
@@ -799,9 +806,10 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
     animId = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(animId);
+      if (waveTimerRef.current) clearTimeout(waveTimerRef.current);
       spaceInvadersAudio.stopUfoSound();
     };
-  }, [onGameOver, initWave, powerUpMessage]);
+  }, [initWave]);
 
   return (
     <div
