@@ -434,22 +434,29 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
 
             if (shouldDrop) {
               state.alienDir = -state.alienDir;
+              let reachedBunkerLine = false;
               for (const alien of aliveAliens) {
                 alien.y += 18;
                 alien.frame = alien.frame === 0 ? 1 : 0;
 
                 // Condition défaite : un alien touche la ligne des bunkers !
                 if (alien.y + alien.height >= 540) {
-                  state.status = 'game_over';
-                  setGameStatus('game_over');
-                  spaceInvadersAudio.playPlayerExplosion();
-                  const duration = Math.floor((Date.now() - state.startTime) / 1000);
-                  onGameOver({
-                    score: state.score,
-                    waveReached: state.wave,
-                    durationSeconds: duration,
-                  });
+                  reachedBunkerLine = true;
                 }
+              }
+
+              // Fin de partie déclenchée une seule fois, même si plusieurs aliens touchent la ligne
+              if (reachedBunkerLine && state.status === 'playing') {
+                state.status = 'game_over';
+                setGameStatus('game_over');
+                spaceInvadersAudio.stopUfoSound();
+                spaceInvadersAudio.playPlayerExplosion();
+                const duration = Math.floor((Date.now() - state.startTime) / 1000);
+                onGameOver({
+                  score: state.score,
+                  waveReached: state.wave,
+                  durationSeconds: duration,
+                });
               }
             } else {
               const stepX = state.alienDir * 12;
@@ -571,7 +578,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
               state.invulnerableTimer = 2.2;
               spaceInvadersAudio.playPlayerExplosion();
 
-              if (state.lives <= 0) {
+              if (state.lives <= 0 && state.status === 'playing') {
                 state.status = 'game_over';
                 setGameStatus('game_over');
                 spaceInvadersAudio.stopUfoSound();
