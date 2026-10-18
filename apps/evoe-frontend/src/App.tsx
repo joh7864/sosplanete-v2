@@ -17,6 +17,7 @@ import { OrbitalSectorRibbon } from './components/ui/OrbitalSectorRibbon';
 import { MissionSearchBar } from './components/ui/MissionSearchBar';
 import { PlayerSearchHUD } from './components/ui/PlayerSearchHUD';
 import { SystemMenuHUD } from './components/ui/SystemMenuHUD';
+import { LeaderboardTimeframeSwitch } from './components/ui/LeaderboardTimeframeSwitch';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
@@ -154,6 +155,7 @@ function MainApp() {
   };
 
   const [view2026, setView2026] = useState<'codex' | 'leaderboard'>('codex');
+  const [leaderboardTimeframe, setLeaderboardTimeframe] = useState<'all' | 'period'>('all');
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showMissionsWeekModal, setShowMissionsWeekModal] = useState(false);
@@ -1253,6 +1255,7 @@ function MainApp() {
               onSelectEnvelope={handleSelectEnvelope}
               isMobile={isMobile}
               view={view2026}
+              leaderboardTimeframe={leaderboardTimeframe}
               dashboardStatus={dashboardStatus}
               challenges={challenges}
               missionsWeekCount={impulsedMissionsCount}
@@ -1479,8 +1482,35 @@ function MainApp() {
             </div>
           </div>
 
-          {/* 1. Mode Desktop / Paysage : Capsule Cybernétique vivante au centre du Header */}
+          {/* 1. Mode Codex : Progression Terre 2070 / Mode Leaderboard : Capsule Switch Tout / Période */}
           {(() => {
+            if (era === '2026' && view2026 === 'leaderboard') {
+              const isPortrait = isPhysicalPortrait;
+              return (
+                <div
+                  id="leaderboard-timeframe-switch-container"
+                  className="leaderboard-timeframe-container"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    top: isPortrait ? 'calc(100% + 6px)' : '50%',
+                    transform: isPortrait ? 'translateX(-50%)' : 'translate(-50%, -50%)',
+                    zIndex: 9998,
+                    pointerEvents: 'auto',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <LeaderboardTimeframeSwitch
+                    timeframe={leaderboardTimeframe}
+                    onChange={setLeaderboardTimeframe}
+                    isMobile={isPortrait}
+                  />
+                </div>
+              );
+            }
+
             const pct = (() => {
               if (dashboardStatus?.globalProgression !== undefined && dashboardStatus.globalProgression !== null) {
                 return Math.min(100, Math.round(dashboardStatus.globalProgression));
@@ -1668,7 +1698,7 @@ function MainApp() {
             {/* Podium / Leaderboard */}
             <button 
               id="btn-podium-leaderboard"
-              className={`switch-btn desktop-only ${view2026 === 'leaderboard' ? 'active' : ''}`}
+              className={`switch-btn desktop-only ${era === '2026' && view2026 === 'leaderboard' ? 'active' : ''}`}
               onClick={() => {
                 setSelectedProfileId(null);
                 setChatOpen(false);
@@ -1688,10 +1718,10 @@ function MainApp() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: view2026 === 'leaderboard' ? '#ffd700' : 'rgba(255, 215, 0, 0.15)',
+                background: era === '2026' && view2026 === 'leaderboard' ? '#ffd700' : 'rgba(255, 215, 0, 0.15)',
                 border: '1.5px solid #ffd700',
-                color: view2026 === 'leaderboard' ? '#050a16' : '#ffd700',
-                boxShadow: view2026 === 'leaderboard'
+                color: era === '2026' && view2026 === 'leaderboard' ? '#050a16' : '#ffd700',
+                boxShadow: era === '2026' && view2026 === 'leaderboard'
                   ? '0 0 20px #ffd700, 0 0 35px rgba(255, 215, 0, 0.8)'
                   : '0 0 10px rgba(255, 215, 0, 0.2)',
                 cursor: 'pointer',
@@ -1701,9 +1731,9 @@ function MainApp() {
               <Trophy 
                 size={20} 
                 style={{ 
-                  strokeWidth: view2026 === 'leaderboard' ? 2.8 : 1.8,
-                  fill: view2026 === 'leaderboard' ? '#050a16' : 'transparent',
-                  transform: view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
+                  strokeWidth: era === '2026' && view2026 === 'leaderboard' ? 2.8 : 1.8,
+                  fill: era === '2026' && view2026 === 'leaderboard' ? '#050a16' : 'transparent',
+                  transform: era === '2026' && view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
                   transition: 'all 0.2s ease'
                 }} 
               />
@@ -3125,7 +3155,7 @@ function MainApp() {
         </div>
 
         <button 
-          className={`nav-item ${view2026 === 'leaderboard' ? 'active' : ''}`}
+          className={`nav-item ${era === '2026' && view2026 === 'leaderboard' ? 'active' : ''}`}
           onClick={() => {
             setSelectedProfileId(null);
             setChatOpen(false);
@@ -3137,7 +3167,7 @@ function MainApp() {
             setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
           }}
           style={
-            view2026 === 'leaderboard' ? {
+            era === '2026' && view2026 === 'leaderboard' ? {
               color: '#ffd700',
               fontWeight: 'bold',
               textShadow: '0 0 10px rgba(255, 215, 0, 0.6)'
@@ -3147,14 +3177,14 @@ function MainApp() {
           <Trophy 
             size={20} 
             style={{
-              strokeWidth: view2026 === 'leaderboard' ? 2.8 : 1.8,
-              fill: view2026 === 'leaderboard' ? '#ffd700' : 'transparent',
-              filter: view2026 === 'leaderboard' ? 'drop-shadow(0 0 8px #ffd700)' : 'none',
-              transform: view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
+              strokeWidth: era === '2026' && view2026 === 'leaderboard' ? 2.8 : 1.8,
+              fill: era === '2026' && view2026 === 'leaderboard' ? '#ffd700' : 'transparent',
+              filter: era === '2026' && view2026 === 'leaderboard' ? 'drop-shadow(0 0 8px #ffd700)' : 'none',
+              transform: era === '2026' && view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
               transition: 'all 0.2s ease'
             }}
           />
-          <span style={{ fontWeight: view2026 === 'leaderboard' ? 800 : 500 }}>Scores</span>
+          <span style={{ fontWeight: era === '2026' && view2026 === 'leaderboard' ? 800 : 500 }}>Scores</span>
         </button>
 
         <button 

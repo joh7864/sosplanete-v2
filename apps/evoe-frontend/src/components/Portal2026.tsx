@@ -500,6 +500,7 @@ function AnimatedAvatar({
   showHealth,
   showChatIcon,
   rankTag,
+  rankData,
   isSearchFocused = false,
 }: {
   player: any;
@@ -519,6 +520,12 @@ function AnimatedAvatar({
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
+  rankData?: {
+    primaryRank: number;
+    secondaryRank?: number;
+    score: number;
+    timeframe: 'all' | 'period';
+  };
   isSearchFocused?: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -560,6 +567,7 @@ function AnimatedAvatar({
         showHealth={showHealth}
         showChatIcon={showChatIcon}
         rankTag={rankTag}
+        rankData={rankData}
         isSearchFocused={isSearchFocused}
       />
     </group>
@@ -582,6 +590,7 @@ interface Portal2026Props {
   onSelectEnvelope?: (player: any) => void;
   isMobile?: boolean;
   view?: 'codex' | 'leaderboard';
+  leaderboardTimeframe?: 'all' | 'period';
   dashboardStatus?: any;
   challenges?: any[];
   missionsWeekCount?: number;
@@ -861,6 +870,7 @@ function Portal2026Component({
   onSelectEnvelope,
   isMobile = false,
   view = 'codex',
+  leaderboardTimeframe = 'all',
   dashboardStatus,
   challenges = [],
   missionsWeekCount = 0,
@@ -1008,67 +1018,97 @@ function Portal2026Component({
   });
 
   // ─── CONSTRUCTION DU CLASSEMENT COMPLET DE TOUS LES JOUEURS (#1 à #N) ────────
-  const rankedPlayers = useMemo(() => {
+  const { rankedPlayers, rankedPlayersMap } = useMemo(() => {
     const topFromDash = dashboardStatus?.topPlayers || [];
-    const list: any[] = [];
-    const addedPseudos = new Set<string>();
+    const playerMap = new Map<string, any>();
 
-    // 1. Ajouter les joueurs officiels du classement topPlayers uniquement s'ils sont dans teamList
-    topFromDash.forEach((tp: any) => {
-      const pName = (tp.pseudo || tp.name || '').toLowerCase();
-      const match = teamList.find((p: any) => 
-        (p.pseudo && p.pseudo.toLowerCase() === pName) ||
-        (p.childId && tp.childId && Number(p.childId) === Number(tp.childId)) ||
-        (p.id && tp.id && Number(p.id) === Number(tp.id))
-      );
-      if (match) {
-        const merged = {
-          ...tp,
-          ...match,
-          pseudo: tp.pseudo || match.pseudo || 'Agent',
-          color: tp.color || match.color || '#00e8ff',
-        };
-        if (merged.pseudo && !addedPseudos.has(merged.pseudo.toLowerCase())) {
-          addedPseudos.add(merged.pseudo.toLowerCase());
-          list.push(merged);
-        }
+    // 1. Initialiser avec teamList
+    teamList.forEach((p: any) => {
+      const key = (p.pseudo || '').toLowerCase();
+      if (key) {
+        playerMap.set(key, { ...p });
       }
     });
 
-    // 2. Compléter avec tous les autres joueurs de l'équipe non encore classés
-    const rest = teamList.filter((p: any) => p.pseudo && !addedPseudos.has(p.pseudo.toLowerCase()));
-    // Trier les restants par score / actions d'abord, puis santé en cas d'égalité
-    rest.sort((a: any, b: any) => {
-      const aScore = a.score ?? a.actionsCount ?? a.actionsDone?.length ?? 0;
-      const bScore = b.score ?? b.actionsCount ?? b.actionsDone?.length ?? 0;
+    // 2. Enrichir avec topPlayers du dashboard si infos complémentaires
+    topFromDash.forEach((tp: any) => {
+      const key = (tp.pseudo || tp.name || '').toLowerCase();
+      if (key && playerMap.has(key)) {
+        const existing = playerMap.get(key);
+        playerMap.set(key, {
+          ...existing,
+          ...tp,
+          score: tp.score !== undefined ? tp.score : existing.score,
+          health: tp.health !== undefined ? tp.health : existing.health,
+          actionsCount: tp.actionsCount !== undefined ? tp.actionsCount : existing.actionsCount,
+        });
+      }
+    });
+
+    const allPlayers = Array.from(playerMap.values());
+
+    // 3. Calculer le rang All-Time ("Tout") pour chaque joueur
+    const sortedAllTime = [...allPlayers].sort((a, b) => {
+      const aScore = a.score ?? a.actionsCount ?? 0;
+      const bScore = b.score ?? b.actionsCount ?? 0;
       if (bScore !== aScore) return bScore - aScore;
       const aHealth = a.health ?? 0;
       const bHealth = b.health ?? 0;
       if (bHealth !== aHealth) return bHealth - aHealth;
       return (a.pseudo || '').localeCompare(b.pseudo || '');
     });
-    rest.forEach((p: any) => {
-      addedPseudos.add(p.pseudo.toLowerCase());
-      list.push(p);
+    const allTimeRanks = new Map<string, number>();
+    sortedAllTime.forEach((p, idx) => {
+      allTimeRanks.set((p.pseudo || '').toLowerCase(), idx + 1);
     });
 
-    // 3. Assigner les numéros de rang #1 à #N garantis
-    return list.map((p, idx) => ({
-      ...p,
-      rankNumber: idx + 1
-    }));
-  }, [dashboardStatus?.topPlayers, teamList]);
+    // 4. Calculer le rang Période pour chaque joueur (basé sur health = points IT de la période)
+    const sortedPeriod = [...allPlayers].sort((a, b) => {
+      const aHealth = a.health ?? 0;
+      const bHealth = b.health ?? 0;
+      if (bHealth !== aHealth) return bHealth - aHealth;
+      const aScore = a.score ?? 0;
+      const bScore = b.score ?? 0;
+      if (bScore !== aScore) return bScore - aScore;
+      const aAct = a.actionsCount ?? 0;
+      const bAct = b.actionsCount ?? 0;
+      if (bAct !== aAct) return bAct - aAct;
+      return (a.pseudo || '').localeCompare(b.pseudo || '');
+    });
+    const periodRanks = new Map<string, number>();
+    sortedPeriod.forEach((p, idx) => {
+      periodRanks.set((p.pseudo || '').toLowerCase(), idx + 1);
+    });
 
-  // Indexation O(1) par pseudo pour éliminer les recherches quadratiques
-  const rankedPlayersMap = useMemo(() => {
+    // 5. Ordonner selon le timeframe actif ('all' ou 'period')
+    const activeSorted = leaderboardTimeframe === 'period' ? sortedPeriod : sortedAllTime;
+
+    const list = activeSorted.map((p, idx) => {
+      const pseudoKey = (p.pseudo || '').toLowerCase();
+      const allRank = allTimeRanks.get(pseudoKey) || (idx + 1);
+      const perRank = periodRanks.get(pseudoKey) || (idx + 1);
+      const isPeriod = leaderboardTimeframe === 'period';
+      return {
+        ...p,
+        rankNumber: idx + 1, // 1..N dans la vue active
+        allTimeRank: allRank,
+        periodRank: perRank,
+        primaryRank: isPeriod ? perRank : allRank,
+        secondaryRank: isPeriod ? allRank : perRank,
+        displayScore: isPeriod ? (p.health ?? 0) : (p.score ?? 0),
+        timeframe: leaderboardTimeframe
+      };
+    });
+
     const map = new Map<string, any>();
-    for (const rp of rankedPlayers) {
+    for (const rp of list) {
       if (rp.pseudo) {
         map.set(rp.pseudo.toLowerCase(), rp);
       }
     }
-    return map;
-  }, [rankedPlayers]);
+
+    return { rankedPlayers: list, rankedPlayersMap: map };
+  }, [dashboardStatus?.topPlayers, teamList, leaderboardTimeframe]);
 
   const rankedPlayersMapRef = useRef(rankedPlayersMap);
   rankedPlayersMapRef.current = rankedPlayersMap;
@@ -1139,6 +1179,7 @@ function Portal2026Component({
           }}
           visible={true}
           focusedPlayerId={focusedPlayerId}
+          timeframe={leaderboardTimeframe}
         />
         {view === 'leaderboard' && (
           <Html center position={[0, 0.5, 0]} zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
@@ -1237,6 +1278,24 @@ function Portal2026Component({
               const pChallengeCount = (player.teamId && teamPendingChallengesMap[player.teamId]) || 0;
               const isSearchFocused = focusedPlayerId !== null && focusedPlayerId !== undefined && String(player.childId || player.id) === String(focusedPlayerId);
 
+              const primR = rankMatch?.primaryRank ?? rankNumber ?? 0;
+              const secR = rankMatch?.secondaryRank ?? rankNumber ?? 0;
+              const sc = rankMatch?.displayScore ?? (leaderboardTimeframe === 'period' ? (player.health ?? 0) : (player.score ?? 0));
+              const tf = leaderboardTimeframe;
+
+              const activeRankTag = view === 'leaderboard'
+                ? `#${primR}${secR ? ` - #${secR}` : ''} • ${sc} IT`
+                : undefined;
+
+              const activeRankData = view === 'leaderboard'
+                ? {
+                    primaryRank: primR,
+                    secondaryRank: secR,
+                    score: sc,
+                    timeframe: tf,
+                  }
+                : undefined;
+
               return (
                 <AnimatedAvatar 
                   key={player.id || player.childId || player.pseudo || i} 
@@ -1256,7 +1315,8 @@ function Portal2026Component({
                   missionsWeekCount={isMe && view === 'codex' ? (missionsWeekCount || 0) : 0}
                   showHealth={view === 'codex'}
                   showChatIcon={view === 'codex'}
-                  rankTag={view === 'leaderboard' ? `#${rankNumber} • ${rankMatch?.score ?? player.score ?? 0} IT` : undefined}
+                  rankTag={activeRankTag}
+                  rankData={activeRankData}
                   isSearchFocused={isSearchFocused}
                 />
               );

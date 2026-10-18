@@ -2903,6 +2903,30 @@ body {
   }
 }
 
+/* --- Capsule Switch Tout / Période (Leaderboard) --- */
+.leaderboard-timeframe-container {
+  position: absolute;
+  left: 50%;
+  z-index: 9998;
+  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: top 0.25s ease, transform 0.25s ease;
+}
 
+/* En mode Paysage (Grand écran ou mobile paysage) : aligné avec les boutons et l'avatar au centre du header */
+@media (orientation: landscape) {
+  .leaderboard-timeframe-container {
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
 
-
+/* En mode Portrait (Mobile portrait) : flottant au centre sous le header dans le ciel 3D */
+@media (orientation: portrait) {
+  .leaderboard-timeframe-container {
+    top: calc(100% + 6px) !important;
+    transform: translateX(-50%) !important;
+  }
+}

@@ -538,12 +538,15 @@ export class PeriodService {
       childItMap.set(ad.childId, current + actionIt);
     });
 
-    // 4. Distribute Badges
+    // 4. Distribute Badges & Stars (Seuil nominal = 50 IT, 1 étoile par tranche de 10 IT supplémentaires)
+    const BASE_IT_THRESHOLD = 50;
+    const IT_PER_STAR = 10;
+
     for (const [childId, totalIt] of childItMap.entries()) {
-      if (totalIt > 150) {
-        // Dépassement
-        const extraIt = totalIt - 150;
-        const stars = Math.floor(extraIt / 30);
+      if (totalIt > BASE_IT_THRESHOLD) {
+        // Dépassement d'objectif
+        const extraIt = totalIt - BASE_IT_THRESHOLD;
+        const stars = Math.min(5, Math.floor(extraIt / IT_PER_STAR));
         if (stars >= 1) {
           let badgeType = "Noyau en Surcharge";
           if (stars >= 5) badgeType = "Légende du Nexus";

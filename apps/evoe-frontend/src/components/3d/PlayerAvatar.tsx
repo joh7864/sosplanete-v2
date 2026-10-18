@@ -735,8 +735,13 @@ const cakeHaloTexture = (() => {
 
 const rankPillTextureCache = new Map<string, THREE.Texture>();
 
-function getCryptexRankPillTexture(rankPart: string, scoreText: string): THREE.Texture {
-  const key = `${rankPart}_${scoreText}`;
+function getCryptexRankPillTexture(
+  primaryRankPart: string,
+  scoreText: string,
+  secondaryRankPart?: string,
+  timeframe: 'all' | 'period' = 'all'
+): THREE.Texture {
+  const key = `${primaryRankPart}_${secondaryRankPart || ''}_${scoreText}_${timeframe}`;
   if (rankPillTextureCache.has(key)) {
     return rankPillTextureCache.get(key)!;
   }
@@ -767,40 +772,47 @@ function getCryptexRankPillTexture(rankPart: string, scoreText: string): THREE.T
   ctx.fill();
   ctx.restore();
 
-  // 2. Définition des couleurs nobles selon le rang
-  let slabGradTop = '#1e293b';
-  let slabGradBottom = '#0b1322';
-  let rimColor = 'rgba(56, 189, 248, 0.45)';
-  let rankColor = '#4ade80'; // Vert lumineux inspiré du Cryptex 4259
+  // 2. Définition des couleurs nobles selon le rang et le timeframe
+  let slabGradTop = '#132832';
+  let slabGradBottom = '#08141b';
+  let rimColor = 'rgba(45, 212, 191, 0.4)';
+  let rankColor = '#4ade80';
   let rankShadow = '#14532d';
-  let scoreColor = '#ffffff'; // Blanc pur éclatant 100% lisible
+  let scoreColor = '#ffffff';
 
-  if (rankPart === '#1') {
+  if (primaryRankPart === '#1') {
     slabGradTop = '#2a2214';
     slabGradBottom = '#120d06';
     rimColor = 'rgba(250, 204, 21, 0.65)';
     rankColor = '#fde047'; // Or impérial
     rankShadow = '#713f12';
     scoreColor = '#fffbeb';
-  } else if (rankPart === '#2') {
+  } else if (primaryRankPart === '#2') {
     slabGradTop = '#222b3d';
     slabGradBottom = '#0f172a';
     rimColor = 'rgba(226, 232, 240, 0.65)';
     rankColor = '#ffffff'; // Platine argent
     rankShadow = '#334155';
     scoreColor = '#ffffff';
-  } else if (rankPart === '#3') {
+  } else if (primaryRankPart === '#3') {
     slabGradTop = '#2e1c10';
     slabGradBottom = '#140c06';
     rimColor = 'rgba(251, 146, 60, 0.65)';
     rankColor = '#fb923c'; // Bronze cuivré
     rankShadow = '#7c2d12';
     scoreColor = '#fff7ed';
+  } else if (timeframe === 'period') {
+    slabGradTop = '#0c1e2d';
+    slabGradBottom = '#05101a';
+    rimColor = 'rgba(6, 182, 212, 0.55)';
+    rankColor = '#00e8ff'; // Cyan / Bleu électrique
+    rankShadow = '#083344';
+    scoreColor = '#f0f9ff';
   } else {
     slabGradTop = '#132832';
     slabGradBottom = '#08141b';
-    rimColor = 'rgba(45, 212, 191, 0.4)';
-    rankColor = '#4ade80';
+    rimColor = 'rgba(16, 185, 129, 0.45)';
+    rankColor = '#4ade80'; // Vert lumineux inspiré du Cryptex 4259
     rankShadow = '#14532d';
     scoreColor = '#ffffff';
   }
@@ -846,27 +858,41 @@ function getCryptexRankPillTexture(rankPart: string, scoreText: string): THREE.T
 
   const centerY = y + h / 2;
 
-  // 5. Rendu du Rang JUSTIFIÉ À GAUCHE avec effet 3D embossé
-  const rankX = x + 24;
-  ctx.font = '900 44px "Roboto", "Segoe UI", sans-serif';
+  // 5. Rendu du Rang Principal JUSTIFIÉ À GAUCHE avec effet 3D embossé (GRAS 900)
+  const rankX = x + 18;
+  ctx.font = '900 40px "Roboto", "Segoe UI", sans-serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
 
   // Ombre 3D extrudée
   ctx.fillStyle = rankShadow;
-  ctx.fillText(rankPart, rankX + 2, centerY + 3.5);
+  ctx.fillText(primaryRankPart, rankX + 2, centerY + 3.5);
 
-  // Face avant du rang
+  // Face avant du rang principal
   ctx.fillStyle = rankColor;
-  ctx.fillText(rankPart, rankX, centerY + 0.5);
+  ctx.fillText(primaryRankPart, rankX, centerY + 0.5);
 
-  const rankWidth = ctx.measureText(rankPart).width;
+  const primWidth = ctx.measureText(primaryRankPart).width;
+  let currentX = rankX + primWidth;
+
+  // 6. Rendu du Rang Secondaire (MÊME TAILLE 40px mais NON-GRAS 500 et toujours grisé)
+  if (secondaryRankPart) {
+    ctx.font = '500 28px "Roboto", "Segoe UI", sans-serif';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.65)';
+    ctx.fillText(' - ', currentX, centerY + 0.5);
+    currentX += ctx.measureText(' - ').width;
+
+    ctx.font = '500 40px "Roboto", "Segoe UI", sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(secondaryRankPart, currentX, centerY + 0.5);
+    currentX += ctx.measureText(secondaryRankPart).width;
+  }
 
   if (scoreText) {
-    // 6. Baguette séparatrice 3D métallique verticale
-    const divX = rankX + rankWidth + 22;
-    const divTop = y + 15;
-    const divBottom = y + h - 15;
+    // 7. Baguette séparatrice 3D métallique verticale
+    const divX = currentX + 16;
+    const divTop = y + 16;
+    const divBottom = y + h - 16;
 
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.lineWidth = 2.5;
@@ -883,9 +909,9 @@ function getCryptexRankPillTexture(rankPart: string, scoreText: string): THREE.T
     ctx.lineTo(divX, divBottom);
     ctx.stroke();
 
-    // 7. Rendu du Score JUSTIFIÉ À DROITE (Blanc pur éclatant haute lisibilité)
-    const scoreX = x + w - 24;
-    ctx.font = '900 36px "Roboto", "Segoe UI", sans-serif';
+    // 8. Rendu du Score JUSTIFIÉ À DROITE (Blanc pur éclatant haute lisibilité)
+    const scoreX = x + w - 20;
+    ctx.font = '900 34px "Roboto", "Segoe UI", sans-serif';
     ctx.textAlign = 'right';
 
     // Ombre portée de contraste
@@ -969,7 +995,7 @@ function getCryptexScorePillTexture(h: number): THREE.Texture {
   }
   ctx.clip();
 
-  const fillRatio = Math.min(1, Math.max(0, roundedHealth / 150));
+  const fillRatio = Math.min(1, Math.max(0, roundedHealth / 50));
 
   if (fillRatio > 0) {
     const gaugeWidth = w * fillRatio;
@@ -1098,6 +1124,12 @@ interface PlayerAvatarProps {
   showHealth?: boolean;
   showChatIcon?: boolean;
   rankTag?: string;
+  rankData?: {
+    primaryRank: number;
+    secondaryRank?: number;
+    score: number;
+    timeframe: 'all' | 'period';
+  };
   isSearchFocused?: boolean;
 }
 
@@ -1119,6 +1151,7 @@ export function PlayerAvatar({
   showHealth = true,
   showChatIcon = true,
   rankTag,
+  rankData,
   isSearchFocused = false,
 }: PlayerAvatarProps) {
   const color = player.color || '#40916C';
@@ -1520,7 +1553,7 @@ export function PlayerAvatar({
             const totalWidth = 1.05 * avatarScale;
             const totalHeight = totalWidth * (96 / 440);
             
-            const starsCount = Math.floor(Math.max(0, h - 150) / 30);
+            const starsCount = Math.floor(Math.max(0, h - 50) / 10);
             let tooltipName = `Niveau`;
             if (starsCount >= 5) tooltipName = "Légende du Nexus";
             else if (starsCount >= 3) tooltipName = "Gardien de Nova";
@@ -1587,26 +1620,45 @@ export function PlayerAvatar({
           })()}
         </Billboard>
       ) : (
-        rankTag && (() => {
-          const match = rankTag.match(/^(#\d+)\s*(?:[•\/\-]\s*)?(.*)$/);
-          const rankPart = match ? match[1] : rankTag;
-          const rawScore = match && match[2] ? match[2] : '';
-          const cleanScoreNumber = rawScore.replace(/[^\d]/g, '');
-          const formattedScore = cleanScoreNumber 
-            ? `${Number(cleanScoreNumber).toLocaleString('fr-FR')} IT` 
-            : (rawScore.trim() || '');
+        (rankData || rankTag) && (() => {
+          let primRank = '#1';
+          let secRank: string | undefined = undefined;
+          let scoreNum = 0;
+          let tf: 'all' | 'period' = 'all';
 
+          if (rankData) {
+            primRank = `#${rankData.primaryRank}`;
+            if (rankData.secondaryRank !== undefined && rankData.secondaryRank !== null) {
+              secRank = `#${rankData.secondaryRank}`;
+            }
+            scoreNum = rankData.score ?? 0;
+            tf = rankData.timeframe || 'all';
+          } else if (rankTag) {
+            // Regex parse: e.g. "#1 - #3 • 150 IT" ou "#1 • 150 IT"
+            const match = rankTag.match(/^#(\d+)(?:\s*-\s*#(\d+))?\s*(?:[•\/\-]\s*)?(.*)$/);
+            if (match) {
+              primRank = `#${match[1]}`;
+              if (match[2]) secRank = `#${match[2]}`;
+              const rawScore = match[3] || '';
+              const cleanScoreNumber = rawScore.replace(/[^\d]/g, '');
+              scoreNum = cleanScoreNumber ? Number(cleanScoreNumber) : 0;
+            } else {
+              primRank = rankTag;
+            }
+          }
+
+          const formattedScore = `${Number(scoreNum).toLocaleString('fr-FR')} IT`;
           const totalWidth = 1.05 * avatarScale;
           const totalHeight = totalWidth * (96 / 440);
 
           return (
             <Billboard follow={true}>
               <group position={[0, -(haloScale * 0.5 + 0.10), 0.01]}>
-                {/* Plaque 3D biseautée style Cryptex avec relief, rang à gauche et score à droite */}
+                {/* Plaque 3D biseautée style Cryptex avec relief, rang(s) à gauche et score à droite */}
                 <mesh renderOrder={998} position={[0, 0, 0]}>
                   <planeGeometry args={[totalWidth, totalHeight]} />
                   <meshBasicMaterial 
-                    map={getCryptexRankPillTexture(rankPart, formattedScore)}
+                    map={getCryptexRankPillTexture(primRank, formattedScore, secRank, tf)}
                     transparent 
                     depthWrite={false} 
                     depthTest={true} 

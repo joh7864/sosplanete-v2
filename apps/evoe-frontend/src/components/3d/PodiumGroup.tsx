@@ -204,6 +204,7 @@ interface PodiumGroupProps {
   setSelectedProfileId: (id: number | null) => void;
   visible: boolean;
   focusedPlayerId?: number | string | null;
+  timeframe?: 'all' | 'period';
 }
 
 export default function PodiumGroup({
@@ -212,6 +213,7 @@ export default function PodiumGroup({
   setSelectedProfileId,
   visible,
   focusedPlayerId,
+  timeframe = 'all',
 }: PodiumGroupProps) {
   const groupRef = useRef<THREE.Group>(null);
   
@@ -330,7 +332,13 @@ export default function PodiumGroup({
               position={[0, 0, 0]}
               avatarScale={1.12}
               showHealth={false}
-              rankTag={`#1 • ${goldPlayer.score ?? 0} IT`}
+              rankTag={`#${goldPlayer.primaryRank || 1}${goldPlayer.secondaryRank ? ` - #${goldPlayer.secondaryRank}` : ''} • ${goldPlayer.displayScore ?? goldPlayer.score ?? 0} IT`}
+              rankData={{
+                primaryRank: goldPlayer.primaryRank || 1,
+                secondaryRank: goldPlayer.secondaryRank,
+                score: goldPlayer.displayScore ?? goldPlayer.score ?? 0,
+                timeframe: timeframe || goldPlayer.timeframe || 'all',
+              }}
               onSelectPlayer={handleSelectPlayer}
               isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(goldPlayer.childId || goldPlayer.id) === String(focusedPlayerId)}
             />
@@ -410,7 +418,13 @@ export default function PodiumGroup({
               position={[0, 0, 0]}
               avatarScale={1.0}
               showHealth={false}
-              rankTag={`#2 • ${silverPlayer.score ?? 0} IT`}
+              rankTag={`#${silverPlayer.primaryRank || 2}${silverPlayer.secondaryRank ? ` - #${silverPlayer.secondaryRank}` : ''} • ${silverPlayer.displayScore ?? silverPlayer.score ?? 0} IT`}
+              rankData={{
+                primaryRank: silverPlayer.primaryRank || 2,
+                secondaryRank: silverPlayer.secondaryRank,
+                score: silverPlayer.displayScore ?? silverPlayer.score ?? 0,
+                timeframe: timeframe || silverPlayer.timeframe || 'all',
+              }}
               onSelectPlayer={handleSelectPlayer}
               isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(silverPlayer.childId || silverPlayer.id) === String(focusedPlayerId)}
             />
@@ -490,7 +504,13 @@ export default function PodiumGroup({
               position={[0, 0, 0]}
               avatarScale={1.0}
               showHealth={false}
-              rankTag={`#3 • ${bronzePlayer.score ?? 0} IT`}
+              rankTag={`#${bronzePlayer.primaryRank || 3}${bronzePlayer.secondaryRank ? ` - #${bronzePlayer.secondaryRank}` : ''} • ${bronzePlayer.displayScore ?? bronzePlayer.score ?? 0} IT`}
+              rankData={{
+                primaryRank: bronzePlayer.primaryRank || 3,
+                secondaryRank: bronzePlayer.secondaryRank,
+                score: bronzePlayer.displayScore ?? bronzePlayer.score ?? 0,
+                timeframe: timeframe || bronzePlayer.timeframe || 'all',
+              }}
               onSelectPlayer={handleSelectPlayer}
               isSearchFocused={focusedPlayerId !== undefined && focusedPlayerId !== null && String(bronzePlayer.childId || bronzePlayer.id) === String(focusedPlayerId)}
             />
