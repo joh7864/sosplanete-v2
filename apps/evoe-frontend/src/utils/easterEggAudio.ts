@@ -516,7 +516,7 @@ export function playConstellationChimeSound(): void {
 }
 
 /**
- * Son rétro 8-bit pour chaque étape validée du Konami Code
+ * Son rétro 8-bit pour chaque étape validée du Konami Code (Volume nettement rehaussé pour un feedback franc)
  */
 export function playKonamiStepSound(stepIndex: number): void {
   if (typeof window === 'undefined') return;
@@ -524,23 +524,25 @@ export function playKonamiStepSound(stepIndex: number): void {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') void ctx.resume();
     const now = ctx.currentTime;
 
-    const baseFreq = 380 + Math.min(stepIndex, 10) * 55;
+    const baseFreq = 400 + Math.min(stepIndex, 10) * 60;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'square';
     osc.frequency.setValueAtTime(baseFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.28, now + 0.09);
 
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    // Volume amplifié (~2.8x plus fort que l'original 0.18) avec une attaque percutante
+    gain.gain.setValueAtTime(0.52, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.1);
+    osc.stop(now + 0.12);
   } catch (e) {
     console.warn('[EasterEgg Audio] Konami step sound error:', e);
   }
@@ -555,22 +557,23 @@ export function playKonamiErrorSound(): void {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') void ctx.resume();
     const now = ctx.currentTime;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(220, now);
-    osc.frequency.linearRampToValueAtTime(110, now + 0.18);
+    osc.frequency.setValueAtTime(230, now);
+    osc.frequency.linearRampToValueAtTime(110, now + 0.2);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    gain.gain.setValueAtTime(0.42, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.22);
+    osc.stop(now + 0.24);
   } catch (e) {
     console.warn('[EasterEgg Audio] Konami error sound error:', e);
   }
@@ -585,6 +588,7 @@ export function playKonamiSuccessSound(): void {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') void ctx.resume();
     const now = ctx.currentTime;
 
     const notes = [
@@ -604,13 +608,13 @@ export function playKonamiSuccessSound(): void {
       osc.type = 'square';
       osc.frequency.setValueAtTime(n.freq, t);
 
-      gain.gain.setValueAtTime(0.22, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      gain.gain.setValueAtTime(0.45, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.24);
+      osc.stop(t + 0.26);
     });
   } catch (e) {
     console.warn('[EasterEgg Audio] Konami victory sound error:', e);

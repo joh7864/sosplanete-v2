@@ -114,7 +114,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
     code: 'EE_KONAMI_80S',
     title: 'Le Protocole des Anciens',
     crypticMessage:
-      "Depuis l'an 2070, nos archivistes ont exhumé un antique code de commande pré-spatial : une danse sacrée de 10 touches directionnelles et de lettres...",
+      "Depuis l'an 2070, nos archivistes ont exhumé un antique protocole de commande pré-spatial : une chorégraphie secrète jadis exécutée par les pionniers du jeu vidéo...",
     clues: [
       'Une célèbre séquence de jeu vidéo des années 80.',
       'Haut, haut, bas, bas, gauche, droite...',
@@ -451,6 +451,13 @@ export class EasterEggService implements OnModuleInit {
       await this.prisma.evoeEasterEgg.updateMany({
         where: { imageUrl: { contains: 'cadenas_4ch.webp' } },
         data: { imageUrl: '/easter-eggs/cadenas_4ch.svg' },
+      });
+      await this.prisma.evoeEasterEgg.updateMany({
+        where: { code: 'EE_KONAMI_80S' },
+        data: {
+          crypticMessage:
+            "Depuis l'an 2070, nos archivistes ont exhumé un antique protocole de commande pré-spatial : une chorégraphie secrète jadis exécutée par les pionniers du jeu vidéo...",
+        },
       });
     } catch {
       // ignore
@@ -846,7 +853,7 @@ export class EasterEggService implements OnModuleInit {
     }
 
     const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
-    const requiredPlayers = Math.max(1, instanceYear.easterEggRequiredPlayers || 2);
+    const defaultRequiredPlayers = Math.max(1, instanceYear.easterEggRequiredPlayers || 2);
     const maxWinningTeams = instanceYear.easterEggMaxWinningTeams || 0;
 
     // Récupération de tous les Easter Eggs actifs classés par orderIndex
@@ -947,6 +954,13 @@ export class EasterEggService implements OnModuleInit {
         periodId: { in: effectivePeriodIds },
       },
     });
+
+    const requiredPlayers = this.getRequiredPlayersForEgg(
+      currentEgg,
+      teamTotalPlayers,
+      defaultRequiredPlayers,
+    );
+    const remainingPlayers = Math.max(0, requiredPlayers - teamDiscoveries.length);
 
     const isMaxWinningReached =
       maxWinningTeams > 0 &&
@@ -1060,6 +1074,7 @@ export class EasterEggService implements OnModuleInit {
         discoveredCount: teamDiscoveries.length,
         totalPlayers: teamTotalPlayers,
         requiredPlayers,
+        remainingPlayers,
         isTeamRewarded: !!teamReward,
         rewardRank: teamReward?.rank || null,
         awardedPointsIT: teamReward?.awardedPointsIT || null,
@@ -1436,7 +1451,12 @@ export class EasterEggService implements OnModuleInit {
       },
     });
 
-    const requiredPlayers = Math.max(1, instanceYear.easterEggRequiredPlayers || 2);
+    const requiredPlayers = this.getRequiredPlayersForEgg(
+      egg,
+      teamTotalPlayers,
+      instanceYear.easterEggRequiredPlayers || 2,
+    );
+    const remainingPlayers = Math.max(0, requiredPlayers - teamDiscoveriesCount);
     const maxWinningTeams = instanceYear.easterEggMaxWinningTeams || 0;
 
     let teamRewardEarned = false;
@@ -1542,7 +1562,7 @@ export class EasterEggService implements OnModuleInit {
 
     let customSuccessMsg = isQuotaReached
       ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
-      : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`;
+      : `Bravo ! Tu as trouvé la solution ! Préviens tes amis de l'équipe, il faut encore ${remainingPlayers} joueur${remainingPlayers > 1 ? 's' : ''} pour gagner les points IT !`;
 
     if (unlockedMiniGame && targetGameEntry) {
       customSuccessMsg += ` 👾 Le jeu ${targetGameEntry.title} a été débloqué dans la Salle d'Arcade pour toute votre équipe !`;
@@ -1565,7 +1585,9 @@ export class EasterEggService implements OnModuleInit {
       teamDiscoveriesCount,
       teamTotalPlayers,
       requiredPlayers,
+      remainingPlayers,
       teamRewardEarned,
+      isQuotaReached,
       isTeamRewarded: hasTeamReward,
       rank: existingTeamReward?.rank || (teamRewardEarned ? rank : null),
     };
@@ -1750,6 +1772,24 @@ export class EasterEggService implements OnModuleInit {
     return this.prisma.evoeEasterEgg.findMany({
       orderBy: { orderIndex: 'asc' },
     });
+  }
+
+  public getRequiredPlayersForEgg(
+    egg?: { complexity?: EasterEggDifficulty | null } | null,
+    teamTotalPlayers?: number,
+    defaultFallback = 2,
+  ): number {
+    const difficultyQuotaMap: Record<EasterEggDifficulty, number> = {
+      [EasterEggDifficulty.EASY]: 5,
+      [EasterEggDifficulty.MEDIUM]: 3,
+      [EasterEggDifficulty.HARD]: 2,
+      [EasterEggDifficulty.LEGENDARY]: 1,
+    };
+    const nominal = (egg?.complexity && difficultyQuotaMap[egg.complexity]) || defaultFallback;
+    if (teamTotalPlayers && teamTotalPlayers > 0) {
+      return Math.max(1, Math.min(nominal, teamTotalPlayers));
+    }
+    return Math.max(1, nominal);
   }
 
   private assertValidSpecialReward(value?: string | null) {

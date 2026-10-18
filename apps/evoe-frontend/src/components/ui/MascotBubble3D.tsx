@@ -908,7 +908,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   </div>
                 ) : (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ||
                   effectiveTriggerType === 'COMM_LINK_COMMAND' ||
-                  effectiveTriggerType === 'KONAMI_CODE' ||
                   effectiveIsDiscovered ||
                   localSuccess) ? (
                   <div
@@ -1422,7 +1421,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         >
                           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Terminal size={14} />
-                            {effectiveTriggerType === 'KONAMI_CODE' ? 'COMMANDE ARCADE OU SÉQUENCE' : 'COMMANDE OU MOT-CLÉ DIRECT'}
+                            COMMANDE OU MOT-CLÉ DIRECT
                           </span>
                           <span style={{ fontSize: '0.70rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '2px 7px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.3)', fontWeight: 700 }}>
                             DIRECT PROTOCOL
@@ -1454,11 +1453,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                               onFocus={() => {
                                 resetTimer();
                               }}
-                              placeholder={
-                                effectiveTriggerType === 'KONAMI_CODE'
-                                  ? "Tapez 'konami' ou utilisez les touches arcade..."
-                                  : "Saisissez votre code ou mot-clé (ex: matrix)..."
-                              }
+                              placeholder="Saisissez votre commande ou mot-clé (ex: /matrix)..."
                               style={{
                                 width: '100%',
                                 boxSizing: 'border-box',

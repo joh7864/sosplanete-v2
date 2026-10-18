@@ -25,6 +25,7 @@ export interface EasterEggVictoryDispatcherProps {
   arcadeGameKey?: string;
   playerPseudo?: string;
   teamName?: string;
+  remainingPlayers?: number;
 }
 
 interface Particle {
@@ -51,6 +52,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   arcadeGameKey,
   playerPseudo,
   teamName,
+  remainingPlayers,
 }) => {
   const [displayPoints, setDisplayPoints] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -141,26 +143,41 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
 
   // Récit et message de déblocage selon l'énigme
   const getLoreDescription = () => {
+    let baseText = '';
     switch (effectType) {
       case 'cadenas':
-        return 'Félicitations Détective ! Les 5 règles du schéma ont été résolues et le verrou quantique s’est ouvert.';
+        baseText = 'Félicitations Détective ! Les 5 règles du schéma ont été résolues et le verrou quantique s’est ouvert.';
+        break;
       case 'matrix':
-        return 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
+        baseText = 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
+        break;
       case 'konami':
-        return `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu ${arcadeGameTitle} pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
+        baseText = `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu ${arcadeGameTitle} pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
+        break;
       case 'antigravity':
-        return 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
+        baseText = 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
+        break;
       case 'rocket':
-        return 'Poussée maximale des réacteurs atteinte ! Le vaisseau EVOE fend l’espace sub-orbital à pleine puissance.';
+        baseText = 'Poussée maximale des réacteurs atteinte ! Le vaisseau EVOE fend l’espace sub-orbital à pleine puissance.';
+        break;
       case 'temporal1985':
-        return 'Vitesse de 88 MPH franchie ! Une boucle temporelle vers 1985 s’est ouverte à travers la passerelle.';
+        baseText = 'Vitesse de 88 MPH franchie ! Une boucle temporelle vers 1985 s’est ouverte à travers la passerelle.';
+        break;
       case 'disco':
-        return 'Fréquence festive synchronisée ! La boule à facettes orbitale illumine le pont de la station spatiale.';
+        baseText = 'Fréquence festive synchronisée ! La boule à facettes orbitale illumine le pont de la station spatiale.';
+        break;
       case 'constellation':
-        return 'Triangle d’étoiles complété ! Les balises célestes se sont alignées pour révéler les coordonnées secrètes.';
+        baseText = 'Triangle d’étoiles complété ! Les balises célestes se sont alignées pour révéler les coordonnées secrètes.';
+        break;
       default:
-        return 'Anomalie temporelle découverte et neutralisée avec succès ! Les données cryptées ont été décodées.';
+        baseText = 'Anomalie temporelle découverte et neutralisée avec succès ! Les données cryptées ont été décodées.';
+        break;
     }
+
+    if (!isTeamRewarded && remainingPlayers && remainingPlayers > 0) {
+      return `${baseText} Préviens tes amis de l’équipe, car il faut encore ${remainingPlayers} joueur${remainingPlayers > 1 ? 's' : ''} pour gagner les points IT !`;
+    }
+    return baseText;
   };
 
   // Icône centrale de l'effet
@@ -429,6 +446,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
               arcadeGameTitle={arcadeGameTitle}
               onOpenCommLink={onOpenCommLink}
               isTeamRewarded={isTeamRewarded}
+              remainingPlayers={remainingPlayers}
             />
           )}
           {showCard && effectType !== 'konami' && (
@@ -567,7 +585,11 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 <Sparkles size={28} color="#fbbf24" />
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a', textTransform: 'uppercase' }}>
-                    Bonus IT d'Équipe
+                    {isTeamRewarded
+                      ? "Bonus IT d'Équipe"
+                      : remainingPlayers && remainingPlayers > 0
+                      ? `Quota en cours (encore ${remainingPlayers} joueur${remainingPlayers > 1 ? 's' : ''})`
+                      : "Bonus IT d'Équipe"}
                   </div>
                   <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fef3c7', lineHeight: 1 }}>
                     +{displayPoints} IT
@@ -614,6 +636,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                     <MessageSquare size={18} />
                     {isTeamRewarded
                       ? 'Partager la victoire au Comm-Link Équipe'
+                      : remainingPlayers && remainingPlayers > 0
+                      ? `Alerter l’équipe (encore ${remainingPlayers} joueur${remainingPlayers > 1 ? 's' : ''})`
                       : 'Alerter l’équipe pour débloquer les points IT'}
                   </button>
                 )}

@@ -11,6 +11,8 @@ interface UseEasterEggTriggersProps {
   triggerConfig?: any;
   activeEggCode?: string;
   cycleEggs?: CycleEggItem[];
+  isCurrentEggDiscovered?: boolean;
+  isExplicitHintVisible?: boolean;
   onTrigger: (triggerType: EasterEggTriggerType, metadata?: any, targetEggId?: number) => void;
 }
 
@@ -19,18 +21,46 @@ export function useEasterEggTriggers({
   triggerConfig,
   activeEggCode,
   cycleEggs,
+  isCurrentEggDiscovered = false,
+  isExplicitHintVisible = false,
   onTrigger,
 }: UseEasterEggTriggersProps) {
-  // 1. KONAMI CODE STATE & HUD
+  // 1. KONAMI CODE STATE & PROGRESSIVE HUD (Niveau 0: Puriste, Niveau 1: Dès le 5e échec => Crypté, Niveau 2: Indice 2 => Explicite)
   const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   const konamiIndex = useRef(0);
   const konamiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failedAttemptsRef = useRef<number>(0);
 
-  const [konamiHUD, setKonamiHUD] = useState({
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('evoe_konami_failed_attempts');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed)) failedAttemptsRef.current = parsed;
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const computeHudLevel = useCallback((): 0 | 1 | 2 => {
+    if (isExplicitHintVisible) return 2;
+    if (failedAttemptsRef.current >= 5) return 1;
+    return 0;
+  }, [isExplicitHintVisible]);
+
+  const [konamiHUD, setKonamiHUD] = useState<{
+    isVisible: boolean;
+    stepIndex: number;
+    isError: boolean;
+    showMobileButtons: boolean;
+    hudLevel: 0 | 1 | 2;
+  }>({
     isVisible: false,
     stepIndex: 0,
     isError: false,
     showMobileButtons: false,
+    hudLevel: 0,
   });
 
   // 2. LOGO HOLD STATE
@@ -68,6 +98,7 @@ export function useEasterEggTriggers({
       }
       if (
         activeTriggerType === type &&
+        !isCurrentEggDiscovered &&
         (!matcher ||
           matcher({
             id: 0,
@@ -85,7 +116,7 @@ export function useEasterEggTriggers({
       }
       return null;
     },
-    [cycleEggs, activeTriggerType, activeEggCode, triggerConfig],
+    [cycleEggs, activeTriggerType, activeEggCode, triggerConfig, isCurrentEggDiscovered],
   );
 
   // Avance dans la séquence Konami (touches clavier, swipes mobiles ou boutons virtuels)
@@ -101,10 +132,12 @@ export function useEasterEggTriggers({
         konamiIndex.current = nextIndex;
         playKonamiStepSound(nextIndex);
 
+        const currentLevel = computeHudLevel();
         setKonamiHUD({
-          isVisible: true,
+          isVisible: currentLevel > 0,
           stepIndex: nextIndex,
           isError: false,
+          hudLevel: currentLevel,
           showMobileButtons: nextIndex >= 8, // Affiche les touches virtuelles B & A sur mobile
         });
 
@@ -112,6 +145,13 @@ export function useEasterEggTriggers({
 
         if (nextIndex === konamiSequence.length) {
           playKonamiSuccessSound();
+          failedAttemptsRef.current = 0;
+          try {
+            sessionStorage.removeItem('evoe_konami_failed_attempts');
+          } catch {
+            // ignore
+          }
+
           const matched = findCandidateEgg('KONAMI_CODE') || (activeEggCode === 'EE_KONAMI_80S' ? { id: undefined } : null);
           onTrigger('KONAMI_CODE', { sequence: 'konami' }, matched?.id || undefined);
           konamiTimer.current = setTimeout(() => {
@@ -120,6 +160,7 @@ export function useEasterEggTriggers({
               stepIndex: 0,
               isError: false,
               showMobileButtons: false,
+              hudLevel: 0,
             });
             konamiIndex.current = 0;
           }, 2200);
@@ -131,6 +172,7 @@ export function useEasterEggTriggers({
               stepIndex: 0,
               isError: false,
               showMobileButtons: false,
+              hudLevel: computeHudLevel(),
             });
             konamiIndex.current = 0;
           }, 7000);
@@ -139,9 +181,19 @@ export function useEasterEggTriggers({
         // En cas de fausse touche si la séquence était déjà engagée
         if (konamiIndex.current > 0) {
           playKonamiErrorSound();
+          failedAttemptsRef.current += 1;
+          try {
+            sessionStorage.setItem('evoe_konami_failed_attempts', String(failedAttemptsRef.current));
+          } catch {
+            // ignore
+          }
+
+          const currentLevel = computeHudLevel();
           setKonamiHUD((prev) => ({
             ...prev,
             isError: true,
+            isVisible: currentLevel > 0,
+            hudLevel: currentLevel,
           }));
           konamiIndex.current = 0;
           if (konamiTimer.current) clearTimeout(konamiTimer.current);
@@ -151,26 +203,27 @@ export function useEasterEggTriggers({
               stepIndex: 0,
               isError: false,
               showMobileButtons: false,
+              hudLevel: computeHudLevel(),
             });
           }, 900);
         }
       }
     },
-    [findCandidateEgg, onTrigger, activeEggCode],
+    [findCandidateEgg, onTrigger, activeEggCode, computeHudLevel],
   );
 
   // --- EFFECT: GLOBAL LISTENERS (Keyboard Konami + Touch Swipes + Device Motion) ---
   useEffect(() => {
-    // Une fois le Konami découvert par le joueur, plus aucune écoute (clavier, swipes, HUD).
+    // Une fois le Konami découvert par ce joueur, plus aucune écoute (clavier, swipes, HUD).
     // Le rejeu de l'animation de déblocage reste disponible via la mascotte.
-    const konamiDiscovered = Boolean(
-      cycleEggs?.some((e) => (e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') && e.isDiscovered),
-    );
+    const isCurrentKonami = activeEggCode === 'EE_KONAMI_80S' || activeTriggerType === 'KONAMI_CODE';
+    const konamiDiscovered =
+      Boolean(isCurrentKonami && isCurrentEggDiscovered) ||
+      Boolean(cycleEggs?.some((e) => (e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') && e.isDiscovered));
+
     const isKonamiActive =
       !konamiDiscovered &&
-      (Boolean(findCandidateEgg('KONAMI_CODE')) ||
-        activeTriggerType === 'KONAMI_CODE' ||
-        activeEggCode === 'EE_KONAMI_80S');
+      (Boolean(findCandidateEgg('KONAMI_CODE')) || (!isCurrentEggDiscovered && isCurrentKonami));
 
     if (!isKonamiActive && !activeTriggerType && (!cycleEggs || cycleEggs.length === 0)) return;
 
@@ -267,7 +320,7 @@ export function useEasterEggTriggers({
         window.removeEventListener('devicemotion', handleDeviceMotion);
       }
     };
-  }, [findCandidateEgg, activeTriggerType, activeEggCode, cycleEggs, advanceKonamiSequence, onTrigger]);
+  }, [findCandidateEgg, activeTriggerType, activeEggCode, cycleEggs, isCurrentEggDiscovered, advanceKonamiSequence, onTrigger]);
 
   // --- GENERIC REPEATED CLICK HANDLER ---
   const handleTargetClick = useCallback(
@@ -343,9 +396,10 @@ export function useEasterEggTriggers({
       stepIndex: 0,
       isError: false,
       showMobileButtons: false,
+      hudLevel: computeHudLevel(),
     });
     konamiIndex.current = 0;
-  }, []);
+  }, [computeHudLevel]);
 
   // Pression sur boutons virtuels B ou A pour mobile
   const handleKonamiButtonPress = useCallback(

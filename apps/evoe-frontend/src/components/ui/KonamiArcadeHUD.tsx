@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Radio } from 'lucide-react';
 
 interface KonamiArcadeHUDProps {
   isVisible: boolean;
   stepIndex: number;
   isError: boolean;
+  hudLevel?: 0 | 1 | 2; // 0: Puriste invisible, 1: Signal Crypté, 2: Rétro Arcade Explicite
   showMobileButtons?: boolean;
   onMobileButtonPress?: (button: 'b' | 'a') => void;
   onClose?: () => void;
@@ -17,14 +18,18 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
   isVisible,
   stepIndex,
   isError,
+  hudLevel = 0,
   showMobileButtons = false,
   onMobileButtonPress,
 }) => {
-  if (!isVisible && !showMobileButtons) return null;
+  const isBannerVisible = isVisible && hudLevel > 0;
+  if (!isBannerVisible && !showMobileButtons) return null;
+
+  const isCryptic = hudLevel === 1;
 
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isBannerVisible && (
         <motion.div
           id="konami-arcade-hud"
           initial={{ y: -80, opacity: 0, scale: 0.9 }}
@@ -44,17 +49,25 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
             gap: '6px',
           }}
         >
-          {/* Boîtier Arcade Rétro Néon */}
+          {/* Boîtier Arcade Rétro Néon / Signal Crypté */}
           <motion.div
             animate={isError ? { x: [-12, 12, -8, 8, -4, 4, 0] } : {}}
             transition={{ duration: 0.4 }}
             style={{
-              background: 'rgba(10, 15, 29, 0.92)',
-              border: `2px solid ${isError ? '#ef4444' : '#38bdf8'}`,
+              background: 'rgba(10, 15, 29, 0.94)',
+              border: `2px solid ${
+                isError
+                  ? '#ef4444'
+                  : isCryptic
+                  ? '#10b981'
+                  : '#38bdf8'
+              }`,
               borderRadius: '16px',
               padding: '10px 18px',
               boxShadow: isError
                 ? '0 0 25px rgba(239, 68, 68, 0.5), inset 0 0 15px rgba(239, 68, 68, 0.2)'
+                : isCryptic
+                ? '0 0 25px rgba(16, 185, 129, 0.45), inset 0 0 15px rgba(16, 185, 129, 0.18)'
                 : '0 0 25px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.15)',
               backdropFilter: 'blur(12px)',
               WebkitBackdropFilter: 'blur(12px)',
@@ -64,23 +77,39 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
               gap: '8px',
             }}
           >
-            {/* Titre Arcade */}
+            {/* En-tête : Titre selon le mode */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Gamepad2 size={16} color={isError ? '#ef4444' : '#38bdf8'} />
+              {isCryptic ? (
+                <Radio
+                  size={16}
+                  color={isError ? '#ef4444' : '#34d399'}
+                  style={{ filter: isError ? 'none' : 'drop-shadow(0 0 6px #34d399)' }}
+                />
+              ) : (
+                <Gamepad2 size={16} color={isError ? '#ef4444' : '#38bdf8'} />
+              )}
               <span
                 style={{
                   fontFamily: "'Courier New', monospace, sans-serif",
                   fontWeight: 900,
                   fontSize: '0.82rem',
                   letterSpacing: '1.5px',
-                  color: isError ? '#f87171' : '#7dd3fc',
+                  color: isError ? '#f87171' : isCryptic ? '#6ee7b7' : '#7dd3fc',
                   textTransform: 'uppercase',
                   textShadow: isError
                     ? '0 0 8px rgba(239, 68, 68, 0.8)'
+                    : isCryptic
+                    ? '0 0 8px rgba(16, 185, 129, 0.8)'
                     : '0 0 8px rgba(56, 189, 248, 0.8)',
                 }}
               >
-                {isError ? 'Séquence Rompue !' : 'Séquence Konami 80s'}
+                {isError
+                  ? isCryptic
+                    ? 'SIGNAL BROUILLÉ'
+                    : 'Séquence Rompue !'
+                  : isCryptic
+                  ? 'SIGNAL ANCIEN DÉTECTÉ'
+                  : 'Séquence Konami 80s'}
               </span>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 700 }}>
                 ({Math.min(stepIndex, 10)}/10)
@@ -89,7 +118,7 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
 
             {/* Rangée des 10 étapes */}
             <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-              {KONAMI_LABELS.map((lbl, idx) => {
+              {Array.from({ length: 10 }).map((_, idx) => {
                 const isCompleted = idx < stepIndex;
                 const isCurrent = idx === stepIndex;
 
@@ -99,15 +128,21 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
                 let glow = 'none';
 
                 if (isCompleted) {
-                  bg = 'linear-gradient(135deg, #10b981, #059669)';
+                  bg = isCryptic
+                    ? 'linear-gradient(135deg, #10b981, #047857)'
+                    : 'linear-gradient(135deg, #10b981, #059669)';
                   borderColor = '#34d399';
                   textColor = '#ffffff';
-                  glow = '0 0 10px rgba(16, 185, 129, 0.6)';
+                  glow = '0 0 10px rgba(16, 185, 129, 0.7)';
                 } else if (isCurrent) {
-                  bg = 'rgba(56, 189, 248, 0.25)';
-                  borderColor = '#38bdf8';
-                  textColor = '#38bdf8';
-                  glow = '0 0 12px rgba(56, 189, 248, 0.7)';
+                  bg = isCryptic
+                    ? 'rgba(16, 185, 129, 0.25)'
+                    : 'rgba(56, 189, 248, 0.25)';
+                  borderColor = isCryptic ? '#34d399' : '#38bdf8';
+                  textColor = isCryptic ? '#34d399' : '#38bdf8';
+                  glow = isCryptic
+                    ? '0 0 12px rgba(16, 185, 129, 0.7)'
+                    : '0 0 12px rgba(56, 189, 248, 0.7)';
                 }
 
                 if (isError) {
@@ -118,38 +153,52 @@ export const KonamiArcadeHUD: React.FC<KonamiArcadeHUDProps> = ({
                   }
                 }
 
+                // Rendu du symbole : Mode crypté (dots) vs Mode explicite (flèches / lettres)
+                let displaySymbol = KONAMI_LABELS[idx];
+                if (isCryptic) {
+                  if (isCompleted) displaySymbol = '●';
+                  else if (isCurrent) displaySymbol = isError ? '×' : '◎';
+                  else displaySymbol = '○';
+                }
+
                 return (
                   <motion.div
                     key={idx}
-                    animate={isCurrent ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+                    animate={isCurrent ? { scale: [1, 1.15, 1] } : { scale: 1 }}
                     transition={isCurrent ? { repeat: Infinity, duration: 0.8 } : {}}
                     style={{
                       width: '28px',
                       height: '28px',
-                      borderRadius: '8px',
+                      borderRadius: isCryptic ? '50%' : '8px',
                       background: bg,
                       border: `1.5px solid ${borderColor}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 900,
-                      fontSize: '0.85rem',
+                      fontSize: isCryptic ? (isCompleted ? '0.75rem' : '0.85rem') : '0.85rem',
                       color: textColor,
                       boxShadow: glow,
                       fontFamily: "'Courier New', monospace",
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    {lbl}
+                    {displaySymbol}
                   </motion.div>
                 );
               })}
             </div>
 
-            {/* Message d'aide ou indice */}
+            {/* Message d'aide ou indice contextuel */}
             <div style={{ fontSize: '0.7rem', color: '#cbd5e1', opacity: 0.85, textAlign: 'center' }}>
               {isError
-                ? 'Recommencez depuis le début (↑ ↑ ↓ ↓...)'
+                ? isCryptic
+                  ? 'Interférence détectée... Alignez le signal depuis le début'
+                  : 'Recommencez depuis le début (↑ ↑ ↓ ↓...)'
+                : isCryptic
+                ? stepIndex >= 8
+                  ? 'Fréquence quasi-verrouillée... Finalisez !'
+                  : 'Impulsions séquentielles captées : alignez la cadence'
                 : stepIndex >= 8
                 ? 'Appuyez maintenant sur B puis sur A !'
                 : 'Touches fléchées physiques ou glissements tactiles'}

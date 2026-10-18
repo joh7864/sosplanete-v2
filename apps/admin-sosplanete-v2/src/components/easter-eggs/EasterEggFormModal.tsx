@@ -95,10 +95,10 @@ const TRIGGER_TYPES = [
 ];
 
 const DIFFICULTIES = [
-  { value: 'EASY', label: 'Facile' },
-  { value: 'MEDIUM', label: 'Moyen' },
-  { value: 'HARD', label: 'Difficile' },
-  { value: 'LEGENDARY', label: 'Légendaire' },
+  { value: 'EASY', label: 'Facile', defaultPointsIT: 10, requiredPlayers: 5 },
+  { value: 'MEDIUM', label: 'Moyen', defaultPointsIT: 20, requiredPlayers: 3 },
+  { value: 'HARD', label: 'Difficile', defaultPointsIT: 30, requiredPlayers: 2 },
+  { value: 'LEGENDARY', label: 'Légendaire', defaultPointsIT: 50, requiredPlayers: 1 },
 ];
 
 export function EasterEggFormModal({
@@ -425,35 +425,100 @@ export function EasterEggFormModal({
               </div>
             </div>
 
-            {/* Row 2: Difficulté & Points IT */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Row 2: Difficulté (Barre de crans) & Points IT */}
+            <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-4">
               <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-2">
-                  Niveau de Difficulté
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {DIFFICULTIES.map((d) => (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => setComplexity(d.value as any)}
-                      className={`py-2.5 px-2 rounded-xl text-xs font-bold border transition-all text-center truncate cursor-pointer ${
-                        complexity === d.value
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 font-black shadow-xs'
-                          : 'border-slate-200 bg-slate-50/80 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                    Niveau de Difficulté & Quota d’Équipe
+                  </label>
+                  <span className="text-[11px] font-bold text-slate-400">
+                    Règle le nombre d’équipiers requis et pré-remplit les points IT
+                  </span>
+                </div>
+
+                {/* Barre de progression avec points / crans */}
+                <div className="relative pt-3 pb-2 px-2">
+                  {/* Ligne de fond */}
+                  <div className="absolute top-[26px] left-8 right-8 h-1.5 bg-slate-200 rounded-full z-0" />
+                  {/* Ligne active */}
+                  <div
+                    className="absolute top-[26px] left-8 h-1.5 bg-emerald-500 rounded-full transition-all duration-300 z-0"
+                    style={{
+                      width: `${(DIFFICULTIES.findIndex((d) => d.value === complexity) / (DIFFICULTIES.length - 1)) * 100}%`,
+                      maxWidth: 'calc(100% - 4rem)',
+                    }}
+                  />
+
+                  <div className="grid grid-cols-4 gap-2 relative z-10">
+                    {DIFFICULTIES.map((d, index) => {
+                      const isSelected = complexity === d.value;
+                      const activeIndex = DIFFICULTIES.findIndex((x) => x.value === complexity);
+                      const isPassed = index <= activeIndex;
+
+                      return (
+                        <button
+                          key={d.value}
+                          type="button"
+                          onClick={() => {
+                            setComplexity(d.value as any);
+                            setRewardPointsIT(d.defaultPointsIT);
+                          }}
+                          className="flex flex-col items-center text-center group cursor-pointer focus:outline-none"
+                        >
+                          {/* Point / Cran */}
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all shadow-xs ${
+                              isSelected
+                                ? 'bg-emerald-600 border-white text-white ring-4 ring-emerald-500/20 scale-110 font-black text-xs'
+                                : isPassed
+                                ? 'bg-emerald-500 border-white text-white text-[11px] font-bold'
+                                : 'bg-white border-slate-300 text-slate-400 hover:border-slate-400 text-[11px]'
+                            }`}
+                          >
+                            {index + 1}
+                          </div>
+
+                          {/* Libellé & Quota */}
+                          <div className="mt-2.5">
+                            <div
+                              className={`text-xs font-black transition-colors ${
+                                isSelected ? 'text-emerald-700 font-black' : 'text-slate-600 group-hover:text-slate-800'
+                              }`}
+                            >
+                              {d.label}
+                            </div>
+                            <div className="text-[10px] font-bold text-slate-500 mt-0.5">
+                              {d.requiredPlayers} {d.requiredPlayers > 1 ? 'joueurs requis' : 'joueur requis'}
+                            </div>
+                            <div
+                              className={`inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-black border transition-colors ${
+                                isSelected
+                                  ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300'
+                                  : 'bg-white text-slate-600 border-slate-200'
+                              }`}
+                            >
+                              +{d.defaultPointsIT} IT
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-2">
-                  Points IT Remportés (+IT)
-                </label>
-                <div className="relative">
+              {/* Champ numérique des Points IT */}
+              <div className="pt-2 border-t border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+                    Points IT Remportés par l'Équipe
+                  </label>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Valeur par défaut pré-remplie selon la difficulté (suite Fibonacci). Modifiable manuellement.
+                  </p>
+                </div>
+                <div className="relative w-full sm:w-44">
                   <input
                     type="number"
                     min={10}
@@ -461,7 +526,7 @@ export function EasterEggFormModal({
                     step={5}
                     value={rewardPointsIT}
                     onChange={(e) => setRewardPointsIT(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/50 border border-slate-200 text-slate-800 font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white transition-all pr-16 shadow-xs"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all pr-16 shadow-xs text-right"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-emerald-700 pointer-events-none">
                     PTS IT

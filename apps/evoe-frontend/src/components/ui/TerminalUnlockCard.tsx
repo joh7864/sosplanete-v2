@@ -14,6 +14,7 @@ export interface TerminalUnlockCardProps {
   arcadeGameTitle?: string;
   onOpenCommLink?: () => void;
   isTeamRewarded?: boolean;
+  remainingPlayers?: number;
 }
 
 const CHAR_DELAY_MS = 16;
@@ -41,6 +42,7 @@ export const TerminalUnlockCard: React.FC<TerminalUnlockCardProps> = ({
   arcadeGameTitle,
   onOpenCommLink,
   isTeamRewarded = false,
+  remainingPlayers,
 }) => {
   const logLines = useMemo(
     () => [
@@ -203,7 +205,13 @@ export const TerminalUnlockCard: React.FC<TerminalUnlockCardProps> = ({
       {done && (
         <>
           <div className="term-score">
-            <span>BONUS IT D’ÉQUIPE</span>
+            <span>
+              {isTeamRewarded
+                ? 'BONUS IT D’ÉQUIPE'
+                : remainingPlayers && remainingPlayers > 0
+                ? `QUOTA EN COURS (MANQUE ${remainingPlayers} JOUEUR${remainingPlayers > 1 ? 'S' : ''})`
+                : 'BONUS IT D’ÉQUIPE'}
+            </span>
             <span className="term-score-leader" aria-hidden="true" />
             <span>+{pointsIT}</span>
           </div>
@@ -238,6 +246,8 @@ export const TerminalUnlockCard: React.FC<TerminalUnlockCardProps> = ({
               >
                 {isTeamRewarded
                   ? '< PARTAGER LA VICTOIRE AU COMM-LINK ÉQUIPE >'
+                  : remainingPlayers && remainingPlayers > 0
+                  ? `< ALERTER L’ÉQUIPE (ENCORE ${remainingPlayers} JOUEUR${remainingPlayers > 1 ? 'S' : ''}) >`
                   : '< ALERTER L’ÉQUIPE POUR DÉBLOQUER LES POINTS IT >'}
               </button>
             )}

@@ -186,6 +186,7 @@ function MainApp() {
     title: string;
     pointsIT: number;
     isTeamRewarded?: boolean;
+    remainingPlayers?: number;
   } | null>(null);
   const [prefilledChatText, setPrefilledChatText] = useState<string | null>(null);
 
@@ -286,6 +287,12 @@ function MainApp() {
         setUnlockedArcadeGames((prev) => Array.from(new Set([...prev, unlockedMiniGame])));
       }
       const freshEgg = await fetchActiveEgg();
+      const remaining =
+        (result as any).remainingPlayers ??
+        (freshEgg?.teamProgress
+          ? Math.max(0, (freshEgg.teamProgress.requiredPlayers || 2) - (freshEgg.teamProgress.discoveredCount || 0))
+          : undefined);
+
       if (triggeredEgg) {
         setCelebrationEgg({
           code: triggeredEgg.code,
@@ -293,6 +300,7 @@ function MainApp() {
           title: triggeredEgg.title,
           pointsIT: triggeredEgg.rewardPointsIT || 60,
           isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+          remainingPlayers: remaining,
         });
       }
       setShowEggCelebration(true);
@@ -300,11 +308,18 @@ function MainApp() {
       const title = triggeredEgg?.title || activeEggData?.easterEgg?.title || '2070';
       if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
         setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
+      } else if (remaining && remaining > 0) {
+        setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider, il manque encore ${remaining} joueur${remaining > 1 ? 's' : ''} pour remporter les points IT ! 🚀`);
       } else {
         setPrefilledChatText(`J'ai découvert le déclencheur de l'Easter Egg "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
       }
     }
   };
+
+  const isCurrentKonamiExplicitHint = Boolean(
+    activeEggData?.easterEgg?.isExplicitHintVisible ||
+    activeEggData?.cycleEggs?.some((e) => (e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') && e.isExplicitHintVisible)
+  );
 
   const {
     konamiHUD,
@@ -323,6 +338,8 @@ function MainApp() {
     triggerConfig: activeEggData?.easterEgg?.triggerConfig,
     activeEggCode: activeEggData?.easterEgg?.code,
     cycleEggs: activeEggData?.cycleEggs,
+    isCurrentEggDiscovered: !!activeEggData?.playerProgress?.isDiscovered,
+    isExplicitHintVisible: isCurrentKonamiExplicitHint,
     onTrigger: handleEasterEggTrigger,
   });
 
@@ -333,45 +350,7 @@ function MainApp() {
 
       const cleanCmd = raw.replace(/^[!/]+/, '').trim();
 
-      // 1. Cas Konami Code (alternative textuelle pour mobile/desktop)
-      if (
-        cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade'
-      ) {
-        const konamiEgg =
-          (targetEggId ? activeEggData?.cycleEggs?.find((e) => e.id === targetEggId) : undefined) ||
-          activeEggData?.cycleEggs?.find((e) => e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') ||
-          activeEggData?.easterEgg;
-        const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' }, undefined, konamiEgg?.id);
-        if (result.success) {
-          const miniGameKey =
-            ((result as any).unlockedMiniGame as string | undefined) || parseArcadeReward(konamiEgg?.specialReward);
-          if (miniGameKey) {
-            setUnlockedArcadeGames((prev) => Array.from(new Set([...prev, miniGameKey])));
-          }
-          const freshEgg = await fetchActiveEgg(true);
-          if (konamiEgg) {
-            setCelebrationEgg({
-              code: konamiEgg.code,
-              triggerType: konamiEgg.triggerType,
-              title: konamiEgg.title,
-              pointsIT: konamiEgg.rewardPointsIT || 60,
-              isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
-            });
-          }
-          setShowEggCelebration(true);
-          setChatActiveTab('team');
-          const title = konamiEgg?.title || 'Konami Arcade';
-          if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-            setPrefilledChatText(`Victoire ! Notre équipe a décodé le secret "${title}" et remporté les points IT ! 🎉`);
-          } else {
-            setPrefilledChatText(`J'ai décodé le secret "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
-          }
-          return { success: true };
-        }
-        return { success: false, message: result.message || 'Validation échouée pour le code Konami.' };
-      }
-
-      // 2. Cas Commande Comm-Link / Mot-clé parmi les œufs du cycle
+      // Cas Commande Comm-Link / Mot-clé parmi les œufs du cycle (Le Konami Code s'exécute uniquement par la séquence physique ou touches arcade)
       let cmdEgg = targetEggId ? activeEggData?.cycleEggs?.find((e) => e.id === targetEggId) : undefined;
       if (!cmdEgg) {
         cmdEgg = activeEggData?.cycleEggs?.find((e) => {
@@ -2871,6 +2850,7 @@ function MainApp() {
         isVisible={konamiHUD.isVisible}
         stepIndex={konamiHUD.stepIndex}
         isError={konamiHUD.isError}
+        hudLevel={konamiHUD.hudLevel}
         showMobileButtons={konamiHUD.showMobileButtons}
         onMobileButtonPress={handleKonamiButtonPress}
         onClose={handleCloseKonamiHUD}
@@ -2906,6 +2886,9 @@ function MainApp() {
                 title: egg.title,
                 pointsIT: egg.rewardPointsIT || 60,
                 isTeamRewarded: !!activeEggData.teamProgress?.isTeamRewarded,
+                remainingPlayers: activeEggData?.teamProgress
+                  ? Math.max(0, (activeEggData.teamProgress.requiredPlayers || 2) - (activeEggData.teamProgress.discoveredCount || 0))
+                  : undefined,
               });
             }
             setShowEggCelebration(true);
@@ -2913,6 +2896,10 @@ function MainApp() {
           onSuccess={async (targetEggId) => {
             const triggeredEgg = (targetEggId ? activeEggData.cycleEggs?.find(e => e.id === targetEggId) : undefined) || activeEggData?.easterEgg;
             const freshEgg = await fetchActiveEgg(true);
+            const remaining = freshEgg?.teamProgress
+              ? Math.max(0, (freshEgg.teamProgress.requiredPlayers || 2) - (freshEgg.teamProgress.discoveredCount || 0))
+              : undefined;
+
             if (triggeredEgg) {
               setCelebrationEgg({
                 code: triggeredEgg.code,
@@ -2920,6 +2907,7 @@ function MainApp() {
                 title: triggeredEgg.title,
                 pointsIT: triggeredEgg.rewardPointsIT || 60,
                 isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
+                remainingPlayers: remaining,
               });
             }
             setShowEggCelebration(true);
@@ -2927,6 +2915,8 @@ function MainApp() {
             const title = triggeredEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg 2070';
             if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
               setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
+            } else if (remaining && remaining > 0) {
+              setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider, il manque encore ${remaining} joueur${remaining > 1 ? 's' : ''} pour remporter les points IT ! 🚀`);
             } else {
               setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
             }
@@ -2950,6 +2940,7 @@ function MainApp() {
         eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
         pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
         isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
+        remainingPlayers={celebrationEgg?.remainingPlayers ?? (activeEggData?.teamProgress ? Math.max(0, (activeEggData.teamProgress.requiredPlayers || 2) - (activeEggData.teamProgress.discoveredCount || 0)) : undefined)}
         arcadeGameKey={(() => {
           const code = celebrationEgg?.code || activeEggData?.easterEgg?.code;
           const egg = activeEggData?.cycleEggs?.find((e) => e.code === code) ?? activeEggData?.easterEgg;
