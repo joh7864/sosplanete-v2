@@ -39,7 +39,7 @@ import { useBirthday } from './hooks/useBirthday';
 import { GribouilleBirthdayBubble } from './components/birthday/GribouilleBirthdayBubble';
 import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
-import { ArcadeHubModal, ArcadeCabinetModal, getArcadeGame } from './components/arcade';
+import { ArcadeHubModal, ArcadeCabinetModal, getArcadeGame, applyArcadeCatalog, parseArcadeReward } from './components/arcade';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
 import { KonamiArcadeHUD } from './components/ui/KonamiArcadeHUD';
 import { lazy, Suspense } from 'react';
@@ -280,19 +280,10 @@ function MainApp() {
 
     const result = await validateTrigger(triggerType as any, metadata, undefined, triggeredEgg?.id);
     if (result.success) {
-      if (
-        (result as any).unlockedMiniGame ||
-        triggeredEgg?.code === 'EE_KONAMI_80S' ||
-        triggerType === 'KONAMI_CODE'
-      ) {
-        setUnlockedArcadeGames((prev) =>
-          Array.from(
-            new Set([
-              ...prev,
-              (result as any).unlockedMiniGame || 'space-invaders',
-            ]),
-          ),
-        );
+      // Artefact unique de l'énigme : mini-jeu débloqué pour l'équipe (défini côté admin)
+      const unlockedMiniGame = (result as any).unlockedMiniGame as string | undefined;
+      if (unlockedMiniGame) {
+        setUnlockedArcadeGames((prev) => Array.from(new Set([...prev, unlockedMiniGame])));
       }
       const freshEgg = await fetchActiveEgg();
       if (triggeredEgg) {
@@ -352,9 +343,11 @@ function MainApp() {
           activeEggData?.easterEgg;
         const result = await validateTrigger('KONAMI_CODE', { sequence: 'konami', source: 'bubble_input' }, undefined, konamiEgg?.id);
         if (result.success) {
-          setUnlockedArcadeGames((prev) =>
-            Array.from(new Set([...prev, 'space-invaders'])),
-          );
+          const miniGameKey =
+            ((result as any).unlockedMiniGame as string | undefined) || parseArcadeReward(konamiEgg?.specialReward);
+          if (miniGameKey) {
+            setUnlockedArcadeGames((prev) => Array.from(new Set([...prev, miniGameKey])));
+          }
           const freshEgg = await fetchActiveEgg(true);
           if (konamiEgg) {
             setCelebrationEgg({
@@ -666,6 +659,13 @@ function MainApp() {
         );
         if (isMounted && res.data?.unlockedGames) {
           setUnlockedArcadeGames(res.data.unlockedGames);
+        }
+        // Catalogue centralisé des mini-jeux (titres, couleurs…) fourni par le backend
+        const catalog = await evoeClient.get<{ games: Parameters<typeof applyArcadeCatalog>[0] }>(
+          `${BASE_API_URL}/arcade/games`,
+        );
+        if (isMounted && catalog.data?.games) {
+          applyArcadeCatalog(catalog.data.games);
         }
       } catch {
         // Silencieux si non connecté
@@ -2950,6 +2950,11 @@ function MainApp() {
         eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
         pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
         isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
+        arcadeGameKey={(() => {
+          const code = celebrationEgg?.code || activeEggData?.easterEgg?.code;
+          const egg = activeEggData?.cycleEggs?.find((e) => e.code === code) ?? activeEggData?.easterEgg;
+          return parseArcadeReward(egg?.code === code ? egg?.specialReward : undefined);
+        })()}
         playerPseudo={pseudo || childInfos?.pseudo}
         teamName={childInfos?.group?.team?.name}
         onPlayArcadeGame={(gameKey) => {

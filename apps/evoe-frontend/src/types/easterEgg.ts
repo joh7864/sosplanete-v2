@@ -28,7 +28,7 @@ export interface EasterEggItem {
   triggerConfig?: any;
   complexity: EasterEggDifficulty;
   rewardPointsIT: number;
-  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE';
+  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE' | string;
   orderIndex: number;
 }
 

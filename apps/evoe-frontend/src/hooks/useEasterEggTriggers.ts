@@ -161,10 +161,16 @@ export function useEasterEggTriggers({
 
   // --- EFFECT: GLOBAL LISTENERS (Keyboard Konami + Touch Swipes + Device Motion) ---
   useEffect(() => {
+    // Une fois le Konami découvert par le joueur, plus aucune écoute (clavier, swipes, HUD).
+    // Le rejeu de l'animation de déblocage reste disponible via la mascotte.
+    const konamiDiscovered = Boolean(
+      cycleEggs?.some((e) => (e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') && e.isDiscovered),
+    );
     const isKonamiActive =
-      Boolean(findCandidateEgg('KONAMI_CODE')) ||
-      activeTriggerType === 'KONAMI_CODE' ||
-      activeEggCode === 'EE_KONAMI_80S';
+      !konamiDiscovered &&
+      (Boolean(findCandidateEgg('KONAMI_CODE')) ||
+        activeTriggerType === 'KONAMI_CODE' ||
+        activeEggCode === 'EE_KONAMI_80S');
 
     if (!isKonamiActive && !activeTriggerType && (!cycleEggs || cycleEggs.length === 0)) return;
 

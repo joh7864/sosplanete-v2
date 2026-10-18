@@ -9,6 +9,11 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ChatGateway } from '../chat.gateway';
 import {
+  getArcadeGameEntry,
+  isValidSpecialReward,
+  parseArcadeReward,
+} from '../../arcade/arcade-games.catalog';
+import {
   EasterEggTriggerType,
   EasterEggDifficulty,
   EvoeEasterEgg,
@@ -117,6 +122,7 @@ const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
     triggerType: EasterEggTriggerType.KONAMI_CODE,
     complexity: EasterEggDifficulty.EASY,
     rewardPointsIT: 40,
+    specialReward: 'ARCADE_GAME:space-invaders',
     orderIndex: 2,
     isActive: true,
   },
@@ -470,6 +476,7 @@ export class EasterEggService implements OnModuleInit {
               triggerConfig: egg.triggerConfig || null,
               complexity: egg.complexity || EasterEggDifficulty.MEDIUM,
               rewardPointsIT: egg.rewardPointsIT || 50,
+              specialReward: egg.specialReward || 'NONE',
               orderIndex: egg.orderIndex || 0,
               prerequisiteType: (egg.prerequisiteType as any) || 'NONE',
               isActive: egg.isActive ?? true,
@@ -998,6 +1005,7 @@ export class EasterEggService implements OnModuleInit {
         triggerType: currentEgg.triggerType,
         complexity: currentEgg.complexity,
         rewardPointsIT: currentEgg.rewardPointsIT,
+        specialReward: currentEgg.specialReward,
         orderIndex: currentEgg.orderIndex,
         triggerConfig:
           currentEgg.triggerType === EasterEggTriggerType.RIDDLE_ANSWER_INPUT
@@ -1020,6 +1028,7 @@ export class EasterEggService implements OnModuleInit {
         triggerType: d.egg.triggerType,
         complexity: d.egg.complexity,
         rewardPointsIT: d.egg.rewardPointsIT,
+        specialReward: d.egg.specialReward,
         orderIndex: d.egg.orderIndex,
         triggerConfig:
           d.egg.triggerType === EasterEggTriggerType.RIDDLE_ANSWER_INPUT
@@ -1506,11 +1515,9 @@ export class EasterEggService implements OnModuleInit {
 
     // Déblocage éventuel d'un mini-jeu d'arcade pour toute l'équipe (dès la première découverte)
     let unlockedMiniGame: string | null = null;
-    const EASTER_EGG_ARCADE_MAP: Record<string, string> = {
-      EE_KONAMI_80S: 'space-invaders',
-    };
-    const targetGameKey = EASTER_EGG_ARCADE_MAP[egg.code];
-    if (targetGameKey) {
+    const targetGameKey = parseArcadeReward(egg.specialReward);
+    const targetGameEntry = targetGameKey ? getArcadeGameEntry(targetGameKey) : undefined;
+    if (targetGameKey && targetGameEntry) {
       try {
         await this.prisma.teamUnlockedArcadeGame.upsert({
           where: {
@@ -1537,8 +1544,8 @@ export class EasterEggService implements OnModuleInit {
       ? `Félicitations ! L'équipe a validé l'énigme et remporté les +${egg.rewardPointsIT} IT !`
       : `Bravo ! Vous avez trouvé la solution (${teamDiscoveriesCount}/${requiredPlayers}). Prévenez votre équipe pour atteindre le quota et débloquer les points IT !`;
 
-    if (unlockedMiniGame === 'space-invaders') {
-      customSuccessMsg += " 👾 La borne Space Invaders a été débloquée dans la Salle d'Arcade pour toute votre équipe !";
+    if (unlockedMiniGame && targetGameEntry) {
+      customSuccessMsg += ` 👾 Le jeu ${targetGameEntry.title} a été débloqué dans la Salle d'Arcade pour toute votre équipe !`;
     }
 
     if (unlockedArtifact === 'CHRONO_EGG') {
@@ -1552,6 +1559,7 @@ export class EasterEggService implements OnModuleInit {
       message: customSuccessMsg,
       unlockedArtifact,
       unlockedMiniGame,
+      unlockedMiniGameTitle: targetGameEntry?.title ?? null,
       pointsIT: hasTeamReward ? egg.rewardPointsIT : 0,
       discoveredByPlayer: true,
       teamDiscoveriesCount,
@@ -1744,7 +1752,14 @@ export class EasterEggService implements OnModuleInit {
     });
   }
 
+  private assertValidSpecialReward(value?: string | null) {
+    if (!isValidSpecialReward(value)) {
+      throw new BadRequestException(`Artefact offert invalide : ${value}`);
+    }
+  }
+
   async createEasterEgg(dto: CreateEasterEggDto) {
+    this.assertValidSpecialReward(dto.specialReward);
     return this.prisma.evoeEasterEgg.create({
       data: {
         code: dto.code,
@@ -1772,6 +1787,7 @@ export class EasterEggService implements OnModuleInit {
   }
 
   async updateEasterEgg(id: number, dto: UpdateEasterEggDto) {
+    this.assertValidSpecialReward(dto.specialReward);
     return this.prisma.evoeEasterEgg.update({
       where: { id },
       data: {
@@ -1986,7 +2002,7 @@ export class EasterEggService implements OnModuleInit {
             triggerConfig: item.triggerConfig || null,
             complexity: item.complexity || EasterEggDifficulty.MEDIUM,
             rewardPointsIT: item.rewardPointsIT != null ? Number(item.rewardPointsIT) : 50,
-            specialReward: item.specialReward || 'NONE',
+            specialReward: isValidSpecialReward(item.specialReward) ? item.specialReward || 'NONE' : 'NONE',
             orderIndex: item.orderIndex != null ? Number(item.orderIndex) : idx + 1,
             isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
           },
@@ -2021,7 +2037,7 @@ export class EasterEggService implements OnModuleInit {
           triggerConfig: item.triggerConfig || null,
           complexity: item.complexity || EasterEggDifficulty.MEDIUM,
           rewardPointsIT: item.rewardPointsIT != null ? Number(item.rewardPointsIT) : 50,
-          specialReward: item.specialReward || 'NONE',
+          specialReward: isValidSpecialReward(item.specialReward) ? item.specialReward || 'NONE' : 'NONE',
           orderIndex: item.orderIndex != null ? Number(item.orderIndex) : idx + 1,
           isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
         };

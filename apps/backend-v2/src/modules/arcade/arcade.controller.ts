@@ -11,6 +11,7 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ArcadeService } from './arcade.service';
 import { SubmitScoreDto } from './dto/submit-score.dto';
 import { LegacyApiService } from '../legacy-api/legacy-api.service';
+import { ARCADE_GAMES_CATALOG } from './arcade-games.catalog';
 
 @ApiTags('Arcade & Mini-Jeux')
 @Controller('arcade')
@@ -19,6 +20,14 @@ export class ArcadeController {
     private readonly arcadeService: ArcadeService,
     private readonly legacyApiService: LegacyApiService,
   ) {}
+
+  @Get('games')
+  @ApiOperation({
+    summary: "Catalogue centralisé des mini-jeux d'arcade (clé, titre, sous-titre, année, couleur)",
+  })
+  getGamesCatalog() {
+    return { games: ARCADE_GAMES_CATALOG };
+  }
 
   @Get('unlocked')
   @ApiOperation({

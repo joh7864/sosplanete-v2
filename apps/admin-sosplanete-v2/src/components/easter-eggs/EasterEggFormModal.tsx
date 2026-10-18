@@ -32,6 +32,8 @@ import {
   resolveEnigmaImageUrl,
   fetchActionRefs,
   ActionRefSummary,
+  fetchArcadeGames,
+  ArcadeGameCatalogItem,
 } from '@/utils/easterEggApi';
 
 interface EasterEggFormModalProps {
@@ -111,7 +113,13 @@ export function EasterEggFormModal({
   const [code, setCode] = useState('');
   const [complexity, setComplexity] = useState<'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY'>('MEDIUM');
   const [rewardPointsIT, setRewardPointsIT] = useState(60);
-  const [specialReward, setSpecialReward] = useState<'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE'>('NONE');
+  const [specialReward, setSpecialReward] = useState<string>('NONE');
+  const [arcadeGames, setArcadeGames] = useState<ArcadeGameCatalogItem[]>([]);
+
+  // Catalogue centralisé des mini-jeux (backend)
+  useEffect(() => {
+    fetchArcadeGames().then(setArcadeGames).catch(() => setArcadeGames([]));
+  }, []);
   const [crypticMessage, setCrypticMessage] = useState('');
   const [explicitHint, setExplicitHint] = useState('');
   
@@ -163,7 +171,7 @@ export function EasterEggFormModal({
       setCode(enigmaToEdit.code || '');
       setComplexity(enigmaToEdit.complexity || 'MEDIUM');
       setRewardPointsIT(enigmaToEdit.rewardPointsIT || 50);
-      setSpecialReward((enigmaToEdit.specialReward as any) || 'NONE');
+      setSpecialReward(enigmaToEdit.specialReward || 'NONE');
       setCrypticMessage(enigmaToEdit.crypticMessage || '');
       setExplicitHint(enigmaToEdit.explicitHint || '');
       
@@ -306,7 +314,7 @@ export function EasterEggFormModal({
       code: code.trim().toUpperCase(),
       complexity,
       rewardPointsIT,
-      specialReward: specialReward as any,
+      specialReward,
       prerequisiteType,
       prerequisiteConfig: configPayload,
       crypticMessage: crypticMessage.trim(),
@@ -466,7 +474,7 @@ export function EasterEggFormModal({
             <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-black uppercase tracking-wider text-amber-900">
-                  ⚡ Récompense Spéciale Méta-Jeu 2070
+                  🎁 Artefact offert (un seul par énigme)
                 </label>
                 <span className="text-[11px] font-bold text-amber-700/80">
                   Débloque un artefact clé de la méta-énigme
@@ -514,6 +522,35 @@ export function EasterEggFormModal({
                   <div className="text-[11px] text-slate-600">Table de décodage des symboles runiques</div>
                 </button>
               </div>
+              {arcadeGames.length > 0 && (
+                <>
+                  <div className="text-[11px] font-black uppercase tracking-wider text-amber-800/80 pt-1">
+                    🎮 Mini-jeux d'arcade (débloqués pour toute l'équipe)
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {arcadeGames.map((game) => {
+                      const value = `ARCADE_GAME:${game.key}`;
+                      return (
+                        <button
+                          key={game.key}
+                          type="button"
+                          onClick={() => setSpecialReward(value)}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                            specialReward === value
+                              ? 'border-amber-500 bg-amber-100/70 shadow-xs text-amber-950 ring-2 ring-amber-500/30'
+                              : 'border-amber-200/60 bg-white/60 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          <div className="text-xs font-black text-amber-800 flex items-center gap-1.5 mb-0.5">
+                            <span>🎮</span> {game.title}
+                          </div>
+                          <div className="text-[11px] text-slate-600">{game.subtitle}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Condition de Déblocage / Prérequis */}

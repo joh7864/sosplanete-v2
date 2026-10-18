@@ -20,7 +20,7 @@ export interface EasterEggCatalogItem {
   triggerConfig: any;
   complexity: 'EASY' | 'MEDIUM' | 'HARD' | 'LEGENDARY';
   rewardPointsIT: number;
-  specialReward?: 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE';
+  specialReward?: string; // 'NONE' | 'CHRONO_EGG' | 'ROSETTA_STONE' | 'ARCADE_GAME:<clé>'
   orderIndex: number;
   isActive: boolean;
   createdAt: string;
@@ -173,6 +173,22 @@ function getHeaders(isMultipart = false) {
     headers['Content-Type'] = 'application/json';
   }
   return headers;
+}
+
+export interface ArcadeGameCatalogItem {
+  key: string;
+  title: string;
+  subtitle: string;
+  year: number;
+  color: string;
+}
+
+/** Catalogue centralisé des mini-jeux (source de vérité backend). */
+export async function fetchArcadeGames(): Promise<ArcadeGameCatalogItem[]> {
+  const resp = await fetch(`${getApiUrl()}/arcade/games`, { headers: getHeaders() });
+  if (!resp.ok) throw new Error(`Erreur récupération mini-jeux (${resp.status})`);
+  const data = await resp.json();
+  return data.games ?? [];
 }
 
 export async function fetchAdminCatalog(): Promise<EasterEggCatalogItem[]> {

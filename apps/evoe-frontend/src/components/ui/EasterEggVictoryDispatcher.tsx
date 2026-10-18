@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio } from 'lucide-react';
 import { playUnlockCadenasSound, playConstellationChimeSound } from '../../utils/easterEggAudio';
+import { getArcadeGame } from '../arcade/core/arcadeRegistry';
 import { MatrixRainEffect } from './easter-egg-effects/MatrixRainEffect';
 import { CrtRetroSynthwaveEffect } from './easter-egg-effects/CrtRetroSynthwaveEffect';
 import { TerminalUnlockCard } from './TerminalUnlockCard';
@@ -20,6 +21,8 @@ export interface EasterEggVictoryDispatcherProps {
   onOpenCommLink?: () => void;
   isTeamRewarded?: boolean;
   onPlayArcadeGame?: (gameKey: string) => void;
+  /** Clé du mini-jeu offert par cet easter egg (artefact unique), le cas échéant. */
+  arcadeGameKey?: string;
   playerPseudo?: string;
   teamName?: string;
 }
@@ -45,20 +48,23 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   onOpenCommLink,
   isTeamRewarded = false,
   onPlayArcadeGame,
+  arcadeGameKey,
   playerPseudo,
   teamName,
 }) => {
   const [displayPoints, setDisplayPoints] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [showCard, setShowCard] = useState(false);
+  const arcadeGameTitle = arcadeGameKey ? getArcadeGame(arcadeGameKey)?.title ?? arcadeGameKey : undefined;
 
   // Détermination du type d'effet WOOOW à afficher
   const effectType = (() => {
     const code = (eggCode || '').toUpperCase();
     const trigger = (triggerType || '').toUpperCase();
 
+    // Un easter egg qui offre un mini-jeu utilise l'écran terminal « arcade » (effet 'konami')
+    if (arcadeGameKey) return 'konami';
     if (code === 'EE_MATRIX_COMM_LINK' || code.includes('MATRIX')) return 'matrix';
-    if (code === 'EE_KONAMI_80S' || trigger === 'KONAMI_CODE') return 'konami';
     if (code === 'EE_ANTIGRAVITY' || code.includes('ANTIGRAV')) return 'antigravity';
     if (code === 'EE_LOGO_ROCKET' || trigger === 'LOGO_HOLD') return 'rocket';
     if (code === 'EE_TEMPORAL_1985' || trigger === 'TIMELINE_WARP' || code.includes('1985')) return 'temporal1985';
@@ -141,7 +147,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
       case 'matrix':
         return 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
       case 'konami':
-        return `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu Space Invaders pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
+        return `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu ${arcadeGameTitle} pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
       case 'antigravity':
         return 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
       case 'rocket':
@@ -419,6 +425,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
               pointsIT={pointsIT}
               onClose={onClose}
               onPlayArcadeGame={onPlayArcadeGame}
+              arcadeGameKey={arcadeGameKey}
+              arcadeGameTitle={arcadeGameTitle}
               onOpenCommLink={onOpenCommLink}
               isTeamRewarded={isTeamRewarded}
             />

@@ -10,6 +10,8 @@ export interface TerminalUnlockCardProps {
   pointsIT: number;
   onClose: () => void;
   onPlayArcadeGame?: (gameKey: string) => void;
+  arcadeGameKey?: string;
+  arcadeGameTitle?: string;
   onOpenCommLink?: () => void;
   isTeamRewarded?: boolean;
 }
@@ -35,6 +37,8 @@ export const TerminalUnlockCard: React.FC<TerminalUnlockCardProps> = ({
   pointsIT,
   onClose,
   onPlayArcadeGame,
+  arcadeGameKey,
+  arcadeGameTitle,
   onOpenCommLink,
   isTeamRewarded = false,
 }) => {
@@ -209,17 +213,17 @@ export const TerminalUnlockCard: React.FC<TerminalUnlockCardProps> = ({
           </div>
 
           <div className="term-actions" ref={actionsRef}>
-            {onPlayArcadeGame && (
+            {onPlayArcadeGame && arcadeGameKey && (
               <button
                 type="button"
-                id="terminal-play-space-invaders"
+                id={`terminal-play-${arcadeGameKey}`}
                 className="term-action term-action--primary"
                 onClick={() => {
                   onClose();
-                  onPlayArcadeGame('space-invaders');
+                  onPlayArcadeGame(arcadeGameKey);
                 }}
               >
-                [ JOUER À SPACE INVADERS ]
+                [ JOUER À {(arcadeGameTitle || arcadeGameKey).toUpperCase()} ]
               </button>
             )}
             {onOpenCommLink && (

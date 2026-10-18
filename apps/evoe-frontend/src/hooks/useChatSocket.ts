@@ -323,16 +323,6 @@ export function useChatSocket({
 
     socketInstance.on('connect', () => {
       console.log('[Chat WebSockets] Connecté au serveur');
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'conn-' + Date.now(),
-          sender: 'NEXUS SYSTEM',
-          role: 'SYSTEM',
-          content: 'Liaison Comm-Link établie avec succès. Cryptage quantique actif.',
-          timestamp: new Date(),
-        },
-      ]);
     });
 
     socketInstance.on('msgDeleted', ({ messageId }: { messageId: string }) => {
