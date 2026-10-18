@@ -18,11 +18,27 @@ class TelemetryService {
   private childPseudo: string | null = null;
   private instanceId: number | null = null;
   private schoolYear: string | null = null;
+  private instanceYearId?: number;
+
   private queue: TelemetryEvent[] = [];
   private flushTimer: any = null;
+  private tickTimer: any = null;
+
   private currentView: string = 'QG_2026';
-  private viewStartTime: number = Date.now();
   private initPromise: Promise<string | null> | null = null;
+
+  // --- Suivi du Temps Actif & Détection d'Inactivité ---
+  // Seuil d'inactivité : 5 minutes sans action = gel du compteur
+  private readonly IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+  // Seuil de rupture de session : 15 minutes d'inactivité continue = nouvelle session au réveil
+  private readonly SESSION_BREAK_TIMEOUT_MS = 15 * 60 * 1000;
+
+  private activeSecondsOnCurrentView: number = 0;
+  private lastActivityTime: number = Date.now();
+  private lastTickTime: number = Date.now();
+  private isIdle: boolean = false;
+  private isTabVisible: boolean = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
+  private lastThrottledActivityTime: number = 0;
 
   public getSessionId(): string | null {
     return this.sessionId;
@@ -49,10 +65,14 @@ class TelemetryService {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
+    if (this.tickTimer) {
+      clearInterval(this.tickTimer);
+      this.tickTimer = null;
+    }
+    this.removeActivityListeners();
   }
 
   constructor() {
-    // Récupérer la session stockée en sessionStorage si existante
     if (typeof window !== 'undefined') {
       this.sessionId = sessionStorage.getItem('evoe_session_id');
       const savedChildId = sessionStorage.getItem('evoe_session_child_id');
@@ -60,30 +80,171 @@ class TelemetryService {
       if (savedChildId) this.childId = parseInt(savedChildId, 10);
       if (savedPseudo) this.childPseudo = savedPseudo;
 
-      // Flush automatique et heartbeat de présence toutes les 30 secondes
+      this.isTabVisible = document.visibilityState === 'visible';
+      this.lastActivityTime = Date.now();
+      this.lastTickTime = Date.now();
+
+      // Horloge d'accumulation du temps actif réel (1 tick par seconde)
+      this.tickTimer = setInterval(() => {
+        this.tick();
+      }, 1000);
+
+      // Heartbeat toutes les 30 secondes envoyé UNIQUEMENT si l'onglet est visible ET actif
       this.flushTimer = setInterval(() => {
-        if (this.sessionId && this.queue.length === 0) {
-          this.logEvent('HEARTBEAT', this.currentView, 'Signal de présence');
+        if (this.sessionId && this.isTabVisible && !this.isIdle) {
+          if (this.queue.length === 0) {
+            this.logEvent('HEARTBEAT', this.currentView, 'Signal de présence');
+          }
+          this.flush();
         }
-        this.flush();
       }, 30000);
 
-      // Flush propre sans fermeture prématurée lors du déchargement ou masquage de l'onglet
+      // Écoute des interactions utilisateur
+      this.attachActivityListeners();
+
+      // Coupure immédiate du temps dès que l'onglet est masqué ou minimisé
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          // Arrêt immédiat de l'accumulation
+          this.tick();
+          this.isTabVisible = false;
+          this.recordCurrentViewTime();
+          this.flush();
+        } else if (document.visibilityState === 'visible') {
+          // Retour sur l'onglet : reprise du chronomètre
+          this.isTabVisible = true;
+          this.lastTickTime = Date.now();
+          this.handleUserActivity();
+        }
+      });
+
+      // Flush propre lors de la fermeture
       window.addEventListener('beforeunload', () => {
         this.recordCurrentViewTime();
         this.flush();
       });
 
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-          this.recordCurrentViewTime();
-          this.flush();
-        }
-      });
-
       // Écoute de l'orientation pour mettre à jour les métadonnées
       window.addEventListener('orientationchange', () => {
         this.logEvent('PAGE_VIEW', this.currentView, `Bascule d'orientation : ${this.getDeviceType()}`);
+      });
+    }
+  }
+
+  /**
+   * Horloge interne d'accumulation du temps actif réel sur la page.
+   */
+  private tick() {
+    const now = Date.now();
+    const deltaSeconds = Math.max(0, Math.round((now - this.lastTickTime) / 1000));
+    this.lastTickTime = now;
+
+    // Coupure immédiate : si l'onglet n'est pas au premier plan, pas de temps comptabilisé
+    if (!this.isTabVisible) {
+      return;
+    }
+
+    // Si aucune action depuis plus de 5 minutes :
+    if (now - this.lastActivityTime >= this.IDLE_TIMEOUT_MS) {
+      if (!this.isIdle) {
+        this.isIdle = true;
+      }
+      // Compteur gelé : on n'ajoute pas les secondes d'inactivité
+      return;
+    }
+
+    // Joueur actif et onglet visible : incrémenter le temps
+    this.activeSecondsOnCurrentView += deltaSeconds;
+  }
+
+  /**
+   * Prise en compte d'une preuve d'activité de l'utilisateur.
+   */
+  public handleUserActivity() {
+    const now = Date.now();
+    const idleDuration = now - this.lastActivityTime;
+
+    // Si le joueur revient après plus de 15 minutes d'absence continue :
+    // Clôture de l'ancienne session expirée et création d'une nouvelle session propre.
+    if (idleDuration >= this.SESSION_BREAK_TIMEOUT_MS && this.sessionId) {
+      this.renewSessionAfterLongIdle();
+    }
+
+    this.lastActivityTime = now;
+    this.lastTickTime = now;
+
+    // Si le joueur était gelé en inactivité (> 5 min), reprise immédiate
+    if (this.isIdle) {
+      this.isIdle = false;
+    }
+  }
+
+  private handleThrottledActivity = () => {
+    const now = Date.now();
+    if (now - this.lastThrottledActivityTime > 2500) {
+      this.lastThrottledActivityTime = now;
+      this.handleUserActivity();
+    }
+  };
+
+  private handleDirectActivity = () => {
+    this.handleUserActivity();
+  };
+
+  private attachActivityListeners() {
+    if (typeof window === 'undefined') return;
+    // Mouvements et défilements (throttled pour préserver les performances)
+    window.addEventListener('mousemove', this.handleThrottledActivity, { passive: true });
+    window.addEventListener('touchmove', this.handleThrottledActivity, { passive: true });
+    window.addEventListener('wheel', this.handleThrottledActivity, { passive: true });
+    window.addEventListener('scroll', this.handleThrottledActivity, { passive: true });
+
+    // Clics, touches et frappes clavier (immédiats)
+    window.addEventListener('mousedown', this.handleDirectActivity, { passive: true });
+    window.addEventListener('click', this.handleDirectActivity, { passive: true });
+    window.addEventListener('keydown', this.handleDirectActivity, { passive: true });
+    window.addEventListener('touchstart', this.handleDirectActivity, { passive: true });
+    window.addEventListener('pointerdown', this.handleDirectActivity, { passive: true });
+  }
+
+  private removeActivityListeners() {
+    if (typeof window === 'undefined') return;
+    window.removeEventListener('mousemove', this.handleThrottledActivity);
+    window.removeEventListener('touchmove', this.handleThrottledActivity);
+    window.removeEventListener('wheel', this.handleThrottledActivity);
+    window.removeEventListener('scroll', this.handleThrottledActivity);
+
+    window.removeEventListener('mousedown', this.handleDirectActivity);
+    window.removeEventListener('click', this.handleDirectActivity);
+    window.removeEventListener('keydown', this.handleDirectActivity);
+    window.removeEventListener('touchstart', this.handleDirectActivity);
+    window.removeEventListener('pointerdown', this.handleDirectActivity);
+  }
+
+  /**
+   * En cas de longue absence (> 15 minutes), clôture la session expirée
+   * et relance une nouvelle session fraîche.
+   */
+  private async renewSessionAfterLongIdle() {
+    const oldSid = this.sessionId;
+    this.sessionId = null;
+    sessionStorage.removeItem('evoe_session_id');
+
+    if (oldSid) {
+      try {
+        await axios.post(`${BASE_API_URL}/tracking/telemetry/close`, { sessionId: oldSid });
+      } catch (e) {
+        // Ignorer si déjà expirée
+      }
+    }
+
+    if (this.childId && this.childPseudo && this.instanceId && this.schoolYear) {
+      await this.initSession({
+        childId: this.childId,
+        childPseudo: this.childPseudo,
+        instanceId: this.instanceId,
+        schoolYear: this.schoolYear,
+        instanceYearId: this.instanceYearId,
       });
     }
   }
@@ -94,7 +255,6 @@ class TelemetryService {
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // Ordinateurs de bureau : non-mobile UA et écran large
     if (!isMobileUA && (!isTouch || window.innerWidth > 1024)) {
       return 'DESKTOP';
     }
@@ -115,7 +275,6 @@ class TelemetryService {
   public getOS(): string {
     if (typeof navigator === 'undefined') return 'Autre';
     const ua = navigator.userAgent;
-    // Vérifier Android et iOS avant Linux (car Android UA contient aussi Linux)
     if (ua.includes('Android')) return 'Android';
     if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'iOS';
     if (ua.includes('Win')) return 'Windows';
@@ -138,6 +297,7 @@ class TelemetryService {
     this.childPseudo = params.childPseudo;
     this.instanceId = params.instanceId;
     this.schoolYear = params.schoolYear;
+    this.instanceYearId = params.instanceYearId;
 
     const savedChildId = sessionStorage.getItem('evoe_session_child_id');
     sessionStorage.setItem('evoe_session_child_id', params.childId.toString());
@@ -148,7 +308,6 @@ class TelemetryService {
       return this.sessionId;
     }
 
-    // Éviter les créations concurrentes simultanées
     if (this.initPromise) {
       return this.initPromise;
     }
@@ -182,18 +341,22 @@ class TelemetryService {
   }
 
   /**
-   * Enregistre le temps passé sur la vue courante avant transition
+   * Enregistre le temps actif réel passé sur la vue courante avant transition.
    */
   private recordCurrentViewTime() {
-    const elapsedSeconds = Math.max(1, Math.round((Date.now() - this.viewStartTime) / 1000));
-    this.queue.push({
-      eventType: 'PAGE_VIEW',
-      target: this.currentView,
-      label: this.getViewLabel(this.currentView),
-      timeSpentSeconds: elapsedSeconds,
-      timestamp: new Date().toISOString(),
-    });
-    this.viewStartTime = Date.now();
+    this.tick();
+    const elapsedSeconds = Math.max(0, this.activeSecondsOnCurrentView);
+    if (elapsedSeconds > 0) {
+      this.queue.push({
+        eventType: 'PAGE_VIEW',
+        target: this.currentView,
+        label: this.getViewLabel(this.currentView),
+        timeSpentSeconds: elapsedSeconds,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    this.activeSecondsOnCurrentView = 0;
+    this.lastTickTime = Date.now();
   }
 
   private getViewLabel(view: string): string {
@@ -215,10 +378,12 @@ class TelemetryService {
    * Notifie une transition macroscopique vers une nouvelle vue/modale
    */
   public trackView(newView: string) {
+    this.handleUserActivity();
     if (newView === this.currentView) return;
     this.recordCurrentViewTime();
     this.currentView = newView;
-    this.viewStartTime = Date.now();
+    this.activeSecondsOnCurrentView = 0;
+    this.lastTickTime = Date.now();
 
     // Flush si la file grossit
     if (this.queue.length >= 8) {
@@ -236,6 +401,7 @@ class TelemetryService {
     metadata?: any,
     timeSpentSeconds: number = 0,
   ) {
+    this.handleUserActivity();
     this.queue.push({
       eventType,
       target,
@@ -283,7 +449,6 @@ class TelemetryService {
 
     if (!sid) return;
 
-    // Vider la file
     if (this.queue.length > 0) {
       await this.flush();
     }

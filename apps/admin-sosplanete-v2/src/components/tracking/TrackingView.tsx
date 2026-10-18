@@ -330,7 +330,7 @@ export function TrackingView({
             onClick={() => setActiveTab('player-tracking')}
             className={`flex items-center gap-3 py-3 px-5 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all duration-300 ${activeTab === 'player-tracking' ? 'bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
           >
-            <Radio size={16} /> Activité Joueur
+            <Radio size={16} /> Activités Joueurs
           </button>
         </div>
         <div className="flex items-center gap-2">

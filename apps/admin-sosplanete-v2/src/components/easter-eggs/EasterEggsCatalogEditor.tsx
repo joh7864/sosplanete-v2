@@ -122,6 +122,46 @@ function getDifficultyBadge(diff: string) {
   }
 }
 
+function getSpecialRewardBadge(specialReward?: string) {
+  if (!specialReward || specialReward === 'NONE') return null;
+
+  if (specialReward === 'CHRONO_EGG') {
+    return {
+      label: 'Chrono-Egg',
+      icon: '⚡',
+      color: 'bg-amber-50 text-amber-900 border-amber-300 font-bold',
+      tooltip: 'Artefact Méta-Énigme : Outil Chrono-Egg',
+    };
+  }
+
+  if (specialReward === 'ROSETTA_STONE') {
+    return {
+      label: 'Pierre de Rosette 2070',
+      icon: '📜',
+      color: 'bg-indigo-50 text-indigo-900 border-indigo-200 font-bold',
+      tooltip: 'Artefact Méta-Énigme : Table de décodage des symboles runiques',
+    };
+  }
+
+  if (specialReward.startsWith('ARCADE_GAME:')) {
+    const gameKey = specialReward.replace('ARCADE_GAME:', '');
+    const title = gameKey === 'space-invaders' ? 'Space Invaders' : gameKey;
+    return {
+      label: `Mini-jeu : ${title}`,
+      icon: '🎮',
+      color: 'bg-purple-50 text-purple-900 border-purple-200 font-bold',
+      tooltip: `Mini-jeu d'arcade débloqué : ${title}`,
+    };
+  }
+
+  return {
+    label: specialReward,
+    icon: '🎁',
+    color: 'bg-slate-50 text-slate-700 border-slate-200 font-bold',
+    tooltip: `Artefact spécial : ${specialReward}`,
+  };
+}
+
 interface SortableEggCardProps {
   egg: EasterEggCatalogItem;
   index: number;
@@ -161,6 +201,7 @@ function SortableEggCard({
 
   const TriggerIcon = getTriggerIcon(egg.triggerType);
   const diffBadge = getDifficultyBadge(egg.complexity);
+  const rewardBadge = getSpecialRewardBadge(egg.specialReward);
 
   return (
     <div ref={setNodeRef} style={style} className="relative group/card">
@@ -240,6 +281,17 @@ function SortableEggCard({
                 <TriggerIcon size={12} className="text-emerald-600" />
                 {getTriggerLabel(egg.triggerType)}
               </span>
+
+              {/* Special Reward / Artefact (si présent) */}
+              {rewardBadge && (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] ${rewardBadge.color} shadow-xs`}
+                  title={rewardBadge.tooltip}
+                >
+                  <span className="text-xs">{rewardBadge.icon}</span>
+                  <span>{rewardBadge.label}</span>
+                </span>
+              )}
 
               {/* Difficulty */}
               <span

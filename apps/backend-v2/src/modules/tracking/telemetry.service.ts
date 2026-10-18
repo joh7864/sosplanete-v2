@@ -115,20 +115,21 @@ export class TelemetryService {
       });
     }
 
-    // Mettre à jour la durée de la session
-    const durationSeconds = Math.max(
-      session.durationSeconds,
-      Math.floor((now.getTime() - session.startedAt.getTime()) / 1000),
-    );
+    // Mettre à jour la durée uniquement si la session est encore active
+    if (session.status === SessionStatus.ACTIVE) {
+      const durationSeconds = Math.max(
+        session.durationSeconds,
+        Math.floor((now.getTime() - session.startedAt.getTime()) / 1000),
+      );
 
-    await this.prisma.playerSession.update({
-      where: { id: session.id },
-      data: {
-        lastActiveAt: now,
-        durationSeconds,
-        ...(session.status !== SessionStatus.ACTIVE ? { status: SessionStatus.ACTIVE, endedAt: null } : {}),
-      },
-    });
+      await this.prisma.playerSession.update({
+        where: { id: session.id },
+        data: {
+          lastActiveAt: now,
+          durationSeconds,
+        },
+      });
+    }
 
     return { success: true, count: dto.events.length };
   }

@@ -16,7 +16,6 @@ import {
   ChevronDown,
   ChevronUp,
   Activity,
-  RadioTower,
   Gamepad2,
 } from 'lucide-react';
 
