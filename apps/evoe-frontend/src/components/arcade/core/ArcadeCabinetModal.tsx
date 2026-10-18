@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, VolumeX, Trophy, Gamepad2 } from 'lucide-react';
+import { X, Volume2, VolumeX, Trophy } from 'lucide-react';
 import type { ArcadeGameDefinition } from './types';
 import { ArcadeHighScoresView } from './ArcadeHighScoresView';
 import { evoeClient } from '../../../lib/api';
@@ -155,45 +155,31 @@ export const ArcadeCabinetModal: React.FC<ArcadeCabinetModalProps> = ({
 
             {/* Boutons d'Action Haut : Son, Onglets, Quitter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Toggle Vue Jeu / High Scores */}
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveTab((prev) => (prev === 'game' ? 'scores' : 'game'))
-                }
-                title={activeTab === 'game' ? 'Voir le classement' : 'Retour au jeu'}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  background:
-                    activeTab === 'scores'
-                      ? 'rgba(0, 240, 255, 0.25)'
-                      : 'rgba(255, 255, 255, 0.08)',
-                  border:
-                    activeTab === 'scores'
-                      ? '1.5px solid #00f0ff'
-                      : '1.5px solid rgba(255, 255, 255, 0.2)',
-                  color: activeTab === 'scores' ? '#00f0ff' : '#cbd5e1',
-                  fontSize: '12px',
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {activeTab === 'game' ? (
-                  <>
-                    <Trophy size={14} /> CLASSEMENT
-                  </>
-                ) : (
-                  <>
-                    <Gamepad2 size={14} /> JOUER
-                  </>
-                )}
-              </button>
+              {/* Accès au classement (visible uniquement en jeu ; sur le classement, INSERT COIN / REJOUER sert à rejouer) */}
+              {activeTab === 'game' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('scores')}
+                  title="Voir le classement"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                    color: '#cbd5e1',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Trophy size={14} /> CLASSEMENT
+                </button>
+              )}
 
               {/* Bouton Muet Audio */}
               <button

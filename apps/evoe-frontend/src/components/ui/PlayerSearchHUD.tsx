@@ -406,7 +406,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
                               width: '32px',
                               height: '32px',
                               borderRadius: '50%',
-                              border: `1.5px solid ${playerColor}`,
+                              border: `2px solid ${playerColor}`,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -443,10 +443,9 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
                             {player.teamName && (
                               <div
                                 style={{
-                                  fontSize: '0.7rem',
-                                  color: playerColor,
-                                  fontWeight: '600',
-                                  opacity: 0.85,
+                                  fontSize: '0.78rem',
+                                  color: '#cbd5e1',
+                                  fontWeight: '500',
                                   whiteSpace: 'nowrap',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -679,7 +678,7 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
                           width: '26px',
                           height: '26px',
                           borderRadius: '50%',
-                          border: `1.5px solid ${playerColor}`,
+                          border: `2px solid ${playerColor}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -716,10 +715,9 @@ export const PlayerSearchHUD: React.FC<PlayerSearchHUDProps> = ({
                         {player.teamName && (
                           <div
                             style={{
-                              fontSize: '0.66rem',
-                              color: playerColor,
-                              fontWeight: '600',
-                              opacity: 0.85,
+                              fontSize: '0.72rem',
+                              color: '#cbd5e1',
+                              fontWeight: '500',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
