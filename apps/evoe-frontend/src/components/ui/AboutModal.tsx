@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Activity,
   RadioTower,
+  Gamepad2,
 } from 'lucide-react';
 
 export interface AboutModalProps {
@@ -148,6 +149,8 @@ const EPICS_DATA: EpicItem[] = [
     summary: 'Palmarès holographique en 3D célébrant les équipages les plus investis.',
     features: [
       'Podium 3D avec élévation dynamique des piédestaux pour les équipes de tête',
+      'Double vue temporelle : bascule interactive entre classement cumulé ("Tout") et période en cours ("Période")',
+      'Capsule Cryptex unifiée sous chaque avatar 3D avec double rang et points IT en temps réel',
       'Classement par score d’impact, médailles d’or, d’argent et de bronze',
       'Statistiques comparatives d’équipage et répartition par classe',
       'Filtre dynamique par équipe et consultation rapide des fiches membres'
@@ -208,14 +211,28 @@ const EPICS_DATA: EpicItem[] = [
       'Déverrouillage progressif par cycle avec validation de cryptex visuel',
       'Palmarès et célébration des découvertes collectives d’équipage'
     ]
+  },
+  {
+    id: 'epic-13',
+    code: 'EPIC-13',
+    title: 'Salle d’Arcade & Mini-Jeux Temporels',
+    icon: Gamepad2,
+    color: '#f43f5e',
+    summary: 'Salle d’arcade rétro-futuriste déverrouillable avec Space Invaders et classements d’équipage.',
+    features: [
+      'Mini-jeu Space Invaders Canvas 60 FPS avec canons évolutifs et tirs lasers',
+      'Moteur audio procédural 8-bit Web Audio API avec bruitages rétro immersifs',
+      'Tableau des records (Hall of Fame) avec centrage dynamique du score de l’agent',
+      'Déblocage coopératif en équipage sans spoil pour préserver l’exploration'
+    ]
   }
 ];
 
 export const AboutModal: React.FC<AboutModalProps> = ({
   isOpen,
   onClose,
-  version = '2.2.3',
-  releaseDate = '2026-09-17T12:34:00.000Z',
+  version = '3.0.4',
+  releaseDate = '2026-10-18T19:00:00.000Z',
   periodsTimeout = 2, // 2 périodes avant retrait
   daysPerPeriod = 7,  // 7 jours par période (soit 14 jours de visibilité)
   alwaysShowRecent = true,
@@ -480,55 +497,17 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                         background: 'rgba(5, 12, 28, 0.75)',
                         padding: '12px 14px',
                         borderRadius: '10px',
-                        border: '1px solid rgba(6, 182, 212, 0.35)',
+                        border: '1px solid rgba(244, 63, 94, 0.35)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Activity size={15} color="#06b6d4" />
+                        <Gamepad2 size={15} color="#f43f5e" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Télémétrie & Traçabilité des Sessions (v2.0)
+                          Salle d'Arcade & Space Invaders (v3.0)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Audit en temps réel des actions des explorateurs, timeline de navigation chronologique et tableau de bord sécurisé permettant aux encadrants de suivre la dynamique d'équipage.
-                      </p>
-                    </div>
-
-                    <div
-                      style={{
-                        background: 'rgba(5, 12, 28, 0.75)',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(232, 121, 249, 0.35)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Sparkles size={15} color="#e879f9" />
-                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Secrets Temporels & Découvertes (v2.1)
-                        </strong>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Mécaniques immersives de découvertes dans l'Arche Temporelle, avec ambiance sonore cryptex, indices évolutifs par cycle et récompenses collectives d'impact IT.
-                      </p>
-                    </div>
-
-                    <div
-                      style={{
-                        background: 'rgba(5, 12, 28, 0.75)',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid rgba(0, 179, 255, 0.35)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <Search size={15} color="#00b3ff" />
-                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Mascotte 3D & Recherche Holographique (v2.2)
-                        </strong>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Présence interactive de la mascotte d'équipage dans l'Arche. Outil de recherche d'agent avec autocomplétion, rotation gyroscopique fluide et anneau holographique au sol.
+                        Hub d'arcade rétro-futuriste déverrouillé en équipage, mini-jeu Space Invaders Canvas 60 FPS haute précision, synthèse sonore procédurale Web Audio 8-bit et tableau des High Scores.
                       </p>
                     </div>
 
@@ -541,13 +520,51 @@ export const AboutModal: React.FC<AboutModalProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <RadioTower size={15} color="#10b981" />
+                        <Trophy size={15} color="#10b981" />
                         <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                          Diffusion Broadcast & Affichage Adaptatif (v2.2.3)
+                          Double Vue Leaderboard « Tout / Période » (v3.0.2)
                         </strong>
                       </div>
                       <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
-                        Diffusion automatique des annonces de début de cycle sur le Com-Link WebSockets, nouvelle jauge de santé 2026 et optimisation ergonomique pour mobile portrait/paysage.
+                        Capsule segmented switch animée au centre du Nexus permettant de basculer instantanément le podium 3D entre le classement cumulé depuis le début et le classement de la période active.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(5, 12, 28, 0.75)',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(0, 179, 255, 0.35)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <Layers size={15} color="#00b3ff" />
+                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
+                          Cryptex Dual-Rank & Typographie Avatars (v3.0.3)
+                        </strong>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
+                        Bulle cryptex unifiée sous chaque avatar présentant simultanément le rang principal, le rang secondaire grisé à taille égale (40px) et le score IT justifié à droite pour une visibilité optimale.
+                      </p>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(5, 12, 28, 0.75)',
+                        padding: '12px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid rgba(0, 255, 204, 0.35)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <Activity size={15} color="#00ffcc" />
+                        <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
+                          Ergonomie Responsive & Alignement Paysage (v3.0.4)
+                        </strong>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.4' }}>
+                        Disposition adaptative de la capsule temporelle (sous le header en portrait, centrée en paysage), transitions fluides vers la Terre 2070 et alignement au pixel près du badge Version avec le bouton Comm-Link par leur axe médian.
                       </p>
                     </div>
                   </div>

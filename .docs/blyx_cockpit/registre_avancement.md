@@ -15,6 +15,7 @@
 | **03/09** | 266 | 239.3 | 62.5 | 26.7 | 7.0 | 17/09 |
 | **17/09** | 305 | 278.3 | 78.0 | 26.7 | 7.0 | - |
 | **17/10** | 313 | 299.3 | 81.5 | 26.7 | 7.0 | - |
+| **18/10** | 321 | 307.3 | 84.5 | 18.7 | 26.7 | 7.0 | - |
 
 ## ⏱️ Consommé Détaillé par Phase & Sprint
 
@@ -34,6 +35,7 @@
 | **13/09 - 14/09** | US 14.1, 14.2 | Dev & Antigravity | Architecture secrets temporels, mascotte 3D, énigmes cryptex (v2.1.0) | 6.0h | done |
 | **15/09 - 17/09** | US 15.1, 15.2 | Dev & Antigravity | Broadcast WebSocket début de période, barres de santé, perfs 3D (v2.2.3) | 4.0h | done |
 | **17/10** | US 16.1 | Dev & Antigravity | Salle d'Arcade & Space Invaders couleur, Web Audio 8-bit, High Scores scrollables & déblocage équipe | 3.5h | done |
+| **18/10** | US 17.1 | Dev & Antigravity | Double vue Leaderboard Tout/Période, capsule switch segmenté, cryptex avatars dual-rank & alignement paysage (v3.0.4) | 3.0h | done |
 
 ## 💰 Synthèse Effort Humain
 - **Temps IA (Gemini/Antigravity)** : 0.0h
@@ -96,3 +98,4 @@
 | US 15.1 | Dev | Passerelle WebSocket & Broadcast automatique des messages de période | 5 | M | [x] | **5** | **13** | 0h00 |
 | US 15.2 | Dev | Optimisations Three.js 60 FPS, occlusion de profondeur & ergonomie mobile | 5 | S | [x] | **5** | **8** | 0h00 |
 | US 16.1 | User | Salle d'Arcade & Mini-Jeu Space Invaders Rétro Couleur | 8 | M | [x] | **8** | **21** | 0h00 |
+| US 17.1 | User | Double vue Leaderboard Tout/Période, Cryptex dual-rank & Alignement paysage (v3.0.4) | 8 | M | [x] | **8** | **21** | 0h00 |

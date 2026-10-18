@@ -3304,6 +3304,8 @@ function MainApp() {
           position: 'fixed',
           bottom: '12px',
           left: '16px',
+          height: '24px',
+          boxSizing: 'border-box',
           zIndex: 100,
           fontSize: '0.72rem',
           fontWeight: 700,
@@ -3312,7 +3314,7 @@ function MainApp() {
           background: era === '2026' ? 'rgba(0, 179, 255, 0.12)' : 'rgba(0, 255, 204, 0.12)',
           border: era === '2026' ? '1px solid rgba(0, 179, 255, 0.35)' : '1px solid rgba(0, 255, 204, 0.35)',
           borderRadius: '8px',
-          padding: '3px 9px',
+          padding: '0 9px',
           backdropFilter: 'blur(8px)',
           fontFamily: 'monospace',
           pointerEvents: 'auto',
@@ -3320,8 +3322,9 @@ function MainApp() {
           userSelect: 'none',
           boxShadow: era === '2026' ? '0 0 10px rgba(0, 179, 255, 0.25)' : '0 0 10px rgba(0, 255, 204, 0.25)',
           transition: 'all 0.2s ease',
-          display: 'flex',
+          display: 'inline-flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: '5px'
         }}
       >

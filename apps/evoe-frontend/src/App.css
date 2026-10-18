@@ -2903,6 +2903,14 @@ body {
   }
 }
 
+/* Alignement du badge de version avec le bouton Comm-Link par le milieu des 2 widgets en mode paysage */
+@media (orientation: landscape) {
+  .app-version-badge {
+    bottom: 34px !important;
+    left: 25px !important;
+  }
+}
+
 /* --- Capsule Switch Tout / Période (Leaderboard) --- */
 .leaderboard-timeframe-container {
   position: absolute;

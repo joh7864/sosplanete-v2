@@ -5185,5 +5185,18 @@
     "implementationPlan": "Création du moteur Canvas 60 FPS Space Invaders isolé, synthèse sonore Web Audio 8-bit, modales CRT et Hub Arcade secret débloqué en équipe.",
     "actionSummary": "Implémentation complète de Space Invaders avec canons évolutifs, audio procédural, Hall of Fame scrollable avec centrage du score et hub secret sans spoil.",
     "userNotification": "Mini-jeu Space Invaders et hub Salle d'Arcade intégrés et validés avec succès sur la branche feat/arcade-space-invaders."
+  },
+  {
+    "id": "e2f09148-38fa-4e78-958a-a48eb6c3f304",
+    "date": "2026-10-18T19:00:00.000Z",
+    "usId": "US 17.1",
+    "fibo": 8,
+    "assetsBonus": 0,
+    "prompt": "Double vue Leaderboard Tout/Période, switch segmenté, cryptex unifié avatars et alignement paysage (v3.0.4)",
+    "project": "sosplanete-v2",
+    "hash": "c04d163b663e44e49cb2921522bd69d678901234567890abcdef1234567890ab",
+    "implementationPlan": "Création du switch segmenté LeaderboardTimeframeSwitch.tsx, capsule Cryptex dual-rank sous les avatars, bascule scores Tout/Période, et alignement au pixel près en mode paysage du badge de version avec le bouton Comm-Link.",
+    "actionSummary": "Leaderboard dual-timeframe opérationnel avec switch capsule animé, typographie unifiée des rangs sur le podium 3D, gestion des transitions 2070 et calibrage ergonomique responsive.",
+    "userNotification": "Double classement Leaderboard et optimisations ergonomiques paysage validés en version 3.0.4."
   }
 ]
