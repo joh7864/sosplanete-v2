@@ -1,0 +1,135 @@
+.term-card {
+  --term-green: #20c20e;
+  --term-green-dim: rgba(32, 194, 14, 0.55);
+  --term-bg: #030803;
+  position: relative;
+  z-index: 20;
+  width: 92%;
+  max-width: 640px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 22px 26px 18px;
+  background: var(--term-bg);
+  color: var(--term-green);
+  font-family: 'VT323', 'Courier New', monospace;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  text-align: left;
+  letter-spacing: 0.5px;
+  border: 4px double var(--term-green);
+  border-radius: 0;
+  box-shadow: 0 0 22px rgba(32, 194, 14, 0.35), inset 0 0 40px rgba(32, 194, 14, 0.08);
+  text-shadow: 0 0 6px rgba(32, 194, 14, 0.7);
+  user-select: none;
+}
+
+.term-card *,
+.term-card *::before,
+.term-card *::after {
+  border-radius: 0;
+}
+
+.term-log {
+  border: 2px solid var(--term-green-dim);
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  min-height: 3.9em;
+}
+
+.term-line {
+  min-height: 1.25em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.term-body {
+  margin-bottom: 14px;
+}
+
+.term-gap {
+  height: 0.7em;
+}
+
+.term-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.term-score-leader {
+  flex: 1;
+  border-bottom: 2px dotted var(--term-green-dim);
+  transform: translateY(-4px);
+}
+
+.term-hint {
+  margin: 0 0 10px;
+  color: var(--term-green-dim);
+  text-shadow: none;
+}
+
+.term-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.term-action {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 2px 8px;
+  color: var(--term-green);
+  font: inherit;
+  text-shadow: inherit;
+  text-transform: uppercase;
+}
+
+.term-action:hover,
+.term-action:focus-visible {
+  background: var(--term-green);
+  color: #000;
+  text-shadow: none;
+}
+
+.term-action--primary {
+  margin-bottom: 4px;
+}
+
+.term-prompt {
+  margin-top: 14px;
+}
+
+.term-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 2px;
+  background: var(--term-green);
+  vertical-align: text-bottom;
+  box-shadow: 0 0 8px rgba(32, 194, 14, 0.9);
+  animation: term-blink 1.1s steps(1) infinite;
+}
+
+@keyframes term-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .term-card {
+    font-size: 1.15rem;
+    padding: 16px 14px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term-cursor {
+    animation: none;
+  }
+}

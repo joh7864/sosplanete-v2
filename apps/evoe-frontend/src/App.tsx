@@ -2950,6 +2950,8 @@ function MainApp() {
         eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
         pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
         isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
+        playerPseudo={pseudo || childInfos?.pseudo}
+        teamName={childInfos?.group?.team?.name}
         onPlayArcadeGame={(gameKey) => {
           setArcadeSelectedGameKey(gameKey);
           setShowArcadeCabinet(true);

@@ -617,3 +617,37 @@ export function playKonamiSuccessSound(): void {
   }
 }
 
+// Contexte partagé pour les frappes clavier du terminal (évite d'en créer un par caractère)
+let terminalAudioCtx: AudioContext | null = null;
+
+/**
+ * Petit « clac » de clavier mécanique pour l'effet machine à écrire du terminal.
+ */
+export function playTerminalKeySound(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!terminalAudioCtx) terminalAudioCtx = new AudioCtx();
+    const ctx = terminalAudioCtx;
+    if (ctx.state === 'suspended') void ctx.resume();
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(700 + Math.random() * 500, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.025);
+    gain.gain.setValueAtTime(0.045, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.035);
+  } catch (e) {
+    console.warn('[EasterEgg Audio] Terminal key sound error:', e);
+  }
+}
+

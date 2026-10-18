@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio, Gamepad2 } from 'lucide-react';
+import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio } from 'lucide-react';
 import { playUnlockCadenasSound, playConstellationChimeSound } from '../../utils/easterEggAudio';
 import { MatrixRainEffect } from './easter-egg-effects/MatrixRainEffect';
 import { CrtRetroSynthwaveEffect } from './easter-egg-effects/CrtRetroSynthwaveEffect';
+import { TerminalUnlockCard } from './TerminalUnlockCard';
 import { AntigravityEffect } from './easter-egg-effects/AntigravityEffect';
 import { RocketThrusterEffect } from './easter-egg-effects/RocketThrusterEffect';
 import { Temporal1985Effect } from './easter-egg-effects/Temporal1985Effect';
@@ -19,6 +20,8 @@ export interface EasterEggVictoryDispatcherProps {
   onOpenCommLink?: () => void;
   isTeamRewarded?: boolean;
   onPlayArcadeGame?: (gameKey: string) => void;
+  playerPseudo?: string;
+  teamName?: string;
 }
 
 interface Particle {
@@ -42,6 +45,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   onOpenCommLink,
   isTeamRewarded = false,
   onPlayArcadeGame,
+  playerPseudo,
+  teamName,
 }) => {
   const [displayPoints, setDisplayPoints] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -136,7 +141,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
       case 'matrix':
         return 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
       case 'konami':
-        return 'Protocole des Anciens validé avec succès ! La borne Space Invaders couleur d’origine (1978) est débloquée dans la Salle d’Arcade pour toute votre équipe !';
+        return `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu Space Invaders pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
       case 'antigravity':
         return 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
       case 'rocket':
@@ -310,9 +315,11 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
           alignItems: 'center',
           justifyContent: 'center',
           background: showCard
-            ? 'radial-gradient(circle at center, rgba(6, 78, 59, 0.7) 0%, rgba(2, 6, 23, 0.94) 80%)'
+            ? effectType === 'konami'
+              ? 'rgba(0, 6, 0, 0.88)'
+              : 'radial-gradient(circle at center, rgba(6, 78, 59, 0.7) 0%, rgba(2, 6, 23, 0.94) 80%)'
             : 'transparent',
-          backdropFilter: showCard ? 'blur(16px)' : 'none',
+          backdropFilter: showCard && effectType !== 'konami' ? 'blur(16px)' : 'none',
           overflow: 'hidden',
           userSelect: 'none',
           transition: 'background 0.5s ease, backdrop-filter 0.5s ease',
@@ -361,7 +368,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
         )}
 
         {/* 3. Particules étincelantes jaillissantes */}
-        {showCard && (
+        {showCard && effectType !== 'konami' && (
+
           <div
             style={{
               position: 'absolute',
@@ -403,7 +411,20 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
 
         {/* 4. Carte Triomphale de Récompense Contextualisée */}
         <AnimatePresence>
-          {showCard && (
+          {showCard && effectType === 'konami' && (
+            <TerminalUnlockCard
+              eggTitle={(eggTitle || '').toUpperCase()}
+              lore={getLoreDescription().toUpperCase()}
+              pseudo={(playerPseudo || '').toUpperCase()}
+              pointsIT={pointsIT}
+              onClose={onClose}
+              onPlayArcadeGame={onPlayArcadeGame}
+              onOpenCommLink={onOpenCommLink}
+              isTeamRewarded={isTeamRewarded}
+            />
+          )}
+          {showCard && effectType !== 'konami' && (
+
             <motion.div
               initial={{ scale: 0.6, opacity: 0, y: 40 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -555,39 +576,6 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   width: '100%',
                 }}
               >
-                {effectType === 'konami' && onPlayArcadeGame && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onPlayArcadeGame('space-invaders');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      borderRadius: '14px',
-                      background: 'linear-gradient(135deg, #00ff66, #059669)',
-                      border: '2px solid #00ff66',
-                      color: '#000000',
-                      fontSize: '1rem',
-                      fontWeight: 900,
-                      fontFamily: '"Courier New", monospace',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      boxShadow: '0 4px 25px rgba(0, 255, 102, 0.6)',
-                      letterSpacing: '1px',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
-                  >
-                    <Gamepad2 size={20} /> JOUER À SPACE INVADERS 👾
-                  </button>
-                )}
-
                 {onOpenCommLink && (
                   <button
                     type="button"
