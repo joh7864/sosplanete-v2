@@ -381,6 +381,314 @@ export class TelemetryService {
   }
 
   /**
+   * Récupère la liste des joueurs avec leurs métriques d'activité agrégées (Vue groupée par joueur).
+   */
+  async getGroupedPlayers(filters: {
+    instanceId: number;
+    schoolYear?: string;
+    teamId?: number;
+    groupId?: number;
+    childPseudo?: string;
+    status?: SessionStatus;
+    page?: number;
+    limit?: number;
+  }) {
+    await this.expireInactiveSessions(filters.instanceId);
+
+    const page = Math.max(1, filters.page || 1);
+    const limit = Math.min(100, Math.max(1, filters.limit || 20));
+    const skip = (page - 1) * limit;
+
+    const sessionWhere: any = {
+      instanceId: filters.instanceId,
+    };
+    if (filters.schoolYear) {
+      sessionWhere.schoolYear = filters.schoolYear;
+    }
+
+    const teamFilter: any = {
+      instanceYear: {
+        instanceId: filters.instanceId,
+        ...(filters.schoolYear ? { schoolYear: filters.schoolYear } : {}),
+      },
+    };
+
+    if (filters.teamId) {
+      teamFilter.id = filters.teamId;
+    }
+
+    const childWhere: any = {
+      group: {
+        team: teamFilter,
+      },
+    };
+
+    if (filters.groupId) {
+      childWhere.groupId = filters.groupId;
+    }
+
+    if (filters.childPseudo && filters.childPseudo.trim()) {
+      childWhere.pseudo = {
+        contains: filters.childPseudo.trim(),
+        mode: 'insensitive',
+      };
+    }
+
+    if (filters.status === SessionStatus.ACTIVE) {
+      childWhere.playerSessions = {
+        some: {
+          ...sessionWhere,
+          status: SessionStatus.ACTIVE,
+        },
+      };
+    } else if (filters.status === SessionStatus.CLOSED || filters.status === SessionStatus.EXPIRED) {
+      childWhere.playerSessions = {
+        some: sessionWhere,
+        none: {
+          ...sessionWhere,
+          status: SessionStatus.ACTIVE,
+        },
+      };
+    }
+
+    const total = await this.prisma.child.count({ where: childWhere });
+
+    const children = await this.prisma.child.findMany({
+      where: childWhere,
+      skip,
+      take: limit,
+      orderBy: [{ playerSessions: { _count: 'desc' } }, { pseudo: 'asc' }],
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+          },
+        },
+        playerSessions: {
+          where: sessionWhere,
+          orderBy: { startedAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            lastActiveAt: true,
+            durationSeconds: true,
+            deviceType: true,
+            browser: true,
+            os: true,
+          },
+        },
+      },
+    });
+
+    const players = await Promise.all(
+      children.map(async (child) => {
+        const sessions = child.playerSessions || [];
+        const sessionsCount = sessions.length;
+        const totalDurationSeconds = sessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
+        const hasActive = sessions.some((s) => s.status === SessionStatus.ACTIVE);
+        const latestSession = sessions[0];
+        const lastActiveAt = latestSession ? (latestSession.lastActiveAt || latestSession.startedAt) : null;
+        const firstSessionAt = sessions.length > 0 ? sessions[sessions.length - 1].startedAt : null;
+        const deviceTypes = Array.from(new Set(sessions.map((s) => s.deviceType).filter(Boolean)));
+
+        const [missionsCount, pagesVisitedCount] = await Promise.all([
+          this.prisma.sessionEvent.count({
+            where: {
+              childId: child.id,
+              eventType: EventType.MISSION_DONE,
+              session: sessionWhere,
+            },
+          }),
+          this.prisma.sessionEvent.count({
+            where: {
+              childId: child.id,
+              eventType: EventType.PAGE_VIEW,
+              session: sessionWhere,
+            },
+          }),
+        ]);
+
+        return {
+          id: child.id,
+          childId: child.id,
+          pseudo: child.pseudo,
+          avatar: child.avatar,
+          teamName: child.group?.team?.name || null,
+          teamColor: child.group?.team?.color || '#00ffcc',
+          groupName: child.group?.name || null,
+          sessionsCount,
+          totalDurationSeconds,
+          lastActiveAt,
+          firstSessionAt,
+          status: hasActive ? SessionStatus.ACTIVE : (sessionsCount > 0 ? SessionStatus.CLOSED : 'NEVER_CONNECTED'),
+          deviceTypes,
+          latestDeviceType: latestSession?.deviceType || 'DESKTOP',
+          latestBrowser: latestSession?.browser || null,
+          latestOs: latestSession?.os || null,
+          latestSessionId: latestSession?.id || null,
+          missionsCount,
+          pagesVisitedCount,
+        };
+      }),
+    );
+
+    // Trier les joueurs pour faire remonter ceux en direct puis les plus récemment actifs
+    players.sort((a, b) => {
+      if (a.status === SessionStatus.ACTIVE && b.status !== SessionStatus.ACTIVE) return -1;
+      if (b.status === SessionStatus.ACTIVE && a.status !== SessionStatus.ACTIVE) return 1;
+      const dateA = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
+      const dateB = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return {
+      players,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Récupère le parcours complet (toutes sessions confondues) d'un joueur,
+   * permettant un groupement chronologique par date calendaire.
+   */
+  async getPlayerJourney(childId: number, instanceId?: number, schoolYear?: string) {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!child) {
+      throw new NotFoundException(`Joueur introuvable (${childId})`);
+    }
+
+    const sessionWhere: any = { childId };
+    if (instanceId) sessionWhere.instanceId = instanceId;
+    if (schoolYear) sessionWhere.schoolYear = schoolYear;
+
+    const [sessions, rawEvents] = await Promise.all([
+      this.prisma.playerSession.findMany({
+        where: sessionWhere,
+        orderBy: { startedAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+          endedAt: true,
+          lastActiveAt: true,
+          durationSeconds: true,
+          deviceType: true,
+          browser: true,
+          os: true,
+        },
+      }),
+      this.prisma.sessionEvent.findMany({
+        where: {
+          childId,
+          eventType: { not: EventType.HEARTBEAT },
+          session: sessionWhere,
+        },
+        orderBy: { timestamp: 'desc' },
+        include: {
+          session: {
+            select: {
+              id: true,
+              deviceType: true,
+              browser: true,
+              os: true,
+              startedAt: true,
+              endedAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalDurationSeconds = sessions.reduce((acc, s) => acc + (s.durationSeconds || 0), 0);
+    const hasActiveSession = sessions.some((s) => s.status === SessionStatus.ACTIVE);
+    const latestSession = sessions[0] || null;
+
+    return {
+      player: {
+        id: child.id,
+        childId: child.id,
+        childPseudo: child.pseudo,
+        pseudo: child.pseudo,
+        avatar: child.avatar,
+        teamName: child.group?.team?.name || null,
+        teamColor: child.group?.team?.color || '#00ffcc',
+        groupName: child.group?.name || null,
+        totalSessions: sessions.length,
+        totalDurationSeconds,
+        durationSeconds: totalDurationSeconds,
+        status: hasActiveSession ? SessionStatus.ACTIVE : SessionStatus.CLOSED,
+        firstSessionAt: sessions.length > 0 ? sessions[sessions.length - 1].startedAt : null,
+        lastActiveAt: sessions.length > 0 ? (latestSession?.lastActiveAt || latestSession?.startedAt) : null,
+        startedAt: sessions.length > 0 ? sessions[sessions.length - 1].startedAt : null,
+        deviceType: latestSession?.deviceType || null,
+        browser: latestSession?.browser || null,
+        os: latestSession?.os || null,
+      },
+      session: latestSession ? {
+        id: latestSession.id,
+        childId: child.id,
+        childPseudo: child.pseudo,
+        avatar: child.avatar,
+        teamName: child.group?.team?.name || null,
+        teamColor: child.group?.team?.color || '#00ffcc',
+        groupName: child.group?.name || null,
+        startedAt: latestSession.startedAt,
+        endedAt: latestSession.endedAt,
+        durationSeconds: totalDurationSeconds,
+        deviceType: latestSession.deviceType,
+        browser: latestSession.browser,
+        os: latestSession.os,
+        status: hasActiveSession ? SessionStatus.ACTIVE : SessionStatus.CLOSED,
+      } : null,
+      sessions,
+      events: rawEvents.map((e) => ({
+        id: e.id,
+        sessionId: e.sessionId,
+        eventType: e.eventType,
+        target: e.target,
+        label: e.label,
+        timestamp: e.timestamp,
+        timeSpentSeconds: e.timeSpentSeconds,
+        metadata: e.metadata,
+        deviceType: e.session?.deviceType || null,
+        browser: e.session?.browser || null,
+        os: e.session?.os || null,
+        sessionStartedAt: e.session?.startedAt || null,
+      })),
+    };
+  }
+
+  /**
    * Récupère le parcours complet (timeline minute par minute) d'une session.
    */
   async getSessionJourney(sessionId: string) {

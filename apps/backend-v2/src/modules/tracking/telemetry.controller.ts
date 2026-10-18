@@ -89,6 +89,49 @@ export class TelemetryController {
     });
   }
 
+  @Get('players')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtenir la liste groupée par joueur avec métriques d’activité' })
+  @ApiQuery({ name: 'instanceId', type: Number })
+  @ApiQuery({ name: 'schoolYear', type: String, required: false })
+  async getGroupedPlayers(
+    @Query('instanceId') instanceId: string,
+    @Query('schoolYear') schoolYear?: string,
+    @Query('teamId') teamId?: string,
+    @Query('groupId') groupId?: string,
+    @Query('childPseudo') childPseudo?: string,
+    @Query('pseudo') pseudo?: string,
+    @Query('status') status?: SessionStatus,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.telemetryService.getGroupedPlayers({
+      instanceId: parseInt(instanceId),
+      schoolYear,
+      teamId: teamId ? parseInt(teamId) : undefined,
+      groupId: groupId ? parseInt(groupId) : undefined,
+      childPseudo: childPseudo || pseudo,
+      status,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 25,
+    });
+  }
+
+  @Get('players/:childId/journey')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtenir la timeline complète du parcours d’un joueur (toutes sessions)' })
+  async getPlayerJourney(
+    @Param('childId') childId: string,
+    @Query('instanceId') instanceId?: string,
+    @Query('schoolYear') schoolYear?: string,
+  ) {
+    return this.telemetryService.getPlayerJourney(
+      parseInt(childId),
+      instanceId ? parseInt(instanceId) : undefined,
+      schoolYear,
+    );
+  }
+
   @Get('sessions/:id/journey')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Obtenir la timeline complète du parcours d’une session' })
