@@ -23,7 +23,7 @@ export class PeriodService {
     @Optional()
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway?: ChatGateway,
-  ) {}
+  ) { }
 
   // ----------------------------------------------------------------
   // Helper : retrouver l'instanceYearId depuis une Period (pour les
@@ -387,7 +387,7 @@ export class PeriodService {
       for (const op of openPeriods) {
         await this.generateBadgesForPeriod(op.id, client);
       }
-      
+
       await client.period.updateMany({
         where: { instanceYearId, isOpen: true },
         data: { isOpen: false },
