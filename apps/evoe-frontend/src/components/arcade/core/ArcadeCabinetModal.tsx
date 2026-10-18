@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Volume2, VolumeX, Trophy, Gamepad2 } from 'lucide-react';
 import type { ArcadeGameDefinition } from './types';
@@ -22,6 +22,15 @@ export const ArcadeCabinetModal: React.FC<ArcadeCabinetModalProps> = ({
   const [lastRank, setLastRank] = useState<number | undefined>(undefined);
   const [savedScoreId, setSavedScoreId] = useState<number | undefined>(undefined);
   const [gameSessionKey, setGameSessionKey] = useState(1);
+  // Verrou anti-doublon : un seul envoi de score par partie
+  const scoreSubmittedRef = useRef(false);
+
+  // Réarmement du verrou à chaque nouvelle partie affichée (ouverture, onglet JOUER, Rejouer)
+  useEffect(() => {
+    if (isOpen && activeTab === 'game') {
+      scoreSubmittedRef.current = false;
+    }
+  }, [isOpen, activeTab, gameSessionKey]);
 
   if (!isOpen) return null;
 
@@ -30,6 +39,9 @@ export const ArcadeCabinetModal: React.FC<ArcadeCabinetModalProps> = ({
     waveReached: number;
     durationSeconds: number;
   }) => {
+    if (scoreSubmittedRef.current) return;
+    scoreSubmittedRef.current = true;
+
     setLastScore(result.score);
 
     // Envoi du score à l'API backend

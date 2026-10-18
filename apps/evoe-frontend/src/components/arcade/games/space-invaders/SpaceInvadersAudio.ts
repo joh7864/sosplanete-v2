@@ -7,6 +7,10 @@ class SpaceInvadersAudioEngine {
   private ctx: AudioContext | null = null;
   private ufoOscillator: OscillatorNode | null = null;
   private ufoGain: GainNode | null = null;
+  private ufoLfo: OscillatorNode | null = null;
+  private ufoLfoGain: GainNode | null = null;
+  private hitNoiseBuffer: AudioBuffer | null = null;
+  private explosionNoiseBuffer: AudioBuffer | null = null;
   private enabled: boolean = true;
 
   private initContext() {
@@ -90,16 +94,18 @@ class SpaceInvadersAudioEngine {
     this.initContext();
     if (!this.ctx) return;
 
-    const bufferSize = this.ctx.sampleRate * 0.08;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+    if (!this.hitNoiseBuffer) {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.hitNoiseBuffer = buffer;
     }
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.hitNoiseBuffer;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
@@ -126,16 +132,18 @@ class SpaceInvadersAudioEngine {
     this.initContext();
     if (!this.ctx) return;
 
-    const bufferSize = this.ctx.sampleRate * 0.45;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+    if (!this.explosionNoiseBuffer) {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.45);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.explosionNoiseBuffer = buffer;
     }
 
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.explosionNoiseBuffer;
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -164,24 +172,27 @@ class SpaceInvadersAudioEngine {
 
     try {
       this.ufoOscillator = this.ctx.createOscillator();
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
+      this.ufoLfo = this.ctx.createOscillator();
+      this.ufoLfoGain = this.ctx.createGain();
       this.ufoGain = this.ctx.createGain();
 
       this.ufoOscillator.type = 'sine';
       this.ufoOscillator.frequency.setValueAtTime(450, this.ctx.currentTime);
 
-      lfo.frequency.setValueAtTime(5, this.ctx.currentTime); // 5 Hz modulation
-      lfoGain.gain.setValueAtTime(80, this.ctx.currentTime);
+      this.ufoLfo.type = 'sine';
+      this.ufoLfo.frequency.setValueAtTime(5, this.ctx.currentTime); // 5 Hz modulation
+      this.ufoLfoGain.gain.setValueAtTime(80, this.ctx.currentTime);
 
-      lfo.connect(this.ufoOscillator.frequency);
+      // Chaîne modulation : LFO -> LfoGain -> Oscillator.frequency
+      this.ufoLfo.connect(this.ufoLfoGain);
+      this.ufoLfoGain.connect(this.ufoOscillator.frequency);
 
       this.ufoGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
 
       this.ufoOscillator.connect(this.ufoGain);
       this.ufoGain.connect(this.ctx.destination);
 
-      lfo.start();
+      this.ufoLfo.start();
       this.ufoOscillator.start();
     } catch {
       // Ignorer si audio non démarré
@@ -189,6 +200,19 @@ class SpaceInvadersAudioEngine {
   }
 
   public stopUfoSound() {
+    if (this.ufoLfo) {
+      try {
+        this.ufoLfo.stop();
+        this.ufoLfo.disconnect();
+      } catch {}
+      this.ufoLfo = null;
+    }
+    if (this.ufoLfoGain) {
+      try {
+        this.ufoLfoGain.disconnect();
+      } catch {}
+      this.ufoLfoGain = null;
+    }
     if (this.ufoOscillator) {
       try {
         this.ufoOscillator.stop();
