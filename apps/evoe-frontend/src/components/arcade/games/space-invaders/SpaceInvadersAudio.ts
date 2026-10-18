@@ -281,6 +281,52 @@ class SpaceInvadersAudioEngine {
       osc.stop(this.ctx!.currentTime + idx * 0.05 + 0.15);
     });
   }
+
+  /**
+   * Son de réapparition et déploiement d'une nouvelle vie (Re-entry 8-bit)
+   */
+  public playPlayerRespawn() {
+    if (!this.enabled) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    // Faisceau / sweep ascendant de matérialisation
+    const sweepOsc = this.ctx.createOscillator();
+    const sweepGain = this.ctx.createGain();
+    sweepOsc.type = 'sawtooth';
+    sweepOsc.frequency.setValueAtTime(160, this.ctx.currentTime);
+    sweepOsc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.22);
+
+    sweepGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+    sweepGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+
+    sweepOsc.connect(sweepGain);
+    sweepGain.connect(this.ctx.destination);
+    sweepOsc.start(this.ctx.currentTime);
+    sweepOsc.stop(this.ctx.currentTime + 0.22);
+
+    // Arpège 8-bit triomphal de réarmement (C5, E5, G5, C6)
+    const arpeggio = [523.25, 659.25, 783.99, 1046.5];
+    arpeggio.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'square';
+      const startTime = this.ctx!.currentTime + 0.08 + idx * 0.06;
+      const duration = 0.12;
+
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.16, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+  }
 }
 
 export const spaceInvadersAudio = new SpaceInvadersAudioEngine();

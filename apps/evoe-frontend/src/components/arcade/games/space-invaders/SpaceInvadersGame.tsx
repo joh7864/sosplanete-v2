@@ -83,6 +83,29 @@ const SPRITE_PLAYER = [
   '1111111111111',
 ];
 
+// Sprites rétro de destruction du canon joueur (explosion dentelée en 2 trames alternées)
+const SPRITE_PLAYER_EXPLODE_1 = [
+  '0000100010000',
+  '0100010100010',
+  '0010001000100',
+  '1001000001001',
+  '0100100010010',
+  '0010010100100',
+  '1000100010001',
+  '0101001001010',
+];
+
+const SPRITE_PLAYER_EXPLODE_2 = [
+  '0010001000100',
+  '0001000001000',
+  '1000101010001',
+  '0100010100010',
+  '0010000000100',
+  '1001000001001',
+  '0100101010010',
+  '0010000000100',
+];
+
 const SPRITE_UFO = [
   '0000011111100000',
   '0001111111111000',
@@ -141,6 +164,34 @@ function createBunkerGrid(): boolean[][] {
   return grid;
 }
 
+// Érosion d'un bunker lorsqu'un alien envahisseur le traverse
+function erodeBunkersWithAlien(alien: Alien, bunkers: Bunker[]) {
+  const scale = 4;
+  const bW = 18 * scale;
+  const bH = 12 * scale;
+  for (let i = 0; i < bunkers.length; i++) {
+    const bunker = bunkers[i];
+    if (
+      alien.x + alien.width >= bunker.x &&
+      alien.x <= bunker.x + bW &&
+      alien.y + alien.height >= bunker.y &&
+      alien.y <= bunker.y + bH
+    ) {
+      const minCol = Math.max(0, Math.floor((alien.x - bunker.x) / scale));
+      const maxCol = Math.min(17, Math.floor((alien.x + alien.width - bunker.x) / scale));
+      const minRow = Math.max(0, Math.floor((alien.y - bunker.y) / scale));
+      const maxRow = Math.min(11, Math.floor((alien.y + alien.height - bunker.y) / scale));
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          if (bunker.grid && bunker.grid[r]) {
+            bunker.grid[r][c] = false;
+          }
+        }
+      }
+    }
+  }
+}
+
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 720;
 
@@ -176,6 +227,16 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
     playerX: CANVAS_WIDTH / 2 - 18,
     playerSpeed: 4.8,
     invulnerableTimer: 0,
+    deathTimer: 0,
+    respawnTimer: 0,
+    explosionDebris: [] as Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      color: string;
+      size: number;
+    }>,
     aliens: [] as Alien[],
     alienDir: 1, // 1: droite, -1: gauche
     alienStepTimer: 0,
@@ -267,8 +328,13 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
     stateRef.current.startTime = Date.now();
     stateRef.current.playerX = CANVAS_WIDTH / 2 - 18;
     stateRef.current.powerUpMessage = null;
+    stateRef.current.deathTimer = 0;
+    stateRef.current.respawnTimer = 0.8;
+    stateRef.current.invulnerableTimer = 1.6;
+    stateRef.current.explosionDebris = [];
     setGameStatus('playing');
     initWave(1);
+    spaceInvadersAudio.playPlayerRespawn();
   }, [initialLives, initWave]);
 
   // Contrôles Clavier
@@ -326,26 +392,69 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
         return;
       }
 
-      const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+      let dt = (currentTime - lastTime) / 1000;
+      if (isNaN(dt) || dt <= 0) {
+        dt = 0.016;
+      } else if (dt > 0.1) {
+        dt = 0.1;
+      }
       lastTime = currentTime;
 
       const state = stateRef.current;
+
+      try {
 
       // ==========================================
       // MISE À JOUR DE LA LOGIQUE
       // ==========================================
       if (state.status === 'playing') {
-        // 1. Déplacement du joueur
-        if (state.keys.left) {
-          state.playerX = Math.max(state.playerX - state.playerSpeed, 30);
-        }
-        if (state.keys.right) {
-          state.playerX = Math.min(state.playerX + state.playerSpeed, CANVAS_WIDTH - 65);
-        }
+        // A) Séquence de destruction / explosion du canon
+        if (state.deathTimer > 0) {
+          state.deathTimer -= dt;
+          for (let d = 0; d < state.explosionDebris.length; d++) {
+            const deb = state.explosionDebris[d];
+            deb.x += deb.vx;
+            deb.y += deb.vy;
+            deb.vy += 0.06;
+          }
 
-        if (state.invulnerableTimer > 0) {
-          state.invulnerableTimer -= dt;
-        }
+          if (state.deathTimer <= 0) {
+            state.deathTimer = 0;
+            state.explosionDebris = [];
+
+            if (state.lives <= 0) {
+              state.status = 'game_over';
+              setGameStatus('game_over');
+              spaceInvadersAudio.stopUfoSound();
+              const duration = Math.floor((Date.now() - state.startTime) / 1000);
+              onGameOverRef.current({
+                score: state.score,
+                waveReached: state.wave,
+                durationSeconds: duration,
+              });
+            } else {
+              // Réapparition et déploiement d'une nouvelle vie au centre
+              state.playerX = CANVAS_WIDTH / 2 - 18;
+              state.invulnerableTimer = 2.4;
+              state.respawnTimer = 0.8;
+              spaceInvadersAudio.playPlayerRespawn();
+            }
+          }
+        } else {
+          // 1. Déplacement du joueur
+          if (state.keys.left) {
+            state.playerX = Math.max(state.playerX - state.playerSpeed, 30);
+          }
+          if (state.keys.right) {
+            state.playerX = Math.min(state.playerX + state.playerSpeed, CANVAS_WIDTH - 65);
+          }
+
+          if (state.invulnerableTimer > 0) {
+            state.invulnerableTimer -= dt;
+          }
+          if (state.respawnTimer > 0) {
+            state.respawnTimer -= dt;
+          }
 
         // 2. Tir du joueur
         const now = currentTime;
@@ -457,21 +566,24 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
 
             if (shouldDrop) {
               state.alienDir = -state.alienDir;
-              let reachedBunkerLine = false;
+              let reachedPlayerBaseLine = false;
               for (let i = 0; i < state.aliens.length; i++) {
                 const alien = state.aliens[i];
                 if (!alien.alive) continue;
                 alien.y += 18;
                 alien.frame = alien.frame === 0 ? 1 : 0;
 
-                // Condition défaite : un alien touche la ligne des bunkers !
-                if (alien.y + alien.height >= 540) {
-                  reachedBunkerLine = true;
+                // Érosion des bunkers traversés par les aliens
+                erodeBunkersWithAlien(alien, state.bunkers);
+
+                // Condition défaite : un alien envahisseur touche la ligne de base du canon joueur (y = 640) !
+                if (alien.y + alien.height >= 640) {
+                  reachedPlayerBaseLine = true;
                 }
               }
 
-              // Fin de partie déclenchée une seule fois, même si plusieurs aliens touchent la ligne
-              if (reachedBunkerLine && state.status === 'playing') {
+              // Fin de partie par invasion déclenchée une seule fois
+              if (reachedPlayerBaseLine && state.status === 'playing') {
                 state.status = 'game_over';
                 setGameStatus('game_over');
                 spaceInvadersAudio.stopUfoSound();
@@ -490,6 +602,9 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
                 if (!alien.alive) continue;
                 alien.x += stepX;
                 alien.frame = alien.frame === 0 ? 1 : 0;
+
+                // Érosion des bunkers lors de la marche horizontale à hauteur des bunkers
+                erodeBunkersWithAlien(alien, state.bunkers);
               }
             }
 
@@ -531,17 +646,19 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
           spaceInvadersAudio.startUfoSound();
         }
 
-        if (state.ufo.active) {
-          state.ufo.x += state.ufo.vx;
-          if (state.ufo.x > CANVAS_WIDTH + 60) {
-            state.ufo.active = false;
-            spaceInvadersAudio.stopUfoSound();
+          if (state.ufo.active) {
+            state.ufo.x += state.ufo.vx;
+            if (state.ufo.x > CANVAS_WIDTH + 60) {
+              state.ufo.active = false;
+              spaceInvadersAudio.stopUfoSound();
+            }
           }
         }
 
         // 5. Déplacement des projectiles & collisions
         for (let i = state.bullets.length - 1; i >= 0; i--) {
           const bullet = state.bullets[i];
+          if (!bullet) continue;
           bullet.y += bullet.vy;
 
           // Hors de l'écran
@@ -599,7 +716,7 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
           }
 
           // C) Collision tir ennemi avec le joueur
-          if (!bullet.isPlayer && state.invulnerableTimer <= 0) {
+          if (!bullet.isPlayer && state.invulnerableTimer <= 0 && state.deathTimer <= 0) {
             const playerBox = {
               x: state.playerX,
               y: 640,
@@ -612,23 +729,28 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
               bullet.y >= playerBox.y &&
               bullet.y <= playerBox.y + playerBox.height
             ) {
-              state.bullets.splice(i, 1);
+              // Supprimer immédiatement tous les tirs ennemis sans corruption d'index de boucle
+              state.bullets = state.bullets.filter((b) => b.isPlayer);
               state.lives -= 1;
-              state.invulnerableTimer = 2.2;
+              state.deathTimer = 1.0;
               spaceInvadersAudio.playPlayerExplosion();
 
-              if (state.lives <= 0 && state.status === 'playing') {
-                state.status = 'game_over';
-                setGameStatus('game_over');
-                spaceInvadersAudio.stopUfoSound();
-                const duration = Math.floor((Date.now() - state.startTime) / 1000);
-                onGameOverRef.current({
-                  score: state.score,
-                  waveReached: state.wave,
-                  durationSeconds: duration,
+              // Génération de débris éclatés 8-bit
+              const debrisColors = ['#ff2222', '#ffd000', '#00ff66', '#ffffff'];
+              state.explosionDebris = [];
+              for (let d = 0; d < 12; d++) {
+                const angle = (Math.PI * 2 * d) / 12 + (Math.random() - 0.5) * 0.4;
+                const speed = 1.6 + Math.random() * 2.4;
+                state.explosionDebris.push({
+                  x: state.playerX + 18,
+                  y: 651,
+                  vx: Math.cos(angle) * speed,
+                  vy: Math.sin(angle) * speed - 0.8,
+                  color: debrisColors[d % debrisColors.length],
+                  size: Math.random() > 0.5 ? 3 : 2,
                 });
               }
-              continue;
+              break;
             }
           }
 
@@ -755,12 +877,58 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
         }
       }
 
-      // 5. Dessin du Joueur (Canon Vert Phosphore)
-      if (
-        state.invulnerableTimer <= 0 ||
-        Math.floor(currentTime / 100) % 2 === 0
-      ) {
-        drawPixelMatrix(ctx, SPRITE_PLAYER, state.playerX, 640, 2.8, '#00ff66');
+      // 5. Dessin du Joueur (Explosion / Canon / Déploiement)
+      if (state.deathTimer > 0) {
+        // Animation d'explosion rétro 8-bit alternant 2 trames
+        const frame = Math.floor((1.0 - state.deathTimer) / 0.08) % 2;
+        const colorIndex = Math.floor((1.0 - state.deathTimer) / 0.08) % 3;
+        const colors = ['#ff3333', '#ffd000', '#00ff66'];
+        const sprite = frame === 0 ? SPRITE_PLAYER_EXPLODE_1 : SPRITE_PLAYER_EXPLODE_2;
+        drawPixelMatrix(ctx, sprite, state.playerX, 640, 2.8, colors[colorIndex]);
+
+        // Particules de débris éclatés
+        for (let d = 0; d < state.explosionDebris.length; d++) {
+          const deb = state.explosionDebris[d];
+          ctx.fillStyle = deb.color;
+          ctx.fillRect(Math.floor(deb.x), Math.floor(deb.y), deb.size, deb.size);
+        }
+      } else {
+        // Clignotement d'invulnérabilité
+        if (
+          state.invulnerableTimer <= 0 ||
+          Math.floor(currentTime / 80) % 2 === 0
+        ) {
+          drawPixelMatrix(ctx, SPRITE_PLAYER, state.playerX, 640, 2.8, '#00ff66');
+        }
+
+        // Animation visuelle de réapparition (Faisceau de téléportation + Anneau d'énergie)
+        if (state.respawnTimer > 0) {
+          const progress = state.respawnTimer / 0.8; // 1.0 -> 0.0
+          ctx.save();
+
+          // Anneau d'énergie expansif
+          ctx.strokeStyle = `rgba(0, 240, 255, ${progress * 0.9})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 3]);
+          ctx.beginPath();
+          ctx.arc(
+            state.playerX + 18,
+            651,
+            24 + (1 - progress) * 18,
+            0,
+            Math.PI * 2,
+          );
+          ctx.stroke();
+
+          // Colonne lumineuse verticale de matérialisation
+          const grad = ctx.createLinearGradient(0, 540, 0, 662);
+          grad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+          grad.addColorStop(1, `rgba(0, 255, 102, ${progress * 0.45})`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(state.playerX - 6, 540, 48, 122);
+
+          ctx.restore();
+        }
       }
 
       // 6. Pied de page : Vies & Armement
@@ -831,8 +999,11 @@ export const SpaceInvadersGame: React.FC<ArcadeGameProps> = ({
 
         ctx.textAlign = 'left';
       }
+    } catch (err) {
+      console.error('[SpaceInvaders] Error in game loop:', err);
+    }
 
-      animId = requestAnimationFrame(loop);
+    animId = requestAnimationFrame(loop);
     };
 
     const handleVisibility = () => {
