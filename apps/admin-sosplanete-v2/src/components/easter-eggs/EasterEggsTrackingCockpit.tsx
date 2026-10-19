@@ -26,21 +26,25 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Edit3,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { IconButtonWithTooltip } from '@/components/ui/IconButtonWithTooltip';
 import { getAssetUrl, resolvePlayerAvatar } from '@/utils/assets';
 import {
+  EasterEggCatalogItem,
   AdminTrackingResponse,
   DetectiveLeaderboard,
   fetchAdminTracking,
+  fetchAdminCatalog,
   fetchAdminLeaderboard,
   closeInstanceEgg,
   forceInstanceHint,
   resetAdminEggProgress,
 } from '@/utils/easterEggApi';
 import { ManualActivationModal } from './ManualActivationModal';
+import { EasterEggFormModal } from './EasterEggFormModal';
 import { EggGlyphIcon } from './EggGlyphIcon';
 
 interface EasterEggsTrackingCockpitProps {
@@ -112,6 +116,11 @@ export function EasterEggsTrackingCockpit({
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<DetectiveLeaderboard | null>(null);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+
+  // Modale d'édition d'Easter Egg (Catalogue)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEgg, setEditingEgg] = useState<EasterEggCatalogItem | null>(null);
+  const [loadingEggForEdit, setLoadingEggForEdit] = useState(false);
 
   // Notifications & Modals
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -206,6 +215,30 @@ export function EasterEggsTrackingCockpit({
   const handleSelectEgg = (eggId: number) => {
     setSelectedEggId(eggId);
     loadTracking(true, eggId);
+  };
+
+  const handleOpenEggEdit = async (eggId: number) => {
+    setSelectedEggId(eggId);
+    if (data?.currentEgg && data.currentEgg.id === eggId) {
+      setEditingEgg(data.currentEgg);
+      setIsEditModalOpen(true);
+      return;
+    }
+    setLoadingEggForEdit(true);
+    try {
+      const catalog = await fetchAdminCatalog();
+      const found = catalog.find((e) => e.id === eggId);
+      if (found) {
+        setEditingEgg(found);
+        setIsEditModalOpen(true);
+      } else {
+        setFeedback({ type: 'error', message: 'Énigme introuvable dans le catalogue.' });
+      }
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Erreur lors du chargement de l’énigme.' });
+    } finally {
+      setLoadingEggForEdit(false);
+    }
   };
 
   const loadLeaderboardData = async () => {
@@ -450,7 +483,7 @@ export function EasterEggsTrackingCockpit({
                 return (
                   <GlassCard
                     key={pEgg.instanceId || pEgg.eggId}
-                    onClick={() => handleSelectEgg(pEgg.eggId)}
+                    onClick={() => handleOpenEggEdit(pEgg.eggId)}
                     className={`p-4 sm:p-4.5 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between border ${
                       isSelected
                         ? 'bg-gradient-to-b from-purple-50/70 to-white border-purple-400 shadow-md shadow-purple-500/10 ring-2 ring-purple-400/40'
@@ -461,12 +494,12 @@ export function EasterEggsTrackingCockpit({
                       {/* Top Header : Titre dans la pastille + Points IT */}
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider truncate max-w-[210px] sm:max-w-[240px] ${
+                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider truncate max-w-[210px] sm:max-w-[240px] transition-transform hover:scale-105 ${
                             isSelected
                               ? 'bg-purple-600 text-white shadow-xs'
                               : 'bg-slate-100 text-slate-700 hover:bg-purple-50 hover:text-purple-700'
                           }`}
-                          title={pEgg.title}
+                          title={`Cliquer pour modifier l’énigme : ${pEgg.title}`}
                         >
                           {pEgg.title}
                         </span>
@@ -582,12 +615,24 @@ export function EasterEggsTrackingCockpit({
                           </span>
                         ) : (
                           <span className="text-[10px] font-bold text-slate-400">
-                            {isSelected ? 'Sélectionné' : 'Cliquer pour suivre'}
+                            {isSelected ? 'Sélectionné • Modifier' : 'Cliquer pour modifier'}
                           </span>
                         )}
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        {/* Bouton-icône Edit3 : Modifier cette énigme dans le catalogue */}
+                        <IconButtonWithTooltip
+                          tooltip="Modifier cette énigme (Catalogue)"
+                          tooltipPosition="top"
+                          variant="default"
+                          size="sm"
+                          disabled={loadingEggForEdit}
+                          onClick={() => handleOpenEggEdit(pEgg.eggId)}
+                        >
+                          <Edit3 size={15} className="text-slate-600 hover:text-purple-600" />
+                        </IconButtonWithTooltip>
+
                         {/* Bouton-icône Eye : Forcer l'apparition du 2ème indice */}
                         <IconButtonWithTooltip
                           tooltip={pEgg.forceHint ? '2ème indice déjà révélé' : 'Forcer l’apparition du 2ème indice'}
@@ -765,7 +810,13 @@ export function EasterEggsTrackingCockpit({
                                     ) : (
                                       <div className="w-2.5 h-2.5 rounded-full bg-slate-200 shrink-0" />
                                     )}
-                                    <span className="truncate">{egg.title}</span>
+                                    <span
+                                      className="truncate cursor-pointer hover:text-purple-600 transition-colors"
+                                      onClick={() => handleOpenEggEdit(egg.eggId)}
+                                      title="Cliquer pour modifier l’énigme"
+                                    >
+                                      {egg.title}
+                                    </span>
                                   </div>
 
                                   {isDone ? (
@@ -1314,6 +1365,24 @@ export function EasterEggsTrackingCockpit({
         instanceYearId={instanceYearId}
         currentEggId={egg?.id}
         initialMode={manualModalMode}
+      />
+
+      {/* Modale d'Édition Easter Egg (Catalogue) */}
+      <EasterEggFormModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingEgg(null);
+        }}
+        onSuccess={() => {
+          loadTracking(true);
+          setFeedback({
+            type: 'success',
+            message: `Easter Egg "${editingEgg?.title || ''}" mis à jour avec succès !`,
+          });
+          setTimeout(() => setFeedback(null), 4000);
+        }}
+        enigmaToEdit={editingEgg}
       />
 
       {/* Confirmation Clôture */}
