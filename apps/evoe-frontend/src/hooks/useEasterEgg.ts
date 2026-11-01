@@ -167,6 +167,7 @@ export function useEasterEgg() {
       if (!resolvedEggId && activeEggData?.cycleEggs) {
         const candidate = activeEggData.cycleEggs.find(
           (e) =>
+            !e.isDiscovered &&
             e.triggerType === triggerType &&
             (!metadata?.target || e.triggerConfig?.target === metadata.target),
         );
@@ -308,6 +309,33 @@ export function useEasterEgg() {
       fetchActiveEgg();
     }
   }, [childId, instanceId, fetchActiveEgg]);
+
+  useEffect(() => {
+    const handleEggUpdate = (e: any) => {
+      console.log('[useEasterEgg] Événement evoe:easter-egg-updated reçu, synchronisation...', e?.detail);
+      fetchActiveEgg(true);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchActiveEgg(true);
+      }
+    };
+
+    const handleFocus = () => {
+      fetchActiveEgg(true);
+    };
+
+    window.addEventListener('evoe:easter-egg-updated', handleEggUpdate);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('evoe:easter-egg-updated', handleEggUpdate);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchActiveEgg]);
 
   const hasUnread =
     activeEggData?.hasActiveEgg &&

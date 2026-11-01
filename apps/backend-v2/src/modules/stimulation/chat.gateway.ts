@@ -154,11 +154,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           client.data.instanceYearId = fullChild.group.team.instanceYearId;
           client.data.role = 'CHILD';
 
-          // Rejoindre automatiquement son canal équipe
+          // Rejoindre automatiquement son canal équipe et le canal de son instance
           const teamRoom = `team_${fullChild.group.teamId}`;
+          const instanceRoom = `instance_${fullChild.group.team.instanceYearId}`;
           await client.join(teamRoom);
+          await client.join(instanceRoom);
           this.logger.log(
-            `[Chat WebSockets] Joueur @${fullChild.pseudo} connecté (Équipe: ${fullChild.group.team.name})`,
+            `[Chat WebSockets] Joueur @${fullChild.pseudo} connecté (Équipe: ${fullChild.group.team.name}, Instance: ${fullChild.group.team.instanceYearId})`,
           );
         } else {
           this.logger.warn(
@@ -920,5 +922,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.addToHistory(this.teamHistories.get(team.id)!, teamMsg);
       this.server.to(`team_${team.id}`).emit('msgTeam', teamMsg);
     }
+  }
+
+  /**
+   * Diffuse un signal silencieux d'actualisation des Easter Eggs à tous les joueurs
+   * d'une instance scolaire donnée (mise à jour d'œuf, forçage d'indice, clôture, etc.)
+   */
+  broadcastEasterEggUpdate(instanceYearId: number, data?: any) {
+    if (!this.server) return;
+    this.logger.log(
+      `[Chat WebSockets] 🥚 Signal d'actualisation Easter Egg émis pour instance ${instanceYearId}`,
+    );
+    this.server.to(`instance_${instanceYearId}`).emit('easter_egg:updated', {
+      instanceYearId,
+      timestamp: new Date().toISOString(),
+      ...data,
+    });
   }
 }

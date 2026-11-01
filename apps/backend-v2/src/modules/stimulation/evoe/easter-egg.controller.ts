@@ -271,6 +271,14 @@ export class EasterEggController {
     );
   }
 
+  @Get('admin/chrono-frise/:instanceYearId')
+  @ApiOperation({
+    summary: 'Chrono-Frise de la saison pour le cockpit administrateur (suivi des énigmes par cycle et équipe)',
+  })
+  async getAdminChronoFrise(@Param('instanceYearId') instanceYearId: string) {
+    return this.easterEggService.getAdminChronoFrise(+instanceYearId);
+  }
+
   @Put('admin/settings/:instanceYearId')
   @ApiOperation({ summary: 'Met à jour les paramètres Easter Eggs d’une instance' })
   async updateSettings(

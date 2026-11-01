@@ -54,7 +54,7 @@ export function ManualActivationModal({
         .catch((err) => setError(err.message))
         .finally(() => setLoading(false));
     }
-  }, [isOpen, currentEggId]);
+  }, [isOpen, currentEggId, initialMode]);
 
   const handleActivate = async () => {
     if (!selectedId) return;

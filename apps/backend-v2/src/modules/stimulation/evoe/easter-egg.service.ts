@@ -608,7 +608,90 @@ export class EasterEggService implements OnModuleInit {
     const cyclePeriodIds = cyclePeriods.map((p) => p.id);
     const currentPeriod = periods[currentPeriodIndex - 1] || periods[0];
 
-    // 1. Demande explicite de l'AM pour cette instance (non clôturée)
+    // 1. Déterminer l'équipe de l'élève si childId est fourni
+    let teamId: number | null = null;
+    if (childId) {
+      const childData = await this.prisma.child.findUnique({
+        where: { id: childId },
+        select: { group: { select: { teamId: true } } },
+      });
+      teamId = childData?.group?.teamId || null;
+    }
+
+    // 2. Récupérer les œufs des cycles antérieurs reportés non résolus par cette équipe (Team Rollover)
+    const rolloverEggCandidates: Array<{
+      egg: EvoeEasterEgg;
+      instance: any;
+      isRollover: boolean;
+      targetPeriodIds: number[];
+    }> = [];
+
+    if (childId && teamId && cycleStartPeriodIndex > 0) {
+      for (let prevCycleIdx = 0; prevCycleIdx < cycleIndex; prevCycleIdx++) {
+        const prevStartPIndex = prevCycleIdx * frequency;
+        const prevEndPIndex = Math.min(periods.length - 1, prevStartPIndex + frequency - 1);
+        const prevCyclePeriods = periods.slice(prevStartPIndex, prevEndPIndex + 1);
+        const prevCyclePeriodIds = prevCyclePeriods.map((p) => p.id);
+
+        // Vérifier les instances explicites sur ce cycle passé
+        const prevInstances = await this.prisma.evoeEasterEggInstance.findMany({
+          where: {
+            instanceYearId,
+            periodStartId: { in: prevCyclePeriodIds },
+          },
+          include: { easterEgg: true },
+        });
+
+        const prevEggsForCycle: Array<{ egg: EvoeEasterEgg; instance: any }> = [];
+        if (prevInstances.length > 0) {
+          for (const pi of prevInstances) {
+            if (pi.isClosed) continue;
+            if (pi.easterEgg && pi.easterEgg.isActive) {
+              prevEggsForCycle.push({ egg: pi.easterEgg, instance: pi });
+            }
+          }
+        } else if (activeEggs.length > 0) {
+          const prevAutoEgg = activeEggs[prevCycleIdx % activeEggs.length];
+          if (prevAutoEgg) {
+            prevEggsForCycle.push({ egg: prevAutoEgg, instance: null });
+          }
+        }
+
+        // Pour chaque œuf, vérifier si l'équipe ou le joueur a déjà résolu l'énigme
+        for (const pe of prevEggsForCycle) {
+          const teamReward = await this.prisma.evoeEasterEggTeamReward.findFirst({
+            where: {
+              teamId,
+              easterEggId: pe.egg.id,
+            },
+          });
+
+          const playerProgress = childId
+            ? await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+                where: {
+                  childId,
+                  easterEggId: pe.egg.id,
+                  discoveredAt: { not: null },
+                },
+              })
+            : null;
+
+          // Quand un œuf a été résolu, il sort de la liste de ceux à résoudre
+          if (!teamReward && !playerProgress) {
+            if (!rolloverEggCandidates.some((re) => re.egg.id === pe.egg.id)) {
+              rolloverEggCandidates.push({
+                egg: pe.egg,
+                instance: pe.instance,
+                isRollover: true,
+                targetPeriodIds: prevCyclePeriodIds,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Récupérer les œufs du cycle en cours (instances explicites ou calendrier naturel)
     const activeInstances = await this.prisma.evoeEasterEggInstance.findMany({
       where: {
         instanceYearId,
@@ -627,133 +710,44 @@ export class EasterEggService implements OnModuleInit {
       orderBy: { id: 'asc' },
     });
 
+    const currentCycleEggCandidates: Array<{
+      egg: EvoeEasterEgg;
+      instance: any;
+      isRollover: boolean;
+      targetPeriodIds: number[];
+    }> = [];
+
     if (activeInstances.length > 0) {
-      const validInstances = activeInstances.filter(
-        (inst) => inst.easterEgg && inst.easterEgg.isActive,
-      );
-      const totalCount = Math.max(1, validInstances.length);
-      let solvedCount = 0;
+      for (const inst of activeInstances) {
+        if (inst.easterEgg && inst.easterEgg.isActive) {
+          const teamReward = teamId
+            ? await this.prisma.evoeEasterEggTeamReward.findFirst({
+                where: { teamId, easterEggId: inst.easterEgg.id },
+              })
+            : null;
+          const playerProgress = childId
+            ? await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+                where: { childId, easterEggId: inst.easterEgg.id, discoveredAt: { not: null } },
+              })
+            : null;
 
-      const targetPeriodIds =
-        cyclePeriodIds.length > 0
-          ? cyclePeriodIds
-          : (currentPeriod ? [currentPeriod.id] : []);
-
-      const cycleEggDetails: Array<{
-        egg: EvoeEasterEgg;
-        instance: any;
-        isDiscovered: boolean;
-        isInteractable: boolean;
-        isExplicitHintVisible: boolean;
-        firstInteractionAt: Date | null;
-        discoveredAt: Date | null;
-        resolutionTimeSeconds: number | null;
-      }> = [];
-
-      const nowTime = new Date();
-
-      for (const inst of validInstances) {
-        let isDiscovered = false;
-        let firstInteractionAt: Date | null = null;
-        let discoveredAt: Date | null = null;
-        let resolutionTimeSeconds: number | null = null;
-        let isInteractable = true;
-
-        if (childId) {
-          const progress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
-            where: {
-              easterEggId: inst.easterEggId,
-              childId,
-              ...(targetPeriodIds.length > 0 ? { periodId: { in: targetPeriodIds } } : {}),
-            },
-            orderBy: { id: 'desc' },
-          });
-
-          if (progress?.discoveredAt) {
-            isDiscovered = true;
-            discoveredAt = progress.discoveredAt;
-            resolutionTimeSeconds = progress.resolutionTimeSeconds || null;
-            solvedCount++;
-          }
-          firstInteractionAt = progress?.firstInteractionAt || null;
-
-          // Vérification stricte et indépendante du prérequis de chaque œuf (sur l'ensemble du cycle orbital)
-          isInteractable = await this.checkPrerequisites(
-            inst.easterEgg,
-            childId,
-            targetPeriodIds,
-          );
-
-          if (!isInteractable && firstInteractionAt && !isDiscovered) {
-            await this.prisma.evoeEasterEggPlayerProgress.update({
-              where: { id: progress!.id },
-              data: { firstInteractionAt: null },
+          if (!teamReward && !playerProgress) {
+            currentCycleEggCandidates.push({
+              egg: inst.easterEgg,
+              instance: inst,
+              isRollover: false,
+              targetPeriodIds:
+                cyclePeriodIds.length > 0
+                  ? cyclePeriodIds
+                  : currentPeriod
+                  ? [currentPeriod.id]
+                  : [],
             });
-            firstInteractionAt = null;
           }
         }
-
-        let isExplicitHintVisible = false;
-        if (inst.forceHint) {
-          isExplicitHintVisible = true;
-        } else if (isInteractable && firstInteractionAt) {
-          const delayMs = (inst.easterEgg.hintDelayMinutes || 120) * 60 * 1000;
-          if (nowTime.getTime() - firstInteractionAt.getTime() >= delayMs) {
-            isExplicitHintVisible = true;
-          }
-        }
-
-        cycleEggDetails.push({
-          egg: inst.easterEgg,
-          instance: inst,
-          isDiscovered,
-          isInteractable,
-          isExplicitHintVisible,
-          firstInteractionAt,
-          discoveredAt,
-          resolutionTimeSeconds,
-        });
       }
-
-      // Sélection du currentEgg mis en avant par défaut sur le badge HUD :
-      // 1. Premier œuf non résolu dont le prérequis est atteint (interactif)
-      // 2. À défaut, premier œuf non résolu (même si prérequis non encore rempli)
-      // 3. Si tous résolus, le dernier œuf résolu
-      let chosen = cycleEggDetails.find((d) => !d.isDiscovered && d.isInteractable);
-      if (!chosen) {
-        chosen = cycleEggDetails.find((d) => !d.isDiscovered);
-      }
-      if (!chosen && cycleEggDetails.length > 0) {
-        chosen = cycleEggDetails[cycleEggDetails.length - 1];
-      }
-
-      // Le badge est interactif / cliquable SI ET SEULEMENT SI :
-      // Au moins un œuf du cycle a son prérequis rempli (ou a été résolu)
-      const hasAnyInteractable = cycleEggDetails.some(
-        (d) => d.isInteractable || d.isDiscovered,
-      );
-
-      const currentIndex = Math.min(totalCount, solvedCount + 1);
-
-      return {
-        currentEgg: chosen?.egg || null,
-        explicitInstance: chosen?.instance || null,
-        cycleIndex,
-        cyclePeriodIds,
-        periodStart,
-        periodEnd,
-        cycleEggs: cycleEggDetails,
-        hasAnyInteractable,
-        multiEggProgress: {
-          total: totalCount,
-          solved: solvedCount,
-          currentIndex,
-        },
-      };
-    }
-
-    // 2. Vérifier si l'AM a expressément clôturé tout Easter Egg pour cette période
-    if (currentPeriod) {
+    } else if (currentPeriod) {
+      // Vérifier si expressément clôturé sans œuf pour cette période
       const explicitClosedThisPeriod = await this.prisma.evoeEasterEggInstance.findFirst({
         where: {
           instanceYearId,
@@ -763,20 +757,49 @@ export class EasterEggService implements OnModuleInit {
         },
       });
 
-      if (explicitClosedThisPeriod) {
-        // Période clôturée sans énigme : l'œuf n'apparaît pas du tout sur cette période
-        return {
-          currentEgg: null,
-          explicitInstance: null,
-          cycleIndex,
-          cyclePeriodIds,
-          periodStart,
-          periodEnd,
-        };
+      if (!explicitClosedThisPeriod && activeEggs.length > 0) {
+        // Calendrier naturel séquentiel
+        const autoEgg = activeEggs[cycleIndex % activeEggs.length];
+        if (autoEgg) {
+          const teamReward = teamId
+            ? await this.prisma.evoeEasterEggTeamReward.findFirst({
+                where: { teamId, easterEggId: autoEgg.id },
+              })
+            : null;
+          const playerProgress = childId
+            ? await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+                where: { childId, easterEggId: autoEgg.id, discoveredAt: { not: null } },
+              })
+            : null;
+
+          if (!teamReward && !playerProgress) {
+            currentCycleEggCandidates.push({
+              egg: autoEgg,
+              instance: null,
+              isRollover: false,
+              targetPeriodIds:
+                cyclePeriodIds.length > 0 ? cyclePeriodIds : [currentPeriod.id],
+            });
+          }
+        }
       }
     }
 
-    if (activeEggs.length === 0) {
+    // Fusionner tous les candidats : [ ...rolloverEggs, ...currentCycleEggs ]
+    const allEggCandidates: Array<{
+      egg: EvoeEasterEgg;
+      instance: any;
+      isRollover: boolean;
+      targetPeriodIds: number[];
+    }> = [];
+
+    for (const cand of [...rolloverEggCandidates, ...currentCycleEggCandidates]) {
+      if (!allEggCandidates.some((c) => c.egg.id === cand.egg.id)) {
+        allEggCandidates.push(cand);
+      }
+    }
+
+    if (allEggCandidates.length === 0) {
       return {
         currentEgg: null,
         explicitInstance: null,
@@ -784,62 +807,132 @@ export class EasterEggService implements OnModuleInit {
         cyclePeriodIds,
         periodStart,
         periodEnd,
+        cycleEggs: [],
+        hasAnyInteractable: false,
+        multiEggProgress: {
+          total: 0,
+          solved: 0,
+          currentIndex: 0,
+        },
       };
     }
 
-    // 2. Calendrier naturel : recherche du 1er œuf non consommé lors des cycles PASSÉS
-    const priorPeriodIds = periods
-      .slice(0, cycleStartPeriodIndex)
-      .map((p) => p.id);
+    const totalCount = allEggCandidates.length;
+    const cycleEggDetails: Array<{
+      egg: EvoeEasterEgg;
+      instance: any;
+      isDiscovered: boolean;
+      isInteractable: boolean;
+      isExplicitHintVisible: boolean;
+      firstInteractionAt: Date | null;
+      discoveredAt: Date | null;
+      resolutionTimeSeconds: number | null;
+      isRollover: boolean;
+    }> = [];
 
-    const instanceChildren = await this.prisma.child.findMany({
-      where: { group: { team: { instanceYearId } } },
-      select: { id: true },
-    });
-    const instanceChildIds = instanceChildren.map((c) => c.id);
+    const nowTime = new Date();
 
-    let currentEgg: EvoeEasterEgg | null = null;
+    for (const cand of allEggCandidates) {
+      let isDiscovered = false;
+      let firstInteractionAt: Date | null = null;
+      let discoveredAt: Date | null = null;
+      let resolutionTimeSeconds: number | null = null;
+      let isInteractable = true;
 
-    if (priorPeriodIds.length === 0) {
-      // 1er cycle de la saison : 1er œuf du catalogue
-      currentEgg = activeEggs[0];
-    } else {
-      // Cycles ultérieurs : on recherche dans l'ordre le premier œuf non résolu dans les cycles passés
-      for (const egg of activeEggs) {
-        const consumedInPriorCycles = await this.prisma.evoeEasterEggPlayerProgress.count({
+      // targetPeriodIds comprend à la fois les périodes d'origine et la période courante
+      const combinedPeriods = Array.from(
+        new Set([...cand.targetPeriodIds, ...cyclePeriodIds]),
+      );
+
+      if (childId) {
+        const progress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
           where: {
-            easterEggId: egg.id,
-            childId: instanceChildIds.length > 0 ? { in: instanceChildIds } : undefined,
-            periodId: { in: priorPeriodIds },
+            easterEggId: cand.egg.id,
+            childId,
             discoveredAt: { not: null },
           },
+          orderBy: { id: 'desc' },
         });
 
-        if (consumedInPriorCycles === 0) {
-          currentEgg = egg;
-          break;
+        if (progress?.discoveredAt) {
+          isDiscovered = true;
+          discoveredAt = progress.discoveredAt;
+          resolutionTimeSeconds = progress.resolutionTimeSeconds || null;
+        }
+
+        const interactionProgress = await this.prisma.evoeEasterEggPlayerProgress.findFirst({
+          where: {
+            easterEggId: cand.egg.id,
+            childId,
+          },
+          orderBy: { id: 'desc' },
+        });
+        firstInteractionAt = interactionProgress?.firstInteractionAt || null;
+
+        isInteractable = await this.checkPrerequisites(
+          cand.egg,
+          childId,
+          combinedPeriods,
+        );
+
+        if (!isInteractable && firstInteractionAt && !isDiscovered) {
+          await this.prisma.evoeEasterEggPlayerProgress.update({
+            where: { id: interactionProgress!.id },
+            data: { firstInteractionAt: null },
+          });
+          firstInteractionAt = null;
         }
       }
 
-      if (!currentEgg) {
-        currentEgg = activeEggs[cycleIndex % activeEggs.length];
+      let isExplicitHintVisible = false;
+      if (cand.instance?.forceHint) {
+        isExplicitHintVisible = true;
+      } else if (isInteractable && firstInteractionAt) {
+        const delayMs = (cand.egg.hintDelayMinutes || 120) * 60 * 1000;
+        if (nowTime.getTime() - firstInteractionAt.getTime() >= delayMs) {
+          isExplicitHintVisible = true;
+        }
       }
+
+      cycleEggDetails.push({
+        egg: cand.egg,
+        instance: cand.instance,
+        isDiscovered,
+        isInteractable,
+        isExplicitHintVisible,
+        firstInteractionAt,
+        discoveredAt,
+        resolutionTimeSeconds,
+        isRollover: cand.isRollover,
+      });
     }
 
+    // Le premier œuf non résolu est toujours le plus ancien à résoudre (ordre chronologique strict)
+    const unsolvedDetails = cycleEggDetails.filter((d) => !d.isDiscovered);
+    const chosen =
+      unsolvedDetails.find((d) => d.isInteractable) ||
+      unsolvedDetails[0] ||
+      null;
+
+    const hasAnyInteractable = unsolvedDetails.some((d) => d.isInteractable);
+
     return {
-      currentEgg,
-      explicitInstance: null,
+      currentEgg: chosen?.egg || null,
+      explicitInstance: chosen?.instance || null,
       cycleIndex,
       cyclePeriodIds,
       periodStart,
       periodEnd,
+      cycleEggs: chosen ? [chosen] : [],
+      hasAnyInteractable,
       multiEggProgress: {
-        total: 1,
+        total: totalCount,
         solved: 0,
         currentIndex: 1,
       },
     };
   }
+
 
   async getActiveEasterEgg(childId: number) {
     const { child, team, instanceYear, periods, currentPeriod, currentPeriodIndex } =
@@ -1365,6 +1458,35 @@ export class EasterEggService implements OnModuleInit {
 
       if (matchedInstance) {
         egg = matchedInstance.easterEgg;
+      }
+
+      // Si non trouvé via instance, rechercher via le cycle résolu (cycle naturel ou reporté)
+      if (!egg || egg.triggerType !== dto.triggerType) {
+        const activeEggs = await this.prisma.evoeEasterEgg.findMany({
+          where: { isActive: true },
+          orderBy: { orderIndex: 'asc' },
+        });
+        const resolved = await this.resolveEggForInstance(
+          instanceYear.id,
+          periods,
+          currentPeriodIndex,
+          frequency,
+          activeEggs,
+          child.id,
+        );
+        const candidateCycleEggs = (resolved.cycleEggs || []).filter(
+          (ce) => ce.egg.triggerType === dto.triggerType && !ce.isDiscovered,
+        );
+        const matchedCycleEgg = candidateCycleEggs.find((ce) => {
+          if (!dto.metadata?.target) return true;
+          const config = ce.egg.triggerConfig as any;
+          return !config?.target || config.target === dto.metadata.target;
+        });
+        if (matchedCycleEgg) {
+          egg = matchedCycleEgg.egg;
+        } else if (candidateCycleEggs.length > 0) {
+          egg = candidateCycleEggs[0].egg;
+        }
       }
     }
 
@@ -2134,6 +2256,7 @@ export class EasterEggService implements OnModuleInit {
         }),
       },
     });
+    this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'settings' });
     return updated;
   }
 
@@ -2490,8 +2613,27 @@ export class EasterEggService implements OnModuleInit {
         title: currentEgg.title,
         rewardPointsIT: currentEgg.rewardPointsIT,
         forceHint: !!explicitInstance?.forceHint,
-        discoverers: [],
-        teamsCompleted: [],
+        discoverers: allPeriodDiscoveries
+          .filter(d => d.easterEggId === currentEgg.id)
+          .map(d => ({
+            childId: d.child.id,
+            pseudo: d.child.pseudo,
+            avatar: d.child.avatar,
+            gender: d.child.gender,
+            teamId: d.child.group?.teamId,
+            teamName: d.child.group?.team?.name || 'Équipe',
+            teamColor: d.child.group?.team?.color || '#10b981',
+            teamIcon: d.child.group?.team?.icon || null,
+            discoveredAt: d.discoveredAt,
+          })),
+        teamsCompleted: allPeriodTeamRewards
+          .filter(tr => tr.easterEggId === currentEgg.id)
+          .map(tr => ({
+            teamId: tr.teamId,
+            rank: tr.rank,
+            awardedPointsIT: tr.awardedPointsIT,
+            completedAt: tr.completedAt,
+          })),
       }],
       activeInstance: explicitInstance ? {
         id: explicitInstance.id,
@@ -2561,6 +2703,54 @@ export class EasterEggService implements OnModuleInit {
         where: { instanceYearId, isClosed: false },
         data: { isClosed: true, closedAt: new Date() },
       });
+    } else {
+      // MODE AJOUTER (Multi-Eggs) :
+      // Vérifier si des instances ouvertes existent déjà en table pour cette période
+      const existingOpen = await this.prisma.evoeEasterEggInstance.findMany({
+        where: { instanceYearId, isClosed: false, periodStartId: currentPeriod.id },
+      });
+
+      // Si aucune instance n'existait en base pour cette période, l'œuf affiché provenait du cycle automatique.
+      // On le matérialise en base pour qu'il ne soit pas écrasé par l'ajout !
+      if (existingOpen.length === 0) {
+        const activeEggs = await this.prisma.evoeEasterEgg.findMany({
+          where: { isActive: true },
+          orderBy: { orderIndex: 'asc' },
+        });
+        const periodIdx = periods.indexOf(currentPeriod) + 1;
+        const tracking = await this.resolveEggForInstance(
+          instanceYearId,
+          periods,
+          periodIdx,
+          instanceYear.easterEggFrequency || 2,
+          activeEggs,
+        );
+        const naturalEgg = tracking.currentEgg;
+        if (naturalEgg && naturalEgg.id !== easterEggId) {
+          await this.prisma.evoeEasterEggInstance.upsert({
+            where: {
+              instanceYearId_easterEggId_periodStartId: {
+                instanceYearId,
+                easterEggId: naturalEgg.id,
+                periodStartId: currentPeriod.id,
+              },
+            },
+            update: {
+              isClosed: false,
+              closedAt: null,
+            },
+            create: {
+              instanceYearId,
+              easterEggId: naturalEgg.id,
+              periodStartId: currentPeriod.id,
+              periodEndId: currentPeriod.id,
+              isClosed: false,
+              forceHint: false,
+              unlockedAt: new Date(),
+            },
+          });
+        }
+      }
     }
 
     const instance = await this.prisma.evoeEasterEggInstance.upsert({
@@ -2587,6 +2777,9 @@ export class EasterEggService implements OnModuleInit {
       },
       include: { easterEgg: true },
     });
+
+    // Émettre un signal silencieux WebSocket pour synchroniser immédiatement les joueurs connectés
+    this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'open', easterEggId });
 
     return instance;
   }
@@ -2655,6 +2848,9 @@ export class EasterEggService implements OnModuleInit {
       }
     }
 
+    // Émettre un signal silencieux WebSocket pour synchroniser immédiatement les joueurs connectés
+    this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'close', easterEggId });
+
     return { success: true, message: 'Easter Egg clôturé pour cette période' };
   }
 
@@ -2673,6 +2869,7 @@ export class EasterEggService implements OnModuleInit {
         where: { id: activeInstance.id },
         data: { forceHint: true },
       });
+      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'force_hint', easterEggId });
       return { success: true, message: '2ème indice forcé pour tous les joueurs' };
     } else {
       const targetEgg = easterEggId
@@ -2703,6 +2900,7 @@ export class EasterEggService implements OnModuleInit {
         },
       });
 
+      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'force_hint', easterEggId });
       return { success: true, message: '2ème indice forcé pour cette période' };
     }
   }
@@ -3105,4 +3303,432 @@ export class EasterEggService implements OnModuleInit {
       isMetaEnigmaUnlocked: false,
     };
   }
+
+  /**
+   * Récupère la Chrono-Frise de la saison pour le cockpit administrateur :
+   * Donne la vision globale par cycle et par équipe (résolu, reporté, en cours, etc.)
+   */
+  async getAdminChronoFrise(instanceYearId: number) {
+    const instanceYear = await this.prisma.instanceYear.findUnique({
+      where: { id: instanceYearId },
+      include: {
+        periods: { orderBy: { startDate: 'asc' } },
+        teams: {
+          include: {
+            groups: {
+              include: { children: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!instanceYear) {
+      throw new NotFoundException('Année d’instance introuvable');
+    }
+
+    const periods = instanceYear.periods || [];
+    const now = new Date();
+    let currentPeriod = periods.find((p) => p.isOpen);
+    if (!currentPeriod) {
+      currentPeriod =
+        periods.find((p) => new Date(p.startDate) <= now && new Date(p.endDate) >= now) ||
+        periods[periods.length - 1];
+    }
+    const currentPeriodIndex = currentPeriod
+      ? periods.findIndex((p) => p.id === currentPeriod!.id) + 1
+      : 1;
+
+    const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
+    const totalCycles = Math.max(1, Math.ceil(periods.length / frequency));
+
+    // Récupérer tous les Easter Eggs actifs
+    const activeEggs = await this.prisma.evoeEasterEgg.findMany({
+      where: { isActive: true },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    // Récupérer toutes les instances manuelles/ouvertes
+    const instances = await this.prisma.evoeEasterEggInstance.findMany({
+      where: { instanceYearId },
+      include: { easterEgg: true },
+      orderBy: { id: 'asc' },
+    });
+
+    // Récupérer toutes les récompenses d'équipe de l'instance
+    const teamRewards = await this.prisma.evoeEasterEggTeamReward.findMany({
+      where: { team: { instanceYearId } },
+      include: { easterEgg: true, team: true },
+    });
+
+    // Récupérer toutes les découvertes individuelles
+    const periodIds = periods.map((p) => p.id);
+    const playerProgresses = await this.prisma.evoeEasterEggPlayerProgress.findMany({
+      where: {
+        periodId: { in: periodIds },
+        discoveredAt: { not: null },
+      },
+      include: {
+        child: {
+          include: {
+            group: true,
+          },
+        },
+      },
+    });
+
+    const currentCycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
+
+    const cycles: any[] = [];
+
+    for (let c = 0; c < totalCycles; c++) {
+      const cycleStartIdx = c * frequency;
+      const cycleEndIdx = Math.min(periods.length - 1, (c + 1) * frequency - 1);
+      const periodStart = periods[cycleStartIdx] || periods[0];
+      const periodEnd = periods[cycleEndIdx] || periods[periods.length - 1];
+      const cyclePeriods = periods.slice(cycleStartIdx, cycleEndIdx + 1);
+      const cyclePeriodIds = cyclePeriods.map((p) => p.id);
+
+      const isCurrent = c === currentCycleIndex;
+      const isPast = c < currentCycleIndex;
+      const isFuture = c > currentCycleIndex;
+
+      // Déterminer les œufs de ce cycle
+      // 1. Œuf naturel du cycle
+      const naturalEgg = activeEggs.length > 0 ? activeEggs[c % activeEggs.length] : null;
+
+      // 2. Instances manuelles ouvertes sur ce cycle
+      const cycleInstances = instances.filter(
+        (inst) =>
+          inst.periodStartId != null &&
+          cyclePeriodIds.includes(inst.periodStartId) &&
+          inst.easterEgg?.isActive,
+      );
+
+      // 3. Œufs reportés des cycles précédents (si c === currentCycleIndex)
+      const rolloverEggs: any[] = [];
+      if (isCurrent && c > 0) {
+        for (let prevC = 0; prevC < c; prevC++) {
+          const prevEgg = activeEggs[prevC % activeEggs.length];
+          if (prevEgg) {
+            // Est-ce qu'au moins une équipe n'a PAS encore résolu cet œuf ?
+            const hasUnsolvedTeam = instanceYear.teams.some((team) => {
+              const rewarded = teamRewards.some(
+                (tr) => tr.teamId === team.id && tr.easterEggId === prevEgg.id,
+              );
+              return !rewarded;
+            });
+            if (hasUnsolvedTeam && !rolloverEggs.some((e) => e.id === prevEgg.id)) {
+              rolloverEggs.push({
+                ...prevEgg,
+                originType: 'ROLLOVER' as const,
+                originCycleIndex: prevC + 1,
+              });
+            }
+          }
+        }
+      }
+
+      const rawEggsList: any[] = [];
+
+      if (isPast) {
+        // En cycle passé : un œuf ne reste dans ce cycle QUE s'il y a été résolu par au moins une équipe durant ce cycle
+        if (naturalEgg) {
+          const hasRewardInCycle = teamRewards.some(
+            (tr) => tr.easterEggId === naturalEgg.id && cyclePeriodIds.includes(tr.periodId),
+          );
+          if (hasRewardInCycle) {
+            rawEggsList.push({
+              ...naturalEgg,
+              originType: 'NATURAL' as const,
+              originCycleIndex: c + 1,
+            });
+          }
+        }
+
+        for (const inst of cycleInstances) {
+          const hasRewardInCycle = teamRewards.some(
+            (tr) => tr.easterEggId === inst.easterEgg.id && cyclePeriodIds.includes(tr.periodId),
+          );
+          if (hasRewardInCycle && !rawEggsList.some((e) => e.id === inst.easterEgg.id)) {
+            rawEggsList.push({
+              ...inst.easterEgg,
+              originType: 'MANUAL_ADD' as const,
+              originCycleIndex: c + 1,
+              instanceId: inst.id,
+              forceHint: !!inst.forceHint,
+            });
+          }
+        }
+
+        // Vérifier aussi si un œuf reporté a été résolu durant ce cycle passé
+        const otherRewardsInCycle = teamRewards.filter(
+          (tr) => cyclePeriodIds.includes(tr.periodId) && !rawEggsList.some((e) => e.id === tr.easterEggId),
+        );
+        for (const tr of otherRewardsInCycle) {
+          const eggObj = activeEggs.find((e) => e.id === tr.easterEggId) || tr.easterEgg;
+          if (eggObj) {
+            const origIdx = activeEggs.findIndex((e) => e.id === eggObj.id);
+            const origCycleIndex = origIdx >= 0 ? (origIdx % totalCycles) + 1 : 1;
+            rawEggsList.push({
+              ...eggObj,
+              originType: 'ROLLOVER' as const,
+              originCycleIndex: origCycleIndex,
+            });
+          }
+        }
+      } else if (isCurrent) {
+        // En cycle courant : œuf naturel du cycle + ajouts manuels + tous les œufs reportés non résolus
+        if (naturalEgg) {
+          rawEggsList.push({
+            ...naturalEgg,
+            originType: 'NATURAL' as const,
+            originCycleIndex: c + 1,
+          });
+        }
+
+        for (const inst of cycleInstances) {
+          if (!rawEggsList.some((e) => e.id === inst.easterEgg.id)) {
+            rawEggsList.push({
+              ...inst.easterEgg,
+              originType: 'MANUAL_ADD' as const,
+              originCycleIndex: c + 1,
+              instanceId: inst.id,
+              forceHint: !!inst.forceHint,
+            });
+          }
+        }
+
+        for (const ro of rolloverEggs) {
+          if (!rawEggsList.some((e) => e.id === ro.id)) {
+            rawEggsList.push(ro);
+          }
+        }
+      } else {
+        // En cycle futur : œuf naturel programmé
+        if (naturalEgg) {
+          rawEggsList.push({
+            ...naturalEgg,
+            originType: 'NATURAL' as const,
+            originCycleIndex: c + 1,
+          });
+        }
+      }
+
+      const teamStatuses: any[] = [];
+
+      const enrichedEggs = rawEggsList.map((egg) => {
+        // Seules les récompenses gagnées durant CE cycle comptent comme victoires du cycle
+        const eggRewards = teamRewards.filter(
+          (tr) => tr.easterEggId === egg.id && cyclePeriodIds.includes(tr.periodId),
+        );
+
+        // Récompenses obtenues dans des cycles antérieurs
+        const priorRewards = isCurrent
+          ? teamRewards.filter(
+              (tr) => tr.easterEggId === egg.id && !cyclePeriodIds.includes(tr.periodId),
+            )
+          : [];
+
+        const resolvedTeams = eggRewards.map((tr) => {
+          const team = instanceYear.teams.find((t) => t.id === tr.teamId);
+          const teamChildren = team ? team.groups.flatMap((g) => g.children) : [];
+          const teamChildIds = new Set(teamChildren.map((ch) => ch.id));
+          const discoverersCount = playerProgresses.filter(
+            (pp) => pp.easterEggId === egg.id && teamChildIds.has(pp.childId),
+          ).length;
+
+          const requiredPlayers = this.getRequiredPlayersForEgg(
+            egg,
+            teamChildren.length,
+            instanceYear.easterEggRequiredPlayers || 2,
+          );
+
+          return {
+            teamId: tr.teamId,
+            teamName: team?.name || tr.team?.name || 'Équipe',
+            teamColor: team?.color || tr.team?.color || '#10b981',
+            teamIcon: team?.icon || tr.team?.icon || null,
+            rank: tr.rank,
+            awardedPointsIT: tr.awardedPointsIT,
+            solvedAt: tr.completedAt,
+            periodId: tr.periodId,
+            discoverersCount,
+            requiredPlayers,
+            totalPlayers: teamChildren.length,
+          };
+        }).sort((a, b) => (a.rank || 99) - (b.rank || 99));
+
+        const previouslyResolvedTeams = priorRewards.map((tr) => {
+          const team = instanceYear.teams.find((t) => t.id === tr.teamId);
+          const pIdx = periods.findIndex((p) => p.id === tr.periodId);
+          const solvedCycleIndex = pIdx >= 0 ? Math.floor(pIdx / frequency) + 1 : null;
+          return {
+            teamId: tr.teamId,
+            teamName: team?.name || tr.team?.name || 'Équipe',
+            teamColor: team?.color || tr.team?.color || '#10b981',
+            teamIcon: team?.icon || tr.team?.icon || null,
+            rank: tr.rank,
+            awardedPointsIT: tr.awardedPointsIT,
+            solvedAt: tr.completedAt,
+            solvedCycleIndex,
+          };
+        });
+
+        const pendingTeams = instanceYear.teams
+          .filter(
+            (t) =>
+              !eggRewards.some((tr) => tr.teamId === t.id) &&
+              !priorRewards.some((tr) => tr.teamId === t.id),
+          )
+          .map((team) => {
+            const teamChildren = team.groups.flatMap((g) => g.children);
+            const teamChildIds = new Set(teamChildren.map((ch) => ch.id));
+            const discoverersCount = playerProgresses.filter(
+              (pp) => pp.easterEggId === egg.id && teamChildIds.has(pp.childId),
+            ).length;
+
+            const requiredPlayers = this.getRequiredPlayersForEgg(
+              egg,
+              teamChildren.length,
+              instanceYear.easterEggRequiredPlayers || 2,
+            );
+
+            let status: 'ROLLED_OVER' | 'IN_PROGRESS' | 'UPCOMING' | 'MISSED';
+            if (egg.originType === 'ROLLOVER') {
+              status = 'ROLLED_OVER';
+            } else if (isPast) {
+              status = 'ROLLED_OVER';
+            } else if (isCurrent) {
+              status = 'IN_PROGRESS';
+            } else {
+              status = 'UPCOMING';
+            }
+
+            return {
+              teamId: team.id,
+              teamName: team.name,
+              teamColor: team.color,
+              teamIcon: team.icon || null,
+              status,
+              discoverersCount,
+              requiredPlayers,
+              totalPlayers: teamChildren.length,
+            };
+          });
+
+        for (const team of instanceYear.teams) {
+          const reward = eggRewards.find((tr) => tr.teamId === team.id);
+          const priorReward = priorRewards.find((tr) => tr.teamId === team.id);
+          const teamChildren = team.groups.flatMap((g) => g.children);
+          const teamChildIds = new Set(teamChildren.map((ch) => ch.id));
+          const discoverersCount = playerProgresses.filter(
+            (pp) => pp.easterEggId === egg.id && teamChildIds.has(pp.childId),
+          ).length;
+
+          let status: 'SOLVED' | 'IN_PROGRESS' | 'ROLLED_OVER' | 'MISSED' | 'UPCOMING';
+          if (reward || priorReward) {
+            status = 'SOLVED';
+          } else if (egg.originType === 'ROLLOVER' || isPast) {
+            status = 'ROLLED_OVER';
+          } else if (isCurrent) {
+            status = 'IN_PROGRESS';
+          } else {
+            status = 'UPCOMING';
+          }
+
+          const effectiveReward = reward || priorReward;
+          teamStatuses.push({
+            teamId: team.id,
+            teamName: team.name,
+            teamColor: team.color,
+            teamIcon: team.icon || null,
+            eggId: egg.id,
+            status,
+            solvedAt: effectiveReward?.completedAt || null,
+            discoverersCount,
+            totalPlayers: teamChildren.length,
+            isRewarded: !!effectiveReward,
+            rank: effectiveReward?.rank || null,
+            awardedPointsIT: effectiveReward?.awardedPointsIT || null,
+          });
+        }
+
+        return {
+          id: egg.id,
+          title: egg.title,
+          code: egg.code,
+          enigmaType: egg.enigmaType,
+          triggerType: egg.triggerType,
+          glyphChar: egg.glyphChar,
+          rewardPointsIT: egg.rewardPointsIT,
+          originType: egg.originType || 'NATURAL',
+          originCycleIndex: egg.originCycleIndex || null,
+          instanceId: egg.instanceId || null,
+          forceHint: !!egg.forceHint,
+          isResolvedByAtLeastOneTeam: resolvedTeams.length > 0 || previouslyResolvedTeams.length > 0,
+          resolvedTeams,
+          previouslyResolvedTeams,
+          pendingTeams,
+        };
+      });
+
+      // Équipes distinctes ayant résolu au moins un œuf dans ce cycle (périodes du cycle)
+      const cycleResolvedTeamsMap = new Map<number, any>();
+      for (const e of enrichedEggs) {
+        for (const rt of e.resolvedTeams) {
+          if (cyclePeriodIds.includes(rt.periodId) && !cycleResolvedTeamsMap.has(rt.teamId)) {
+            cycleResolvedTeamsMap.set(rt.teamId, {
+              teamId: rt.teamId,
+              teamName: rt.teamName,
+              teamColor: rt.teamColor,
+              teamIcon: rt.teamIcon,
+            });
+          }
+        }
+      }
+      const cycleResolvedTeams = Array.from(cycleResolvedTeamsMap.values());
+
+      cycles.push({
+        cycleIndex: c + 1,
+        isCurrent,
+        isPast,
+        isFuture,
+        periodStart: periodStart
+          ? {
+              id: periodStart.id,
+              name: (periodStart as any).name || `Période ${cycleStartIdx + 1}`,
+              startDate: periodStart.startDate,
+            }
+          : null,
+        periodEnd: periodEnd
+          ? {
+              id: periodEnd.id,
+              name: (periodEnd as any).name || `Période ${cycleEndIdx + 1}`,
+              endDate: periodEnd.endDate,
+            }
+          : null,
+        eggs: enrichedEggs,
+        cycleResolvedTeams,
+        hasAnyEggSolved: cycleResolvedTeams.length > 0,
+        teamStatuses,
+      });
+    }
+
+    return {
+      instanceYearId,
+      frequency,
+      currentPeriodId: currentPeriod?.id || null,
+      currentPeriodIndex,
+      teams: instanceYear.teams.map((t) => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        icon: t.icon || null,
+        totalPlayers: t.groups.flatMap((g) => g.children).length,
+      })),
+      cycles,
+    };
+  }
 }
+

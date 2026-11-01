@@ -422,4 +422,106 @@ export async function importAdminCatalog(items: any[], mode: 'upsert' | 'replace
   return resp.json();
 }
 
+export interface ChronoFriseResolvedTeam {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  teamIcon?: string | null;
+  rank: number | null;
+  awardedPointsIT: number | null;
+  solvedAt: string | null;
+  discoverersCount: number;
+  requiredPlayers?: number;
+  totalPlayers: number;
+  solvedCycleIndex?: number | null;
+}
+
+export interface ChronoFrisePendingTeam {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  teamIcon?: string | null;
+  status: 'ROLLED_OVER' | 'IN_PROGRESS' | 'UPCOMING' | 'MISSED';
+  discoverersCount: number;
+  requiredPlayers?: number;
+  totalPlayers: number;
+}
+
+export interface ChronoFriseEgg {
+  id: number;
+  title: string;
+  code: string;
+  enigmaType: string;
+  triggerType: string;
+  glyphChar: string | null;
+  rewardPointsIT: number;
+  originType: 'NATURAL' | 'MANUAL_ADD' | 'ROLLOVER';
+  originCycleIndex: number | null;
+  instanceId: number | null;
+  forceHint: boolean;
+  isResolvedByAtLeastOneTeam: boolean;
+  resolvedTeams: ChronoFriseResolvedTeam[];
+  previouslyResolvedTeams?: ChronoFriseResolvedTeam[];
+  pendingTeams: ChronoFrisePendingTeam[];
+}
+
+export interface ChronoFriseTeamStatus {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  teamIcon?: string | null;
+  eggId: number;
+  status: 'SOLVED' | 'IN_PROGRESS' | 'ROLLED_OVER' | 'MISSED' | 'UPCOMING';
+  solvedAt: string | null;
+  discoverersCount: number;
+  totalPlayers: number;
+  isRewarded: boolean;
+  rank: number | null;
+  awardedPointsIT: number | null;
+}
+
+export interface ChronoFriseCycleTeam {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  teamIcon?: string | null;
+}
+
+export interface ChronoFriseCycle {
+  cycleIndex: number;
+  isCurrent: boolean;
+  isPast: boolean;
+  isFuture: boolean;
+  periodStart: { id: number; name: string; startDate: string } | null;
+  periodEnd: { id: number; name: string; endDate: string } | null;
+  eggs: ChronoFriseEgg[];
+  cycleResolvedTeams: ChronoFriseCycleTeam[];
+  hasAnyEggSolved: boolean;
+  teamStatuses: ChronoFriseTeamStatus[];
+}
+
+export interface AdminChronoFriseResponse {
+  instanceYearId: number;
+  frequency: number;
+  currentPeriodId: number | null;
+  currentPeriodIndex: number;
+  teams: Array<{
+    id: number;
+    name: string;
+    color: string;
+    icon?: string | null;
+    totalPlayers: number;
+  }>;
+  cycles: ChronoFriseCycle[];
+}
+
+export async function fetchAdminChronoFrise(instanceYearId: number): Promise<AdminChronoFriseResponse> {
+  const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/chrono-frise/${instanceYearId}`, {
+    headers: getHeaders(),
+  });
+  if (!resp.ok) throw new Error(`Erreur récupération Chrono-Frise (${resp.status})`);
+  return resp.json();
+}
+
+
 

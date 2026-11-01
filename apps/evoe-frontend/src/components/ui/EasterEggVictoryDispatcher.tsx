@@ -340,9 +340,11 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
           background: showCard
             ? effectType === 'konami'
               ? 'rgba(0, 6, 0, 0.88)'
+              : effectType === 'antigravity'
+              ? 'transparent'
               : 'radial-gradient(circle at center, rgba(6, 78, 59, 0.7) 0%, rgba(2, 6, 23, 0.94) 80%)'
             : 'transparent',
-          backdropFilter: showCard && effectType !== 'konami' ? 'blur(16px)' : 'none',
+          backdropFilter: showCard && effectType !== 'konami' && effectType !== 'antigravity' ? 'blur(16px)' : 'none',
           overflow: 'hidden',
           userSelect: 'none',
           transition: 'background 0.5s ease, backdrop-filter 0.5s ease',
@@ -467,9 +469,13 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 width: '90%',
                 padding: '36px 32px',
                 background: 'rgba(15, 23, 42, 0.92)',
-                border: '2px solid rgba(16, 185, 129, 0.6)',
+                border: effectType === 'antigravity'
+                  ? '2px solid rgba(56, 189, 248, 0.7)'
+                  : '2px solid rgba(16, 185, 129, 0.6)',
                 borderRadius: '28px',
-                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.35)',
+                boxShadow: effectType === 'antigravity'
+                  ? '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 50px rgba(56, 189, 248, 0.4)'
+                  : '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.35)',
                 backdropFilter: 'blur(20px)',
               }}
             >

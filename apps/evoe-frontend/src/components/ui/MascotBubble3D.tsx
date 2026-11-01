@@ -56,7 +56,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   rewardPointsIT = 60,
   mascotImageUrl = '/images/robot-mascot.png',
   mascotDurationSeconds: _mascotDurationSeconds = 60,
-  multiEggProgress,
+  multiEggProgress: _multiEggProgress,
   cycleEggs,
   isReplayMode = false,
   replayedCycleIndex,
@@ -150,6 +150,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     }
   }, [isOpen, cycleEggs]);
 
+  const currentEgg = cycleEggs && cycleEggs.length > 0 ? cycleEggs[selectedEggIndex] : null;
+  const currentEggId = currentEgg?.id;
+
   useEffect(() => {
     setDigits(['', '', '', '']);
     setCommandInput('');
@@ -157,9 +160,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     setLocalSuccess(false);
     setShowLightbox(false);
     setIsCryptexActive(false);
-  }, [selectedEggIndex]);
+  }, [selectedEggIndex, currentEggId, isOpen]);
 
-  const currentEgg = cycleEggs && cycleEggs.length > 0 ? cycleEggs[selectedEggIndex] : null;
   const currentTitle = currentEgg ? (currentEgg.title || currentEgg.name || '') : title;
   const effectiveTriggerType = currentEgg ? currentEgg.triggerType : triggerType;
   const effectiveIsDiscovered = currentEgg ? !!currentEgg.isDiscovered : isDiscovered;
@@ -169,7 +171,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const currentImageUrl = resolveAssetUrl(currentEgg ? currentEgg.imageUrl : imageUrl);
   const currentExplicitHint = currentEgg ? currentEgg.explicitHint : explicitHint;
   const currentShowExplicitHint = currentEgg ? !!currentEgg.isExplicitHintVisible : showExplicitHint;
-  const currentEggId = currentEgg?.id;
 
   const currentRawMessage = currentEgg ? (currentEgg.crypticMessage || '') : (crypticMessage || '');
   const isEggLocked = !currentIsInteractable && !effectiveIsDiscovered;
@@ -594,90 +595,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                         Retour cycle actif
                       </button>
                     )}
-                    {cycleEggs && cycleEggs.length > 1 ? (
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: 'rgba(59, 130, 246, 0.12)',
-                          padding: '2px 6px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(59, 130, 246, 0.28)',
-                        }}
-                      >
-                        <button
-                          type="button"
-                          disabled={selectedEggIndex <= 0}
-                          onClick={() => {
-                            setSelectedEggIndex((prev) => Math.max(0, prev - 1));
-                            resetTimer();
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: selectedEggIndex > 0 ? 'pointer' : 'default',
-                            opacity: selectedEggIndex > 0 ? 1 : 0.3,
-                            color: '#2563eb',
-                            fontWeight: 900,
-                            fontSize: '11px',
-                            padding: '0 3px',
-                          }}
-                          title="Énigme précédente"
-                        >
-                          ◀
-                        </button>
-                        <span
-                          style={{
-                            color: '#2563eb',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {selectedEggIndex + 1} / {cycleEggs.length}
-                          {effectiveIsDiscovered ? ' ✓' : isEggLocked ? ' 🔒' : ''}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={selectedEggIndex >= cycleEggs.length - 1}
-                          onClick={() => {
-                            setSelectedEggIndex((prev) => Math.min(cycleEggs.length - 1, prev + 1));
-                            resetTimer();
-                          }}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            cursor: selectedEggIndex < cycleEggs.length - 1 ? 'pointer' : 'default',
-                            opacity: selectedEggIndex < cycleEggs.length - 1 ? 1 : 0.3,
-                            color: '#2563eb',
-                            fontWeight: 900,
-                            fontSize: '11px',
-                            padding: '0 3px',
-                          }}
-                          title="Énigme suivante"
-                        >
-                          ▶
-                        </button>
-                      </div>
-                    ) : multiEggProgress && multiEggProgress.total > 1 ? (
-                      <span
-                        style={{
-                          background: 'rgba(59, 130, 246, 0.12)',
-                          color: '#2563eb',
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          border: '1px solid rgba(59, 130, 246, 0.25)',
-                          whiteSpace: 'nowrap',
-                          letterSpacing: '0.3px',
-                        }}
-                        title={`Anomalie temporelle ${multiEggProgress.currentIndex} sur ${multiEggProgress.total} pour cette période`}
-                      >
-                        ⚡ Anomalie {multiEggProgress.currentIndex} / {multiEggProgress.total}
-                      </span>
-                    ) : null}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <span

@@ -7,15 +7,17 @@ interface EggGlyphIconProps {
   periodIndex?: number;
   easterEggId?: number;
   title?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: '2xs' | 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
+  isResolved?: boolean;
 }
 
 const SIZE_MAP = {
-  xs: { width: 22, height: 26, stroke: 1.4, dot: 1 },
-  sm: { width: 28, height: 33, stroke: 1.6, dot: 1.2 },
-  md: { width: 36, height: 42, stroke: 1.8, dot: 1.3 },
-  lg: { width: 48, height: 57, stroke: 2, dot: 1.5 },
+  '2xs': { width: 15, height: 18, stroke: 1.1, dot: 0.8 },
+  xs: { width: 20, height: 23, stroke: 1.3, dot: 0.9 },
+  sm: { width: 26, height: 30, stroke: 1.5, dot: 1.1 },
+  md: { width: 34, height: 40, stroke: 1.8, dot: 1.3 },
+  lg: { width: 44, height: 52, stroke: 2, dot: 1.5 },
 };
 
 export function EggGlyphIcon({
@@ -24,6 +26,7 @@ export function EggGlyphIcon({
   title,
   size = 'sm',
   className = '',
+  isResolved = true,
 }: EggGlyphIconProps) {
   const reactId = useId().replace(/:/g, '_');
   const shadeId = `egg-shade-${reactId}`;
@@ -33,12 +36,16 @@ export function EggGlyphIcon({
   const glyph = getPeriodGlyph(glyphIdx);
   const s = SIZE_MAP[size];
 
+  const rimColor = isResolved ? '#fbbf24' : '#64748b';
+  const glyphColor = isResolved ? '#fbbf24' : '#94a3b8';
+  const glyphFilter = isResolved ? 'drop-shadow(0 0 2.5px rgba(251, 191, 36, 0.85))' : 'none';
+
   const svgContent = (
     <svg
       viewBox="0 0 32 38"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ width: s.width, height: s.height }}
+      style={{ width: s.width, height: s.height, opacity: isResolved ? 1 : 0.6 }}
       className="shrink-0 drop-shadow-sm transition-transform duration-150 group-hover:scale-110"
       aria-hidden="true"
     >
@@ -63,7 +70,7 @@ export function EggGlyphIcon({
       <path
         d="M16 2 C8 2 3 13 3 23 C3 30 8.5 36 16 36 C23.5 36 29 30 29 23 C29 13 24 2 16 2 Z"
         fill={`url(#${shadeId})`}
-        stroke="#fbbf24"
+        stroke={rimColor}
         strokeWidth="1.2"
       />
 
@@ -73,28 +80,30 @@ export function EggGlyphIcon({
         fill={`url(#${zenithId})`}
       />
 
-      {/* Glyphe gravé doré */}
-      <g style={{ filter: 'drop-shadow(0 0 2.5px rgba(251, 191, 36, 0.85))' }}>
+      {/* Glyphe gravé doré ou grisé */}
+      <g style={{ filter: glyphFilter }}>
         {glyph.segments.map((seg, sIdx) => (
           <g key={sIdx}>
             <path
               d={seg.d}
-              stroke="#fbbf24"
+              stroke={glyphColor}
               strokeWidth={s.stroke}
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
             />
-            <path
-              d={seg.d}
-              stroke="#ffffff"
-              strokeWidth="0.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
+            {isResolved && (
+              <path
+                d={seg.d}
+                stroke="#ffffff"
+                strokeWidth="0.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
             {seg.points?.map((pt, pIdx) => (
-              <circle key={pIdx} cx={pt.cx} cy={pt.cy} r={s.dot} fill="#fbbf24" />
+              <circle key={pIdx} cx={pt.cx} cy={pt.cy} r={s.dot} fill={glyphColor} />
             ))}
           </g>
         ))}

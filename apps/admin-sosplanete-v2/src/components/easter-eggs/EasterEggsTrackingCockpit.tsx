@@ -9,8 +9,9 @@ import {
   Trophy,
   Clock,
   ArrowLeftRight,
-  StopCircle,
-  Eye,
+  Lock,
+  Lightbulb,
+  History,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
@@ -20,7 +21,6 @@ import {
   Calendar,
   Check,
   Plus,
-  RotateCcw,
   Search,
   X,
   ArrowUp,
@@ -611,7 +611,7 @@ export function EasterEggsTrackingCockpit({
                       <div>
                         {pEgg.forceHint ? (
                           <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                            <Eye size={11} /> Indice révélé
+                            <Lightbulb size={11} /> Indice révélé
                           </span>
                         ) : (
                           <span className="text-[10px] font-bold text-slate-400">
@@ -633,9 +633,9 @@ export function EasterEggsTrackingCockpit({
                           <Edit3 size={15} className="text-slate-600 hover:text-purple-600" />
                         </IconButtonWithTooltip>
 
-                        {/* Bouton-icône Eye : Forcer l'apparition du 2ème indice */}
+                        {/* Bouton-icône Lightbulb : Forcer l'apparition du 2ème indice */}
                         <IconButtonWithTooltip
-                          tooltip={pEgg.forceHint ? '2ème indice déjà révélé' : 'Forcer l’apparition du 2ème indice'}
+                          tooltip={pEgg.forceHint ? '2ème indice déjà révélé' : 'Forcer l’apparition du 2ème indice (Indice explicite)'}
                           tooltipPosition="top"
                           variant="amber"
                           size="sm"
@@ -645,10 +645,10 @@ export function EasterEggsTrackingCockpit({
                             setShowForceHintConfirm(true);
                           }}
                         >
-                          <Eye size={15} />
+                          <Lightbulb size={15} />
                         </IconButtonWithTooltip>
 
-                        {/* Bouton-icône RotateCcw : Réinitialiser la progression */}
+                        {/* Bouton-icône History : Réinitialiser la progression */}
                         <IconButtonWithTooltip
                           tooltip="Réinitialiser la progression (comme non résolu)"
                           tooltipPosition="top"
@@ -660,12 +660,12 @@ export function EasterEggsTrackingCockpit({
                             setShowResetConfirm(true);
                           }}
                         >
-                          <RotateCcw size={15} />
+                          <History size={15} />
                         </IconButtonWithTooltip>
 
-                        {/* Bouton-icône StopCircle : Clôturer cet Easter Egg */}
+                        {/* Bouton-icône Lock : Clôturer cet Easter Egg */}
                         <IconButtonWithTooltip
-                          tooltip="Clôturer immédiatement cet Easter Egg"
+                          tooltip="Clôturer immédiatement cet Easter Egg (Verrouiller l’accès)"
                           tooltipPosition="top"
                           tooltipAlign="end"
                           variant="danger"
@@ -675,7 +675,7 @@ export function EasterEggsTrackingCockpit({
                             setShowCloseConfirm(true);
                           }}
                         >
-                          <StopCircle size={15} />
+                          <Lock size={15} />
                         </IconButtonWithTooltip>
                       </div>
                     </div>

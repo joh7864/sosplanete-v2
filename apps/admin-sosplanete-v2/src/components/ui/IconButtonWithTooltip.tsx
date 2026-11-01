@@ -12,7 +12,7 @@ export type ButtonVariant =
   | 'danger'
   | 'purple'
   | 'subtle';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 interface IconButtonWithTooltipProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip: string;
@@ -42,6 +42,7 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
+  xs: 'w-6 h-6 rounded-lg text-[10px]',
   sm: 'w-8 h-8 rounded-xl text-xs',
   md: 'w-10 h-10 rounded-2xl text-sm',
   lg: 'w-12 h-12 rounded-2xl text-base',

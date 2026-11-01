@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Plus,
   Trophy,
+  Hourglass,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -21,6 +22,7 @@ import { useSchoolYear } from '@/hooks/useSchoolYear';
 import { useInstanceYear } from '@/hooks/useInstanceYear';
 import { EasterEggsSeasonSettings } from '@/components/easter-eggs/EasterEggsSeasonSettings';
 import { EasterEggsCatalogEditor } from '@/components/easter-eggs/EasterEggsCatalogEditor';
+import { EasterEggsChronoFrise } from '@/components/easter-eggs/EasterEggsChronoFrise';
 import { EasterEggsTrackingCockpit } from '@/components/easter-eggs/EasterEggsTrackingCockpit';
 import { EasterEggFormModal } from '@/components/easter-eggs/EasterEggFormModal';
 import { fetchAdminTracking } from '@/utils/easterEggApi';
@@ -46,8 +48,8 @@ function EasterEggsContent() {
   const urlInstanceId = searchParams.get('instanceId');
   const urlTab = searchParams.get('tab');
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'catalog' | 'cockpit'>(
-    urlTab === 'settings' || urlTab === 'catalog' || urlTab === 'cockpit' ? urlTab : 'cockpit'
+  const [activeTab, setActiveTab] = useState<'settings' | 'catalog' | 'cockpit' | 'chrono-frise'>(
+    urlTab === 'settings' || urlTab === 'catalog' || urlTab === 'cockpit' || urlTab === 'chrono-frise' ? urlTab : 'cockpit'
   );
 
   const [instanceId, setInstanceId] = useState<number | null>(null);
@@ -136,7 +138,7 @@ function EasterEggsContent() {
     }
   }, [instanceYearId]);
 
-  const handleTabChange = (tab: 'settings' | 'catalog' | 'cockpit') => {
+  const handleTabChange = (tab: 'settings' | 'catalog' | 'cockpit' | 'chrono-frise') => {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tab);
@@ -160,6 +162,7 @@ function EasterEggsContent() {
   const tabs = [
     { id: 'cockpit', label: 'Cockpit & Leaderboard', icon: Radar },
     { id: 'catalog', label: 'Catalogue & Ordre', icon: Sparkles },
+    { id: 'chrono-frise', label: 'Chrono Frise', icon: Hourglass },
     { id: 'settings', label: 'Paramètres Saison', icon: Sliders },
   ];
 
@@ -392,6 +395,18 @@ function EasterEggsContent() {
                 transition={{ duration: 0.2 }}
               >
                 <EasterEggsCatalogEditor />
+              </motion.div>
+            )}
+
+            {activeTab === 'chrono-frise' && instanceYearId && (
+              <motion.div
+                key="chrono-frise"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <EasterEggsChronoFrise instanceYearId={instanceYearId} />
               </motion.div>
             )}
 
