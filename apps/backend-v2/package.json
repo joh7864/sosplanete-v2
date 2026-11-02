@@ -1,6 +1,6 @@
 {
   "name": "backend-v2",
-  "version": "2.3.0",
+  "version": "2.3.2",
   "description": "",
   "author": "",
   "private": true,
@@ -73,6 +73,8 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^30.0.0",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "prettier": "^3.4.2",
     "prisma": "^6.19.3",
     "source-map-support": "^0.5.21",

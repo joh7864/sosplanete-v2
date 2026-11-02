@@ -49,17 +49,19 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
 
   const glyphDef = React.useMemo(() => getPeriodGlyph(periodIndex), [periodIndex]);
 
-  // Dévoilement progressif STRICT :
-  // Si 0 œuf résolu : aucun segment n'est dévoilé (coque lisse et immaculée).
-  // Si N œufs résolus : on dévoile exactement la proportion correspondante de bas en haut.
+  // Dévoilement progressif du Glyphe 2070 (de bas en haut) :
+  // Si 0 œuf résolu : aucun segment n'est dévoilé (coque lisse et sombre).
+  // Si N œufs résolus : chaque œuf allume progressivement un étage du glyphe.
   const revealedSegmentsCount = React.useMemo(() => {
     if (solvedCount <= 0) return 0;
-    const ratio = Math.min(1, solvedCount / totalCount);
-    return Math.max(1, Math.round(ratio * glyphDef.segments.length));
+    const ratio = totalCount > 0 ? Math.min(1, solvedCount / totalCount) : 1;
+    const propCount = Math.round(ratio * glyphDef.segments.length);
+    const minSegments = Math.min(glyphDef.segments.length, solvedCount);
+    return Math.min(glyphDef.segments.length, Math.max(minSegments, propCount));
   }, [solvedCount, totalCount, glyphDef.segments.length]);
 
   const activeSegments = glyphDef.segments.slice(0, revealedSegmentsCount);
-  const isPeriodCompleted = solvedCount >= totalCount && totalCount > 0;
+  const isPeriodCompleted = (solvedCount >= totalCount && totalCount > 0) || revealedSegmentsCount >= glyphDef.segments.length;
 
   return (
     <motion.button

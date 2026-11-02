@@ -178,6 +178,18 @@ export class EasterEggController {
     return this.easterEggService.submitMetaEnigmaCode(child.id, code);
   }
 
+  @Get('my-discoveries')
+  @ApiOperation({
+    summary: 'Récupère la liste des Easter Eggs résolus par le joueur connecté',
+  })
+  async getMyDiscoveries(
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
+    return this.easterEggService.getMyDiscoveredEasterEggs(child.id);
+  }
+
   // --- Endpoints d'Administration ---
 
   @Get('admin/catalog')

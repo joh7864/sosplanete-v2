@@ -10,6 +10,7 @@ import { AntigravityEffect } from './easter-egg-effects/AntigravityEffect';
 import { RocketThrusterEffect } from './easter-egg-effects/RocketThrusterEffect';
 import { Temporal1985Effect } from './easter-egg-effects/Temporal1985Effect';
 import { DiscoPartyEffect } from './easter-egg-effects/DiscoPartyEffect';
+import LockWowAnimation from './LockWowAnimation';
 
 export interface EasterEggVictoryDispatcherProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   const [displayPoints, setDisplayPoints] = useState(0);
   const [particles, setParticles] = useState<Particle[]>([]);
   const [showCard, setShowCard] = useState(false);
+  const [showCryptex, setShowCryptex] = useState(false);
   const arcadeGameTitle = arcadeGameKey ? getArcadeGame(arcadeGameKey)?.title ?? arcadeGameKey : undefined;
 
   // Détermination du type d'effet WOOOW à afficher
@@ -81,15 +83,20 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
       setDisplayPoints(0);
       setParticles([]);
       setShowCard(false);
+      setShowCryptex(false);
       return;
     }
 
-    // Affichage de la carte de récompense après 1.2s d'immersion dans l'effet WOOOW
-    // (ou immédiatement pour l'effet Cadenas)
-    const cardDelay = effectType === 'cadenas' ? 0 : 1200;
-    const cardTimer = setTimeout(() => {
-      setShowCard(true);
-    }, cardDelay);
+    let cardTimer: ReturnType<typeof setTimeout> | null = null;
+    if (effectType === 'cadenas') {
+      setShowCryptex(true);
+      setShowCard(false);
+    } else {
+      setShowCryptex(false);
+      cardTimer = setTimeout(() => {
+        setShowCard(true);
+      }, 1200);
+    }
 
     // Audio dédié
     if (effectType === 'cadenas') {
@@ -134,7 +141,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     }, stepTime);
 
     return () => {
-      clearTimeout(cardTimer);
+      if (cardTimer) clearTimeout(cardTimer);
       clearInterval(pointsTimer);
     };
   }, [isOpen, pointsIT, effectType]);
@@ -187,103 +194,76 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
         <div
           style={{
             position: 'relative',
-            width: '130px',
-            height: '130px',
+            width: '180px',
+            height: '140px',
             marginBottom: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          {/* Anneau gyroscopique rotatif */}
+          {/* Anneau gyroscopique rotatif doré */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 16, repeat: Infinity, ease: 'linear' }}
             style={{
               position: 'absolute',
-              inset: '-10px',
+              inset: '-8px',
               borderRadius: '50%',
-              border: '2px dashed rgba(56, 189, 248, 0.5)',
-              boxShadow: '0 0 25px rgba(56, 189, 248, 0.25)',
+              border: '2px dashed rgba(245, 158, 11, 0.45)',
+              boxShadow: '0 0 25px rgba(245, 158, 11, 0.25)',
             }}
           />
 
-          {/* Anse du cadenas qui s'ouvre */}
+          {/* Halo d'énergie céleste */}
           <motion.div
-            initial={{ y: 0, rotate: 0 }}
-            animate={{ y: -22, rotate: -26 }}
+            animate={{
+              scale: [0.95, 1.15, 0.95],
+              opacity: [0.4, 0.75, 0.4],
+            }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              width: '130px',
+              height: '130px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, rgba(56, 189, 248, 0.15) 50%, transparent 75%)',
+              filter: 'blur(10px)',
+            }}
+          />
+
+          {/* Cryptex Da Vinci Déverrouillé 3D en lévitation */}
+          <motion.div
+            initial={{ scale: 0.6, y: 15, rotate: -8 }}
+            animate={{
+              scale: [1, 1.05, 1],
+              y: [-3, 5, -3],
+              rotate: [-3, 3, -3],
+            }}
             transition={{
-              delay: 0.1,
-              type: 'spring',
-              stiffness: 280,
-              damping: 14,
+              scale: { duration: 4.5, repeat: Infinity, ease: 'easeInOut' },
+              y: { duration: 3.8, repeat: Infinity, ease: 'easeInOut' },
+              rotate: { duration: 5.2, repeat: Infinity, ease: 'easeInOut' },
             }}
             style={{
-              position: 'absolute',
-              top: '12px',
-              left: '32px',
-              width: '56px',
-              height: '58px',
-              borderTop: '10px solid #e2e8f0',
-              borderLeft: '10px solid #e2e8f0',
-              borderRight: '10px solid #94a3b8',
-              borderTopLeftRadius: '30px',
-              borderTopRightRadius: '30px',
-              boxShadow: '0 -4px 18px rgba(255, 255, 255, 0.45)',
-              transformOrigin: 'bottom left',
-              zIndex: 1,
-            }}
-          />
-
-          {/* Corps massif du cadenas */}
-          <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: [0.9, 1.05, 1] }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            style={{
-              position: 'absolute',
-              bottom: '10px',
-              width: '88px',
-              height: '72px',
-              background: 'linear-gradient(145deg, #1e293b, #0f172a)',
-              borderRadius: '16px',
-              border: '3px solid #10b981',
-              boxShadow: '0 0 30px rgba(16, 185, 129, 0.6), inset 0 0 15px rgba(52, 211, 153, 0.3)',
+              position: 'relative',
+              width: '100%',
+              height: '100%',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              zIndex: 2,
+              filter: 'drop-shadow(0 10px 25px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 20px rgba(245, 158, 11, 0.5))',
             }}
           >
-            <motion.div
-              animate={{
-                boxShadow: ['0 0 10px #10b981', '0 0 24px #34d399', '0 0 10px #10b981'],
-              }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+            <img
+              src="/images/easter-eggs/cryptex_unlocked.png"
+              alt="Cryptex Da Vinci Déverrouillé"
               style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, #34d399 20%, #059669 80%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
               }}
-            >
-              <Zap size={13} color="#ffffff" />
-            </motion.div>
-            <div
-              style={{
-                fontSize: '0.58rem',
-                fontWeight: 900,
-                color: '#34d399',
-                letterSpacing: '1px',
-                marginTop: '3px',
-              }}
-            >
-              DÉVERROUILLÉ
-            </div>
+            />
           </motion.div>
         </div>
       );
@@ -353,10 +333,19 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
         {/* 1. L'Effet Visuel WOOOW Dédié */}
         {effectType === 'matrix' && <MatrixRainEffect />}
         {effectType === 'konami' && <CrtRetroSynthwaveEffect />}
-        {effectType === 'antigravity' && <AntigravityEffect />}
+        {effectType === 'antigravity' && <AntigravityEffect onClose={onClose} onComplete={onClose} />}
         {effectType === 'rocket' && <RocketThrusterEffect />}
         {effectType === 'temporal1985' && <Temporal1985Effect />}
         {effectType === 'disco' && <DiscoPartyEffect />}
+        {effectType === 'cadenas' && showCryptex && (
+          <LockWowAnimation
+            onClose={() => {
+              setShowCryptex(false);
+              setShowCard(true);
+              playUnlockCadenasSound();
+            }}
+          />
+        )}
 
         {/* 2. Onde de choc céleste pour les énigmes cadenas / constellation / générique */}
         {(effectType === 'cadenas' || effectType === 'constellation' || effectType === 'celestial') && (

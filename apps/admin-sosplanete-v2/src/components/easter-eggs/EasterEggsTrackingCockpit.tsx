@@ -46,6 +46,7 @@ import {
 import { ManualActivationModal } from './ManualActivationModal';
 import { EasterEggFormModal } from './EasterEggFormModal';
 import { EggGlyphIcon } from './EggGlyphIcon';
+import { EggDiscoverersModal } from './EggDiscoverersModal';
 
 interface EasterEggsTrackingCockpitProps {
   instanceYearId: number;
@@ -130,6 +131,7 @@ export function EasterEggsTrackingCockpit({
   const [showForceHintConfirm, setShowForceHintConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [targetResetEgg, setTargetResetEgg] = useState<{ id: number; title: string } | null>(null);
+  const [inspectingDiscoverersEgg, setInspectingDiscoverersEgg] = useState<any | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Table Discovery Filter & Sort
@@ -358,7 +360,7 @@ export function EasterEggsTrackingCockpit({
       : [];
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 max-w-[1220px] w-full mx-auto px-2 sm:px-4">
       {/* Feedback banner */}
       {feedback && (
         <motion.div
@@ -457,186 +459,136 @@ export function EasterEggsTrackingCockpit({
               Aucun Easter Egg programmé pour cette période.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {displayedEggs.map((pEgg, idx) => {
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
+              {displayedEggs.map((pEgg) => {
                 const isSelected = (selectedEggId ?? data?.currentEgg?.id) === pEgg.eggId;
                 const discoverersCount = pEgg.discoverers?.length || 0;
-
-                // Groupement des découvreurs par équipe
-                const discoverersByTeam = Object.values(
-                  (pEgg.discoverers || []).reduce((acc, d) => {
-                    const key = d.teamId || d.teamName;
-                    if (!acc[key]) {
-                      acc[key] = {
-                        teamId: d.teamId,
-                        teamName: d.teamName,
-                        teamColor: d.teamColor,
-                        teamIcon: d.teamIcon,
-                        players: [],
-                      };
-                    }
-                    acc[key]!.players.push(d);
-                    return acc;
-                  }, {} as Record<string | number, { teamId?: number; teamName: string; teamColor: string; teamIcon?: string | null; players: NonNullable<typeof pEgg.discoverers> }>)
-                );
+                const hasTeamsCompleted = (pEgg.teamsCompleted?.length || 0) > 0;
 
                 return (
                   <GlassCard
                     key={pEgg.instanceId || pEgg.eggId}
                     onClick={() => handleOpenEggEdit(pEgg.eggId)}
-                    className={`p-4 sm:p-4.5 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between border ${
+                    className={`pt-2.5 pb-3 px-2.5 rounded-2xl transition-all cursor-pointer relative flex flex-col justify-between border-t-4 border h-full ${
                       isSelected
-                        ? 'bg-gradient-to-b from-purple-50/70 to-white border-purple-400 shadow-md shadow-purple-500/10 ring-2 ring-purple-400/40'
-                        : 'bg-white/95 border-slate-200/80 hover:border-purple-300 hover:shadow-md'
+                        ? 'border-t-purple-600 bg-purple-50/20 border-purple-400 shadow-md shadow-purple-500/10 ring-2 ring-purple-400/40'
+                        : hasTeamsCompleted
+                        ? 'border-t-emerald-500 bg-white/95 border-slate-200/80 hover:border-emerald-300 hover:shadow-md'
+                        : 'border-t-slate-400 bg-white/95 border-slate-200/80 hover:border-purple-300 hover:shadow-md'
                     }`}
                   >
-                    <div>
-                      {/* Top Header : Titre dans la pastille + Points IT */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="space-y-2.5">
+                      {/* Top Header Row : Code à gauche, Points IT à droite */}
+                      <div className="flex items-center justify-between gap-1 w-full -mt-0.5">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider truncate max-w-[210px] sm:max-w-[240px] transition-transform hover:scale-105 ${
-                            isSelected
-                              ? 'bg-purple-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-purple-50 hover:text-purple-700'
-                          }`}
-                          title={`Cliquer pour modifier l’énigme : ${pEgg.title}`}
+                          className="font-mono text-[10px] font-bold text-slate-700 bg-slate-100/90 border border-slate-200/80 px-2 py-0.5 rounded-full truncate max-w-[110px]"
+                          title={pEgg.code}
                         >
-                          {pEgg.title}
+                          {pEgg.code}
                         </span>
 
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                        <span className="inline-flex items-center font-mono font-bold text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs shrink-0">
                           +{pEgg.rewardPointsIT} IT
                         </span>
                       </div>
 
-                      {/* Section Équipe et Joueurs Déclencheurs - Liste compacte sur une seule ligne */}
-                      <div className="pt-2 pb-1.5 border-t border-slate-100 space-y-1.5">
-                        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                          <span>Déclencheurs</span>
-                          {discoverersCount > 0 && (
-                            <span className="font-mono text-purple-700 bg-purple-50/80 px-2 py-0.5 rounded-full text-[10px] font-bold border border-purple-100 normal-case">
+                      {/* Icône / Illustration centrale avec conteneur spacieux identique au catalogue */}
+                      <div className="flex items-center justify-center py-0.5">
+                        <div className="w-18 h-18 rounded-3xl bg-gradient-to-br from-slate-50 via-white to-slate-100 border border-slate-200/80 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                          <EggGlyphIcon easterEggId={pEgg.eggId} size="md" className="text-purple-600" />
+                        </div>
+                      </div>
+
+                      {/* Titre (2 lignes max) */}
+                      <div className="text-center px-1">
+                        <h4
+                          className="text-xs font-black text-slate-900 line-clamp-2 h-8 leading-snug uppercase tracking-tight"
+                          title={pEgg.title}
+                        >
+                          {pEgg.title}
+                        </h4>
+                      </div>
+
+                      {/* Bulle / Bouton Joueurs Déclencheurs (Cliquable pour ouvrir la modale détaillée) */}
+                      <div className="pt-1 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInspectingDiscoverersEgg(pEgg);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-full border text-[11px] font-bold transition-all cursor-pointer ${
+                            discoverersCount > 0
+                              ? 'bg-purple-50/80 hover:bg-purple-100 border-purple-200 text-purple-900 shadow-2xs hover:shadow-xs'
+                              : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-400'
+                          }`}
+                          title="Cliquer pour afficher les joueurs ayant résolu l’énigme"
+                        >
+                          <span className="flex items-center gap-1 font-mono text-[10px] truncate">
+                            <Users
+                              size={12}
+                              className={discoverersCount > 0 ? 'text-purple-600' : 'text-slate-400'}
+                            />
+                            <span>
                               {discoverersCount} {discoverersCount > 1 ? 'joueurs' : 'joueur'}
                             </span>
-                          )}
-                        </div>
+                          </span>
 
-                        {discoverersByTeam.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic py-1">
-                            Non déclenché pour le moment
-                          </p>
-                        ) : (
-                          <div className="space-y-1">
-                            {discoverersByTeam.map((group, gIdx) => {
-                              const isCompleted = pEgg.teamsCompleted?.some(tc => tc.teamId === group.teamId);
-                              const rewardInfo = pEgg.teamsCompleted?.find(tc => tc.teamId === group.teamId);
-                              const required = data?.settings?.easterEggRequiredPlayers ?? 2;
-
-                              return (
-                                <div
-                                  key={gIdx}
-                                  className="flex items-center justify-between gap-2 py-1 px-1.5 rounded-xl hover:bg-slate-50/80 transition-colors"
-                                >
-                                  {/* Gauche : Logo/Pastille + Nom équipe + Avatars stack */}
-                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <div
-                                      className="flex items-center gap-1.5 font-bold text-xs shrink-0"
-                                      style={{ color: group.teamColor || '#10b981' }}
-                                    >
-                                      {group.teamIcon ? (
-                                        <img
-                                          src={resolveTeamLogo(group.teamIcon)!}
-                                          alt=""
-                                          className="w-4 h-4 rounded-full object-cover shrink-0"
-                                        />
-                                      ) : (
-                                        <span
-                                          className="w-2 h-2 rounded-full shrink-0"
-                                          style={{ backgroundColor: group.teamColor || '#10b981' }}
-                                        />
-                                      )}
-                                      <span className="truncate max-w-[120px]">{group.teamName}</span>
-                                    </div>
-
-                                    {/* Avatars stack avec tooltip au survol */}
-                                    <div className="flex -space-x-1.5 overflow-visible shrink-0 py-0.5">
-                                      {group.players?.map((pl) => (
-                                        <div
-                                          key={pl.childId}
-                                          className="w-5 h-5 rounded-full ring-2 ring-white bg-slate-100 flex items-center justify-center overflow-hidden text-[8px] font-bold text-slate-700 relative shrink-0 shadow-2xs hover:scale-115 hover:z-20 transition-transform cursor-pointer"
-                                          title={`@${pl.pseudo}`}
-                                        >
-                                          <span className="select-none">{pl.pseudo.slice(0, 2).toUpperCase()}</span>
-                                          <img
-                                            src={resolvePlayerAvatar(pl.avatar, pl.pseudo, pl.gender)}
-                                            alt={pl.pseudo}
-                                            className="w-full h-full object-cover absolute inset-0 z-10"
-                                            onError={(e) => {
-                                              e.currentTarget.style.display = 'none';
-                                            }}
-                                          />
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Droite : Statut */}
-                                  <div className="shrink-0 pl-1">
-                                    {isCompleted ? (
-                                      <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                                        <Check size={12} className="stroke-[3]" />
-                                        <span>Validé</span>
-                                        <span className="font-mono text-[10px] text-emerald-700 font-black">
-                                          +{rewardInfo?.awardedPointsIT || pEgg.rewardPointsIT} IT
-                                        </span>
-                                      </span>
-                                    ) : (
-                                      <span className="text-[11px] font-semibold text-slate-400">
-                                        {group.players.length} / {required} joueur{required > 1 ? 's' : ''}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
+                          {/* Mini stack avatars */}
+                          <div className="flex -space-x-1.5 overflow-hidden shrink-0">
+                            {pEgg.discoverers?.slice(0, 3).map((pl) => (
+                              <div
+                                key={pl.childId}
+                                className="w-4 h-4 rounded-full ring-1 ring-white bg-slate-200 relative overflow-hidden flex items-center justify-center text-[7px] font-black text-slate-600"
+                              >
+                                <img
+                                  src={resolvePlayerAvatar(pl.avatar, pl.pseudo, pl.gender)}
+                                  alt={pl.pseudo}
+                                  className="w-full h-full object-cover absolute inset-0"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ))}
+                            {discoverersCount > 3 && (
+                              <div className="w-4 h-4 rounded-full ring-1 ring-white bg-purple-200 text-purple-800 flex items-center justify-center text-[8px] font-black">
+                                +{discoverersCount - 3}
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </button>
                       </div>
                     </div>
 
-                    {/* Actions bar at bottom of each card */}
+                    {/* Barre d'actions inférieure : 4 boutons regroupés et centrés horizontalement */}
                     <div
-                      className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-2"
+                      className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-center gap-1.5"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div>
-                        {pEgg.forceHint ? (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                            <Lightbulb size={11} /> Indice révélé
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {isSelected ? 'Sélectionné • Modifier' : 'Cliquer pour modifier'}
-                          </span>
-                        )}
-                      </div>
+                      {/* Bouton-icône Edit3 */}
+                      <IconButtonWithTooltip
+                        tooltip="Modifier cette énigme"
+                        tooltipPosition="top"
+                        tooltipAlign="center"
+                        variant="default"
+                        size="sm"
+                        disabled={loadingEggForEdit}
+                        onClick={() => handleOpenEggEdit(pEgg.eggId)}
+                      >
+                        <Edit3 size={13} className="text-slate-600 hover:text-purple-600" />
+                      </IconButtonWithTooltip>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* Bouton-icône Edit3 : Modifier cette énigme dans le catalogue */}
+                      {/* Bouton-icône Lightbulb */}
+                      <div className="relative">
                         <IconButtonWithTooltip
-                          tooltip="Modifier cette énigme (Catalogue)"
+                          tooltip={
+                            pEgg.forceHint
+                              ? '2ème indice déjà révélé'
+                              : 'Forcer le 2ème indice'
+                          }
                           tooltipPosition="top"
-                          variant="default"
-                          size="sm"
-                          disabled={loadingEggForEdit}
-                          onClick={() => handleOpenEggEdit(pEgg.eggId)}
-                        >
-                          <Edit3 size={15} className="text-slate-600 hover:text-purple-600" />
-                        </IconButtonWithTooltip>
-
-                        {/* Bouton-icône Lightbulb : Forcer l'apparition du 2ème indice */}
-                        <IconButtonWithTooltip
-                          tooltip={pEgg.forceHint ? '2ème indice déjà révélé' : 'Forcer l’apparition du 2ème indice (Indice explicite)'}
-                          tooltipPosition="top"
+                          tooltipAlign="center"
                           variant="amber"
                           size="sm"
                           disabled={pEgg.forceHint}
@@ -645,39 +597,45 @@ export function EasterEggsTrackingCockpit({
                             setShowForceHintConfirm(true);
                           }}
                         >
-                          <Lightbulb size={15} />
+                          <Lightbulb size={13} />
                         </IconButtonWithTooltip>
-
-                        {/* Bouton-icône History : Réinitialiser la progression */}
-                        <IconButtonWithTooltip
-                          tooltip="Réinitialiser la progression (comme non résolu)"
-                          tooltipPosition="top"
-                          tooltipAlign="end"
-                          variant="amber"
-                          size="sm"
-                          onClick={() => {
-                            setTargetResetEgg({ id: pEgg.eggId, title: pEgg.title });
-                            setShowResetConfirm(true);
-                          }}
-                        >
-                          <History size={15} />
-                        </IconButtonWithTooltip>
-
-                        {/* Bouton-icône Lock : Clôturer cet Easter Egg */}
-                        <IconButtonWithTooltip
-                          tooltip="Clôturer immédiatement cet Easter Egg (Verrouiller l’accès)"
-                          tooltipPosition="top"
-                          tooltipAlign="end"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => {
-                            setTargetActionEggId(pEgg.eggId);
-                            setShowCloseConfirm(true);
-                          }}
-                        >
-                          <Lock size={15} />
-                        </IconButtonWithTooltip>
+                        {pEgg.forceHint && (
+                          <span
+                            className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+                            title="2ème indice révélé"
+                          />
+                        )}
                       </div>
+
+                      {/* Bouton-icône History */}
+                      <IconButtonWithTooltip
+                        tooltip="Réinitialiser progression"
+                        tooltipPosition="top"
+                        tooltipAlign="center"
+                        variant="amber"
+                        size="sm"
+                        onClick={() => {
+                          setTargetResetEgg({ id: pEgg.eggId, title: pEgg.title });
+                          setShowResetConfirm(true);
+                        }}
+                      >
+                        <History size={13} />
+                      </IconButtonWithTooltip>
+
+                      {/* Bouton-icône Lock */}
+                      <IconButtonWithTooltip
+                        tooltip="Clôturer l’énigme"
+                        tooltipPosition="top"
+                        tooltipAlign="center"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          setTargetActionEggId(pEgg.eggId);
+                          setShowCloseConfirm(true);
+                        }}
+                      >
+                        <Lock size={13} />
+                      </IconButtonWithTooltip>
                     </div>
                   </GlassCard>
                 );
@@ -1422,6 +1380,15 @@ export function EasterEggsTrackingCockpit({
         confirmLabel="Réinitialiser l'énigme"
         cancelLabel="Annuler"
         variant="warning"
+      />
+
+      {/* Modale de la Liste des Joueurs Déclencheurs / Découvreurs */}
+      <EggDiscoverersModal
+        isOpen={!!inspectingDiscoverersEgg}
+        onClose={() => setInspectingDiscoverersEgg(null)}
+        egg={inspectingDiscoverersEgg}
+        individualDiscoveries={data?.individualDiscoveries}
+        requiredPlayersPerTeam={data?.settings?.easterEggRequiredPlayers ?? 2}
       />
     </div>
   );

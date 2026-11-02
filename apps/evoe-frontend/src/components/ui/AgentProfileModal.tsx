@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { evoeClient } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { telemetry } from '../../services/telemetryService';
-import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film, Zap } from 'lucide-react';
+import { X, Shield, Trash2, Droplet, Camera, Upload, Save, Eye, EyeOff, Trophy, RefreshCw, Film, Zap, Play, Sparkles } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { isBirthdayDate } from '../../hooks/useBirthday';
 
@@ -32,6 +32,14 @@ interface AgentProfileModalProps {
   onToggleStealth?: () => void;
   onOpenBriefing?: () => void;
   onMetricClick?: (metric: 'carbon' | 'water' | 'waste') => void;
+  onReplayEasterEgg?: (egg: {
+    code: string;
+    triggerType?: string;
+    title: string;
+    pointsIT?: number;
+    isTeamRewarded?: boolean;
+    remainingPlayers?: number;
+  }) => void;
 }
 
 export function AgentProfileModal({
@@ -42,12 +50,15 @@ export function AgentProfileModal({
   isStealthMode = false,
   onToggleStealth,
   onOpenBriefing,
-  onMetricClick
+  onMetricClick,
+  onReplayEasterEgg,
 }: AgentProfileModalProps) {
   const { refreshContext } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges'>('missions');
+  const [activeTab, setActiveTab] = useState<'missions' | 'top5' | 'challenges' | 'easterEggs'>('missions');
+  const [discoveredEggs, setDiscoveredEggs] = useState<any[]>([]);
+  const [loadingEggs, setLoadingEggs] = useState(false);
   const [impulsingId, setImpulsingId] = useState<number | null>(null);
 
   const handleImpulseMission = async (localActionId: number, label?: string) => {
@@ -124,6 +135,29 @@ export function AgentProfileModal({
       active = false;
     };
   }, [profileId, isOwner]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchDiscoveries = async () => {
+      try {
+        setLoadingEggs(true);
+        const res = await evoeClient.get(
+          `${import.meta.env.VITE_EVOE_API_URL || 'http://localhost:3011/evoe'}/easter-eggs/my-discoveries`
+        );
+        if (active && res.data?.discoveries) {
+          setDiscoveredEggs(res.data.discoveries);
+        }
+      } catch (err) {
+        console.warn('Erreur chargement des découvertes Easter Eggs:', err);
+      } finally {
+        if (active) setLoadingEggs(false);
+      }
+    };
+    fetchDiscoveries();
+    return () => {
+      active = false;
+    };
+  }, [profileId]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -677,6 +711,16 @@ export function AgentProfileModal({
               >
                 Défis PvP ({profileData.challenges?.length ?? 0})
               </button>
+              <button 
+                className={`profile-tab-btn ${activeTab === 'easterEggs' ? 'active' : ''}`}
+                onClick={() => setActiveTab('easterEggs')}
+                title="Easter Eggs découverts et relecture des animations"
+                style={discoveredEggs.length > 0 ? { borderColor: 'rgba(251, 191, 36, 0.45)' } : undefined}
+              >
+                <span className="tab-label-full">🥚 Easter Eggs</span>
+                <span className="tab-label-short">🥚 Easter Eggs</span>
+                {` (${discoveredEggs.length})`}
+              </button>
             </div>
 
             {/* Contenu des Onglets */}
@@ -767,6 +811,86 @@ export function AgentProfileModal({
                         </div>
                       </div>
                     ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'easterEggs' && (
+                <div className="profile-easter-eggs-tab">
+                  {loadingEggs ? (
+                    <div className="profile-easter-eggs-empty">
+                      <RefreshCw className="spin-loading" size={32} color="#38bdf8" />
+                      <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Déchiffrement des Easter Eggs...</p>
+                    </div>
+                  ) : discoveredEggs.length === 0 ? (
+                    <div className="profile-easter-eggs-empty">
+                      <div className="profile-easter-eggs-empty-icon">
+                        <Sparkles size={24} />
+                      </div>
+                      <p style={{ color: '#f1f5f9', fontWeight: 700, margin: 0 }}>
+                        Aucun Easter Egg découvert pour le moment
+                      </p>
+                      <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: 0, maxWidth: '440px', lineHeight: 1.4 }}>
+                        Explorez l'univers et résolvez les énigmes secrètes pour archiver et rejouer vos découvertes.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="profile-easter-eggs-grid">
+                      {discoveredEggs.map((egg: any) => (
+                        <div key={egg.id} className="profile-egg-card">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div className="profile-egg-card-header">
+                              <span className="profile-egg-card-title">{egg.title}</span>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                                {egg.cycleIndex && (
+                                  <span className="profile-egg-cycle-pill">
+                                    C{egg.cycleIndex}
+                                  </span>
+                                )}
+                                <span className="profile-egg-points-pill">
+                                  +{egg.rewardPointsIT || 60} IT
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="profile-egg-card-meta">
+                              <span>
+                                Résolu le{' '}
+                                {new Date(egg.discoveredAt).toLocaleDateString('fr-FR', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </span>
+                              {egg.isTeamRewarded && (
+                                <span style={{ color: '#fbbf24', fontWeight: 800 }}>
+                                  • Victoire Équipe 🏆
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="profile-egg-replay-btn"
+                            onClick={() => {
+                              onClose();
+                              onReplayEasterEgg?.({
+                                code: egg.code,
+                                triggerType: egg.triggerType,
+                                title: egg.title,
+                                pointsIT: egg.rewardPointsIT || 60,
+                                isTeamRewarded: !!egg.isTeamRewarded,
+                                remainingPlayers: 0,
+                              });
+                            }}
+                          >
+                            <Play size={14} fill="currentColor" />
+                            <span>Rejouer l'animation</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}

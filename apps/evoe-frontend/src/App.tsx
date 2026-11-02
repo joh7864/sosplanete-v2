@@ -2870,6 +2870,18 @@ function MainApp() {
                 setSelectedProfileId(null);
                 setShowBriefing(true);
               }}
+              onReplayEasterEgg={(egg) => {
+                setSelectedProfileId(null);
+                setCelebrationEgg({
+                  code: egg.code,
+                  triggerType: egg.triggerType,
+                  title: egg.title,
+                  pointsIT: egg.pointsIT || 60,
+                  isTeamRewarded: !!egg.isTeamRewarded,
+                  remainingPlayers: egg.remainingPlayers ?? 0,
+                });
+                setShowEggCelebration(true);
+              }}
             />
           </Suspense>
         )}
