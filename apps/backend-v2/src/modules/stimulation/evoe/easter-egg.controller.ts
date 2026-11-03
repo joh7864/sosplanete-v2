@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseIntPipe,
   Headers,
   Query,
   UseInterceptors,
@@ -17,8 +18,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
+import { EasterEggService } from './easter-egg.service';
 import {
-  EasterEggService,
   SubmitAnswerDto,
   ValidateTriggerDto,
   ShareEasterEggDto,
@@ -27,8 +28,19 @@ import {
   UpdateEasterEggSettingsDto,
   ResetEggProgressDto,
   ImportCatalogDto,
-} from './easter-egg.service';
+  InteractEggDto,
+  ReopenPeriodDto,
+  MetaEnigmaCodeDto,
+  ReorderCatalogDto,
+  OpenInstanceEggDto,
+  CloseInstanceEggDto,
+  ForceHintDto,
+} from './dto/easter-egg.dto';
 import { LegacyApiService } from '../../legacy-api/legacy-api.service';
+import { AdminOnly } from '../../auth/admin-only.decorator';
+
+/** Extensions d'images acceptées pour les visuels d'énigmes (SVG exclu : vecteur XSS). */
+const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 
 function getUploadsDir(): string {
   if (process.env.UPLOADS_DIR && fs.existsSync(process.env.UPLOADS_DIR)) {
@@ -52,6 +64,8 @@ export class EasterEggController {
     private readonly easterEggService: EasterEggService,
     private readonly legacyApiService: LegacyApiService,
   ) {}
+
+  // --- Endpoints Joueur (authentification via Authorization : Bearer/Basic) ---
 
   @Get('active')
   @ApiOperation({
@@ -97,11 +111,11 @@ export class EasterEggController {
   })
   async recordInteraction(
     @Headers('authorization') auth: string,
-    @Body('easterEggId') easterEggId: number,
+    @Body() dto: InteractEggDto,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
     const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
-    return this.easterEggService.recordInteraction(child.id, easterEggId);
+    return this.easterEggService.recordInteraction(child.id, dto.easterEggId);
   }
 
   @Post('share')
@@ -158,11 +172,11 @@ export class EasterEggController {
   })
   async reopenPeriodEgg(
     @Headers('authorization') auth: string,
-    @Body('periodId') periodId: number,
+    @Body() dto: ReopenPeriodDto,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
     const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
-    return this.easterEggService.reopenPeriodEgg(child.id, +periodId);
+    return this.easterEggService.reopenPeriodEgg(child.id, dto.periodId);
   }
 
   @Post('meta-enigma/submit-code')
@@ -171,11 +185,11 @@ export class EasterEggController {
   })
   async submitMetaEnigmaCode(
     @Headers('authorization') auth: string,
-    @Body('code') code: string,
+    @Body() dto: MetaEnigmaCodeDto,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
     const child = await this.legacyApiService.getChildFromAuth(auth, instanceIdStr);
-    return this.easterEggService.submitMetaEnigmaCode(child.id, code);
+    return this.easterEggService.submitMetaEnigmaCode(child.id, dto.code);
   }
 
   @Get('my-discoveries')
@@ -190,57 +204,62 @@ export class EasterEggController {
     return this.easterEggService.getMyDiscoveredEasterEggs(child.id);
   }
 
-  // --- Endpoints d'Administration ---
+  // --- Endpoints d'Administration (JWT back-office + rôle AS/AM obligatoires) ---
 
   @Get('admin/catalog')
+  @AdminOnly()
   @ApiOperation({ summary: 'Liste toutes les énigmes du catalogue' })
   async getAdminCatalog() {
     return this.easterEggService.getAdminCatalog();
   }
 
   @Get('admin/catalog/export')
+  @AdminOnly()
   @ApiOperation({ summary: 'Exporte le catalogue complet des Easter Eggs avec toutes leurs caractéristiques' })
   async exportCatalog() {
     return this.easterEggService.exportCatalog();
   }
 
   @Post('admin/catalog/import')
+  @AdminOnly()
   @ApiOperation({ summary: 'Importe un catalogue d’Easter Eggs (mode upsert ou replace)' })
   async importCatalog(@Body() dto: ImportCatalogDto) {
     return this.easterEggService.importCatalog(dto);
   }
 
   @Post('admin/catalog')
+  @AdminOnly()
   @ApiOperation({ summary: 'Crée une nouvelle énigme dans le catalogue' })
   async createEasterEgg(@Body() dto: CreateEasterEggDto) {
     return this.easterEggService.createEasterEgg(dto);
   }
 
   @Put('admin/catalog/:id')
+  @AdminOnly()
   @ApiOperation({ summary: 'Modifie une énigme existante' })
   async updateEasterEgg(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEasterEggDto,
   ) {
-    return this.easterEggService.updateEasterEgg(+id, dto);
+    return this.easterEggService.updateEasterEgg(id, dto);
   }
 
   @Delete('admin/catalog/:id')
+  @AdminOnly()
   @ApiOperation({ summary: 'Supprime une énigme du catalogue' })
-  async deleteEasterEgg(@Param('id') id: string) {
-    return this.easterEggService.deleteEasterEgg(+id);
+  async deleteEasterEgg(@Param('id', ParseIntPipe) id: number) {
+    return this.easterEggService.deleteEasterEgg(id);
   }
 
   @Post('admin/catalog/reorder')
+  @AdminOnly()
   @ApiOperation({ summary: 'Réordonne les énigmes du catalogue (Drag & Drop)' })
-  async reorderCatalog(@Body('orderedIds') orderedIds: number[]) {
-    if (!Array.isArray(orderedIds)) {
-      throw new BadRequestException('orderedIds doit être un tableau d’identifiants');
-    }
-    return this.easterEggService.reorderCatalog(orderedIds);
+  async reorderCatalog(@Body() dto: ReorderCatalogDto) {
+    return this.easterEggService.reorderCatalog(dto.orderedIds);
   }
 
   @Post('admin/upload-image')
+  @AdminOnly()
   @ApiOperation({ summary: 'Upload une image d’énigme/schéma visuel' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -260,6 +279,14 @@ export class EasterEggController {
           cb(null, `enigma-${uniqueSuffix}${ext}`);
         },
       }),
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname).toLowerCase();
+        if (ALLOWED_IMAGE_EXTENSIONS.includes(ext) && file.mimetype.startsWith('image/')) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Format d’image non supporté (png, jpg, gif, webp)'), false);
+        }
+      },
       limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     }),
   )
@@ -270,88 +297,74 @@ export class EasterEggController {
   }
 
   @Get('admin/tracking/:instanceYearId')
+  @AdminOnly()
   @ApiOperation({
     summary: 'Suivi AM en direct de l’énigme active (avancement par équipe et journal)',
   })
   async getAdminTracking(
-    @Param('instanceYearId') instanceYearId: string,
+    @Param('instanceYearId', ParseIntPipe) instanceYearId: number,
     @Query('eggId') eggId?: string,
   ) {
     return this.easterEggService.getAdminTracking(
-      +instanceYearId,
+      instanceYearId,
       eggId ? +eggId : undefined,
     );
   }
 
   @Get('admin/chrono-frise/:instanceYearId')
+  @AdminOnly()
   @ApiOperation({
     summary: 'Chrono-Frise de la saison pour le cockpit administrateur (suivi des énigmes par cycle et équipe)',
   })
-  async getAdminChronoFrise(@Param('instanceYearId') instanceYearId: string) {
-    return this.easterEggService.getAdminChronoFrise(+instanceYearId);
+  async getAdminChronoFrise(@Param('instanceYearId', ParseIntPipe) instanceYearId: number) {
+    return this.easterEggService.getAdminChronoFrise(instanceYearId);
   }
 
   @Put('admin/settings/:instanceYearId')
+  @AdminOnly()
   @ApiOperation({ summary: 'Met à jour les paramètres Easter Eggs d’une instance' })
   async updateSettings(
-    @Param('instanceYearId') instanceYearId: string,
+    @Param('instanceYearId', ParseIntPipe) instanceYearId: number,
     @Body() dto: UpdateEasterEggSettingsDto,
   ) {
-    return this.easterEggService.updateSettings(+instanceYearId, dto);
+    return this.easterEggService.updateSettings(instanceYearId, dto);
   }
 
   @Post('admin/open-instance')
+  @AdminOnly()
   @ApiOperation({ summary: 'Déclenche/Ouvre manuellement un Easter Egg pour l’instance sur la période active' })
-  async openInstanceEgg(
-    @Body('instanceYearId') instanceYearId: number,
-    @Body('easterEggId') easterEggId: number,
-    @Body('closePrevious') closePrevious?: boolean,
-  ) {
-    if (!instanceYearId || !easterEggId) {
-      throw new BadRequestException('instanceYearId et easterEggId sont requis');
-    }
+  async openInstanceEgg(@Body() dto: OpenInstanceEggDto) {
     return this.easterEggService.openInstanceEgg(
-      +instanceYearId,
-      +easterEggId,
-      closePrevious !== false,
+      dto.instanceYearId,
+      dto.easterEggId,
+      dto.closePrevious !== false,
     );
   }
 
   @Post('admin/close-instance')
+  @AdminOnly()
   @ApiOperation({ summary: 'Clôture manuellement l’Easter Egg actif pour l’instance' })
-  async closeInstanceEgg(
-    @Body('instanceYearId') instanceYearId: number,
-    @Body('easterEggId') easterEggId?: number,
-  ) {
-    if (!instanceYearId) {
-      throw new BadRequestException('instanceYearId est requis');
-    }
-    return this.easterEggService.closeInstanceEgg(+instanceYearId, easterEggId ? +easterEggId : undefined);
+  async closeInstanceEgg(@Body() dto: CloseInstanceEggDto) {
+    return this.easterEggService.closeInstanceEgg(dto.instanceYearId, dto.easterEggId);
   }
 
   @Post('admin/force-hint')
+  @AdminOnly()
   @ApiOperation({
     summary:
       'Force l’affichage immédiat du 2ème indice (pour tous ou par équipe ciblée, avec possibilité de révocation)',
   })
-  async forceInstanceHint(
-    @Body('instanceYearId') instanceYearId: number,
-    @Body('easterEggId') easterEggId?: number,
-    @Body('teamId') teamId?: number,
-    @Body('revoke') revoke?: boolean,
-  ) {
-    if (!instanceYearId) {
-      throw new BadRequestException('instanceYearId est requis');
-    }
+  async forceInstanceHint(@Body() dto: ForceHintDto) {
     return this.easterEggService.forceInstanceHint(
-      +instanceYearId,
-      easterEggId ? +easterEggId : undefined,
-      teamId ? +teamId : undefined,
-      !!revoke,
+      dto.instanceYearId,
+      dto.easterEggId,
+      dto.teamId,
+      !!dto.revoke,
     );
   }
 
   @Post('admin/reset-progress')
+  @AdminOnly()
   @ApiOperation({ summary: 'Réinitialise la progression et les récompenses des Easter Eggs (unitaire, sélection ou tous)' })
   async resetEggProgress(@Body() dto: ResetEggProgressDto) {
     return this.easterEggService.resetEggProgress(dto);

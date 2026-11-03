@@ -11,7 +11,9 @@ import {
   UploadedFiles,
   UseInterceptors,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import * as nodeFs from 'fs';
 import { EvoeService } from './evoe.service';
 import { ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor, AnyFilesInterceptor } from '@nestjs/platform-express';
@@ -23,14 +25,36 @@ import { extname, join } from 'path';
 export class EvoeController {
   constructor(private readonly evoeService: EvoeService) {}
 
+  /**
+   * Vérifie l'authentification du joueur. Si elle échoue, supprime le fichier
+   * déjà écrit sur disque par Multer afin d'éviter l'accumulation d'uploads anonymes.
+   */
+  private async verifyAuthOrDiscardFile(
+    file: Express.Multer.File | undefined,
+    auth: string,
+    instanceIdStr?: string,
+  ) {
+    try {
+      return await this.evoeService.verifyAuth(auth, instanceIdStr);
+    } catch (err) {
+      if (file?.path) {
+        nodeFs.promises.unlink(file.path).catch(() => undefined);
+      }
+      throw err;
+    }
+  }
+
   @Get('missions/:instanceId')
   @ApiOperation({
     summary: 'Liste les missions physiques mappées en mode SF (Codex)',
   })
-  getMissions(
+  async getMissions(
     @Param('instanceId') instanceId: string,
     @Query('schoolYear') schoolYear: string,
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
   ) {
+    await this.evoeService.verifyAuth(auth, instanceIdStr || instanceId);
     const sy = schoolYear || '2024-2025';
     return this.evoeService.getMissions(+instanceId, sy);
   }
@@ -98,14 +122,15 @@ export class EvoeController {
     @Headers('authorization') auth?: string,
     @Headers('x-instance-id') instanceIdStr?: string,
   ) {
-    if (!schoolYear && auth) {
-      return this.evoeService.resetPropulsionLevelsAuth(
-        auth,
-        instanceIdStr || instanceId,
-      );
+    // Action destructive : l'authentification est obligatoire (le paramètre schoolYear
+    // anonyme historique est désormais ignoré, la résolution se fait depuis le jeton).
+    if (!auth) {
+      throw new UnauthorizedException('Authorization header required');
     }
-    const sy = schoolYear || '2024-2025';
-    return this.evoeService.resetPropulsionLevels(+instanceId, sy);
+    return this.evoeService.resetPropulsionLevelsAuth(
+      auth,
+      instanceIdStr || instanceId,
+    );
   }
 
   @Get('challenges')
@@ -154,7 +179,12 @@ export class EvoeController {
   @ApiOperation({
     summary: "Récupère le profil complet d'un agent temporel",
   })
-  getPlayerProfile(@Param('childId') childId: string) {
+  async getPlayerProfile(
+    @Param('childId') childId: string,
+    @Headers('authorization') auth: string,
+    @Headers('x-instance-id') instanceIdStr?: string,
+  ) {
+    await this.evoeService.verifyAuth(auth, instanceIdStr);
     return this.evoeService.getPlayerProfile(+childId);
   }
 
@@ -198,8 +228,8 @@ export class EvoeController {
   ) {
     const file = files?.[0];
     if (!file) throw new BadRequestException('Aucun fichier reçu');
-    // Validation de l'authentification
-    await this.evoeService.verifyAuth(auth, instanceIdStr);
+    // Validation de l'authentification (supprime le fichier si refus)
+    await this.verifyAuthOrDiscardFile(file, auth, instanceIdStr);
     const relPath = `avatars/${file.filename}`;
     return { filename: relPath, avatarPath: relPath };
   }
@@ -248,7 +278,7 @@ export class EvoeController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu');
-    await this.evoeService.verifyAuth(auth, instanceIdStr);
+    await this.verifyAuthOrDiscardFile(file, auth, instanceIdStr);
     return {
       imageUrl: `/static/chat/${file.filename}`,
       filename: file.filename,

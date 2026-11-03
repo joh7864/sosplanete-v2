@@ -19,76 +19,28 @@ import {
   EvoeEasterEgg,
 } from '@prisma/client';
 
-export interface SubmitAnswerDto {
-  easterEggId: number;
-  periodId?: number;
-  answer: string;
-  resolutionTimeSeconds?: number;
-}
+import {
+  SubmitAnswerDto,
+  ValidateTriggerDto,
+  ShareEasterEggDto,
+  CreateEasterEggDto,
+  UpdateEasterEggDto,
+  UpdateEasterEggSettingsDto,
+  ResetEggProgressDto,
+  ImportCatalogDto,
+} from './dto/easter-egg.dto';
 
-export interface ValidateTriggerDto {
-  easterEggId: number;
-  periodId?: number;
-  triggerType: EasterEggTriggerType;
-  resolutionTimeSeconds?: number;
-  metadata?: any;
-}
-
-export interface ShareEasterEggDto {
-  easterEggId: number;
-  targetType: 'TEAM' | 'PLAYER' | 'ALL';
-  targetPlayerId?: number;
-  shareType: 'CLUE' | 'SOLUTION';
-  customText?: string;
-}
-
-export interface CreateEasterEggDto {
-  code: string;
-  title: string;
-  prerequisiteType?: string;
-  prerequisiteConfig?: any;
-  crypticMessage: string;
-  explicitHint?: string | null;
-  hintDelayMinutes?: number;
-  mascotDurationSeconds?: number;
-  triggerAction?: string | null;
-
-  senderLore?: string | null;
-  clues?: string[];
-  imageUrl?: string | null;
-  triggerType?: EasterEggTriggerType;
-  expectedAnswer?: string | null;
-  caseSensitive?: boolean;
-  triggerConfig?: any;
-  complexity?: EasterEggDifficulty;
-  rewardPointsIT?: number;
-  specialReward?: string;
-  orderIndex?: number;
-  isActive?: boolean;
-}
-
-export interface UpdateEasterEggDto extends Partial<CreateEasterEggDto> {}
-
-export interface UpdateEasterEggSettingsDto {
-  easterEggsEnabled?: boolean;
-  easterEggFrequency?: number;
-  easterEggRequiredPlayers?: number;
-  easterEggMaxWinningTeams?: number;
-  easterEggPauseCycles?: number[];
-  metaEnigmaSecretWord?: string;
-  metaEnigmaPeriodGlyphs?: any;
-}
-
-export interface ResetEggProgressDto {
-  instanceYearId?: number;
-  easterEggIds?: number[];
-  all?: boolean;
-}
-
-export interface ImportCatalogDto {
-  items: any[];
-  mode?: 'upsert' | 'replace';
-}
+// Ré-export pour compatibilité des imports existants (les DTO vivent dans ./dto/easter-egg.dto)
+export {
+  SubmitAnswerDto,
+  ValidateTriggerDto,
+  ShareEasterEggDto,
+  CreateEasterEggDto,
+  UpdateEasterEggDto,
+  UpdateEasterEggSettingsDto,
+  ResetEggProgressDto,
+  ImportCatalogDto,
+};
 
 const DEFAULT_EASTER_EGGS: CreateEasterEggDto[] = [
   {

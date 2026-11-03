@@ -8,6 +8,13 @@
 > [!NOTE]
 > Les tailles sont mesurées en **lignes non vides** (`Measure-Object -Line`). Les tailles réelles sont légèrement supérieures (ex. `App.tsx` : 3 178 non vides / 3 366 au total).
 
+> [!IMPORTANT]
+> **État d'avancement (branche `refactor/audit-v2.3.0-security-and-safety-net`)**
+> - ✅ **Lot 0** : tests de caractérisation du moteur de cycles (`easter-egg.cycle.spec.ts`, 14 tests) + garde-fou `npm run check:size` (baseline `.size-baseline.json`, 41 fichiers > 600 lignes en comptant les lignes vides).
+> - ✅ **Lot 1** : guards `AdminOnly` (JWT + rôle AS/AM) sur les 14 routes `admin/*`, DTO convertis en classes class-validator, `ParseIntPipe`, filtre d'upload durci, routes `/evoe/*` ouvertes sécurisées (voir correction S2).
+> - ⏳ Lots 2 à 6 : non démarrés.
+>
+> **Correction S2** : la plupart des routes `/evoe/*` vérifient déjà le joueur via `Authorization` (`getChildFromAuth`). Les routes réellement ouvertes étaient `GET missions/:instanceId`, `GET profile/:childId` et `POST propulsion/reset/:instanceId` (reset possible sans jeton via `schoolYear`) ; les uploads écrivaient le fichier sur disque avant la vérification d'auth. Tout est corrigé.
 ---
 
 ## 1. Synthèse exécutive

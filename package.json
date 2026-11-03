@@ -3,6 +3,8 @@
   "version": "2.3.0",
   "private": true,
   "scripts": {
-    "dev": "powershell -ExecutionPolicy Bypass -File .\\dev.ps1"
+    "dev": "powershell -ExecutionPolicy Bypass -File .\\dev.ps1",
+    "check:size": "node scripts/check-file-size.js",
+    "check:size:baseline": "node scripts/check-file-size.js --update-baseline"
   }
 }
