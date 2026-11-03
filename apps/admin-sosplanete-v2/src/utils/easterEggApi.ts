@@ -32,6 +32,7 @@ export interface EasterEggSettings {
   easterEggFrequency: number;
   easterEggRequiredPlayers: number;
   easterEggMaxWinningTeams: number;
+  easterEggPauseCycles?: number[];
   metaEnigmaSecretWord?: string;
   metaEnigmaPeriodGlyphs?: any;
 }
@@ -141,6 +142,7 @@ export interface AdminTrackingResponse {
     title: string;
     rewardPointsIT: number;
     forceHint: boolean;
+    forcedHintTeamIds?: number[];
     discoverers?: EggDiscoverer[];
     teamsCompleted?: EggTeamCompleted[];
   }>;
@@ -308,13 +310,18 @@ export async function closeInstanceEgg(instanceYearId: number, easterEggId?: num
   return resp.json();
 }
 
-export async function forceInstanceHint(instanceYearId: number, easterEggId?: number): Promise<any> {
+export async function forceInstanceHint(
+  instanceYearId: number,
+  easterEggId?: number,
+  teamId?: number,
+  revoke?: boolean,
+): Promise<any> {
   const resp = await fetch(`${getApiUrl()}/evoe/easter-eggs/admin/force-hint`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ instanceYearId, easterEggId }),
+    body: JSON.stringify({ instanceYearId, easterEggId, teamId, revoke }),
   });
-  if (!resp.ok) throw new Error(`Erreur forçage indice (${resp.status})`);
+  if (!resp.ok) throw new Error(`Erreur gestion indice (${resp.status})`);
   return resp.json();
 }
 
@@ -492,6 +499,7 @@ export interface ChronoFriseCycle {
   isCurrent: boolean;
   isPast: boolean;
   isFuture: boolean;
+  isPause?: boolean;
   periodStart: { id: number; name: string; startDate: string } | null;
   periodEnd: { id: number; name: string; endDate: string } | null;
   eggs: ChronoFriseEgg[];
@@ -513,6 +521,10 @@ export interface AdminChronoFriseResponse {
     totalPlayers: number;
   }>;
   cycles: ChronoFriseCycle[];
+  totalCycles?: number;
+  easterEggPauseCycles?: number[];
+  defaultPauseProposal?: number[];
+  effectivePauseCycles?: number[];
 }
 
 export async function fetchAdminChronoFrise(instanceYearId: number): Promise<AdminChronoFriseResponse> {

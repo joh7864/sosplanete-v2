@@ -21,11 +21,13 @@ import {
   History,
   Check,
   AlertCircle,
+  PauseCircle,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { IconButtonWithTooltip } from '@/components/ui/IconButtonWithTooltip';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EggGlyphIcon } from './EggGlyphIcon';
+import { ForceHintModal } from './ForceHintModal';
 import {
   fetchAdminChronoFrise,
   closeInstanceEgg,
@@ -65,6 +67,13 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
   const [targetResetEgg, setTargetResetEgg] = useState<{ id: number; title: string } | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showForceHintConfirm, setShowForceHintConfirm] = useState(false);
+  const [showForceHintModal, setShowForceHintModal] = useState(false);
+  const [hintModalTargetEgg, setHintModalTargetEgg] = useState<{
+    id: number;
+    title: string;
+    forceHint?: boolean;
+    forcedHintTeamIds?: number[];
+  } | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const loadData = async (silent = false) => {
@@ -422,6 +431,12 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
                           À venir
                         </span>
                       )}
+                      {cycle.isPause && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <PauseCircle size={10} />
+                          Pause
+                        </span>
+                      )}
                       <span className="text-xs text-slate-400 font-medium">
                         ({cycle.periodStart?.name || 'P'} → {cycle.periodEnd?.name || 'P'})
                       </span>
@@ -432,7 +447,11 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
                   <div className="flex items-center gap-1.5 shrink-0 px-2">
                     {cycle.eggs.length === 0 ? (
                       <span className="text-xs text-slate-400 italic">
-                        {cycle.isPast ? 'Aucun œuf résolu (reporté au cycle courant)' : 'Aucun œuf programmé'}
+                        {cycle.isPause
+                          ? 'Cycle de pause temporelle (aucun œuf programmé)'
+                          : cycle.isPast
+                          ? 'Aucun œuf résolu (reporté au cycle courant)'
+                          : 'Aucun œuf programmé'}
                       </span>
                     ) : (
                       cycle.eggs.map((egg) => {
@@ -514,7 +533,9 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
                     >
                       {cycle.eggs.length === 0 ? (
                         <div className="py-2.5 px-3 rounded-xl bg-white/80 border border-slate-200/60 text-xs text-slate-500 italic text-center">
-                          Aucun œuf n'a été résolu durant ce cycle. L'énigme a été automatiquement reportée au cycle courant.
+                          {cycle.isPause
+                            ? 'Ce cycle est configuré comme pause temporelle (rythme de saison). Vous pouvez toutefois ajouter manuellement un œuf ci-dessous.'
+                            : "Aucun œuf n'a été résolu durant ce cycle. L'énigme a été automatiquement reportée au cycle courant."}
                         </div>
                       ) : (
                         cycle.eggs.map((egg) => {
@@ -676,13 +697,22 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
                               {/* Actions administratives */}
                               <div className="flex items-center gap-1 shrink-0 min-h-[24px]">
                                 <IconButtonWithTooltip
-                                  tooltip={egg.forceHint ? 'Indice déjà révélé' : 'Révéler le 2ème indice'}
+                                  tooltip={
+                                    egg.forceHint
+                                      ? '2ème indice forcé pour TOUS (cliquer pour gérer/rétablir)'
+                                      : 'Gérer le 2ème indice (général ou par équipe)'
+                                  }
                                   variant="amber"
                                   size="sm"
-                                  disabled={egg.forceHint || actionLoading}
+                                  disabled={actionLoading}
                                   onClick={() => {
-                                    setTargetActionEggId(egg.id);
-                                    setShowForceHintConfirm(true);
+                                    setHintModalTargetEgg({
+                                      id: egg.id,
+                                      title: egg.title,
+                                      forceHint: egg.forceHint,
+                                      forcedHintTeamIds: [],
+                                    });
+                                    setShowForceHintModal(true);
                                   }}
                                 >
                                   <Lightbulb size={13} />
@@ -739,15 +769,24 @@ export function EasterEggsChronoFrise({ instanceYearId }: EasterEggsChronoFriseP
         variant="danger"
       />
 
-      <ConfirmDialog
-        isOpen={showForceHintConfirm}
-        onClose={() => setShowForceHintConfirm(false)}
-        onConfirm={handleForceHint}
-        title="Révéler l’indice immédiatement ?"
-        description="Le minuteur sera court-circuité : tous les élèves de l'établissement verront immédiatement le 2ème indice explicite dans la mascotte."
-        confirmLabel="Révéler l’indice"
-        cancelLabel="Annuler"
-        variant="warning"
+      <ForceHintModal
+        isOpen={showForceHintModal}
+        onClose={() => {
+          setShowForceHintModal(false);
+          setHintModalTargetEgg(null);
+        }}
+        onSuccess={(msg) => {
+          setFeedback({ type: 'success', message: msg });
+          loadData(true);
+        }}
+        instanceYearId={instanceYearId}
+        egg={hintModalTargetEgg}
+        teams={(data?.teams || []).map((t) => ({
+          id: t.id,
+          name: t.name,
+          color: t.color,
+          icon: t.icon,
+        }))}
       />
 
       <ConfirmDialog

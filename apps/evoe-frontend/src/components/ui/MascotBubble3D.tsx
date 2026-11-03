@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, AlertCircle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw, Terminal, Gamepad2, Trophy } from 'lucide-react';
+import { X, ZoomIn, AlertCircle, AlertTriangle, Lock, Unlock, Sparkles, MessageSquare, RotateCcw, Terminal, Gamepad2, Trophy } from 'lucide-react';
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
 import type { CycleEggItem } from '../../types/easterEgg';
@@ -33,6 +33,8 @@ interface MascotBubble3DProps {
     currentIndex: number;
   };
   cycleEggs?: CycleEggItem[];
+  unsolvedRolloverCount?: number;
+  showRolloverWarning?: boolean;
   isReplayMode?: boolean;
   replayedCycleIndex?: number;
   onExitReplay?: () => void;
@@ -58,6 +60,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   mascotDurationSeconds: _mascotDurationSeconds = 60,
   multiEggProgress: _multiEggProgress,
   cycleEggs,
+  unsolvedRolloverCount,
+  showRolloverWarning,
   isReplayMode = false,
   replayedCycleIndex,
   onExitReplay,
@@ -79,6 +83,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const [showLightbox, setShowLightbox] = useState(false);
   const [isCryptexActive, setIsCryptexActive] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [hoveredEggIndex, setHoveredEggIndex] = useState<number | null>(null);
   const initialDuration = 60;
   const [timeLeft, setTimeLeft] = useState(initialDuration);
 
@@ -131,26 +136,30 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 
   const [selectedEggIndex, setSelectedEggIndex] = useState(0);
 
-  // Synchroniser la sélection de l'œuf à l'ouverture ou quand cycleEggs change
+  // Règle Métier : Les œufs verrouillés par un prérequis ne doivent pas apparaître pour le joueur
+  const visibleCycleEggs = useMemo(() => {
+    if (!cycleEggs) return [];
+    return cycleEggs.filter(
+      (e: CycleEggItem) => (e.isInteractable !== false || e.isDiscovered) && (e as any).isVisible !== false,
+    );
+  }, [cycleEggs]);
+
+  // Synchroniser la sélection de l'œuf à l'ouverture ou quand visibleCycleEggs change
   useEffect(() => {
-    if (isOpen && cycleEggs && cycleEggs.length > 0) {
-      // Priorité 1 : premier œuf dont le prérequis est satisfait et non encore résolu
-      const firstInteractableIdx = cycleEggs.findIndex(
-        (e) => e.isInteractable !== false && !e.isDiscovered,
-      );
-      if (firstInteractableIdx >= 0) {
-        setSelectedEggIndex(firstInteractableIdx);
+    if (isOpen && visibleCycleEggs && visibleCycleEggs.length > 0) {
+      // Priorité 1 : premier œuf non encore résolu
+      const firstUnresolvedIdx = visibleCycleEggs.findIndex((e: CycleEggItem) => !e.isDiscovered);
+      if (firstUnresolvedIdx >= 0) {
+        setSelectedEggIndex(firstUnresolvedIdx);
       } else {
-        // Priorité 2 : n'importe quel œuf interactif
-        const anyInteractableIdx = cycleEggs.findIndex((e) => e.isInteractable !== false);
-        setSelectedEggIndex(anyInteractableIdx >= 0 ? anyInteractableIdx : 0);
+        setSelectedEggIndex(0);
       }
     } else {
       setSelectedEggIndex(0);
     }
-  }, [isOpen, cycleEggs]);
+  }, [isOpen, visibleCycleEggs]);
 
-  const currentEgg = cycleEggs && cycleEggs.length > 0 ? cycleEggs[selectedEggIndex] : null;
+  const currentEgg = visibleCycleEggs && visibleCycleEggs.length > 0 ? visibleCycleEggs[selectedEggIndex] : null;
   const currentEggId = currentEgg?.id;
 
   useEffect(() => {
@@ -663,6 +672,136 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {/* Alerte Retard Accumulation (conditionnée : retard > 4 uniquement) */}
+                {showRolloverWarning && unsolvedRolloverCount && unsolvedRolloverCount > 4 && (
+                  <div
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      color: '#b91c1c',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <AlertTriangle size={15} color="#dc2626" />
+                    <span>
+                      Anomalies accumulées : <strong>{unsolvedRolloverCount} œufs non résolus</strong> en attente de déchiffrage !
+                    </span>
+                  </div>
+                )}
+
+                {/* Sélecteur d'Œufs du Cycle : Symboles d'œufs compacts avec Tooltip */}
+                {visibleCycleEggs.length > 1 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      overflowX: 'auto',
+                      marginBottom: '10px',
+                      paddingBottom: '4px',
+                      paddingTop: '2px',
+                    }}
+                  >
+                    {visibleCycleEggs.map((egg: CycleEggItem, idx: number) => {
+                      const isSelected = idx === selectedEggIndex;
+                      const isDone = !!egg.isDiscovered;
+                      const isLocked = egg.isInteractable === false && !isDone;
+                      const tooltipText = `#${idx + 1} : ${egg.title}${isDone ? ' (Résolu ✓)' : isLocked ? ' (Verrouillé 🔒)' : ' (À résoudre)'}`;
+
+                      return (
+                        <div key={egg.id} style={{ position: 'relative', display: 'inline-flex' }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEggIndex(idx)}
+                            title={tooltipText}
+                            onMouseEnter={() => setHoveredEggIndex(idx)}
+                            onMouseLeave={() => setHoveredEggIndex(null)}
+                            style={{
+                              width: '32px',
+                              height: '36px',
+                              borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
+                              border: isSelected
+                                ? '2.5px solid #0284c7'
+                                : isDone
+                                  ? '1.5px solid #10b981'
+                                  : isLocked
+                                    ? '1.5px solid #94a3b8'
+                                    : '1.5px solid #cbd5e1',
+                              background: isSelected
+                                ? '#e0f2fe'
+                                : isDone
+                                  ? '#ecfdf5'
+                                  : isLocked
+                                    ? '#f1f5f9'
+                                    : '#f8fafc',
+                              boxShadow: isSelected
+                                ? '0 0 10px rgba(2, 132, 199, 0.45)'
+                                : '0 1px 3px rgba(0,0,0,0.06)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: isDone ? '0.85rem' : '0.95rem',
+                              transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                              transition: 'all 0.18s ease',
+                              padding: 0,
+                              outline: 'none',
+                              opacity: isLocked ? 0.6 : 1,
+                            }}
+                          >
+                            <span>{isDone ? '✓' : isLocked ? '🔒' : '🥚'}</span>
+                          </button>
+
+                          {/* Tooltip au survol */}
+                          {hoveredEggIndex === idx && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                marginBottom: '6px',
+                                background: '#0f172a',
+                                color: '#ffffff',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                zIndex: 50,
+                                pointerEvents: 'none',
+                              }}
+                            >
+                              {tooltipText}
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  left: '50%',
+                                  marginLeft: '-4px',
+                                  width: 0,
+                                  height: 0,
+                                  borderLeft: '4px solid transparent',
+                                  borderRight: '4px solid transparent',
+                                  borderTop: '4px solid #0f172a',
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Badge Alerte 2ème Indice Débloqué si hh:mm écoulé */}
                 {!isEggLocked && currentShowExplicitHint && currentExplicitHint && (

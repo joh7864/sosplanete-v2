@@ -12,16 +12,19 @@ import {
   Loader2,
   Power,
   Info,
-  Minus,
-  Plus,
   KeyRound,
-  Binary
+  Binary,
+  PauseCircle,
+  RotateCcw,
+  ShieldCheck,
+  Check,
 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { IconButtonWithTooltip } from '@/components/ui/IconButtonWithTooltip';
 import {
   EasterEggSettings,
   updateAdminSettings,
+  fetchAdminChronoFrise,
 } from '@/utils/easterEggApi';
 
 interface EasterEggsSeasonSettingsProps {
@@ -40,6 +43,16 @@ export function EasterEggsSeasonSettings({
   const [requiredPlayers, setRequiredPlayers] = useState(2);
   const [maxWinningTeams, setMaxWinningTeams] = useState(0);
   const [metaEnigmaSecretWord, setMetaEnigmaSecretWord] = useState('CHRONOS');
+  const [pauseCycles, setPauseCycles] = useState<number[]>([]);
+  const [chronoFriseMeta, setChronoFriseMeta] = useState<{
+    totalCycles: number;
+    defaultProposal: number[];
+    effectivePauses: number[];
+  }>({
+    totalCycles: 20,
+    defaultProposal: [],
+    effectivePauses: [],
+  });
 
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -51,8 +64,44 @@ export function EasterEggsSeasonSettings({
       setRequiredPlayers(initialSettings.easterEggRequiredPlayers ?? 2);
       setMaxWinningTeams(initialSettings.easterEggMaxWinningTeams ?? 0);
       setMetaEnigmaSecretWord(initialSettings.metaEnigmaSecretWord || 'CHRONOS');
+      if (initialSettings.easterEggPauseCycles) {
+        setPauseCycles(initialSettings.easterEggPauseCycles);
+      }
     }
   }, [initialSettings]);
+
+  useEffect(() => {
+    if (!instanceYearId) return;
+    fetchAdminChronoFrise(instanceYearId)
+      .then((res) => {
+        const total = res.totalCycles || res.cycles?.length || 20;
+        const defProp = res.defaultPauseProposal || [];
+        const eff = res.effectivePauseCycles || [];
+        setChronoFriseMeta({
+          totalCycles: total,
+          defaultProposal: defProp,
+          effectivePauses: eff,
+        });
+        if (!initialSettings?.easterEggPauseCycles || initialSettings.easterEggPauseCycles.length === 0) {
+          setPauseCycles(eff.length > 0 ? eff : defProp);
+        }
+      })
+      .catch(() => {});
+  }, [instanceYearId, initialSettings]);
+
+  const togglePauseCycle = (cycleNum: number) => {
+    setPauseCycles((prev) => {
+      if (prev.includes(cycleNum)) {
+        return prev.filter((c) => c !== cycleNum);
+      } else {
+        return [...prev, cycleNum].sort((a, b) => a - b);
+      }
+    });
+  };
+
+  const handleResetToDefaultPauses = () => {
+    setPauseCycles([...chronoFriseMeta.defaultProposal].sort((a, b) => a - b));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -63,6 +112,7 @@ export function EasterEggsSeasonSettings({
         easterEggFrequency: frequency,
         easterEggRequiredPlayers: requiredPlayers,
         easterEggMaxWinningTeams: maxWinningTeams,
+        easterEggPauseCycles: pauseCycles,
         metaEnigmaSecretWord: metaEnigmaSecretWord.trim().toUpperCase(),
       });
       setFeedback({ type: 'success', message: 'Paramètres généraux de la saison enregistrés avec succès !' });
@@ -173,56 +223,127 @@ export function EasterEggsSeasonSettings({
           </p>
         </GlassCard>
 
-        {/* Paramètre 2: Quota Joueurs par Équipe */}
+        {/* Paramètre 2: Barème Quota Collectif par Difficulté */}
         <GlassCard className="p-6 bg-white/95 border-slate-200/80 shadow-sm rounded-3xl space-y-4">
           <div className="flex items-center gap-3 text-amber-500">
             <Users size={20} />
             <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
-              Quota Minimum par Équipe
+              Barème Quota par Difficulté
             </h3>
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Nombre d’élèves d’une même équipe devant valider l’action pour débloquer les points IT collectifs.
+            Le nombre d’élèves requis pour valider l'énigme et débloquer les points IT collectifs s’adapte automatiquement à la difficulté intrinsèque de l'œuf (plafonné à l'effectif de l'équipe) :
           </p>
 
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
-            <div className="flex items-center gap-3">
-              <IconButtonWithTooltip
-                tooltip="Diminuer le quota"
-                variant="default"
-                size="md"
-                onClick={() => setRequiredPlayers(Math.max(1, requiredPlayers - 1))}
-              >
-                <Minus size={16} />
-              </IconButtonWithTooltip>
-
-              <div className="text-center w-16">
-                <span className="text-2xl font-black text-slate-800 font-mono">{requiredPlayers}</span>
-                <span className="block text-[10px] text-slate-400 uppercase font-bold">joueurs</span>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-black text-emerald-800">Facile</span>
+                <span className="text-[10px] text-emerald-600">Complexité accessible</span>
               </div>
-
-              <IconButtonWithTooltip
-                tooltip="Augmenter le quota"
-                variant="default"
-                size="md"
-                onClick={() => setRequiredPlayers(Math.min(10, requiredPlayers + 1))}
-              >
-                <Plus size={16} />
-              </IconButtonWithTooltip>
+              <span className="text-base font-black font-mono text-emerald-700">5 j.</span>
             </div>
-
-            <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold rounded-xl">
-                Esprit d’Équipe
-              </span>
+            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-black text-amber-800">Moyen</span>
+                <span className="text-[10px] text-amber-600">Énigme standard</span>
+              </div>
+              <span className="text-base font-black font-mono text-amber-700">3 j.</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-rose-50/80 border border-rose-200 flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-black text-rose-800">Difficile</span>
+                <span className="text-[10px] text-rose-600">Énigme complexe</span>
+              </div>
+              <span className="text-base font-black font-mono text-rose-700">2 j.</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-purple-50/80 border border-purple-200 flex items-center justify-between">
+              <div>
+                <span className="block text-xs font-black text-purple-800">Légendaire</span>
+                <span className="text-[10px] text-purple-600">Mystère ultime</span>
+              </div>
+              <span className="text-base font-black font-mono text-purple-700">1 j.</span>
             </div>
           </div>
           <p className="text-[11px] text-slate-400 italic">
-            Encourage la collaboration : dès qu’un joueur trouve, il partage l’indice dans le salon de son équipe !
+            Défini dans le catalogue pour chaque énigme. Si une équipe a moins de membres que le quota, la totalité de l'effectif suffit.
           </p>
         </GlassCard>
 
-        {/* Paramètre 3: Limite Équipes Gagnantes */}
+        {/* Paramètre 3: Cycles de Pause Temporelle */}
+        <GlassCard className="p-6 bg-white/95 border-slate-200/80 shadow-sm rounded-3xl space-y-4 md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3 text-indigo-600">
+              <PauseCircle size={20} />
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                  Cycles de Pause Temporelle (Rythme de Saison)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Cycles sans nouveau lancement d’œuf : permet aux équipes de rattraper les œufs accumulés ou de souffler.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleResetToDefaultPauses}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer self-start sm:self-auto shrink-0"
+              title="Rétablir les pauses automatiques réparties par défaut (~17% des cycles)"
+            >
+              <RotateCcw size={12} />
+              <span>Proposition par défaut ({chronoFriseMeta.defaultProposal.length} pauses)</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between text-xs text-slate-600">
+              <span>
+                Cliquez sur un cycle pour l'activer ou le désactiver comme cycle de pause :
+              </span>
+              <span className="font-mono font-bold text-indigo-600">
+                {pauseCycles.length} pause{pauseCycles.length > 1 ? 's' : ''} active{pauseCycles.length > 1 ? 's' : ''} sur {chronoFriseMeta.totalCycles} cycles
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-2">
+              {Array.from({ length: chronoFriseMeta.totalCycles }, (_, i) => i + 1).map((cycleNum) => {
+                const isPaused = pauseCycles.includes(cycleNum);
+                const isDefault = chronoFriseMeta.defaultProposal.includes(cycleNum);
+
+                return (
+                  <button
+                    key={cycleNum}
+                    type="button"
+                    onClick={() => togglePauseCycle(cycleNum)}
+                    className={`py-2 px-1 rounded-xl text-center border transition-all cursor-pointer relative ${
+                      isPaused
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-black shadow-xs ring-2 ring-indigo-500/20'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="block text-xs font-mono font-black">C{cycleNum}</span>
+                    <span className="block text-[9px] uppercase font-bold tracking-tight">
+                      {isPaused ? 'Pause' : 'Œuf'}
+                    </span>
+                    {isDefault && !isPaused && (
+                      <span
+                        className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-300"
+                        title="Recommandé par défaut"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-[11px] text-slate-400 italic">
+              Note : Même sur un cycle de pause, l'administrateur peut à tout moment ajouter manuellement un œuf depuis la Chrono-Frise.
+            </p>
+          </div>
+        </GlassCard>
+
+        {/* Paramètre 4: Limite Équipes Gagnantes */}
         <GlassCard className="p-6 bg-white/95 border-slate-200/80 shadow-sm rounded-3xl space-y-4 md:col-span-2">
           <div className="flex items-center gap-3 text-purple-600">
             <Trophy size={20} />
@@ -275,7 +396,7 @@ export function EasterEggsSeasonSettings({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
           {/* Bloc 1: Statut */}
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col gap-1">
             <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
@@ -299,23 +420,33 @@ export function EasterEggsSeasonSettings({
             </span>
           </div>
 
-          {/* Bloc 3: Quota Équipe */}
+          {/* Bloc 3: Barème Quotas */}
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col gap-1">
             <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
-              Quota par Équipe
+              Quotas d'Équipe
             </span>
             <span className="text-sm font-black font-mono text-amber-700">
-              {requiredPlayers} joueurs min.
+              Par Difficulté (5/3/2/1)
             </span>
           </div>
 
-          {/* Bloc 4: Équipes Récompensées */}
+          {/* Bloc 4: Pauses Saison */}
+          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col gap-1">
+            <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
+              Pauses Temporelles
+            </span>
+            <span className="text-sm font-black font-mono text-indigo-700">
+              {pauseCycles.length} cycle{pauseCycles.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* Bloc 5: Équipes Récompensées */}
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-col gap-1">
             <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
               Podium Récompensé
             </span>
             <span className="text-sm font-black font-mono text-purple-700">
-              {maxWinningTeams === 0 ? 'Toutes les équipes' : `Top ${maxWinningTeams} ${maxWinningTeams === 1 ? 'équipe' : 'équipes'}`}
+              {maxWinningTeams === 0 ? 'Toutes' : `Top ${maxWinningTeams}`}
             </span>
           </div>
         </div>

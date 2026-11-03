@@ -47,6 +47,7 @@ import { ManualActivationModal } from './ManualActivationModal';
 import { EasterEggFormModal } from './EasterEggFormModal';
 import { EggGlyphIcon } from './EggGlyphIcon';
 import { EggDiscoverersModal } from './EggDiscoverersModal';
+import { ForceHintModal } from './ForceHintModal';
 
 interface EasterEggsTrackingCockpitProps {
   instanceYearId: number;
@@ -129,6 +130,13 @@ export function EasterEggsTrackingCockpit({
   const [manualModalMode, setManualModalMode] = useState<'replace' | 'add'>('replace');
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showForceHintConfirm, setShowForceHintConfirm] = useState(false);
+  const [showForceHintModal, setShowForceHintModal] = useState(false);
+  const [hintModalTargetEgg, setHintModalTargetEgg] = useState<{
+    id: number;
+    title: string;
+    forceHint?: boolean;
+    forcedHintTeamIds?: number[];
+  } | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [targetResetEgg, setTargetResetEgg] = useState<{ id: number; title: string } | null>(null);
   const [inspectingDiscoverersEgg, setInspectingDiscoverersEgg] = useState<any | null>(null);
@@ -584,25 +592,31 @@ export function EasterEggsTrackingCockpit({
                         <IconButtonWithTooltip
                           tooltip={
                             pEgg.forceHint
-                              ? '2ème indice déjà révélé'
-                              : 'Forcer le 2ème indice'
+                              ? '2ème indice forcé pour TOUS (cliquer pour gérer/rétablir)'
+                              : (pEgg.forcedHintTeamIds?.length || 0) > 0
+                              ? `2ème indice forcé pour ${pEgg.forcedHintTeamIds?.length} équipe(s) (cliquer pour gérer)`
+                              : 'Forcer le 2ème indice (général ou par équipe)'
                           }
                           tooltipPosition="top"
                           tooltipAlign="center"
                           variant="amber"
                           size="sm"
-                          disabled={pEgg.forceHint}
                           onClick={() => {
-                            setTargetActionEggId(pEgg.eggId);
-                            setShowForceHintConfirm(true);
+                            setHintModalTargetEgg({
+                              id: pEgg.eggId,
+                              title: pEgg.title,
+                              forceHint: pEgg.forceHint,
+                              forcedHintTeamIds: pEgg.forcedHintTeamIds,
+                            });
+                            setShowForceHintModal(true);
                           }}
                         >
                           <Lightbulb size={13} />
                         </IconButtonWithTooltip>
-                        {pEgg.forceHint && (
+                        {(pEgg.forceHint || (pEgg.forcedHintTeamIds?.length || 0) > 0) && (
                           <span
                             className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
-                            title="2ème indice révélé"
+                            title="2ème indice forcé"
                           />
                         )}
                       </div>
@@ -1355,16 +1369,25 @@ export function EasterEggsTrackingCockpit({
         variant="danger"
       />
 
-      {/* Confirmation Force Indice 2 */}
-      <ConfirmDialog
-        isOpen={showForceHintConfirm}
-        onClose={() => setShowForceHintConfirm(false)}
-        onConfirm={handleForceHint}
-        title="Forcer le 2ème Indice immédiatement ?"
-        description="Le délai du minuteur sera court-circuité : tous les élèves de l'établissement verront immédiatement le 2ème indice explicite dans la bulle de la mascotte."
-        confirmLabel="Forcer l'indice"
-        cancelLabel="Annuler"
-        variant="warning"
+      {/* Modale Forçage / Rétablissement du 2ème Indice */}
+      <ForceHintModal
+        isOpen={showForceHintModal}
+        onClose={() => {
+          setShowForceHintModal(false);
+          setHintModalTargetEgg(null);
+        }}
+        onSuccess={(msg) => {
+          setFeedback({ type: 'success', message: msg });
+          loadTracking(true);
+        }}
+        instanceYearId={instanceYearId}
+        egg={hintModalTargetEgg}
+        teams={(data?.teamsTracking || []).map((t) => ({
+          id: t.teamId,
+          name: t.teamName,
+          color: t.teamColor,
+          icon: t.teamIcon,
+        }))}
       />
 
       {/* Confirmation Réinitialisation en direct */}

@@ -330,15 +330,25 @@ export class EasterEggController {
   }
 
   @Post('admin/force-hint')
-  @ApiOperation({ summary: 'Force l’affichage immédiat du 2ème indice pour tous les joueurs' })
+  @ApiOperation({
+    summary:
+      'Force l’affichage immédiat du 2ème indice (pour tous ou par équipe ciblée, avec possibilité de révocation)',
+  })
   async forceInstanceHint(
     @Body('instanceYearId') instanceYearId: number,
     @Body('easterEggId') easterEggId?: number,
+    @Body('teamId') teamId?: number,
+    @Body('revoke') revoke?: boolean,
   ) {
     if (!instanceYearId) {
       throw new BadRequestException('instanceYearId est requis');
     }
-    return this.easterEggService.forceInstanceHint(+instanceYearId, easterEggId ? +easterEggId : undefined);
+    return this.easterEggService.forceInstanceHint(
+      +instanceYearId,
+      easterEggId ? +easterEggId : undefined,
+      teamId ? +teamId : undefined,
+      !!revoke,
+    );
   }
 
   @Post('admin/reset-progress')

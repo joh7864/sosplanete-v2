@@ -115,6 +115,7 @@ model InstanceYear {
   easterEggFrequency      Int     @default(2)
   easterEggRequiredPlayers Int    @default(2)
   easterEggMaxWinningTeams Int    @default(0)
+  easterEggPauseCycles    Int[]   @default([])
   metaEnigmaSecretWord     String? @default("CHRONOS")
   metaEnigmaPeriodGlyphs   Json?
 
@@ -439,6 +440,7 @@ model EvoeEasterEggInstance {
   periodEndId         Int
   isClosed            Boolean       @default(false)
   forceHint           Boolean       @default(false)
+  forcedHintTeamIds   Int[]         @default([])
   unlockedAt          DateTime      @default(now())
   closedAt            DateTime?
 

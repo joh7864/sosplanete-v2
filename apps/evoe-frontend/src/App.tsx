@@ -1412,7 +1412,7 @@ function MainApp() {
                     hasUnread={hasUnreadEasterEgg}
                     hasSeenEnigma={hasSeenEnigma}
                     onClick={async () => {
-                      if (!activeEggData?.easterEgg?.isInteractable) return;
+                      if (!activeEggData?.hasActiveEgg || !activeEggData?.easterEgg?.isInteractable) return;
                       markEnigmaAsSeen();
                       setShowMascotBubble(true);
                       if (!activeEggData?.isReplayMode) {
@@ -2899,11 +2899,13 @@ function MainApp() {
       />
 
       {/* MASCOTTE 3D (EASTER EGG) */}
-      {activeEggData?.easterEgg && (
+      {activeEggData?.easterEgg && activeEggData.hasActiveEgg !== false && (
         <MascotBubble3D
           isOpen={showMascotBubble}
           onClose={() => setShowMascotBubble(false)}
           cycleEggs={activeEggData.cycleEggs}
+          unsolvedRolloverCount={activeEggData.unsolvedRolloverCount}
+          showRolloverWarning={activeEggData.showRolloverWarning}
           title={activeEggData.easterEgg.title}
           crypticMessage={activeEggData.easterEgg.crypticMessage || ''}
           explicitHint={activeEggData.easterEgg.explicitHint}

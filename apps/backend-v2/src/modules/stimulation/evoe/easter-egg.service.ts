@@ -74,6 +74,7 @@ export interface UpdateEasterEggSettingsDto {
   easterEggFrequency?: number;
   easterEggRequiredPlayers?: number;
   easterEggMaxWinningTeams?: number;
+  easterEggPauseCycles?: number[];
   metaEnigmaSecretWord?: string;
   metaEnigmaPeriodGlyphs?: any;
 }
@@ -582,16 +583,21 @@ export class EasterEggService implements OnModuleInit {
       instance: any;
       isDiscovered: boolean;
       isInteractable: boolean;
+      isVisible: boolean;
       isExplicitHintVisible: boolean;
       firstInteractionAt: Date | null;
       discoveredAt: Date | null;
       resolutionTimeSeconds: number | null;
     }>;
     hasAnyInteractable?: boolean;
+    unsolvedRolloverCount?: number;
+    showRolloverWarning?: boolean;
     multiEggProgress?: {
       total: number;
       solved: number;
       currentIndex: number;
+      unsolvedRolloverCount: number;
+      showRolloverWarning: boolean;
     };
   }> {
     const cycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
@@ -607,6 +613,16 @@ export class EasterEggService implements OnModuleInit {
     const cyclePeriods = periods.slice(cycleStartPeriodIndex, cycleEndPeriodIndex + 1);
     const cyclePeriodIds = cyclePeriods.map((p) => p.id);
     const currentPeriod = periods[currentPeriodIndex - 1] || periods[0];
+
+    // Récupérer la configuration des pauses temporelles de l'année d'instance
+    const instanceYear = await this.prisma.instanceYear.findUnique({
+      where: { id: instanceYearId },
+      select: { easterEggPauseCycles: true },
+    });
+    const totalSeasonCycles = Math.max(1, Math.ceil(periods.length / frequency));
+    const effectivePauseCycles = new Set(
+      this.getEffectivePauseCycles(instanceYear || {}, totalSeasonCycles),
+    );
 
     // 1. Déterminer l'équipe de l'élève si childId est fourni
     let teamId: number | null = null;
@@ -632,6 +648,10 @@ export class EasterEggService implements OnModuleInit {
         const prevEndPIndex = Math.min(periods.length - 1, prevStartPIndex + frequency - 1);
         const prevCyclePeriods = periods.slice(prevStartPIndex, prevEndPIndex + 1);
         const prevCyclePeriodIds = prevCyclePeriods.map((p) => p.id);
+        // Les prérequis couvrent l'ensemble des périodes depuis le début du cycle de l'œuf jusqu'à la période courante
+        const allPeriodsFromOriginToCurrent = periods
+          .slice(prevStartPIndex, currentPeriodIndex)
+          .map((p) => p.id);
 
         // Vérifier les instances explicites sur ce cycle passé
         const prevInstances = await this.prisma.evoeEasterEggInstance.findMany({
@@ -650,7 +670,8 @@ export class EasterEggService implements OnModuleInit {
               prevEggsForCycle.push({ egg: pi.easterEgg, instance: pi });
             }
           }
-        } else if (activeEggs.length > 0 && prevCycleIdx === cycleIndex - 1) {
+        } else if (activeEggs.length > 0 && !effectivePauseCycles.has(prevCycleIdx + 1)) {
+          // Calendrier naturel séquentiel (hors cycle de pause)
           const prevAutoEgg = activeEggs[prevCycleIdx % activeEggs.length];
           if (prevAutoEgg) {
             prevEggsForCycle.push({ egg: prevAutoEgg, instance: null });
@@ -683,7 +704,7 @@ export class EasterEggService implements OnModuleInit {
                 egg: pe.egg,
                 instance: pe.instance,
                 isRollover: true,
-                targetPeriodIds: prevCyclePeriodIds,
+                targetPeriodIds: allPeriodsFromOriginToCurrent,
               });
             }
           }
@@ -757,8 +778,12 @@ export class EasterEggService implements OnModuleInit {
         },
       });
 
-      if (!explicitClosedThisPeriod && activeEggs.length > 0) {
-        // Calendrier naturel séquentiel
+      if (
+        !explicitClosedThisPeriod &&
+        activeEggs.length > 0 &&
+        !effectivePauseCycles.has(cycleIndex + 1)
+      ) {
+        // Calendrier naturel séquentiel (hors cycle de pause)
         const autoEgg = activeEggs[cycleIndex % activeEggs.length];
         if (autoEgg) {
           const teamReward = teamId
@@ -785,7 +810,7 @@ export class EasterEggService implements OnModuleInit {
       }
     }
 
-    // Fusionner tous les candidats : [ ...rolloverEggs, ...currentCycleEggs ]
+    // Fusionner tous les candidats chronologiques : [ ...rolloverEggs, ...currentCycleEggs ]
     const allEggCandidates: Array<{
       egg: EvoeEasterEgg;
       instance: any;
@@ -817,6 +842,9 @@ export class EasterEggService implements OnModuleInit {
     const totalCount = Math.max(1, solvedCount + unsolvedCount);
     const currentIndex = Math.min(totalCount, solvedCount + 1);
 
+    const unsolvedRolloverCount = allEggCandidates.length;
+    const showRolloverWarning = unsolvedRolloverCount > 4;
+
     if (allEggCandidates.length === 0) {
       if (cycleProgresses.length > 0) {
         const lastSolved = cycleProgresses[cycleProgresses.length - 1];
@@ -833,6 +861,7 @@ export class EasterEggService implements OnModuleInit {
               instance: null,
               isDiscovered: true,
               isInteractable: false,
+              isVisible: true,
               isExplicitHintVisible: false,
               firstInteractionAt: lastSolved.firstInteractionAt,
               discoveredAt: lastSolved.discoveredAt,
@@ -840,10 +869,14 @@ export class EasterEggService implements OnModuleInit {
             },
           ],
           hasAnyInteractable: false,
+          unsolvedRolloverCount: 0,
+          showRolloverWarning: false,
           multiEggProgress: {
             total: totalCount,
             solved: solvedCount,
             currentIndex: totalCount,
+            unsolvedRolloverCount: 0,
+            showRolloverWarning: false,
           },
         };
       }
@@ -856,10 +889,14 @@ export class EasterEggService implements OnModuleInit {
         periodEnd,
         cycleEggs: [],
         hasAnyInteractable: false,
+        unsolvedRolloverCount: 0,
+        showRolloverWarning: false,
         multiEggProgress: {
           total: 0,
           solved: 0,
           currentIndex: 0,
+          unsolvedRolloverCount: 0,
+          showRolloverWarning: false,
         },
       };
     }
@@ -869,6 +906,7 @@ export class EasterEggService implements OnModuleInit {
       instance: any;
       isDiscovered: boolean;
       isInteractable: boolean;
+      isVisible: boolean;
       isExplicitHintVisible: boolean;
       firstInteractionAt: Date | null;
       discoveredAt: Date | null;
@@ -915,23 +953,27 @@ export class EasterEggService implements OnModuleInit {
         });
         firstInteractionAt = interactionProgress?.firstInteractionAt || null;
 
-        isInteractable = await this.checkPrerequisites(
-          cand.egg,
-          childId,
-          combinedPeriods,
-        );
-
-        if (!isInteractable && firstInteractionAt && !isDiscovered) {
-          await this.prisma.evoeEasterEggPlayerProgress.update({
-            where: { id: interactionProgress!.id },
-            data: { firstInteractionAt: null },
-          });
-          firstInteractionAt = null;
+        // Persistance en Rollover : si l'enfant a déjà validé ce prérequis ou interagi avec succès par le passé,
+        // le prérequis reste acquis définitivement pour cet œuf.
+        const hasInteractedPreviously = !!firstInteractionAt;
+        if (hasInteractedPreviously) {
+          isInteractable = true;
+        } else {
+          isInteractable = await this.checkPrerequisites(
+            cand.egg,
+            childId,
+            combinedPeriods,
+          );
         }
       }
 
+      // Règle d'affichage : si le prérequis n'est pas satisfait par l'élève, l'œuf n'est pas visible
+      const isVisible = isDiscovered || isInteractable;
+
       let isExplicitHintVisible = false;
       if (cand.instance?.forceHint) {
+        isExplicitHintVisible = true;
+      } else if (teamId && cand.instance?.forcedHintTeamIds?.includes(teamId)) {
         isExplicitHintVisible = true;
       } else if (isInteractable && firstInteractionAt) {
         const delayMs = (cand.egg.hintDelayMinutes || 120) * 60 * 1000;
@@ -945,6 +987,7 @@ export class EasterEggService implements OnModuleInit {
         instance: cand.instance,
         isDiscovered,
         isInteractable,
+        isVisible,
         isExplicitHintVisible,
         firstInteractionAt,
         discoveredAt,
@@ -953,25 +996,34 @@ export class EasterEggService implements OnModuleInit {
       });
     }
 
-    // Le premier œuf non résolu est toujours le plus ancien à résoudre (ordre chronologique strict)
-    const unsolvedDetails = cycleEggDetails.filter((d) => !d.isDiscovered);
-    const chosen =
-      unsolvedDetails.find((d) => d.isInteractable) ||
-      unsolvedDetails[0] ||
-      (cycleProgresses.length > 0
-        ? {
-            egg: cycleProgresses[cycleProgresses.length - 1].easterEgg,
-            instance: null,
-            isDiscovered: true,
-            isInteractable: false,
-            isExplicitHintVisible: false,
-            firstInteractionAt: null,
-            discoveredAt: cycleProgresses[cycleProgresses.length - 1].discoveredAt,
-            resolutionTimeSeconds: null,
-          }
-        : null);
+    // Seuls les œufs déverrouillés (prérequis satisfaits) ou déjà résolus doivent apparaître pour le joueur
+    const accessibleEggDetails = cycleEggDetails.filter(
+      (d) => d.isInteractable || d.isDiscovered,
+    );
 
-    const hasAnyInteractable = unsolvedDetails.some((d) => d.isInteractable);
+    // Le premier œuf accessible non résolu de la séquence chronologique
+    const unsolvedAccessible = accessibleEggDetails.filter((d) => !d.isDiscovered);
+    const targetUnsolved = unsolvedAccessible[0] || null;
+
+    let chosen: any = null;
+    if (targetUnsolved) {
+      chosen = targetUnsolved;
+    } else if (cycleProgresses.length > 0) {
+      const lastSolved = cycleProgresses[cycleProgresses.length - 1];
+      chosen = {
+        egg: lastSolved.easterEgg,
+        instance: null,
+        isDiscovered: true,
+        isInteractable: false,
+        isVisible: true,
+        isExplicitHintVisible: false,
+        firstInteractionAt: lastSolved.firstInteractionAt,
+        discoveredAt: lastSolved.discoveredAt,
+        resolutionTimeSeconds: lastSolved.resolutionTimeSeconds,
+      };
+    }
+
+    const hasAnyInteractable = unsolvedAccessible.length > 0;
 
     return {
       currentEgg: chosen?.egg || null,
@@ -980,12 +1032,16 @@ export class EasterEggService implements OnModuleInit {
       cyclePeriodIds,
       periodStart,
       periodEnd,
-      cycleEggs: chosen ? [chosen] : [],
+      cycleEggs: accessibleEggDetails.length > 0 ? accessibleEggDetails : (chosen ? [chosen] : []),
       hasAnyInteractable,
+      unsolvedRolloverCount,
+      showRolloverWarning,
       multiEggProgress: {
         total: totalCount,
         solved: solvedCount,
         currentIndex,
+        unsolvedRolloverCount,
+        showRolloverWarning,
       },
     };
   }
@@ -1153,6 +1209,8 @@ export class EasterEggService implements OnModuleInit {
     let isExplicitHintVisible = false;
     if (explicitInstance?.forceHint) {
       isExplicitHintVisible = true;
+    } else if (team.id && explicitInstance?.forcedHintTeamIds?.includes(team.id)) {
+      isExplicitHintVisible = true;
     } else if (isInteractable && playerProgress?.firstInteractionAt) {
       const delayMs = (currentEgg.hintDelayMinutes || 120) * 60 * 1000;
       if (nowTime.getTime() - playerProgress.firstInteractionAt.getTime() >= delayMs) {
@@ -1261,6 +1319,8 @@ export class EasterEggService implements OnModuleInit {
           rawMultiProgress && rawMultiProgress.total > 0
             ? rawMultiProgress.currentIndex
             : 1,
+        unsolvedRolloverCount: rawMultiProgress?.unsolvedRolloverCount || 0,
+        showRolloverWarning: rawMultiProgress?.showRolloverWarning || false,
       },
       metaEnigma: {
         hasChronoEgg: !!team.hasChronoEgg,
@@ -1459,7 +1519,7 @@ export class EasterEggService implements OnModuleInit {
 
     const isMatch = egg.caseSensitive
       ? expected === submitted
-      : expected.toLowerCase() === submitted.toLowerCase();
+      : this.normalizeAnswer(expected) === this.normalizeAnswer(submitted);
 
     if (!isMatch) {
       return {
@@ -2023,6 +2083,48 @@ export class EasterEggService implements OnModuleInit {
     });
   }
 
+  /**
+   * Normalisation tolérante des réponses soumises par les joueurs :
+   * - Suppression des accents (décomposition NFD)
+   * - Conversion en minuscules
+   * - Remplacement des séparateurs multiples (tirets, underscores, espaces répétés) par un simple espace
+   * - Suppression des espaces en début et fin de chaîne
+   */
+  public normalizeAnswer(str: string): string {
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[\s\-_]+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Calcule dynamiquement la répartition par défaut des cycles de pause
+   * en fonction du nombre total de cycles T de la saison (~17% de pauses harmonieusement réparties).
+   */
+  public computeDefaultPauseCycles(totalCycles: number): number[] {
+    if (totalCycles < 5) return [];
+    const pauseCount = Math.max(1, Math.round(totalCycles * 0.17));
+    const interval = totalCycles / (pauseCount + 1);
+    return Array.from({ length: pauseCount }, (_, i) => Math.round(interval * (i + 1)));
+  }
+
+  /**
+   * Récupère la liste effective des cycles de pause (1-indexed) :
+   * - Utilise la configuration de l'instance si définie
+   * - Sinon applique le calcul dynamique selon le nombre total de cycles
+   */
+  public getEffectivePauseCycles(
+    instanceYear: { easterEggPauseCycles?: number[] | null },
+    totalCycles: number,
+  ): number[] {
+    if (instanceYear?.easterEggPauseCycles && instanceYear.easterEggPauseCycles.length > 0) {
+      return instanceYear.easterEggPauseCycles;
+    }
+    return this.computeDefaultPauseCycles(totalCycles);
+  }
+
   public getRequiredPlayersForEgg(
     egg?: { complexity?: EasterEggDifficulty | null } | null,
     teamTotalPlayers?: number,
@@ -2375,6 +2477,9 @@ export class EasterEggService implements OnModuleInit {
         ...(dto.easterEggMaxWinningTeams !== undefined && {
           easterEggMaxWinningTeams: dto.easterEggMaxWinningTeams,
         }),
+        ...(dto.easterEggPauseCycles !== undefined && {
+          easterEggPauseCycles: dto.easterEggPauseCycles,
+        }),
         ...(dto.metaEnigmaSecretWord !== undefined && {
           metaEnigmaSecretWord: dto.metaEnigmaSecretWord,
         }),
@@ -2632,6 +2737,7 @@ export class EasterEggService implements OnModuleInit {
           title: i.easterEgg.title,
           rewardPointsIT: i.easterEgg.rewardPointsIT,
           forceHint: i.forceHint,
+          forcedHintTeamIds: i.forcedHintTeamIds || [],
           discoverers,
           teamsCompleted,
         };
@@ -2682,6 +2788,8 @@ export class EasterEggService implements OnModuleInit {
       const eggsProgress = activeEggsList.map(egg => {
         const eggDiscoveriesForTeam = teamDiscoveries.filter(d => d.easterEggId === egg.eggId);
         const eggReward = teamAllRewards.find(tr => tr.easterEggId === egg.eggId);
+        const matchingEgg = activeEggs.find((e) => e.id === egg.eggId);
+        const eggRequiredPlayers = this.getRequiredPlayersForEgg(matchingEgg, teamTotalPlayers);
         const players = eggDiscoveriesForTeam.map(d => ({
           childId: d.child.id,
           pseudo: d.child.pseudo,
@@ -2697,7 +2805,7 @@ export class EasterEggService implements OnModuleInit {
           rewardPointsIT: egg.rewardPointsIT,
           isCompleted: !!eggReward,
           playersCount: players.length,
-          requiredPlayers: instanceYear.easterEggRequiredPlayers ?? 2,
+          requiredPlayers: eggRequiredPlayers,
           players,
           reward: eggReward
             ? {
@@ -2709,6 +2817,8 @@ export class EasterEggService implements OnModuleInit {
         };
       });
 
+      const teamRequiredPlayers = this.getRequiredPlayersForEgg(currentEgg, teamTotalPlayers);
+
       return {
         teamId: team.id,
         teamName: team.name,
@@ -2716,7 +2826,7 @@ export class EasterEggService implements OnModuleInit {
         teamIcon: team.icon || null,
         totalPlayers: teamTotalPlayers,
         discoveredCount: uniqueContributingPlayerIds.size,
-        requiredPlayers: instanceYear.easterEggRequiredPlayers ?? 2,
+        requiredPlayers: teamRequiredPlayers,
         activeEggsTotal,
         solvedEggsCount: solvedEggs.length,
         solvedEggs,
@@ -2740,6 +2850,7 @@ export class EasterEggService implements OnModuleInit {
         title: currentEgg.title,
         rewardPointsIT: currentEgg.rewardPointsIT,
         forceHint: !!explicitInstance?.forceHint,
+        forcedHintTeamIds: explicitInstance?.forcedHintTeamIds || [],
         discoverers: allPeriodDiscoveries
           .filter(d => d.easterEggId === currentEgg.id)
           .map(d => ({
@@ -2981,7 +3092,12 @@ export class EasterEggService implements OnModuleInit {
     return { success: true, message: 'Easter Egg clôturé pour cette période' };
   }
 
-  async forceInstanceHint(instanceYearId: number, easterEggId?: number) {
+  async forceInstanceHint(
+    instanceYearId: number,
+    easterEggId?: number,
+    teamId?: number,
+    revoke = false,
+  ) {
     const activeInstance = await this.prisma.evoeEasterEggInstance.findFirst({
       where: {
         instanceYearId,
@@ -2992,12 +3108,57 @@ export class EasterEggService implements OnModuleInit {
     });
 
     if (activeInstance) {
+      let updatedForceHint = activeInstance.forceHint;
+      let updatedForcedHintTeamIds = Array.isArray(activeInstance.forcedHintTeamIds)
+        ? [...activeInstance.forcedHintTeamIds]
+        : [];
+
+      if (revoke) {
+        if (teamId) {
+          updatedForcedHintTeamIds = updatedForcedHintTeamIds.filter((id) => id !== teamId);
+        } else {
+          updatedForceHint = false;
+          updatedForcedHintTeamIds = [];
+        }
+      } else {
+        if (teamId) {
+          if (!updatedForcedHintTeamIds.includes(teamId)) {
+            updatedForcedHintTeamIds.push(teamId);
+          }
+        } else {
+          updatedForceHint = true;
+        }
+      }
+
       await this.prisma.evoeEasterEggInstance.update({
         where: { id: activeInstance.id },
-        data: { forceHint: true },
+        data: {
+          forceHint: updatedForceHint,
+          forcedHintTeamIds: updatedForcedHintTeamIds,
+        },
       });
-      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'force_hint', easterEggId });
-      return { success: true, message: '2ème indice forcé pour tous les joueurs' };
+
+      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, {
+        action: 'force_hint',
+        easterEggId: activeInstance.easterEggId,
+        teamId,
+        revoke,
+      });
+
+      const message = revoke
+        ? teamId
+          ? 'Forçage de l’indice révoqué pour cette équipe (temporisation normale rétablie)'
+          : 'Forçage de l’indice révoqué pour toutes les équipes'
+        : teamId
+          ? '2ème indice forcé pour l’équipe sélectionnée'
+          : '2ème indice forcé pour toutes les équipes';
+
+      return {
+        success: true,
+        message,
+        forceHint: updatedForceHint,
+        forcedHintTeamIds: updatedForcedHintTeamIds,
+      };
     } else {
       const targetEgg = easterEggId
         ? await this.prisma.evoeEasterEgg.findUnique({ where: { id: easterEggId } })
@@ -3008,7 +3169,10 @@ export class EasterEggService implements OnModuleInit {
         throw new BadRequestException('Aucun Easter Egg actif à forcer');
       }
 
-      await this.prisma.evoeEasterEggInstance.upsert({
+      const initialForceHint = !revoke && !teamId;
+      const initialTeamIds = !revoke && teamId ? [teamId] : [];
+
+      const created = await this.prisma.evoeEasterEggInstance.upsert({
         where: {
           instanceYearId_easterEggId_periodStartId: {
             instanceYearId,
@@ -3016,19 +3180,40 @@ export class EasterEggService implements OnModuleInit {
             periodStartId: tracking.currentPeriod.id,
           },
         },
-        update: { forceHint: true },
+        update: {
+          forceHint: initialForceHint,
+          forcedHintTeamIds: initialTeamIds,
+        },
         create: {
           instanceYearId,
           easterEggId: targetEgg.id,
           periodStartId: tracking.currentPeriod.id,
           periodEndId: tracking.currentPeriod.id,
-          forceHint: true,
+          forceHint: initialForceHint,
+          forcedHintTeamIds: initialTeamIds,
           isClosed: false,
         },
       });
 
-      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, { action: 'force_hint', easterEggId });
-      return { success: true, message: '2ème indice forcé pour cette période' };
+      this.chatGateway?.broadcastEasterEggUpdate(instanceYearId, {
+        action: 'force_hint',
+        easterEggId: targetEgg.id,
+        teamId,
+        revoke,
+      });
+
+      const message = revoke
+        ? 'Forçage de l’indice révoqué'
+        : teamId
+          ? '2ème indice forcé pour l’équipe sélectionnée'
+          : '2ème indice forcé pour cette période';
+
+      return {
+        success: true,
+        message,
+        forceHint: created.forceHint,
+        forcedHintTeamIds: created.forcedHintTeamIds,
+      };
     }
   }
 
@@ -3056,14 +3241,16 @@ export class EasterEggService implements OnModuleInit {
       orderBy: { orderIndex: 'asc' },
     });
 
-    // Cycles sans Easter Egg (pauses temporelles / cycles neutres sans énigme)
-    const defaultEmptyCycles = new Set([4, 8, 14, 19]);
+    // Cycles de pause temporelle calculés dynamiquement ou configurés par l'admin
+    const effectivePauseCycles = new Set(
+      this.getEffectivePauseCycles(instanceYear, totalCycles),
+    );
 
     // Mapping séquentiel des énigmes du catalogue pour les cycles avec énigmes
     let eggCatalogCursor = 0;
     const cycleEggMapping: Record<number, number[]> = {};
     for (let cIdx = 1; cIdx <= totalCycles; cIdx++) {
-      if (!defaultEmptyCycles.has(cIdx)) {
+      if (!effectivePauseCycles.has(cIdx)) {
         if (activeCatalog.length > 0) {
           cycleEggMapping[cIdx] = [activeCatalog[eggCatalogCursor % activeCatalog.length].id];
           eggCatalogCursor++;
@@ -3116,7 +3303,7 @@ export class EasterEggService implements OnModuleInit {
         }
       } else {
         // Distribution par défaut
-        if (!defaultEmptyCycles.has(cIdx) && cycleEggMapping[cIdx]?.length > 0) {
+        if (!effectivePauseCycles.has(cIdx) && cycleEggMapping[cIdx]?.length > 0) {
           hasEgg = true;
           eggIds = cycleEggMapping[cIdx];
         } else {
@@ -3211,11 +3398,10 @@ export class EasterEggService implements OnModuleInit {
 
     const frequency = Math.max(1, instanceYear.easterEggFrequency || 2);
     const targetCycleIndex = Math.floor(pIdx / frequency) + 1;
-    const defaultEmptyCycles = new Set([4, 8, 14, 19]);
-
-    if (defaultEmptyCycles.has(targetCycleIndex)) {
-      throw new BadRequestException('Ce cycle temporel ne comporte aucun Easter Egg.');
-    }
+    const totalCycles = Math.max(1, Math.ceil(periods.length / frequency));
+    const effectivePauseCycles = new Set(
+      this.getEffectivePauseCycles(instanceYear, totalCycles),
+    );
 
     const activeCatalog = await this.prisma.evoeEasterEgg.findMany({
       where: { isActive: true },
@@ -3237,6 +3423,10 @@ export class EasterEggService implements OnModuleInit {
       },
       include: { easterEgg: true },
     });
+
+    if (effectivePauseCycles.has(targetCycleIndex) && instances.length === 0) {
+      throw new BadRequestException('Ce cycle temporel est une pause temporelle sans Easter Egg.');
+    }
 
     let candidateEgg: EvoeEasterEgg | null = null;
     if (instances.length > 0) {
@@ -3262,7 +3452,7 @@ export class EasterEggService implements OnModuleInit {
     } else {
       let eggCatalogCursor = 0;
       for (let c = 1; c <= targetCycleIndex; c++) {
-        if (!defaultEmptyCycles.has(c)) {
+        if (!effectivePauseCycles.has(c)) {
           if (c === targetCycleIndex) {
             candidateEgg = activeCatalog[eggCatalogCursor % activeCatalog.length];
             break;
@@ -3409,8 +3599,8 @@ export class EasterEggService implements OnModuleInit {
    */
   async submitMetaEnigmaCode(childId: number, code: string) {
     const { team, instanceYear } = await this.getPlayerContext(childId);
-    const expected = (instanceYear.metaEnigmaSecretWord || 'CHRONOS').trim().toUpperCase();
-    const submitted = (code || '').trim().toUpperCase();
+    const expected = this.normalizeAnswer(instanceYear.metaEnigmaSecretWord || 'CHRONOS');
+    const submitted = this.normalizeAnswer(code || '');
 
     if (submitted === expected) {
       await this.prisma.team.update({
@@ -3505,6 +3695,7 @@ export class EasterEggService implements OnModuleInit {
     });
 
     const currentCycleIndex = Math.floor(Math.max(0, currentPeriodIndex - 1) / frequency);
+    const effectivePauseCycles = this.getEffectivePauseCycles(instanceYear, totalCycles);
 
     const cycles: any[] = [];
 
@@ -3519,12 +3710,14 @@ export class EasterEggService implements OnModuleInit {
       const isCurrent = c === currentCycleIndex;
       const isPast = c < currentCycleIndex;
       const isFuture = c > currentCycleIndex;
+      const isPause = effectivePauseCycles.includes(c + 1);
 
       // Déterminer les œufs de ce cycle
-      // 1. Œuf naturel du cycle
-      const naturalEgg = activeEggs.length > 0 ? activeEggs[c % activeEggs.length] : null;
+      // 1. Œuf naturel du cycle (nul si cycle de pause)
+      const naturalEgg =
+        !isPause && activeEggs.length > 0 ? activeEggs[c % activeEggs.length] : null;
 
-      // 2. Instances manuelles ouvertes sur ce cycle
+      // 2. Instances manuelles ouvertes sur ce cycle (autorisé même sur cycle de pause)
       const cycleInstances = instances.filter(
         (inst) =>
           inst.periodStartId != null &&
@@ -3821,6 +4014,7 @@ export class EasterEggService implements OnModuleInit {
         isCurrent,
         isPast,
         isFuture,
+        isPause,
         periodStart: periodStart
           ? {
               id: periodStart.id,
@@ -3845,8 +4039,12 @@ export class EasterEggService implements OnModuleInit {
     return {
       instanceYearId,
       frequency,
+      totalCycles,
       currentPeriodId: currentPeriod?.id || null,
       currentPeriodIndex,
+      easterEggPauseCycles: instanceYear.easterEggPauseCycles || [],
+      effectivePauseCycles,
+      defaultPauseProposal: this.computeDefaultPauseCycles(totalCycles),
       teams: instanceYear.teams.map((t) => ({
         id: t.id,
         name: t.name,

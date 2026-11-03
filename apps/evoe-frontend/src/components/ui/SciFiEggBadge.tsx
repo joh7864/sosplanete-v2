@@ -16,18 +16,19 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
   hasSeenEnigma: _hasSeenEnigma = false,
   onClick,
 }) => {
-  if (!eggData || !eggData.enabled || !eggData.hasActiveEgg || !eggData.easterEgg) {
+  if (!eggData || eggData.enabled === false) {
     return null;
   }
 
-  const isInteractable = eggData.easterEgg.isInteractable !== false;
+  const hasActiveEgg = !!eggData.hasActiveEgg && !!eggData.easterEgg;
+  const isInteractable = !!eggData.hasAnyInteractable || (hasActiveEgg && eggData.easterEgg?.isInteractable !== false);
   const isDiscovered = !!eggData.playerProgress?.isDiscovered;
   const isTeamRewarded = !!eggData.teamProgress?.isTeamRewarded;
   const isHunting =
     isInteractable && !isDiscovered && !isTeamRewarded && !!eggData.playerProgress?.firstInteractionAt;
 
-  // Teinte de bordure selon l'état d'interaction
-  let rimColor = isInteractable ? '#38bdf8' : '#64748b'; // Cyan d'origine ou ardoise si inerte
+  // Teinte de bordure selon l'état d'interaction : ardoise en mode veille discret, cyan/ambre en interactif
+  let rimColor = isInteractable ? '#38bdf8' : '#64748b';
   let rimGlow = isInteractable ? 'rgba(56, 189, 248, 0.5)' : 'rgba(100, 116, 139, 0.2)';
 
   if (isTeamRewarded) {
@@ -68,6 +69,15 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       type="button"
       id="hud-easter-egg-badge"
       className="hud-easter-egg-badge"
+      title={
+        isPeriodCompleted
+          ? 'Anomalie temporelle résolue !'
+          : isInteractable
+            ? 'Anomalie temporelle détectée : Déchiffrez le signal 2070 !'
+            : hasActiveEgg
+              ? 'Anomalie temporelle en veille (Accomplissez vos missions pour activer)'
+              : 'Easter Egg - En veille orbitale'
+      }
       onClick={(e) => {
         e.stopPropagation();
         if (!isInteractable) return;

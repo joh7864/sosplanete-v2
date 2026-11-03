@@ -21,6 +21,7 @@ export interface EasterEggItem {
   mascotDurationSeconds?: number;
   triggerAction?: string | null;
   isInteractable?: boolean;
+  isVisible?: boolean;
   isExplicitHintVisible?: boolean;
   clues: string[];
   imageUrl?: string | null;
@@ -61,6 +62,8 @@ export interface ActiveEasterEggResponse {
     solved: number;
     currentIndex: number;
   };
+  unsolvedRolloverCount?: number;
+  showRolloverWarning?: boolean;
   metaEnigma?: {
     hasChronoEgg: boolean;
     hasRosettaStone: boolean;
