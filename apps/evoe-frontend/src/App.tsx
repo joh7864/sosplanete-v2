@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
-import Portal2026 from './components/Portal2026';
-import Portal2070 from './components/Portal2070';
+import { DashboardCanvas } from './components/ui/DashboardCanvas';
 import { useAuth } from './context/AuthContext';
 import { evoeClient } from './lib/api';
 import Login from './pages/Login';
@@ -1126,140 +1124,50 @@ function MainApp() {
         )}
       </AnimatePresence>
 
-      {/* Three.js Canvas Container */}
-      <div className="canvas-container">
-        <Canvas 
-          camera={{ position: [0, 2.4, 10.9], fov: 60 }} 
-          dpr={dpr}
-          frameloop={isHeavyModalOpen ? 'demand' : 'always'}
-          gl={{
-            powerPreference: 'high-performance',
-            antialias: true,
-            alpha: true,
-            stencil: false,
-            depth: true,
-            precision: 'highp',
-          }}
-        >
-          {era === '2026' && (
-            <Portal2026 
-              isActive={true}
-              focusedPlayerId={searchedPlayerId}
-              categories={missionsByCategory ? Object.keys(missionsByCategory) : []} 
-              onSelectSector={handleSelectSector} 
-              onSelectPlayer={handleSelectPlayer}
-              onGlobeClick={handleGlobeClick}
-              onCodexConsoleClick={handleCodexConsoleClick}
-              onStarClick={handleStarClick}
-              onSelectChallenges={() => {
-                if (childInfos && childInfos.isPeriodOpen === false) {
-                  setShowNoPeriodModal(true);
-                  return;
-                }
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setCodexTab('challenges');
-                setIsCodexCollapsed(false);
-                if (era !== '2026') handleSwitchEra();
-                if (!selectedSector) {
-                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                  if (cats.length > 0) setSelectedSector(cats[0]);
-                }
-              }}
-              onSelectChallengeBadge={() => {
-                if (childInfos && childInfos.isPeriodOpen === false) {
-                  setShowNoPeriodModal(true);
-                  return;
-                }
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setCodexTab('challenges');
-                setIsCodexCollapsed(false);
-                if (era !== '2026') handleSwitchEra();
-                if (!selectedSector) {
-                  const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-                  if (cats.length > 0) setSelectedSector(cats[0]);
-                }
-              }}
-              onlineUsers={onlineUsers}
-              unreadTeam={unreadChat.team}
-              unreadGlobal={unreadChat.global}
-              unreadSystem={unreadChat.system}
-              unreadMps={unreadChat.unreadMps}
-              onSelectEnvelope={handleSelectEnvelope}
-              isMobile={isMobile}
-              view={view2026}
-              leaderboardTimeframe={leaderboardTimeframe}
-              dashboardStatus={dashboardStatus}
-              challenges={challenges}
-              missionsWeekCount={impulsedMissionsCount}
-              isStealthMode={isStealthMode}
-              onToggleStealth={toggleStealthMode}
-              customPlayersList={enrichedPlayers}
-              onSelectBirthdayCake={handleSelectBirthdayCake}
-              onSelectMissionsWeek={() => {
-                setSelectedProfileId(null);
-                setChatOpen(false);
-                setShowMissionsWeekModal(true);
-              }}
-              onCloseLeaderboard={() => setView2026('codex')}
-            />
-          )}
-          {era === '2070' && (
-            <Portal2070 
-              isActive={true}
-              dashboardStatus={dashboardStatus} 
-              selectedTeamId={selectedRadarTeamId}
-              onEarthClick={handleEarthClick} 
-              onVesselClick={handleVesselClick}
-              isMobile={isMobile}
-            />
-          )}
-        </Canvas>
-      </div>
-
-      {/* Oracle Terrestre — Overlay machine à écrire au clic sur la Terre */}
-      {era === '2070' && earthOracleLevel !== null && (
-        <div
-          onClick={() => setEarthOracleLevel(null)}
-          style={{
-            position: 'fixed',
-            bottom: '90px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 200,
-            maxWidth: '560px',
-            width: '90vw',
-            background: 'rgba(5, 10, 22, 0.88)',
-            border: '1px solid rgba(0, 255, 204, 0.4)',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            boxShadow: '0 0 40px rgba(0, 255, 204, 0.12), 0 20px 50px rgba(0,0,0,0.7)',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '0.65rem', fontWeight: '900', letterSpacing: '0.18em', color: '#00ffcc', textTransform: 'uppercase', textShadow: '0 0 8px rgba(0,255,204,0.5)' }}>
-              🌍 Oracle Terrestre — 2070
-            </span>
-            <span style={{ fontSize: '0.65rem', color: 'rgba(160,174,192,0.6)', fontStyle: 'italic' }}>Cliquer pour fermer</span>
-          </div>
-          <p style={{
-            margin: 0,
-            fontSize: '0.9rem',
-            lineHeight: '1.7',
-            color: '#e2e8f0',
-            fontFamily: '"Courier New", Courier, monospace',
-            minHeight: '60px',
-          }}>
-            {earthOracleText}
-            {earthOracleTyping && <span style={{ display: 'inline-block', width: '2px', height: '1em', background: '#00ffcc', marginLeft: '2px', animation: 'blink 0.7s step-end infinite', verticalAlign: 'text-bottom' }} />}
-          </p>
-        </div>
-      )}
+      {/* Three.js Canvas Container & Portails Temporels 2026/2070 */}
+      <DashboardCanvas
+        era={era}
+        dpr={dpr}
+        isHeavyModalOpen={isHeavyModalOpen}
+        searchedPlayerId={searchedPlayerId}
+        missionsByCategory={missionsByCategory}
+        handleSelectSector={handleSelectSector}
+        handleSelectPlayer={handleSelectPlayer}
+        handleGlobeClick={handleGlobeClick}
+        handleCodexConsoleClick={handleCodexConsoleClick}
+        handleStarClick={handleStarClick}
+        childInfos={childInfos}
+        setShowNoPeriodModal={setShowNoPeriodModal}
+        setSelectedProfileId={setSelectedProfileId}
+        setChatOpen={setChatOpen}
+        setCodexTab={setCodexTab}
+        setIsCodexCollapsed={setIsCodexCollapsed}
+        handleSwitchEra={handleSwitchEra}
+        selectedSector={selectedSector}
+        setSelectedSector={setSelectedSector}
+        onlineUsers={onlineUsers}
+        unreadChat={unreadChat}
+        handleSelectEnvelope={handleSelectEnvelope}
+        isMobile={isMobile}
+        view2026={view2026}
+        leaderboardTimeframe={leaderboardTimeframe}
+        dashboardStatus={dashboardStatus}
+        challenges={challenges}
+        impulsedMissionsCount={impulsedMissionsCount}
+        isStealthMode={isStealthMode}
+        toggleStealthMode={toggleStealthMode}
+        enrichedPlayers={enrichedPlayers}
+        handleSelectBirthdayCake={handleSelectBirthdayCake}
+        setShowMissionsWeekModal={setShowMissionsWeekModal}
+        setView2026={setView2026}
+        selectedRadarTeamId={selectedRadarTeamId}
+        handleEarthClick={handleEarthClick}
+        handleVesselClick={handleVesselClick}
+        earthOracleLevel={earthOracleLevel}
+        setEarthOracleLevel={setEarthOracleLevel}
+        earthOracleText={earthOracleText}
+        earthOracleTyping={earthOracleTyping}
+      />
 
       {/* Transition Effect (Flash Visière Vif & Fluide) */}
       <AnimatePresence>
