@@ -10,35 +10,37 @@
 | **CAMP-004** | 10/05/2026 | Automatique | 26 / 29 | 0 | 0 | Automatisation étendue (Auth, Users, Catalogue, Actions CSV). |
 | **CAMP-005** | 10/05/2026 | Automatique | 27 / 29 | 0 | 0 | **Automatisation Quasi-Totale**. Ajout de la protection des routes (TST-005). |
 | **CAMP-006** | 11/05/2026 | Automatique | 6 / 6 | 0 | 0 | **Validation Migration `instanceYearId`**. Isolation stricte et cascades validées avec succès. |
+| **CAMP-007** | **04/11/2026** | **Automatique E2E Docker (Port 5434)** | **8 / 8 (100%)** | **0** | **0** | **Suite E2E Cockpit Admin** (`test/admin.e2e-spec.ts`) : Auth SuperAdmin, rejet 401/403, consultation instances et catégories isolées. |
 
 ---
 
 ## 🎯 Objectif et Lancement
-L'objectif de ce cahier de recette est de valider la stabilité de l'application via des tests fonctionnels automatisés (approche Golden Master). Il permet d'assurer la non-régression du backend, particulièrement sur la création des espaces, les imports massifs et les algorithmes de calcul d'impact.
+L'objectif de ce cahier de recette est de valider la stabilité de l'application via des tests fonctionnels automatisés (approche Golden Master et E2E NestJS). Il permet d'assurer la non-régression du backend, particulièrement sur la création des espaces, les imports massifs, les algorithmes de calcul d'impact et la sécurité multi-rôles.
 
-**Pour lancer la campagne de recette automatisée :**
+**Pour lancer la campagne de recette E2E Cockpit Admin :**
 ```bash
-npx ts-node -T test/recette-runner.ts
-```
-*(À exécuter depuis le dossier `apps/backend-v2`)*
+# Lancement de toute la suite de recette API
+npm run test:recette:api
 
-**Suite à donner :**
-1. Les résultats de la baseline sont générés dans `baseline_results.json`.
-2. les erreurs sont automatiquement listées dans `anomalies_recette.md`.
-3. **Appliquer l'agent `/blyx-bug`** pour traiter et corriger les anomalies identifiées.
+# Ou exécution ciblée du cockpit admin :
+node scripts/with-test-env.js npx jest test/admin.e2e-spec.ts --runInBand --forceExit
+```
 
 ---
 
 ## 📋 Liste des Tests Fonctionnels
 
-## 🔑 1. Authentification & Sécurité
-| ID | Test | Résultat Attendu | Statut |
+## 🔑 1. Authentification & Sécurité Cockpit Admin
+| ID Test | Test | Résultat Attendu | Statut |
 | :--- | :--- | :--- | :--- |
-| TST-001 | Accès racine `/` | Redirection automatique vers `/login`. | `[ ]` |
-| TST-002 | Login (Identifiants valides) | Accès au Dashboard + stockage du token. | `🟢 Passant` |
-| TST-003 | Login (Identifiants invalides) | Message d'erreur clair "Identifiants incorrects". | `🟢 Passant` |
-| TST-004 | Déconnexion | Retour à `/login` + vidage du storage + impossibilité de revenir en arrière. | `[ ]` |
-| TST-005 | Protection des routes | Tenter d'accéder à `/dashboard` sans être connecté -> Redirection `/login`. | `🟢 Passant` |
+| **TST-ADM-001** | Connexion SuperAdmin AS réussie (`/auth/login`) | Token JWT délivré, rôle `AS`, email `jo@dev.fr`. | 🟢 Passant |
+| **TST-ADM-002** | Connexion refusée si mot de passe erroné | Rejet HTTP 401 Unauthorized, aucun token. | 🟢 Passant |
+| **TST-ADM-003** | Rejet 401 sur routes admin sans token JWT | Rejet HTTP 401 sur `/instances`, `/categories`, `/action-ref`. | 🟢 Passant |
+| **TST-ADM-004** | Rejet 403 Forbidden sur `/categories` avec token élève | Rejet HTTP 403 Forbidden (*"Accès refusé"*). | 🟢 Passant |
+| **TST-ADM-005** | Consultation des instances par le SuperAdmin (`/instances`) | Liste des instances avec filtrage par année scolaire active. | 🟢 Passant |
+| **TST-ADM-006** | Détails d'une instance (`/instances/:id`) | Informations de l'école (nom, configuration, statut). | 🟢 Passant |
+| **TST-ADM-007** | Consultation du référentiel global d'actions (`/action-ref`) | Liste des 61 actions de référence avec codes et impacts. | 🟢 Passant |
+| **TST-ADM-008** | Consultation des catégories (`/categories`) | Liste des 6 catégories pour l'instance et l'année scolaire. | 🟢 Passant |
 
 ## 👥 2. Gestion des Utilisateurs (AS uniquement)
 | ID | Test | Résultat Attendu | Statut |

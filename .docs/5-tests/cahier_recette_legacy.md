@@ -4,7 +4,7 @@
 
 | ID Campagne | Date | Type | Tests Passés | Tests Échoués | Anomalies | Observations |
 | :--- | :---: | :--- | :---: | :---: | :---: | :--- |
-| **CAMP-LEG-001** | *(À planifier)* | Initiale Globale | `0 / 40` | `0` | `0` | Définition exhaustive du plan de tests fonctionnels SOS Planète Legacy (Admin & Core API). |
+| **CAMP-LEG-001** | **04/11/2026** | **Automatique API E2E (Port 5434)** | **14 / 14 (100%)** | **0** | **0** | Validation automatisée E2E de l'API Legacy (`test/legacy.e2e-spec.ts`) sur base de recette Docker isolée. |
 
 ---
 
@@ -14,7 +14,13 @@ L'objectif de ce cahier de recette est de valider de manière exhaustive et repr
 
 ### 🔄 Modalités d'Exécution par Campagne
 1. **Campagne Manuelle (Recette UI/Admin)** : Suivi pas à pas de la matrice de test dans le navigateur avec saisie du statut (`🟢 Passant`, `🔴 Échoué`, `🟡 Bloqué`, `⚪ Non Passé`).
-2. **Campagne Automatisée (Intégration API & Modèles Prisma)** : Exécution de suites de tests / runners backend dédiés (`scripts/run_campaign_legacy_001.ts`).
+2. **Campagne Automatisée (Intégration API & Modèles Prisma)** : Exécution de suites de tests / runners backend dédiés :
+   ```bash
+   # Lancement de la suite automatisée Legacy API
+   npm run test:recette:api
+   # ou spécifiquement :
+   node scripts/with-test-env.js npx jest test/legacy.e2e-spec.ts --runInBand --forceExit
+   ```
 3. **Consignation des Anomalies** : En cas d'échec d'un test, consigner le bug dans `.docs/blyx_cockpit/bugs_tracking.md` et appliquer le workflow `/blyx-bug`.
 
 ---
@@ -24,22 +30,26 @@ L'objectif de ce cahier de recette est de valider de manière exhaustive et repr
 ### 🔑 1. Authentification Admin & Sécurité Multi-Tenants (EPIC-LEG-01)
 | ID Test | Cas de Test & Préconditions | Procédure de Test | Résultat Attendu | Statut |
 | :--- | :--- | :--- | :--- | :---: |
-| **TST-LEG-001** | Redirection vers Login Admin | Accéder à l'URL `/dashboard` sans session active. | Redirection automatique vers `/login`. | `[ ]` |
-| **TST-LEG-002** | Connexion Admin Réussie | Saisir identifiant et mot de passe valides pour un compte Admin. | Connexion réussie, stockage token JWT et redirection vers le dashboard ou sélecteur d'instance. | `[ ]` |
-| **TST-LEG-003** | Rejet Identifiants Admin Invalides | Saisir un mot de passe erroné. | Message d'erreur explicite : *"Identifiants incorrects"*. Aucun token délivré. | `[ ]` |
-| **TST-LEG-004** | Sélection d'Instance (Espace École) | Se connecter avec un compte multi-instances et choisir une école sur `/dashboard/select-instance`. | Le contexte de l'école est chargé (`instanceId`) et appliqué sur toutes les vues de gestion. | `[ ]` |
-| **TST-LEG-005** | Déconnexion Sécurisée | Cliquer sur « Déconnexion » dans la barre de navigation. | Purge complète du token et redirection immédiate vers `/login`. | `[ ]` |
+| **TST-LEG-001** | Connexion Basic Auth élève unique | Appel `GET /legacy/check_auth` avec header Basic Auth base64(groot:password123). | Token JWT délivré, session active, `instanceId`, `schoolYear: 2025-2026`. | 🟢 Passant |
+| **TST-LEG-002** | Rejet Identifiants Invalides | Appel `GET /legacy/check_auth` avec mot de passe erroné. | Rejet HTTP 401 Unauthorized, aucun token délivré. | 🟢 Passant |
+| **TST-LEG-003** | Rejet sans Header Auth | Appel `GET /legacy/check_auth` sans header d'autorisation. | Rejet HTTP 401 Unauthorized (*"Authorization header required"*). | 🟢 Passant |
+| **TST-LEG-004** | Validation session Bearer token | Appel `GET /legacy/check_auth` avec Bearer token valide d'élève. | Session validée (HTTP 200), retour du pseudo et childId. | 🟢 Passant |
+| **TST-LEG-005** | Résolution Élève Homonyme Multi-Écoles | Appel `GET /legacy/check_auth` avec identifiants d'un élève inscrit dans 2 écoles. | Retour `status: multiple_choices` avec la liste des écoles et tokens associés. | 🟢 Passant |
 
 ---
 
 ### 📊 2. Tableau de Bord & Indicateurs Globaux d'Impact (EPIC-LEG-02)
 | ID Test | Cas de Test & Préconditions | Procédure de Test | Résultat Attendu | Statut |
 | :--- | :--- | :--- | :--- | :---: |
-| **TST-LEG-006** | Affichage des KPI Principaux | Consulter la page d'accueil `/dashboard`. | Affichage des compteurs : Total Actions réalisées, CO2 évité (kg/t), Eau préservée (L/m³), Déchets réduits (kg). | `[ ]` |
-| **TST-LEG-007** | Jauge du Terre-momètre | Vérifier la jauge écologique sur le dashboard. | La jauge reflète le pourcentage d'avancement de l'école vers ses objectifs écologiques annuels. | `[ ]` |
-| **TST-LEG-008** | Graphique d'Évolution Temporelle | Observer les graphiques hebdomadaires/mensuels d'actions. | Courbes et histogrammes fluides montrant la dynamique d'impulsion par période. | `[ ]` |
-| **TST-LEG-009** | Classement Inter-Classes Dashboard | Consulter le tableau de synthèse des équipes sur le dashboard. | Classement ordonné des classes par nombre d'actions et points d'impact. | `[ ]` |
-| **TST-LEG-010** | Filtre par Année Scolaire | Changer l'année scolaire sélectionnée dans le filtre d'en-tête. | Actualisation instantanée des KPI et graphiques pour l'année choisie. | `[ ]` |
+| **TST-LEG-006** | Récupération des Catégories de l'Instance | Appel `GET /legacy/categories` avec header `x-instance-id`. | Retour des 6 catégories d'actions de l'école (Transport, Biodiversité, Déchets, etc.). | 🟢 Passant |
+| **TST-LEG-007** | Consultation du Catalogue Complet d'Actions | Appel `GET /legacy/actions` avec header `x-instance-id`. | Liste complète des actions locales avec leurs coefficients d'impact CO2/Eau/Déchets. | 🟢 Passant |
+| **TST-LEG-008** | Filtrage des Actions par Catégorie | Appel `GET /legacy/categories/:id/actions` avec header `x-instance-id`. | Actions filtrées uniquement sur la catégorie demandée avec calcul de points. | 🟢 Passant |
+| **TST-LEG-009** | Organisation Scolaire - Liste des Équipes | Appel `GET /legacy/teams` avec header `x-instance-id`. | Liste des équipes/classes de l'école (Vaisseau Orion, Phoenix, Cyber) avec couleurs. | 🟢 Passant |
+| **TST-LEG-010** | Cumul des Scores par Équipe | Appel `GET /legacy/teams/total` avec header `x-instance-id`. | Synthèse des scores cumulés par équipe sur la période active. | 🟢 Passant |
+| **TST-LEG-011** | Indicateurs Globaux d'Impact Environnemental | Appel `GET /legacy/impact` avec header `x-instance-id`. | Calculs consolidés : total CO2, Eau, Déchets et date de dépassement planétaire. | 🟢 Passant |
+| **TST-LEG-012** | Enregistrement d'une Action Réalisée | Appel `POST /legacy/actiondone/:childId` avec `{ action_id }`. | Action enregistrée en base (HTTP 201), impact incrémenté, id retourné. | 🟢 Passant |
+| **TST-LEG-013** | Historique des Actions Réalisées de l'Élève | Appel `GET /legacy/children/:childId/actionsdone`. | Liste des actions validées par l'élève sur la période avec détails. | 🟢 Passant |
+| **TST-LEG-014** | Suppression / Annulation d'une Action Réalisée | Appel `DELETE /legacy/actiondone/:actionId`. | Suppression confirmée (HTTP 200 `{ success: true }`), impact recalculé. | 🟢 Passant |
 
 ---
 

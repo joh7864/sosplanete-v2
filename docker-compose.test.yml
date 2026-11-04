@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db-test:
+    image: postgres:15-alpine
+    container_name: sos_db_test
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=sos_recette
+      - POSTGRES_USER=nnauru
+      - POSTGRES_PASSWORD=me4nnauru
+    ports:
+      - "5434:5432"
+    volumes:
+      - sos_db_data_test:/var/lib/postgresql/data
+    networks:
+      - sos_test_net
+
+networks:
+  sos_test_net:
+
+volumes:
+  sos_db_data_test:

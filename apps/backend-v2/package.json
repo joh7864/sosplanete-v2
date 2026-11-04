@@ -18,6 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:recette": "jest --config ./test/jest-e2e.json --runInBand --forceExit",
+    "test:recette:seed": "tsx prisma/seed-recette.ts",
     "recalculate:actions": "npx tsx scripts/recalculate-actions-done.ts",
     "migrate:birthdates": "npx tsx scripts/fix-player-birthdates.ts",
     "sync:birthdates:csv": "npx tsx scripts/sync-birthdates-from-csv.ts --apply",

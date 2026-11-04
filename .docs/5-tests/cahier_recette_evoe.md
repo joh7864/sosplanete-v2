@@ -6,6 +6,7 @@
 | :--- | :---: | :--- | :---: | :---: | :---: | :--- |
 | **CAMP-EVOE-001** | **30/08/2026** | **Initiale Globale (Scripts)** | **62 / 66 (94%)** | **0** | **0** | 100% de succès sur le périmètre existant (EPIC-01 à 10 + Tech). 4 tests non passés sur l'EPIC-11 (Axe 4). |
 | **CAMP-EVOE-002** | **31/08/2026** | **Recette Joueur UI (Navigateur Interactif E2E)** | **62 / 62 (100%)** | **0** | **0** | Parcours utilisateur complet exécuté en direct dans le navigateur (Login, Onboarding, Scène 3D, Codex, Impulsion, Défis PvP, Mode 2070, Leaderboard, Comm-Link, Profil, Déconnexion). |
+| **CAMP-EVOE-003** | **04/11/2026** | **Automatique API E2E & Easter Eggs (Port 5434)** | **25 / 25 (100%)** | **0** | **0** | Validation automatisée end-to-end de l'API Evoe (14 tests) et du Moteur Easter Eggs (11 tests) sur base Docker PostgreSQL:5434 isolée. |
 
 ---
 
@@ -15,7 +16,15 @@ L'objectif de ce cahier de recette est de valider de manière exhaustive et repr
 
 ### 🔄 Modalités d'Exécution par Campagne
 1. **Campagne Manuelle (Recette UI/3D/WebSockets)** : Suivi pas à pas de la matrice de test ci-dessous dans le navigateur avec saisie du statut (`🟢 Passant`, `🔴 Échoué`, `🟡 Bloqué`, `⚪ Non Passé`).
-2. **Campagne Automatisée (Intégration API & Règles Métier)** : Exécution de suites de tests end-to-end / runners backend (Supertest, Socket.io client).
+2. **Campagne Automatisée (Intégration API & Règles Métier)** : Exécution de suites de tests end-to-end sur base de recette Docker isolée :
+   ```bash
+   # Lancement de toute la suite de recette API
+   npm run test:recette:api
+
+   # Ou tests ciblés Evoe & Easter Eggs :
+   node scripts/with-test-env.js npx jest test/evoe.e2e-spec.ts --runInBand --forceExit
+   node scripts/with-test-env.js npx jest test/easter-eggs.e2e-spec.ts --runInBand --forceExit
+   ```
 3. **Consignation des Anomalies** : En cas d'échec d'un test, consigner le bug dans `.docs/blyx_cockpit/bugs_tracking.md` et appliquer le workflow `/blyx-bug` pour correction.
 
 ---
@@ -157,3 +166,20 @@ L'objectif de ce cahier de recette est de valider de manière exhaustive et repr
 | **TST-EVOE-064** | Modération par l'Arbitre d'Équipe | L'arbitre ouvre le panneau d'arbitrage et clique sur "Je valide" ou "Preuve rejetée". | Les points sont crédités à l'équipe en cas de validation, ou notifiés comme refusés avec motif. | ⚪ Non Passé |
 | **TST-EVOE-065** | Notification WhatsApp & Auto-Validation Timeout | Soumettre une preuve et laisser s'écouler le délai imparti (120 min). | Notification WhatsApp envoyée à l'arbitre et auto-validation automatique si aucun arbitre n'a réagi. | ⚪ Non Passé |
 | **TST-EVOE-066** | Mascotte Gribouille & Scan Holographique | Uploader une photo de preuve. | Faisceau de scan laser bleu néon affiché pendant 1.5s suivi d'une réplique humoristique contextuelle. | ⚪ Non Passé |
+
+---
+
+### 🥚 13. Moteur des Easter Eggs & Énigmes Quantiques (EPIC-EGG)
+| ID Test | Cas de Test & Préconditions | Procédure de Test | Résultat Attendu | Statut |
+| :--- | :--- | :--- | :--- | :---: |
+| **TST-EGG-001** | Récupération de l'Egg actif de la période | Appel `GET /evoe/easter-eggs/active/:instanceId` avec Bearer élève. | Retour de l'œuf actif du cycle, son code énigme, et statut de résolution. | 🟢 Passant |
+| **TST-EGG-002** | Rejet de mauvaise réponse | Appel `POST /evoe/easter-eggs/verify-answer` avec mauvaise réponse. | Retour `{ success: false }` sans incrément de points ni divulgation d'indice. | 🟢 Passant |
+| **TST-EGG-003** | Rejet 400 sur déclencheur non conforme | Appel `POST /evoe/easter-eggs/validate-trigger` avec mauvais type d'action. | Rejet HTTP 400 Bad Request (*"Trigger condition not met"*). | 🟢 Passant |
+| **TST-EGG-004** | Déblocage d'un Easter Egg interactif | Appel `POST /evoe/easter-eggs/validate-trigger` avec le bon déclencheur (`CLICK_PLANET`). | Déclenchement réussi, statut débloqué retourné. | 🟢 Passant |
+| **TST-EGG-005** | Résolution correcte d'énigme & Crédit IT | Appel `POST /evoe/easter-eggs/verify-answer` avec bonne réponse ("photosynthese"). | Succès, bonus IT crédité à l'élève et son équipe, statut complété. | 🟢 Passant |
+| **TST-EGG-006** | Accès Back-Office Catalogue SuperAdmin | Appel `GET /evoe/easter-eggs/admin/catalog` avec token SuperAdmin (AS). | Liste complète du catalogue national des Easter Eggs (5 œufs de recette). | 🟢 Passant |
+| **TST-EGG-007** | Rejet 403 du catalogue admin pour élève | Appel `GET /evoe/easter-eggs/admin/catalog` avec token joueur élève. | Rejet HTTP 403 Forbidden (*"Forbidden resource"*). | 🟢 Passant |
+| **TST-EGG-008** | Suivi Enseignant AM par Instance | Appel `GET /evoe/easter-eggs/admin/tracking/:instanceYearId` avec token AM. | Vue de suivi des découvertes et énigmes résolues par équipe. | 🟢 Passant |
+| **TST-EGG-009** | Rejet 403 sur instance non gérée par AM | Appel `GET /evoe/easter-eggs/admin/tracking/:instanceYearId` sur école fermée. | Rejet HTTP 403 Forbidden (*"Access to this instance is forbidden"*). | 🟢 Passant |
+| **TST-EGG-010** | Consultation de la Chrono-Frise | Appel `GET /evoe/easter-eggs/chrono-frise/:instanceYearId` avec Bearer élève. | Liste ordonnée chronologiquement des artefacts temporels débloqués. | 🟢 Passant |
+| **TST-EGG-011** | Validation stricte DTO 400 | Soumission d'un payload vide ou mal formé à `verify-answer`. | Rejet HTTP 400 Bad Request par la ValidationPipe NestJS. | 🟢 Passant |

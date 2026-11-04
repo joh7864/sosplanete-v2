@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "powershell -ExecutionPolicy Bypass -File .\\dev.ps1",
+    "test:recette:db": "docker compose -f docker-compose.test.yml up -d",
+    "test:recette:migrate": "node scripts/with-test-env.js npx prisma migrate deploy",
+    "test:recette:seed": "node scripts/with-test-env.js npx tsx prisma/seed-recette.ts",
+    "test:recette:api": "node scripts/with-test-env.js npm run test:recette",
+    "test:recette:all": "npm run test:recette:db && npm run test:recette:migrate && npm run test:recette:api",
     "check:size": "node scripts/check-file-size.js",
     "check:size:baseline": "node scripts/check-file-size.js --update-baseline"
   }
