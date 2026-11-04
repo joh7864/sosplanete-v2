@@ -198,7 +198,7 @@ describe('EasterEggService.resolveEggForInstance - caractérisation', () => {
       expect(res.cycleEggs).toEqual([]);
     });
 
-    it('prérequis conservé : une première interaction passée rend l’œuf accessible', async () => {
+    it('œuf verrouillé : reste inaccessible tant que le prérequis n’est pas satisfait (même avec interaction passée)', async () => {
       const { resolve } = setup({
         eggs: [lockedEgg(1), lockedEgg(2), lockedEgg(3)],
         store: {
@@ -216,9 +216,9 @@ describe('EasterEggService.resolveEggForInstance - caractérisation', () => {
       });
       const res = await resolve(3);
 
-      expect(res.hasAnyInteractable).toBe(true);
-      expect(res.currentEgg?.id).toBe(1);
-      expect(res.cycleEggs?.map((d: any) => d.egg.id)).toEqual([1]);
+      expect(res.hasAnyInteractable).toBe(false);
+      expect(res.currentEgg).toBeNull();
+      expect(res.cycleEggs).toEqual([]);
     });
   });
 

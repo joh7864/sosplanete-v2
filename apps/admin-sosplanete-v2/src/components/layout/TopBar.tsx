@@ -47,7 +47,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/stimulation/years`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011';
+        const resp = await fetch(`${apiUrl}/stimulation/years`, {
           headers: { Authorization: `Bearer ${getAuthData('access_token')}` },
         });
         if (resp.ok) {
@@ -55,7 +56,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           setAvailableYears(years);
         }
       } catch (e) {
-        console.error('Failed to fetch school years', e);
+        console.warn('[TopBar] Années scolaires temporairement indisponibles (backend en démarrage):', (e as Error)?.message || e);
       }
     };
     fetchYears();
@@ -68,7 +69,8 @@ export const TopBar: React.FC<TopBarProps> = ({
       const token = getAuthData('access_token');
       if (!token) return;
       try {
-        const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3011';
+        const resp = await fetch(`${apiUrl}/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (resp.ok) {
@@ -76,7 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           setNotifications(data);
         }
       } catch (e) {
-        console.error('Failed to fetch notifications', e);
+        console.warn('[TopBar] Notifications temporairement indisponibles (backend en démarrage):', (e as Error)?.message || e);
       }
     };
     

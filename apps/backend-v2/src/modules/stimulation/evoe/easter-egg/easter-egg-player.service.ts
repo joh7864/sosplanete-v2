@@ -277,7 +277,7 @@ export class EasterEggPlayerService {
         explicitHint: currentEgg.explicitHint,
         mascotDurationSeconds: currentEgg.mascotDurationSeconds,
         triggerAction: currentEgg.triggerAction,
-        isInteractable: badgeInteractable,
+        isInteractable: chosenDetail ? chosenDetail.isInteractable : isInteractable,
         isExplicitHintVisible: chosenDetail?.isExplicitHintVisible ?? isExplicitHintVisible,
         clues: currentEgg.clues,
         imageUrl: currentEgg.imageUrl,

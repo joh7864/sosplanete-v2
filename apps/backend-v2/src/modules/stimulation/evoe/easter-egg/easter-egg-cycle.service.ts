@@ -498,21 +498,17 @@ export class EasterEggCycleService {
           where: {
             easterEggId: cand.egg.id,
             childId,
+            periodId: { in: combinedPeriods },
           },
           orderBy: { id: 'desc' },
         });
         firstInteractionAt = interactionProgress?.firstInteractionAt || null;
 
-        const hasInteractedPreviously = !!firstInteractionAt;
-        if (hasInteractedPreviously) {
-          isInteractable = true;
-        } else {
-          isInteractable = await this.checkPrerequisites(
-            cand.egg,
-            childId,
-            combinedPeriods,
-          );
-        }
+        isInteractable = await this.checkPrerequisites(
+          cand.egg,
+          childId,
+          combinedPeriods,
+        );
       }
 
       const isVisible = isDiscovered || isInteractable;
