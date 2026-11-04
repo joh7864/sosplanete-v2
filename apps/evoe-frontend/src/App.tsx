@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Radio, ChevronRight, ChevronLeft, Shield, Trash2, Droplet, Zap, RefreshCw, AlertTriangle, AlertOctagon, CheckCircle2, X, Trophy, Mail, RotateCcw, Compass, MessageSquare, Globe, Sparkles } from 'lucide-react';
+import { Radio, ChevronRight, ChevronLeft, Zap, RefreshCw, X, Trophy, Mail, RotateCcw, Globe, Sparkles } from 'lucide-react';
 import Portal2026 from './components/Portal2026';
 import Portal2070 from './components/Portal2070';
 import { useAuth } from './context/AuthContext';
@@ -18,81 +18,38 @@ import { MissionSearchBar } from './components/ui/MissionSearchBar';
 import { PlayerSearchHUD } from './components/ui/PlayerSearchHUD';
 import { SystemMenuHUD } from './components/ui/SystemMenuHUD';
 import { LeaderboardTimeframeSwitch } from './components/ui/LeaderboardTimeframeSwitch';
+import { MobileBottomNav } from './components/ui/MobileBottomNav';
+import { ClosedPeriodAlertModal } from './components/ui/ClosedPeriodAlertModal';
+import { Dashboard2070Overlays } from './components/ui/Dashboard2070Overlays';
 
 import { preloadEvoeAssets } from './utils/preloadAssets';
 import pkg from '../package.json';
 
 // Hooks & UI Components
 import { useEvoeData } from './hooks/useEvoeData';
-import { EvoeRadarMeter } from './components/ui/EvoeRadarMeter';
 import { Dashboard2026Loader } from './components/ui/Dashboard2026Loader';
 
 import { MissionsWeekModal } from './components/ui/MissionsWeekModal';
 import { SciFiEggBadge } from './components/ui/SciFiEggBadge';
-import { MascotBubble3D } from './components/ui/MascotBubble3D';
-import { EasterEggVictoryDispatcher } from './components/ui/EasterEggVictoryDispatcher';
-import { TeamVictoryCelebrationModal } from './components/ui/TeamVictoryCelebrationModal';
-import { ChronoEggModal, type ChronoPeriodItem } from './components/ui/ChronoEggModal';
-import { RosettaStoneModal } from './components/ui/RosettaStoneModal';
-import { TemporalTerminalModal } from './components/ui/TemporalTerminalModal';
+import { type ChronoPeriodItem } from './components/ui/ChronoEggModal';
 import { AboutModal } from './components/ui/AboutModal';
 import { useBirthday } from './hooks/useBirthday';
 import { GribouilleBirthdayBubble } from './components/birthday/GribouilleBirthdayBubble';
-import { TemporalEchoModal, type EcoThemeId } from './components/ui/TemporalEchoModal';
+import { type EcoThemeId } from './components/ui/TemporalEchoModal';
 import { useEasterEgg } from './hooks/useEasterEgg';
-import { ArcadeHubModal, ArcadeCabinetModal, getArcadeGame, applyArcadeCatalog, parseArcadeReward } from './components/arcade';
+import { applyArcadeCatalog } from './components/arcade';
 import { useEasterEggTriggers } from './hooks/useEasterEggTriggers';
-import { KonamiArcadeHUD } from './components/ui/KonamiArcadeHUD';
+import { EasterEggModalsLayer } from './components/ui/EasterEggModalsLayer';
 import { lazy, Suspense } from 'react';
 const AgentProfileModal = lazy(() => import('./components/ui/AgentProfileModal').then(m => ({ default: m.AgentProfileModal })));
 const ChallengeModal = lazy(() => import('./components/ui/ChallengeModal').then(m => ({ default: m.ChallengeModal })));
 const ConfirmCancelModal = lazy(() => import('./components/ui/ConfirmCancelModal').then(m => ({ default: m.ConfirmCancelModal })));
-const MobileContextCarousel = lazy(() => import('./components/ui/MobileContextCarousel'));
 
 import './App.css';
 
 const EVOE_IMG_URL = import.meta.env.VITE_IMG_ROOT_URL || 'http://localhost:3011/static/';
 
-// Helper pour parser les **bold** en HTML
-const parseBold = (text: string) => {
-  if (!text) return null;
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    return <span key={i}>{part}</span>;
-  });
-};
-
-// Formateur d'unité intelligent : kg/t, L/m³
-const fmtMass = (kg: number): string => {
-  if (kg >= 1_000_000) return `${(kg / 1_000_000).toFixed(2)} kt`;
-  if (kg >= 1000)      return `${(kg / 1000).toFixed(2)} t`;
-  return `${kg.toFixed(1)} kg`;
-};
-const fmtVolume = (litres: number): string => {
-  if (litres >= 1_000_000) return `${(litres / 1_000_000).toFixed(1)} ML`;
-  if (litres >= 1000)      return `${(litres / 1000).toFixed(1)} m³`;
-  return `${litres.toFixed(0)} L`;
-};
-
-const getVibrantTeamColor = (colorStr: string | null | undefined): string => {
-  if (!colorStr) return '#00ffcc';
-  const c = colorStr.trim().toLowerCase();
-  if (
-    c.includes('40916c') ||
-    c.includes('2d6a4f') ||
-    c.includes('52b788') ||
-    c.includes('74c69d') ||
-    c.includes('green') ||
-    c.includes('2e7d32') ||
-    c.includes('388e3c')
-  ) {
-    return '#10b981';
-  }
-  return colorStr;
-};
+import { parseBold } from './utils/format';
 
 function MainApp() {
   const {
@@ -2397,344 +2354,27 @@ function MainApp() {
         )}
 
         {/* CONTENU 2070 : Double Tableau de Bord Flottant (Extrapolation & Course) */}
-        {era === '2070' && (
-          <>
-            <div className="evoe-dashboards-container">
-              {/* Panel de Gauche : Extrapolation Temporelle */}
-              <aside id="panel-extrapolation-2070" className={`evoe-glass-panel panel-left ${showExtrapolation ? 'mobile-active' : ''}`}>
-                <div className="evoe-panel-title-row">
-                  <h2>Extrapolation 2070</h2>
-                  <button className="panel-close-btn" onClick={() => setShowExtrapolation(false)}>×</button>
-                </div>
-                {extrapolation ? (
-                  <>
-                    {/* Jauge EOD N-1 vs N */}
-                    <div className="jauge-eod-container">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                        <h3>Jour de Dépassement Mondial</h3>
-                        <div style={{ display: 'flex', gap: '6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                          <span style={{ color: '#ef4444' }}>{extrapolation.dateDepassementSans?.slice(0,5)}</span>
-                          <span style={{ color: '#a0aec0' }}>➔</span>
-                          <span style={{ color: '#00ffcc', textShadow: '0 0 5px rgba(0,255,204,0.4)' }}>{extrapolation.dateDepassement?.slice(0,5)}</span>
-                        </div>
-                      </div>
-                      <div className="jauge-eod-track">
-                        {/* Zone de gain écologique */}
-                        <div 
-                          className="jauge-eod-gain" 
-                          style={{ 
-                            left: `${eodN1Percent}%`, 
-                            width: `${Math.max(2, eodNPercent - eodN1Percent)}%` 
-                          }}
-                        />
-                        {/* Marqueur EOD N-1 */}
-                        <div 
-                          className="jauge-eod-marker n1" 
-                          style={{ left: `${eodN1Percent}%` }}
-                          title={`Précédent : ${extrapolation.dateDepassementSans}`}
-                        />
-                        {/* Marqueur EOD N */}
-                        <div 
-                          className="jauge-eod-marker n" 
-                          style={{ left: `${eodNPercent}%` }}
-                          title={`Actuel : ${extrapolation.dateDepassement}`}
-                        />
-                      </div>
-                      <div className="jauge-eod-labels">
-                        <span>1er Juillet</span>
-                        <span style={{ color: '#00ffcc', fontWeight: 'bold', textShadow: '0 0 5px rgba(0,255,204,0.2)' }}>Timeline Reculée !</span>
-                        <span>30 Septembre</span>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(0,255,204,0.1)' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#a0aec0', textTransform: 'uppercase' }}>Terres Nécessaires</div>
-                      <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#00ffcc' }}>{extrapolation.nbPlanetes} 🌍</div>
-                    </div>
-
-                    {/* Grille d'impacts avec équivalences */}
-                    <div className="metric-grid">
-                      <div className="metric-card">
-                        <div className="metric-icon-wrapper"><Shield size={18} /></div>
-                        <div className="metric-info">
-                          <span className="metric-label">Bouclier Cryo-Arctique</span>
-                          <span className="metric-value">{fmtMass(extrapolation.iceSavedKg || 0)} ❄️</span>
-                          <span className="metric-sub" style={{ color: '#10b981' }}>({fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} de CO₂ évités en {currentYear})</span>
-                        </div>
-                      </div>
-
-                      <div className="metric-card">
-                        <div className="metric-icon-wrapper"><Zap size={18} /></div>
-                        <div className="metric-info">
-                          <span className="metric-label">Biomasse Génétique</span>
-                          {(extrapolation.forestFootballFields || 0) >= 1 ? (
-                            <>
-                              <span className="metric-value">{(extrapolation.forestFootballFields || 0).toFixed(1)} zones 🍀</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.forestFootballFields || 0).toFixed(1)} terrains de foot préservés en {currentYear})</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="metric-value">{fmtMass((extrapolation.co2RealTonnes || 0) * 1000)} CO₂</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(absorbés par la biomasse végétale en {currentYear})</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="metric-card">
-                        <div className="metric-icon-wrapper"><Droplet size={18} /></div>
-                        <div className="metric-info">
-                          <span className="metric-label">Réserves Hydriques</span>
-                          {(extrapolation.waterOlympicPools || 0) >= 1 ? (
-                            <>
-                              <span className="metric-value">{(extrapolation.waterOlympicPools || 0).toFixed(1)} cuves 🧪</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.waterOlympicPools || 0).toFixed(1)} piscines olympiques préservées en {currentYear})</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="metric-value">{fmtVolume(extrapolation.waterRealLitres || 0)}</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(d'eau potable épargnée en {currentYear})</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="metric-card">
-                        <div className="metric-icon-wrapper"><Trash2 size={18} /></div>
-                        <div className="metric-info">
-                          <span className="metric-label">Déchets Moléculaires</span>
-                          {(extrapolation.wasteGarbageTrucks || 0) >= 1 ? (
-                            <>
-                              <span className="metric-value">{(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} conteneurs 🔋</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(soit {(extrapolation.wasteGarbageTrucks || 0).toFixed(1)} camions-poubelles évités en {currentYear})</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="metric-value">{fmtMass(extrapolation.wasteRealKg || 0)}</span>
-                              <span className="metric-sub" style={{ color: '#10b981' }}>(de résidus non produits en {currentYear})</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem' }}>Calcul de la projection temporelle...</p>
-                )}
-              </aside>
-
-              {/* Panel de Droite : Course des Vaisseaux & Stase */}
-              <aside id="panel-radar-2070" className={`evoe-glass-panel panel-right ${showRadar ? 'mobile-active' : ''}`}>
-                <div className="evoe-panel-title-row">
-                  <h2>Radar Temporel</h2>
-                  <button 
-                    className="evoe-reset-btn" 
-                    onClick={handleResetPropulsion} 
-                    disabled={isResettingPropulsion}
-                    title="Recalculer les niveaux technologiques"
-                  >
-                    <RefreshCw className={`icon-sm ${isResettingPropulsion ? 'spin-loading' : ''}`} />
-                  </button>
-                  <button className="panel-close-btn" onClick={() => setShowRadar(false)}>×</button>
-                </div>
-                {dashboardStatus ? (
-                  <div className="vessels-list">
-                    {[...dashboardStatus.teams].sort((a, b) => b.position - a.position).map((t: any) => {
-                      const isSelected = selectedRadarTeamId !== null && selectedRadarTeamId !== undefined && String(selectedRadarTeamId) === String(t.id);
-                      const vibrantColor = getVibrantTeamColor(t.color);
-                      return (
-                        <div 
-                          key={t.id} 
-                          id={`radar-team-${t.id}`}
-                          className={`vessel-row ${isSelected ? 'highlighted-vessel' : ''}`} 
-                          onClick={() => setSelectedRadarTeamId((prev) => (prev !== null && prev !== undefined && String(prev) === String(t.id) ? null : t.id))}
-                          style={{ 
-                            cursor: 'pointer',
-                            border: isSelected ? `1.5px solid ${vibrantColor}` : '1px solid rgba(255, 255, 255, 0.06)',
-                            borderLeft: isSelected ? `5px solid ${vibrantColor}` : `4px solid ${vibrantColor}`,
-                            background: isSelected 
-                              ? `linear-gradient(135deg, ${vibrantColor}28 0%, rgba(10, 16, 28, 0.95) 60%, rgba(12, 18, 32, 0.98) 100%)`
-                              : 'rgba(255, 255, 255, 0.02)',
-                            boxShadow: isSelected 
-                              ? `0 0 22px ${vibrantColor}55, 0 0 45px ${vibrantColor}25, inset 0 0 14px ${vibrantColor}20`
-                              : 'none',
-                            transform: isSelected ? 'scale(1.025)' : 'none',
-                            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-                          }}
-                        >
-                          <div className="vessel-row-header">
-                            <span 
-                              className="vessel-team-name" 
-                              style={{ 
-                                color: isSelected ? vibrantColor : (t.color || '#fff'), 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '8px',
-                                textShadow: isSelected ? `0 0 12px ${vibrantColor}` : 'none'
-                              }}
-                            >
-                              {t.icon ? (
-                                <img 
-                                  src={`${EVOE_IMG_URL}teams/${t.icon.split('/').pop()}`} 
-                                  alt="" 
-                                  style={{ 
-                                    width: '24px', 
-                                    height: '24px', 
-                                    objectFit: 'contain', 
-                                    background: isSelected ? `${vibrantColor}30` : 'rgba(0,0,0,0.15)', 
-                                    border: isSelected ? `1px solid ${vibrantColor}` : 'none',
-                                    borderRadius: '4px', 
-                                    padding: '2px' 
-                                  }} 
-                                />
-                              ) : (
-                                <span style={{ fontSize: '1.2rem', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>🛸</span>
-                              )}
-                              {t.name}
-                            </span>
-                            <span 
-                              className="vessel-tech" 
-                              title={t.propulsionDesc}
-                              style={{
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                                ...(isSelected ? {
-                                  background: `${vibrantColor}25`,
-                                  color: vibrantColor,
-                                  border: `1px solid ${vibrantColor}80`,
-                                  boxShadow: `0 0 10px ${vibrantColor}40`
-                                } : {})
-                              }}
-                            >
-                              {t.propulsionType}
-                            </span>
-                          </div>
-                        
-                        <div className="vessel-stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '1px' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#a0aec0' }} title="CO₂ évité (kg/semaine)">
-                            <Shield size={14} style={{ color: '#00ffcc' }} />
-                            <strong style={{ color: '#fff' }}>{fmtMass(t.co2 || 0)}</strong>
-                          </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#a0aec0' }} title="Eau épargnée (L)">
-                            <Droplet size={14} style={{ color: '#00b3ff' }} />
-                            <strong style={{ color: '#fff' }}>{fmtVolume(t.water || 0)}</strong>
-                          </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#a0aec0' }} title="Déchets évités (kg)">
-                            <Trash2 size={14} style={{ color: '#ff9f43' }} />
-                            <strong style={{ color: '#fff' }}>{fmtMass(t.waste || 0)}</strong>
-                          </span>
-                        </div>
-
-                        {/* Deux mini-compteurs circulaires de contrôle (Régénération & Stabilité) */}
-                        <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 20px', marginTop: '0px', marginBottom: '0px' }}>
-                          <EvoeRadarMeter 
-                            value={t.position || 0} 
-                            label="REGEN." 
-                            color="#00ffcc" 
-                            id={`timeline-${t.id}`} 
-                            displayValue={`${Math.round(t.position || 0)}%`}
-                            tooltipTitle="Régénération Planétaire"
-                            tooltipText="Progression globale de l'arche vers 2070. Mesure l'énergie régénérée par les éco-actions du Codex (CO₂, Eau, Déchets)."
-                            placement="left"
-                          />
-                          <EvoeRadarMeter 
-                            value={t.crewBioStability || 0} 
-                            label="STABILITÉ" 
-                            color={t.crewBioStability < 40 ? '#ff3b3b' : (t.crewBioStability < 80 ? '#ff9f43' : '#10b981')} 
-                            id={`stability-${t.id}`} 
-                            tooltipTitle="Bio-Stabilité Temporelle"
-                            tooltipText="Cohésion quantique et assiduité de l'équipage. Un score élevé protège le vaisseau contre les anomalies de stase."
-                            placement="right"
-                          />
-                        </div>
-
-                        {/* Alerte Paradoxe Temporel graduée et cohérente */}
-                        {(() => {
-                          const regen = t.position || 0;
-                          const stability = t.crewBioStability || 0;
-                          const points = t.points || 0;
-
-                          if (points === 0 || regen === 0) {
-                            return (
-                              <div className="vessel-paradox-warning" style={{ color: '#a0aec0', animation: 'none', opacity: 0.85, marginTop: '2px' }}>
-                                <AlertTriangle size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(160,174,192,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>En attente des premières impulsions du Codex.</span>
-                              </div>
-                            );
-                          } else if (regen >= 75 && stability >= 70) {
-                            return (
-                              <div className="vessel-paradox-warning" style={{ color: '#10b981', animation: 'none', opacity: 0.95, marginTop: '2px' }}>
-                                <CheckCircle2 size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(16,185,129,0.5))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Ligne temporelle optimale et flux hautement régénéré.</span>
-                              </div>
-                            );
-                          } else if (regen >= 40 || stability >= 50) {
-                            return (
-                              <div className="vessel-paradox-warning" style={{ color: '#ffd700', animation: 'none', marginTop: '2px' }}>
-                                <CheckCircle2 size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(255,215,0,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Progression stable — Bon rythme d'impulsions.</span>
-                              </div>
-                            );
-                          } else if (regen >= 15 || stability >= 25) {
-                            return (
-                              <div className="vessel-paradox-warning" style={{ color: '#ff9f43', marginTop: '2px' }}>
-                                <AlertTriangle size={13} style={{ filter: 'drop-shadow(0 0 2px rgba(255,159,67,0.4))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Légère désynchronisation temporelle détectée.</span>
-                              </div>
-                            );
-                          } else {
-                            return (
-                              <div className="vessel-paradox-warning" style={{ color: '#ff3b3b', marginTop: '2px' }}>
-                                <AlertOctagon size={13} style={{ filter: 'drop-shadow(0 0 3px rgba(255,59,59,0.5))' }} />
-                                <span style={{ letterSpacing: '-0.1px' }}>Instabilité de la stase — Impulsions urgentes requises.</span>
-                              </div>
-                            );
-                          }
-                        })()}
-                      </div>
-                    );
-                  })}
-                  </div>
-                ) : (
-                  <p style={{ color: '#a0aec0', fontStyle: 'italic', fontSize: '0.85rem' }}>Verrouillage des signatures thermiques des vaisseaux...</p>
-                )}
-              </aside>
-            </div>
-
-            {/* Carrousel de contrôle mobile en 2070 */}
-            {isMobile && !selectedSector && !chatOpen && !selectedProfileId && !showExtrapolation && !showRadar && (
-              <MobileContextCarousel
-                extrapolation={extrapolation}
-                dashboardStatus={dashboardStatus}
-                setShowExtrapolation={setShowExtrapolation}
-                setShowRadar={setShowRadar}
-              />
-            )}
-
-            {/* Dock de contrôle mobile au bas de l'écran (affiché uniquement sur desktop/tablette paysage) */}
-            {!isMobile && (
-              <div className="evoe-mobile-dock">
-                <button 
-                  className={`dock-btn ${showExtrapolation ? 'active' : ''}`}
-                  onClick={() => setShowExtrapolation(v => !v)}
-                >
-                  📊 Extrapolation 2070
-                </button>
-                <button 
-                  className={`dock-btn ${showRadar ? 'active' : ''}`}
-                  onClick={() => setShowRadar(v => !v)}
-                >
-                  📡 Radar Temporel
-                </button>
-              </div>
-            )}
-
-            {/* Overlay d'arrière-plan pour fermer au clic en dehors */}
-            {(showExtrapolation || showRadar) && (
-              <div className="evoe-mobile-overlay" onClick={() => { setShowExtrapolation(false); setShowRadar(false); }} />
-            )}
-          </>
-        )}
+        <Dashboard2070Overlays
+          era={era}
+          extrapolation={extrapolation}
+          showExtrapolation={showExtrapolation}
+          setShowExtrapolation={setShowExtrapolation}
+          showRadar={showRadar}
+          setShowRadar={setShowRadar}
+          eodN1Percent={eodN1Percent}
+          eodNPercent={eodNPercent}
+          currentYear={currentYear}
+          handleResetPropulsion={handleResetPropulsion}
+          isResettingPropulsion={isResettingPropulsion}
+          dashboardStatus={dashboardStatus}
+          selectedRadarTeamId={selectedRadarTeamId}
+          setSelectedRadarTeamId={setSelectedRadarTeamId}
+          isMobile={isMobile}
+          selectedSector={selectedSector}
+          chatOpen={chatOpen}
+          selectedProfileId={selectedProfileId}
+          evoeImgUrl={EVOE_IMG_URL}
+        />
 
         {/* Pop-over Holographique pour le mode Collapsed */}
         <AnimatePresence>
@@ -2887,193 +2527,49 @@ function MainApp() {
         )}
       </AnimatePresence>
 
-      {/* HUD RÉTRO ARCADE KONAMI (TOUCHES CLAVIER & SWIPES MOBILE & RETOUR VISUEL) */}
-      <KonamiArcadeHUD
-        isVisible={konamiHUD.isVisible}
-        stepIndex={konamiHUD.stepIndex}
-        isError={konamiHUD.isError}
-        hudLevel={konamiHUD.hudLevel}
-        showMobileButtons={konamiHUD.showMobileButtons}
-        onMobileButtonPress={handleKonamiButtonPress}
-        onClose={handleCloseKonamiHUD}
-      />
-
-      {/* MASCOTTE 3D (EASTER EGG) */}
-      {activeEggData?.easterEgg && activeEggData.hasActiveEgg !== false && (
-        <MascotBubble3D
-          isOpen={showMascotBubble}
-          onClose={() => setShowMascotBubble(false)}
-          cycleEggs={activeEggData.cycleEggs}
-          unsolvedRolloverCount={activeEggData.unsolvedRolloverCount}
-          showRolloverWarning={activeEggData.showRolloverWarning}
-          title={activeEggData.easterEgg.title}
-          crypticMessage={activeEggData.easterEgg.crypticMessage || ''}
-          explicitHint={activeEggData.easterEgg.explicitHint}
-          showExplicitHint={!!activeEggData.easterEgg.isExplicitHintVisible}
-          imageUrl={activeEggData.easterEgg.imageUrl}
-          triggerType={activeEggData.easterEgg.triggerType}
-          isDiscovered={!!activeEggData.playerProgress?.isDiscovered}
-          rewardPointsIT={activeEggData.easterEgg.rewardPointsIT}
-          mascotDurationSeconds={activeEggData.easterEgg.mascotDurationSeconds || 45}
-          multiEggProgress={activeEggData.multiEggProgress}
-          isReplayMode={!!activeEggData.isReplayMode}
-          replayedCycleIndex={activeEggData.period?.cycleIndex}
-          onExitReplay={exitReplayMode}
-          onVerifyAnswer={(answer, targetEggId) => verifyEasterEggAnswer(answer, undefined, targetEggId)}
-          onVerifyCommand={(command, targetEggId) => handleVerifyCommand(command, targetEggId)}
-          onReplayVictoryAnimation={(targetEggId) => {
-            const egg = (targetEggId ? activeEggData.cycleEggs?.find(e => e.id === targetEggId) : undefined) || activeEggData.easterEgg;
-            if (egg) {
-              setCelebrationEgg({
-                code: egg.code,
-                triggerType: egg.triggerType,
-                title: egg.title,
-                pointsIT: egg.rewardPointsIT || 60,
-                isTeamRewarded: !!activeEggData.teamProgress?.isTeamRewarded,
-                remainingPlayers: activeEggData?.teamProgress
-                  ? Math.max(0, (activeEggData.teamProgress.requiredPlayers || 2) - (activeEggData.teamProgress.discoveredCount || 0))
-                  : undefined,
-              });
-            }
-            setShowEggCelebration(true);
-          }}
-          onSuccess={async (targetEggId) => {
-            const triggeredEgg = (targetEggId ? activeEggData.cycleEggs?.find(e => e.id === targetEggId) : undefined) || activeEggData?.easterEgg;
-            const freshEgg = await fetchActiveEgg(true);
-            const remaining = freshEgg?.teamProgress
-              ? Math.max(0, (freshEgg.teamProgress.requiredPlayers || 2) - (freshEgg.teamProgress.discoveredCount || 0))
-              : undefined;
-
-            if (triggeredEgg) {
-              setCelebrationEgg({
-                code: triggeredEgg.code,
-                triggerType: triggeredEgg.triggerType,
-                title: triggeredEgg.title,
-                pointsIT: triggeredEgg.rewardPointsIT || 60,
-                isTeamRewarded: !!freshEgg?.teamProgress?.isTeamRewarded,
-                remainingPlayers: remaining,
-              });
-            }
-            setShowEggCelebration(true);
-            setChatActiveTab('team');
-            const title = triggeredEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg 2070';
-            if (freshEgg && freshEgg.teamProgress?.isTeamRewarded) {
-              setPrefilledChatText(`Victoire ! Notre équipe a validé l'Easter Egg "${title}" et remporté les points IT ! 🎉`);
-            } else if (remaining && remaining > 0) {
-              setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider, il manque encore ${remaining} joueur${remaining > 1 ? 's' : ''} pour remporter les points IT ! 🚀`);
-            } else {
-              setPrefilledChatText(`J'ai trouvé la solution de l'Easter Egg "${title}" ! Venez vite valider pour débloquer les points IT de l'équipe ! 🚀`);
-            }
-          }}
-          onOpenCommLink={() => {
-            setChatActiveTab('team');
-            setChatOpen(true);
-          }}
-        />
-      )}
-
-      {/* CÉLÉBRATION FINALE EASTER EGG (WOOOW EFFECT DÉDIÉ + SFX + PARTICULES) */}
-      <EasterEggVictoryDispatcher
-        isOpen={showEggCelebration}
-        onClose={() => {
-          setShowEggCelebration(false);
-          setCelebrationEgg(null);
-        }}
-        eggCode={celebrationEgg?.code || activeEggData?.easterEgg?.code}
-        triggerType={celebrationEgg?.triggerType || activeEggData?.easterEgg?.triggerType}
-        eggTitle={celebrationEgg?.title || activeEggData?.easterEgg?.title || 'Easter Egg Découvert'}
-        pointsIT={celebrationEgg?.pointsIT || activeEggData?.easterEgg?.rewardPointsIT || 60}
-        isTeamRewarded={celebrationEgg?.isTeamRewarded ?? !!activeEggData?.teamProgress?.isTeamRewarded}
-        remainingPlayers={celebrationEgg?.remainingPlayers ?? (activeEggData?.teamProgress ? Math.max(0, (activeEggData.teamProgress.requiredPlayers || 2) - (activeEggData.teamProgress.discoveredCount || 0)) : undefined)}
-        arcadeGameKey={(() => {
-          const code = celebrationEgg?.code || activeEggData?.easterEgg?.code;
-          const egg = activeEggData?.cycleEggs?.find((e) => e.code === code) ?? activeEggData?.easterEgg;
-          return parseArcadeReward(egg?.code === code ? egg?.specialReward : undefined);
-        })()}
-        playerPseudo={pseudo || childInfos?.pseudo}
-        teamName={childInfos?.group?.team?.name}
-        onPlayArcadeGame={(gameKey) => {
-          setArcadeSelectedGameKey(gameKey);
-          setShowArcadeCabinet(true);
-        }}
-        onOpenCommLink={() => {
-          setShowEggCelebration(false);
-          setCelebrationEgg(null);
-          setShowMascotBubble(false);
-          setChatActiveTab('team');
-          setChatOpen(true);
-        }}
-      />
-
-      {/* CÉLÉBRATION COLLECTIVE VICTOIRE D'ÉQUIPE (BROADCAST WEBSOCKET POUR TOUS LES COÉQUIPIERS CONNECTÉS) */}
-      <TeamVictoryCelebrationModal
+      {/* COUCHE MODALES EASTER EGGS & SALLE D'ARCADE */}
+      <EasterEggModalsLayer
+        konamiHUD={konamiHUD}
+        onKonamiButtonPress={handleKonamiButtonPress}
+        onCloseKonamiHUD={handleCloseKonamiHUD}
+        activeEggData={activeEggData}
+        showMascotBubble={showMascotBubble}
+        setShowMascotBubble={setShowMascotBubble}
+        exitReplayMode={exitReplayMode}
+        verifyEasterEggAnswer={verifyEasterEggAnswer}
+        onVerifyCommand={handleVerifyCommand}
+        fetchActiveEgg={fetchActiveEgg}
+        celebrationEgg={celebrationEgg}
+        setCelebrationEgg={setCelebrationEgg}
+        showEggCelebration={showEggCelebration}
+        setShowEggCelebration={setShowEggCelebration}
+        setChatActiveTab={setChatActiveTab}
+        setChatOpen={setChatOpen}
+        setPrefilledChatText={setPrefilledChatText}
+        pseudo={pseudo}
+        childInfos={childInfos}
+        arcadeSelectedGameKey={arcadeSelectedGameKey}
+        setArcadeSelectedGameKey={setArcadeSelectedGameKey}
+        showArcadeCabinet={showArcadeCabinet}
+        setShowArcadeCabinet={setShowArcadeCabinet}
         myTeamId={myTeamId}
-        onOpenCommLink={() => {
-          setChatActiveTab('team');
-          setChatOpen(true);
-        }}
-      />
-
-      {/* MODALE CHRONO-EGG (ARCHIVES TEMPORELLES DES PÉRIODES) */}
-      <ChronoEggModal
-        isOpen={showChronoEggModal}
-        onClose={() => setShowChronoEggModal(false)}
-        hasRosettaStone={!!(activeEggData?.metaEnigma?.hasRosettaStone || activeEggData?.teamProgress?.hasRosettaStone)}
-        isMetaEnigmaUnlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
-        periods={chronoPeriods}
-        loading={chronoLoading}
+        showChronoEggModal={showChronoEggModal}
+        setShowChronoEggModal={setShowChronoEggModal}
+        chronoPeriods={chronoPeriods}
+        chronoLoading={chronoLoading}
         onReplayPeriod={handleReplayPeriod}
-        onOpenRosetta={() => setShowRosettaStoneModal(true)}
-        onOpenTerminal={() => setShowTerminalModal(true)}
+        showRosettaStoneModal={showRosettaStoneModal}
+        setShowRosettaStoneModal={setShowRosettaStoneModal}
+        showTerminalModal={showTerminalModal}
+        setShowTerminalModal={setShowTerminalModal}
+        submitMetaEnigmaCode={submitMetaEnigmaCode}
+        selectedEchoTheme={selectedEchoTheme}
+        setSelectedEchoTheme={setSelectedEchoTheme}
+        showTemporalEchoModal={showTemporalEchoModal}
+        setShowTemporalEchoModal={setShowTemporalEchoModal}
+        showArcadeHub={showArcadeHub}
+        setShowArcadeHub={setShowArcadeHub}
       />
-
-      {/* MODALE PIERRE DE ROSETTE 2070 (TABLE DE DÉCRYPTAGE) */}
-      <RosettaStoneModal
-        isOpen={showRosettaStoneModal}
-        onClose={() => setShowRosettaStoneModal(false)}
-        periods={chronoPeriods}
-        onResolvePeriod={handleReplayPeriod}
-        onOpenTerminal={() => {
-          setShowRosettaStoneModal(false);
-          setShowTerminalModal(true);
-        }}
-      />
-
-      {/* MODALE TERMINAL TEMPOREL (SAISIE DU MOT DE PASSE MÉTA-ÉNIGME) */}
-      <TemporalTerminalModal
-        isOpen={showTerminalModal}
-        onClose={() => setShowTerminalModal(false)}
-        isUnlocked={!!activeEggData?.metaEnigma?.isMetaEnigmaUnlocked}
-        onSubmitCode={submitMetaEnigmaCode}
-        onSuccessUnlock={() => {
-          fetchActiveEgg();
-          setShowTerminalModal(false);
-          setSelectedEchoTheme('ENERGY');
-          setShowTemporalEchoModal(true);
-        }}
-      />
-
-      {/* MODALE VISION 2050 : AVANT / APRÈS (ÉCHOS TEMPORELS RÉALISTES) */}
-      <TemporalEchoModal
-        isOpen={showTemporalEchoModal}
-        onClose={() => setShowTemporalEchoModal(false)}
-        initialTheme={selectedEchoTheme}
-      />
-
-      {/* SALLE D'ARCADE HUB (MINI-JEUX DÉCOUVERTS PAR L'ÉQUIPE) */}
-      <ArcadeHubModal
-        isOpen={showArcadeHub}
-        onClose={() => setShowArcadeHub(false)}
-      />
-
-      {/* BORNE D'ARCADE DIRECTE (LANCEMENT DE JEU SPÉCIFIQUE) */}
-      {showArcadeCabinet && getArcadeGame(arcadeSelectedGameKey) && (
-        <ArcadeCabinetModal
-          isOpen={showArcadeCabinet}
-          onClose={() => setShowArcadeCabinet(false)}
-          game={getArcadeGame(arcadeSelectedGameKey)!}
-        />
-      )}
 
       {/* Terminal de discussion instantanée (Chat) */}
       <ChatPanel 
@@ -3095,129 +2591,27 @@ function MainApp() {
       />
 
       {/* Mobile Bottom Navbar (Axe 3) */}
-      <nav className="mobile-bottom-nav">
-        <button 
-          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'missions' && !selectedProfileId ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedProfileId(null);
-            setChatOpen(false);
-            setCodexTab('missions');
-            setIsCodexCollapsed(false); // Force expand the Codex panel
-            if (era !== '2026') {
-              handleSwitchEra();
-            }
-            // Dynamically select the first available category in database
-            const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-            if (cats.length > 0) {
-              setSelectedSector(cats[0]);
-            } else {
-              setSelectedSector('Energie');
-            }
-          }}
-        >
-          <Compass size={20} />
-          <span>Missions</span>
-        </button>
-
-        <button 
-          className={`nav-item ${era === '2026' && selectedSector && codexTab === 'challenges' && !selectedProfileId ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedProfileId(null);
-            setChatOpen(false);
-            setCodexTab('challenges');
-            setIsCodexCollapsed(false); // Force expand the Codex panel
-            if (era !== '2026') {
-              handleSwitchEra();
-            }
-            if (!selectedSector) {
-              const cats = missionsByCategory ? Object.keys(missionsByCategory) : [];
-              if (cats.length > 0) {
-                setSelectedSector(cats[0]);
-              } else {
-                setSelectedSector('Energie');
-              }
-            }
-          }}
-        >
-          <Radio size={20} />
-          <span>Défis</span>
-        </button>
-
-
-        {/* Central Floating Action Button (FAB) for Era Switch */}
-        <div id="hud-btn-epoch-fab" className="fab-container">
-          <button 
-            className="fab-button"
-            onClick={handleSwitchEra}
-            disabled={isTransitioning}
-            title={era === '2026' ? 'Voyager vers 2070' : `Retourner en ${currentYear}`}
-            style={{
-              background: era === '2026' 
-                ? 'linear-gradient(135deg, #00b3ff, #0055ff)' 
-                : 'linear-gradient(135deg, #00ffcc, #00aa66)',
-              boxShadow: era === '2026'
-                ? '0 4px 15px rgba(0, 179, 255, 0.4), 0 0 0 4px rgba(0, 179, 255, 0.05)'
-                : '0 4px 15px rgba(0, 255, 204, 0.4), 0 0 0 4px rgba(0, 255, 204, 0.05)'
-            }}
-          >
-            {era === '2026' ? (
-              <Radio size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
-            ) : (
-              <Globe size={24} className="fab-pulse-icon" style={{ color: '#050a16' }} />
-            )}
-          </button>
-        </div>
-
-        <button 
-          className={`nav-item ${era === '2026' && view2026 === 'leaderboard' ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedProfileId(null);
-            setChatOpen(false);
-            setShowExtrapolation(false);
-            setShowRadar(false);
-            if (era === '2070') {
-              handleSwitchEra();
-            }
-            setView2026(v => v === 'leaderboard' ? 'codex' : 'leaderboard');
-          }}
-          style={
-            era === '2026' && view2026 === 'leaderboard' ? {
-              color: '#ffd700',
-              fontWeight: 'bold',
-              textShadow: '0 0 10px rgba(255, 215, 0, 0.6)'
-            } : {}
-          }
-        >
-          <Trophy 
-            size={20} 
-            style={{
-              strokeWidth: era === '2026' && view2026 === 'leaderboard' ? 2.8 : 1.8,
-              fill: era === '2026' && view2026 === 'leaderboard' ? '#ffd700' : 'transparent',
-              filter: era === '2026' && view2026 === 'leaderboard' ? 'drop-shadow(0 0 8px #ffd700)' : 'none',
-              transform: era === '2026' && view2026 === 'leaderboard' ? 'scale(1.15)' : 'scale(1)',
-              transition: 'all 0.2s ease'
-            }}
-          />
-          <span style={{ fontWeight: era === '2026' && view2026 === 'leaderboard' ? 800 : 500 }}>Scores</span>
-        </button>
-
-        <button 
-          id="hud-btn-chat"
-          className={`nav-item ${chatOpen ? 'active' : ''}`}
-          onClick={() => {
-            setSelectedProfileId(null);
-            setChatOpen(!chatOpen);
-          }}
-        >
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <MessageSquare size={20} />
-            {unreadChat.total > 0 && (
-              <span className="nav-badge">{unreadChat.total}</span>
-            )}
-          </div>
-          <span>Chat</span>
-        </button>
-      </nav>
+      <MobileBottomNav
+        era={era}
+        selectedSector={selectedSector}
+        codexTab={codexTab}
+        selectedProfileId={selectedProfileId}
+        setSelectedProfileId={setSelectedProfileId}
+        setChatOpen={setChatOpen}
+        chatOpen={chatOpen}
+        unreadChat={unreadChat}
+        setCodexTab={setCodexTab}
+        setIsCodexCollapsed={setIsCodexCollapsed}
+        handleSwitchEra={handleSwitchEra}
+        isTransitioning={isTransitioning}
+        currentYear={currentYear}
+        missionsByCategory={missionsByCategory}
+        setSelectedSector={setSelectedSector}
+        view2026={view2026}
+        setView2026={setView2026}
+        setShowExtrapolation={setShowExtrapolation}
+        setShowRadar={setShowRadar}
+      />
 
       {/* Guide d'Onboarding / Visite Guidée Interactive */}
       <OnboardingGuide 
@@ -3229,85 +2623,10 @@ function MainApp() {
       />
 
       {/* Modal Popup Alerte Période Fermée */}
-      <AnimatePresence>
-        {showNoPeriodModal && (
-          <div 
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(5, 10, 25, 0.82)',
-              backdropFilter: 'blur(10px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10010,
-              padding: '20px'
-            }}
-            onClick={() => setShowNoPeriodModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
-              style={{
-                background: 'linear-gradient(135deg, rgba(18, 26, 48, 0.97), rgba(10, 16, 32, 0.99))',
-                border: '1.5px solid rgba(245, 158, 11, 0.6)',
-                borderRadius: '20px',
-                padding: '28px 30px',
-                maxWidth: '420px',
-                width: '100%',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.85), 0 0 25px rgba(245, 158, 11, 0.25)',
-                textAlign: 'center',
-                color: '#fff',
-                position: 'relative'
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{
-                width: '54px',
-                height: '54px',
-                borderRadius: '50%',
-                background: 'rgba(245, 158, 11, 0.15)',
-                border: '1.5px solid #f59e0b',
-                color: '#f59e0b',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-                boxShadow: '0 0 16px rgba(245, 158, 11, 0.35)'
-              }}>
-                <AlertTriangle size={26} />
-              </div>
-
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem', color: '#f59e0b', fontWeight: 'bold', letterSpacing: '0.3px' }}>
-                Période de jeu fermée
-              </h3>
-
-              <p style={{ margin: '0 0 24px 0', fontSize: '0.92rem', color: '#e2e8f0', lineHeight: '1.5' }}>
-                Aucune période ouverte, contactez votre administrateur.
-              </p>
-
-              <button
-                onClick={() => setShowNoPeriodModal(false)}
-                style={{
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '10px 32px',
-                  color: '#050a16',
-                  fontWeight: 'bold',
-                  fontSize: '0.92rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Compris
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ClosedPeriodAlertModal
+        isOpen={showNoPeriodModal}
+        onClose={() => setShowNoPeriodModal(false)}
+      />
 
       {/* Badge Interactif de Version App en bas à gauche -> Ouvre le Journal de Bord / About */}
       <div 
