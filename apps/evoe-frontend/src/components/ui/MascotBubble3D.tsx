@@ -363,21 +363,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 
                 {/* Badge Alerte 2ème Indice Débloqué si hh:mm écoulé */}
                 {!isEggLocked && currentShowExplicitHint && currentExplicitHint && (
-                  <div
-                    style={{
-                      background: '#fef3c7',
-                      border: '2px solid #f59e0b',
-                      borderRadius: '10px',
-                      padding: '8px 12px',
-                      marginBottom: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: '#92400e',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div className="mascot-hint-alert">
                     <Sparkles size={16} color="#d97706" />
                     <span>Signal 2070 amplifié : 2ème indice explicite reçu !</span>
                   </div>
@@ -386,16 +372,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 {/* Corps du message de la mascotte (effet machine à écrire) */}
                 <div
                   onClick={handleSkipTyping}
-                  style={{
-                    fontFamily: '"Comic Sans MS", "Chalkboard SE", "Comic Neue", cursive, sans-serif',
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    lineHeight: 1.5,
-                    marginBottom: '14px',
-                    cursor: isTypingComplete ? 'default' : 'pointer',
-                    userSelect: 'none',
-                    color: isEggLocked ? '#64748b' : currentShowExplicitHint ? '#92400e' : '#1e293b',
-                  }}
+                  className={`mascot-message-text ${isTypingComplete ? '' : 'clickable'} ${
+                    isEggLocked ? 'locked' : currentShowExplicitHint ? 'hint-active' : 'normal'
+                  }`}
                   title={isTypingComplete ? '' : 'Cliquez pour afficher tout le texte'}
                 >
                   {displayedText}
@@ -403,7 +382,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                     <motion.span
                       animate={{ opacity: [1, 0] }}
                       transition={{ repeat: Infinity, duration: 0.4 }}
-                      style={{ color: '#0284c7', fontWeight: 900 }}
+                      className="mascot-typing-cursor"
                     >
                       |
                     </motion.span>
@@ -425,15 +404,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   effectiveTriggerType === 'COMM_LINK_COMMAND' ||
                   effectiveIsDiscovered ||
                   localSuccess) ? (
-                  <div
-                    style={{
-                      background: '#0f172a',
-                      borderRadius: '14px',
-                      padding: '14px 16px',
-                      color: '#ffffff',
-                      border: '2px solid #334155',
-                    }}
-                  >
+                  <div className="mascot-interactive-box">
                     {effectiveIsDiscovered || localSuccess ? (
                       <MascotVictoryPanel
                         effectiveTriggerType={effectiveTriggerType}
