@@ -8,7 +8,6 @@ import { MascotLightbox } from './mascot/MascotLightbox';
 import { MascotVictoryPanel } from './mascot/MascotVictoryPanel';
 import { MascotInteractiveArea } from './mascot/MascotInteractiveArea';
 import { MascotHeader } from './mascot/MascotHeader';
-import { EggSelector } from './mascot/EggSelector';
 import { MascotLockedPanel } from './mascot/MascotLockedPanel';
 import { MascotSchemaThumbnail } from './mascot/MascotSchemaThumbnail';
 import { useViewportDimensions } from './mascot/useViewportDimensions';
@@ -289,44 +288,32 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                 mass: 0.8,
               }}
             >
-              {/* Avatar Mascotte SVG / 3D */}
-              <div
+              {/* Mascotte Gribouille sur hoverboard (Cliquer dessus ferme la bulle) */}
+              <motion.img
+                src={mascotImageUrl}
+                alt="Mascotte Gribouille"
+                onClick={onClose}
+                title="Cliquer sur la mascotte pour fermer"
                 style={{
-                  position: 'relative',
-                  width: isLandscapeMobile ? '80px' : isSmallPortrait ? '65px' : '85px',
-                  height: isLandscapeMobile ? '80px' : isSmallPortrait ? '65px' : '85px',
+                  width: isLandscapeMobile
+                    ? '100px'
+                    : isSmallPortrait
+                      ? '140px'
+                      : '185px',
+                  height: 'auto',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 18px 28px rgba(0, 0, 0, 0.65))',
+                  cursor: 'pointer',
+                  userSelect: 'none',
                   flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: isLandscapeMobile ? '0' : '2px',
+                  marginBottom: isLandscapeMobile ? '0' : '-8px',
+                  zIndex: 2,
                 }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: '-8px',
-                    borderRadius: '50%',
-                    background: 'radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, rgba(14, 165, 233, 0) 70%)',
-                    filter: 'blur(10px)',
-                    zIndex: 0,
-                  }}
-                />
-                <motion.img
-                  src={mascotImageUrl}
-                  alt="Mascotte Robot EVOE"
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    position: 'relative',
-                    zIndex: 1,
-                    filter: 'drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35))',
-                  }}
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-                />
-              </div>
+                animate={{ y: [0, -8, 0], rotateZ: [-2, 2, -2] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              />
 
               {/* Bulle de Dialogue Principale */}
               <motion.div
@@ -353,12 +340,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   effectiveRewardPointsIT={effectiveRewardPointsIT}
                   showRolloverWarning={showRolloverWarning}
                   unsolvedRolloverCount={unsolvedRolloverCount}
-                />
-
-                <EggSelector
-                  visibleCycleEggs={visibleCycleEggs}
-                  selectedEggIndex={selectedEggIndex}
-                  onSelectEggIndex={setSelectedEggIndex}
                 />
 
                 {/* Badge Alerte 2ème Indice Débloqué si hh:mm écoulé */}
