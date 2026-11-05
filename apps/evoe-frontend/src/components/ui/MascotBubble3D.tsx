@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ZoomIn, Lock, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { preloadUnlockAudio } from '../../utils/easterEggAudio';
 import LockWowAnimation from './LockWowAnimation';
 import { MascotLightbox } from './mascot/MascotLightbox';
@@ -9,6 +9,10 @@ import { MascotVictoryPanel } from './mascot/MascotVictoryPanel';
 import { MascotInteractiveArea } from './mascot/MascotInteractiveArea';
 import { MascotHeader } from './mascot/MascotHeader';
 import { EggSelector } from './mascot/EggSelector';
+import { MascotLockedPanel } from './mascot/MascotLockedPanel';
+import { MascotSchemaThumbnail } from './mascot/MascotSchemaThumbnail';
+import { useViewportDimensions } from './mascot/useViewportDimensions';
+import { useMascotForm } from './mascot/useMascotForm';
 import type { CycleEggItem } from '../../types/easterEgg';
 
 /** Résout une URL relative /uploads/... en URL absolue pointant vers le backend */
@@ -78,67 +82,18 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTypingComplete, setIsTypingComplete] = useState(false);
-  const [digits, setDigits] = useState<string[]>(['', '', '', '']);
-  const [commandInput, setCommandInput] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isVerifyingCommand, setIsVerifyingCommand] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showErrorShake, setShowErrorShake] = useState(false);
-  const [localSuccess, setLocalSuccess] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
-  const [isCryptexActive, setIsCryptexActive] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const initialDuration = 60;
   const [timeLeft, setTimeLeft] = useState(initialDuration);
+  const [selectedEggIndex, setSelectedEggIndex] = useState(0);
 
-  // Détection dynamique des dimensions de fenêtre et de l'orientation mobile
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-    height: typeof window !== 'undefined' ? window.innerHeight : 800,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
-  const isLandscapeMobile =
-    windowDimensions.width > windowDimensions.height && windowDimensions.height < 620;
-  const isDesktopWide =
-    windowDimensions.width >= 1200 && windowDimensions.height >= 650;
-  const isSmallPortrait =
-    windowDimensions.height >= windowDimensions.width && windowDimensions.width < 430;
-
-  const inputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
-  const lightboxInputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const { isLandscapeMobile, isDesktopWide, isSmallPortrait } = useViewportDimensions();
 
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
-
-  const [selectedEggIndex, setSelectedEggIndex] = useState(0);
 
   // Règle Métier : Les œufs verrouillés par un prérequis ne doivent pas apparaître pour le joueur
   const visibleCycleEggs = useMemo(() => {
@@ -151,7 +106,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   // Synchroniser la sélection de l'œuf à l'ouverture ou quand visibleCycleEggs change
   useEffect(() => {
     if (isOpen && visibleCycleEggs && visibleCycleEggs.length > 0) {
-      // Priorité 1 : premier œuf non encore résolu
       const firstUnresolvedIdx = visibleCycleEggs.findIndex((e: CycleEggItem) => !e.isDiscovered);
       if (firstUnresolvedIdx >= 0) {
         setSelectedEggIndex(firstUnresolvedIdx);
@@ -165,15 +119,6 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
 
   const currentEgg = visibleCycleEggs && visibleCycleEggs.length > 0 ? visibleCycleEggs[selectedEggIndex] : null;
   const currentEggId = currentEgg?.id;
-
-  useEffect(() => {
-    setDigits(['', '', '', '']);
-    setCommandInput('');
-    setErrorMessage(null);
-    setLocalSuccess(false);
-    setShowLightbox(false);
-    setIsCryptexActive(false);
-  }, [selectedEggIndex, currentEggId, isOpen]);
 
   const currentTitle = currentEgg ? (currentEgg.title || currentEgg.name || '') : title;
   const effectiveTriggerType = currentEgg ? currentEgg.triggerType : triggerType;
@@ -197,23 +142,52 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     setTimeLeft(initialDuration);
   }, [initialDuration]);
 
-  // Typewriter effect
+  const {
+    digits,
+    commandInput,
+    setCommandInput,
+    isVerifying,
+    isVerifyingCommand,
+    errorMessage,
+    setErrorMessage,
+    showErrorShake,
+    localSuccess,
+    isCryptexActive,
+    setIsCryptexActive,
+    inputRefs,
+    lightboxInputRefs,
+    handleDigitChange,
+    handleKeyDown,
+    handleSubmitAnswer,
+    handleCommandSubmit,
+    resetFormState,
+  } = useMascotForm({
+    currentEggId,
+    effectiveTriggerType,
+    onVerifyAnswer,
+    onVerifyCommand,
+    onSuccess,
+    resetTimer,
+    setShowLightbox,
+  });
+
+  useEffect(() => {
+    resetFormState();
+    setShowLightbox(false);
+  }, [selectedEggIndex, currentEggId, isOpen, resetFormState]);
+
+  // Effet machine à écrire
   useEffect(() => {
     if (!isOpen) {
       setDisplayedText('');
       setIsTypingComplete(false);
-      setDigits(['', '', '', '']);
-      setCommandInput('');
-      setErrorMessage(null);
-      setLocalSuccess(false);
+      resetFormState();
       setShowLightbox(false);
-      setIsCryptexActive(false);
       setActiveTooltip(null);
       setTimeLeft(initialDuration);
       return;
     }
 
-    // Précharge le son SFX dédié dès l'ouverture de la mascotte
     preloadUnlockAudio();
 
     let i = 0;
@@ -232,9 +206,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     }, 28);
 
     return () => clearInterval(interval);
-  }, [isOpen, currentMessage, initialDuration]);
+  }, [isOpen, currentMessage, initialDuration, resetFormState]);
 
-  // Compte à rebours de 60 secondes, réinitialisé à chaque frappe/interaction
+  // Compte à rebours de 60 secondes
   useEffect(() => {
     if (!isOpen || showLightbox || localSuccess) return;
 
@@ -259,138 +233,19 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
     setIsTypingComplete(true);
   };
 
-  const handleDigitChange = (index: number, val: string, isLightbox = false) => {
-    resetTimer();
-    setErrorMessage(null);
-    const targetRefs = isLightbox ? lightboxInputRefs : inputRefs;
-
-    // Filter only numeric characters
-    const cleanVal = val.replace(/\D/g, '');
-    if (cleanVal.length === 0) {
-      const newDigits = [...digits];
-      newDigits[index] = '';
-      setDigits(newDigits);
-      return;
-    }
-
-    // If pasted multi-digit code (e.g. "4207")
-    if (cleanVal.length > 1) {
-      const chars = cleanVal.slice(0, 4).split('');
-      const newDigits = [...digits];
-      chars.forEach((c, idx) => {
-        if (index + idx < 4) newDigits[index + idx] = c;
-      });
-      setDigits(newDigits);
-      const nextIdx = Math.min(3, index + chars.length);
-      targetRefs[nextIdx]?.current?.focus();
-      return;
-    }
-
-    const newDigits = [...digits];
-    newDigits[index] = cleanVal[cleanVal.length - 1];
-    setDigits(newDigits);
-
-    // Auto advance to next digit
-    if (index < 3 && cleanVal) {
-      targetRefs[index + 1]?.current?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>, isLightbox = false) => {
-    resetTimer();
-    const targetRefs = isLightbox ? lightboxInputRefs : inputRefs;
-    if (e.key === 'Backspace' && !digits[index] && index > 0) {
-      targetRefs[index - 1]?.current?.focus();
-    } else if (e.key === 'Enter') {
-      handleSubmitAnswer();
-    }
-  };
-
-  const handleSubmitAnswer = async () => {
-    resetTimer();
-    const answer = digits.join('');
-    if (answer.length < 4) {
-      setErrorMessage('Veuillez saisir les 4 chiffres du code.');
-      triggerShake();
-      return;
-    }
-
-    if (!onVerifyAnswer) return;
-
-    try {
-      setIsVerifying(true);
-      setErrorMessage(null);
-      const res = await onVerifyAnswer(answer, currentEggId);
-      if (res.success) {
-        setLocalSuccess(true);
-        setIsCryptexActive(true);
-        setShowLightbox(false);
-        onSuccess?.(currentEggId);
-      } else {
-        setErrorMessage(res.message || 'Code erroné. Croisez bien les 5 règles du schéma !');
-        triggerShake();
-      }
-    } catch {
-      setErrorMessage('Erreur lors de la vérification.');
-      triggerShake();
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleCommandSubmit = async () => {
-    const raw = commandInput.trim();
-    if (!raw) return;
-
-    resetTimer();
-    setErrorMessage(null);
-
-    if (!onVerifyCommand) {
-      setErrorMessage('Validation non disponible pour cette énigme');
-      triggerShake();
-      return;
-    }
-
-    try {
-      setIsVerifyingCommand(true);
-      const res = await onVerifyCommand(raw, currentEggId);
-      if (res.success) {
-        setLocalSuccess(true);
-        if (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT') {
-          setIsCryptexActive(true);
-        }
-        setShowLightbox(false);
-        onSuccess?.(currentEggId);
-      } else {
-        setErrorMessage(res.message || 'Mot-clé ou commande non reconnu.');
-        triggerShake();
-      }
-    } catch {
-      setErrorMessage('Erreur lors de la validation.');
-      triggerShake();
-    } finally {
-      setIsVerifyingCommand(false);
-    }
-  };
-
-  const triggerShake = () => {
-    setShowErrorShake(true);
-    setTimeout(() => setShowErrorShake(false), 600);
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Animation Cryptex Da Vinci flottante sans boîte, floutant directement le dashboard 2026 */}
+          {/* Animation Cryptex Da Vinci flottante sans boîte */}
           {isCryptexActive &&
             typeof document !== 'undefined' &&
             createPortal(
               <LockWowAnimation onClose={() => setIsCryptexActive(false)} />,
-              document.body
+              document.body,
             )}
 
-          {/* Overlay Conteneur Mascotte (masqué pendant l'animation du cryptex) */}
+          {/* Overlay Conteneur Mascotte */}
           <div
             id="mascot-bubble-overlay"
             style={{
@@ -428,124 +283,65 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
               animate={{ x: 0, y: 0, opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.4, transition: { duration: 0.3 } }}
               transition={{
-                x: { ease: 'linear', duration: 1.1 },
-                y: { ease: 'easeOut', duration: 1.1 },
-                opacity: { duration: 0.3 },
-                scale: { type: 'spring', stiffness: 85, damping: 14 },
+                type: 'spring',
+                stiffness: 240,
+                damping: 24,
+                mass: 0.8,
               }}
             >
-              {/* Mascotte 3D (Cliquer dessus ferme le pop-up) */}
-              <motion.img
-                src={mascotImageUrl}
-                alt="Mascotte 2070"
-                onClick={onClose}
-                title="Cliquer sur la mascotte pour fermer"
+              {/* Avatar Mascotte SVG / 3D */}
+              <div
                 style={{
-                  width: isLandscapeMobile
-                    ? '92px'
-                    : isSmallPortrait
-                      ? '135px'
-                      : '175px',
-                  height: 'auto',
-                  filter: 'drop-shadow(0 16px 24px rgba(0,0,0,0.65))',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  flexShrink: 0,
-                }}
-                animate={{ y: [0, -8, 0], rotateZ: [-2, 2, -2] }}
-                transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              />
-
-              {/* Bulle BD Holographique (Ne ferme pas au clic à l'intérieur) */}
-              <motion.div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetTimer();
-                }}
-                style={{
-                  background: '#ffffff',
-                  border: '3.5px solid #0f172a',
-                  borderRadius: '24px',
-                  padding: isLandscapeMobile ? '14px 18px' : '20px 24px',
-                  color: '#0f172a',
-                  width: isLandscapeMobile ? '520px' : '460px',
-                  maxWidth: isLandscapeMobile ? 'calc(100% - 110px)' : '94vw',
-                  boxShadow: '0 20px 35px rgba(0,0,0,0.4), 6px 6px 0px #0f172a',
-                  marginTop: isLandscapeMobile ? '0' : '8px',
                   position: 'relative',
-                  lineHeight: 1.45,
-                  textAlign: 'left',
+                  width: isLandscapeMobile ? '80px' : isSmallPortrait ? '65px' : '85px',
+                  height: isLandscapeMobile ? '80px' : isSmallPortrait ? '65px' : '85px',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: isLandscapeMobile ? '0' : '2px',
                 }}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.5, type: 'spring', stiffness: 140 }}
               >
-                {/* Flèche BD pointant vers la mascotte */}
-                {!isLandscapeMobile && (
-                  <>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '-20px',
-                        left: '50%',
-                        marginLeft: '-14px',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '14px solid transparent',
-                        borderRight: '14px solid transparent',
-                        borderBottom: '20px solid #ffffff',
-                        zIndex: 2,
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '-25px',
-                        left: '50%',
-                        marginLeft: '-17px',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '17px solid transparent',
-                        borderRight: '17px solid transparent',
-                        borderBottom: '25px solid #0f172a',
-                        zIndex: 1,
-                      }}
-                    />
-                  </>
-                )}
-                {isLandscapeMobile && (
-                  <>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '-20px',
-                        top: '36px',
-                        width: 0,
-                        height: 0,
-                        borderTop: '12px solid transparent',
-                        borderBottom: '12px solid transparent',
-                        borderRight: '20px solid #ffffff',
-                        zIndex: 2,
-                      }}
-                    />
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '-25px',
-                        top: '33px',
-                        width: 0,
-                        height: 0,
-                        borderTop: '15px solid transparent',
-                        borderBottom: '15px solid transparent',
-                        borderRight: '25px solid #0f172a',
-                        zIndex: 1,
-                      }}
-                    />
-                  </>
-                )}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: '-8px',
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, rgba(14, 165, 233, 0) 70%)',
+                    filter: 'blur(10px)',
+                    zIndex: 0,
+                  }}
+                />
+                <motion.img
+                  src={mascotImageUrl}
+                  alt="Mascotte Robot EVOE"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    position: 'relative',
+                    zIndex: 1,
+                    filter: 'drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35))',
+                  }}
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                />
+              </div>
 
+              {/* Bulle de Dialogue Principale */}
+              <motion.div
+                style={{
+                  width: '100%',
+                  flex: 1,
+                  background: 'rgba(255, 255, 255, 0.98)',
+                  backdropFilter: 'blur(20px)',
+                  borderRadius: isLandscapeMobile ? '16px' : '20px',
+                  padding: isLandscapeMobile ? '12px 14px' : '16px 18px',
+                  boxShadow: '0 20px 45px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.4) inset',
+                  border: '2px solid rgba(14, 165, 233, 0.3)',
+                  position: 'relative',
+                }}
+              >
                 <MascotHeader
                   currentTitle={currentTitle}
                   isLandscapeMobile={isLandscapeMobile}
@@ -614,116 +410,17 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   )}
                 </div>
 
-                {/* Vignette Schéma / Infographie (1.3) */}
+                {/* Vignette Schéma / Infographie */}
                 {!isEggLocked && currentImageUrl && (
-                  <div
-                    style={{
-                      background: '#f8fafc',
-                      border: '2px dashed #cbd5e1',
-                      borderRadius: '12px',
-                      padding: '8px 10px',
-                      marginBottom: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div
-                        onClick={() => setShowLightbox(true)}
-                        style={{
-                          width: '46px',
-                          height: '36px',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          border: '1.5px solid #94a3b8',
-                          cursor: 'pointer',
-                          background: '#090d16',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <img
-                          src={currentImageUrl}
-                          alt="Schéma"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
-                          Schéma de Déduction 2070
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                          5 règles d'exclusion cryptées
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowLightbox(true)}
-                      style={{
-                        background: '#0284c7',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '6px 10px',
-                        color: '#ffffff',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        transition: 'background 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#0369a1')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '#0284c7')}
-                    >
-                      <ZoomIn size={13} />
-                      Résoudre
-                    </button>
-                  </div>
+                  <MascotSchemaThumbnail
+                    currentImageUrl={currentImageUrl}
+                    onOpenLightbox={() => setShowLightbox(true)}
+                  />
                 )}
 
                 {/* Zone interactive de saisie ou statut verrouillé */}
                 {isEggLocked ? (
-                  <div
-                    style={{
-                      background: '#0f172a',
-                      borderRadius: '14px',
-                      padding: '20px 16px',
-                      color: '#ffffff',
-                      border: '2px dashed #475569',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '50%',
-                        background: 'rgba(239, 68, 68, 0.15)',
-                        border: '1.5px solid rgba(239, 68, 68, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 12px',
-                        color: '#f87171',
-                      }}
-                    >
-                      <Lock size={22} />
-                    </div>
-                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#f87171', marginBottom: '6px' }}>
-                      Énigme Actuellement Verrouillée
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.45 }}>
-                      {currentPrereqDesc
-                        ? `Conditions de déblocage : ${currentPrereqDesc}`
-                        : 'Accomplissez vos missions prioritaires dans le jeu pour débloquer l’accès à cette énigme.'}
-                    </p>
-                  </div>
+                  <MascotLockedPanel currentPrereqDesc={currentPrereqDesc} />
                 ) : (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ||
                   effectiveTriggerType === 'COMM_LINK_COMMAND' ||
                   effectiveIsDiscovered ||
@@ -771,7 +468,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   </div>
                 ) : null}
 
-                {/* Panneau de Déduction Agrandit (Modal Centré sur Mobile & Tablettes, Docké à droite sur Desktop Large) */}
+                {/* Panneau de Déduction Agrandit (Lightbox) */}
                 <MascotLightbox
                   showLightbox={showLightbox}
                   setShowLightbox={setShowLightbox}
