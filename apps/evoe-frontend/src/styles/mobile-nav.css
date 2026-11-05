@@ -1,0 +1,359 @@
+/* ==========================================
+   MOBILE BOTTOM NAVBAR & FAB LAYOUT (AXIS 3)
+   ========================================== */
+
+/* Show bottom navbar only on mobile screens */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Restructure main dashboard to leave room for bottom nav with safe-area */
+  .app-container {
+    padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+    box-sizing: border-box;
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(65px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(8, 14, 28, 0.94);
+    border-top: 1.5px solid rgba(0, 255, 204, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9998; /* Under chat sidebar (9999) but above standard content */
+    padding-left: 10px;
+    padding-right: 10px;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    box-sizing: border-box;
+  }
+
+  .mobile-bottom-nav .nav-item {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    height: 100%;
+    padding: 5px 0;
+  }
+
+  .mobile-bottom-nav .nav-item:active {
+    transform: scale(0.95);
+  }
+
+  .mobile-bottom-nav .nav-item.active {
+    color: #00ffcc;
+  }
+
+  /* Central Floating Action Button (FAB) Container */
+  .mobile-bottom-nav .fab-container {
+    position: relative;
+    width: 60px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-bottom-nav .fab-button {
+    position: absolute;
+    bottom: 12px; /* Hangs slightly over the bottom bar */
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00ffcc, #00b3ff);
+    border: 2px solid rgba(10, 16, 30, 0.85);
+    color: #050a16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 255, 204, 0.4), 0 0 0 4px rgba(0, 255, 204, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .mobile-bottom-nav .fab-button:active {
+    transform: scale(0.9) translateY(4px);
+    box-shadow: 0 2px 8px rgba(0, 255, 204, 0.3);
+  }
+
+  .mobile-bottom-nav .fab-button:hover {
+    box-shadow: 0 6px 20px rgba(0, 255, 204, 0.6), 0 0 0 6px rgba(0, 255, 204, 0.1);
+  }
+
+  /* Nav Badge for Chat Unreads */
+  .mobile-bottom-nav .nav-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: #ff3b3b;
+    color: #fff;
+    border-radius: 50%;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: bold;
+    border: 1px solid rgba(10, 16, 30, 0.85);
+  }
+
+  /* Hide default floating desktop chat button on mobile to prevent overlapping */
+  .chat-toggle-btn {
+    display: none !important;
+  }
+}
+
+/* Pulsing effect for FAB icon */
+.fab-pulse-icon {
+  animation: fabPulse 2s infinite ease-in-out;
+}
+
+@keyframes fabPulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(5,10,22,0.3)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 8px rgba(5,10,22,0.7)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(5,10,22,0.3)); }
+}
+
+/* Hide redundant top header buttons in mobile portrait */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Landscape mobile view for ChatPanel: render as fixed sidebar with safe-areas and 100dvh */
+@media (max-height: 500px) and (orientation: landscape) {
+  .chat-sidebar-container {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    height: 100dvh !important;
+    width: 320px !important;
+    max-width: 100% !important;
+    border-left: 1.5px solid rgba(0, 255, 204, 0.3) !important;
+    border-top: none !important;
+    border-radius: 0 !important;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.6) !important;
+    padding-top: env(safe-area-inset-top, 10px) !important;
+    padding-right: env(safe-area-inset-right, 10px) !important;
+    padding-bottom: env(safe-area-inset-bottom, 10px) !important;
+  }
+  .chat-drag-handle {
+    display: none !important;
+  }
+}
+
+/* ChatPanel styles extracted */
+.chat-sidebar-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 400px;
+  max-width: 100%;
+  z-index: 9999;
+  background: rgba(5, 8, 16, 0.94);
+  border-left: 1px solid rgba(0, 255, 204, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
+  display: none;
+  flex-direction: column;
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  overflow: hidden;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s ease;
+}
+.chat-sidebar-container.open {
+  display: flex;
+}
+.chat-sidebar-container.expanded {
+  width: calc(100vw * 2 / 3);
+}
+.chat-drag-handle {
+  display: none;
+}
+
+/* Handle mobile bottom sheet view */
+@media (max-width: 768px) {
+  .chat-sidebar-container {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 75vh;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-left: none;
+    border-top: 1px solid rgba(0, 255, 204, 0.3);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(0);
+  }
+  .chat-sidebar-container.expanded {
+    height: 92vh !important;
+    width: 100% !important;
+  }
+  .chat-drag-handle {
+    display: block;
+    width: 40px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin: 8px auto 4px auto;
+    flex-shrink: 0;
+    cursor: grab;
+  }
+}
+
+.chat-drawer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.chat-drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.chat-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 260px;
+  max-width: 85%;
+  height: 100%;
+  background: rgba(10, 15, 30, 0.98);
+  border-right: 1px solid rgba(0, 255, 204, 0.3);
+  z-index: 11;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 5px 0 20px rgba(0,0,0,0.5);
+}
+.chat-drawer.open {
+  transform: translateX(0);
+}
+
+.channel-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.2s;
+  color: rgba(255,255,255,0.7);
+  border-radius: 6px;
+  margin: 2px 8px;
+}
+.channel-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+.channel-item.active {
+  background: rgba(0, 255, 204, 0.15);
+  color: #00ffcc;
+  font-weight: bold;
+}
+.channel-badge {
+  background: #ff3b3b;
+  color: #fff;
+  border-radius: 9999px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+.chat-message-item {
+  transition: background-color 0.15s ease;
+}
+.chat-message-item:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+.drawer-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #00ffcc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+.drawer-toggle-btn:hover {
+  background: rgba(0, 255, 204, 0.15);
+}
+
+.app-version-badge {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+}
+
+.app-version-badge:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: #00ffcc !important;
+  box-shadow: 0 0 16px rgba(0, 255, 204, 0.55), 0 4px 12px rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  background: rgba(0, 255, 204, 0.22) !important;
+}
+
+@media (max-width: 768px) {
+  .app-version-badge {
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 12px !important;
+    z-index: 9999 !important;
+  }
+}
+
+/* Masquer le badge de version en bas à gauche en mode portrait sur mobile (accessible via le menu bulle) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .app-version-badge {
+    display: none !important;
+  }
+}
+
+/* Alignement du badge de version avec le bouton Comm-Link par le milieu des 2 widgets en mode paysage */
+@media (orientation: landscape) {
+  .app-version-badge {
+    bottom: 34px !important;
+    left: 25px !important;
+  }
+}

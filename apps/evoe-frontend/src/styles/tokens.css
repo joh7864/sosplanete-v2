@@ -1,0 +1,86 @@
+/* ==========================================================================
+   DESIGN TOKENS — EVOE ARCH 2026 / NEXUS 2070
+   Design System Cyberpunk, Glassmorphism & Eco-Futuriste
+   ========================================================================== */
+
+:root {
+  /* --- 1. Palettes Couleurs Sémantiques & Néons --- */
+  --evoe-cyan: #00ffcc;
+  --evoe-cyan-glow: rgba(0, 255, 204, 0.45);
+  --evoe-cyan-dim: rgba(0, 255, 204, 0.15);
+
+  --evoe-sky: #38bdf8;
+  --evoe-sky-glow: rgba(56, 189, 248, 0.45);
+  --evoe-sky-dim: rgba(56, 189, 248, 0.15);
+
+  --evoe-primary: #0284c7;
+  --evoe-primary-hover: #0369a1;
+  --evoe-primary-dark: #075985;
+
+  --evoe-emerald: #10b981;
+  --evoe-emerald-glow: rgba(16, 185, 129, 0.45);
+  --evoe-emerald-dim: rgba(16, 185, 129, 0.15);
+
+  --evoe-amber: #f59e0b;
+  --evoe-amber-glow: rgba(245, 158, 11, 0.45);
+  --evoe-gold: #ffd700;
+
+  --evoe-rose: #f43f5e;
+  --evoe-red: #ef4444;
+  --evoe-red-glow: rgba(239, 68, 68, 0.45);
+
+  --evoe-purple: #8b5cf6;
+  --evoe-purple-glow: rgba(139, 92, 246, 0.45);
+  --evoe-purple-dim: rgba(139, 92, 246, 0.15);
+
+  /* --- 2. Fonds Profonds & Glassmorphism --- */
+  --evoe-bg-void: #030712;
+  --evoe-bg-space: #040814;
+  --evoe-bg-abyss: #080f1e;
+  --evoe-bg-surface: #0b132b;
+  --evoe-bg-slate: #0f172a;
+  --evoe-bg-card: #1e293b;
+
+  --evoe-glass-panel: rgba(4, 8, 20, 0.78);
+  --evoe-glass-card: rgba(15, 23, 42, 0.75);
+  --evoe-glass-hover: rgba(30, 41, 59, 0.85);
+  --evoe-glass-border: rgba(0, 255, 204, 0.22);
+  --evoe-glass-border-sky: rgba(56, 189, 248, 0.25);
+  --evoe-glass-border-subtle: rgba(255, 255, 255, 0.08);
+
+  /* --- 3. Typographie & Contrastes --- */
+  --evoe-font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --evoe-font-mono: 'VT323', monospace;
+  --evoe-font-display: 'Roboto', sans-serif;
+
+  --evoe-text-pure: #ffffff;
+  --evoe-text-main: #f1f5f9;
+  --evoe-text-muted: #94a3b8;
+  --evoe-text-dim: #64748b;
+  --evoe-text-subtle: #475569;
+
+  /* --- 4. Élévations & Effets Lumineux --- */
+  --evoe-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --evoe-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --evoe-shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.65);
+  --evoe-shadow-glow-cyan: 0 0 20px rgba(0, 255, 204, 0.35);
+  --evoe-shadow-glow-sky: 0 0 25px rgba(56, 189, 248, 0.4);
+  --evoe-shadow-glow-amber: 0 0 20px rgba(245, 158, 11, 0.35);
+
+  --evoe-blur-glass: blur(14px);
+  --evoe-blur-glass-deep: blur(20px);
+
+  /* --- 5. Rayons de Courbure (Radius) --- */
+  --evoe-radius-xs: 4px;
+  --evoe-radius-sm: 8px;
+  --evoe-radius-md: 12px;
+  --evoe-radius-lg: 16px;
+  --evoe-radius-xl: 22px;
+  --evoe-radius-full: 9999px;
+
+  /* --- 6. Transitions & Animations --- */
+  --evoe-trans-fast: 0.15s ease;
+  --evoe-trans-normal: 0.25s ease;
+  --evoe-trans-smooth: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --evoe-trans-spring: 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

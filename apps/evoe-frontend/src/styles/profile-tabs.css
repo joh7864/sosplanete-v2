@@ -1,0 +1,436 @@
+/* Avatar Picker Popover */
+.agent-avatar-picker-popover {
+  position: absolute;
+  top: 40px;
+  left: 20px;
+  right: 20px;
+  background: rgba(10, 16, 30, 0.98);
+  border: 1px solid rgba(0, 255, 204, 0.4);
+  border-radius: 12px;
+  padding: 15px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-avatar-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 8px;
+}
+
+.agent-avatar-picker-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #00ffcc;
+  text-transform: uppercase;
+}
+
+.picker-upload-btn {
+  background: rgba(0, 255, 204, 0.1);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  color: #00ffcc;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.picker-close-btn {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.agent-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 5px;
+  flex: 1;
+}
+
+.agent-avatar-grid-item {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  object-fit: cover;
+}
+
+.agent-avatar-grid-item:hover {
+  transform: scale(1.08);
+  border-color: rgba(0, 255, 204, 0.4);
+}
+
+.agent-avatar-grid-item.selected {
+  border-color: #00ffcc;
+  box-shadow: 0 0 8px rgba(0, 255, 204, 0.3);
+}
+
+/* Right Content Area */
+.agent-profile-content {
+  flex: 1;
+  padding: 18px 58px 20px 22px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .agent-profile-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 0 auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 14px 16px 28px 16px !important;
+    gap: 14px !important;
+    box-sizing: border-box !important;
+  }
+  .profile-it-hero-card {
+    padding: 10px 12px;
+    gap: 10px;
+    flex-shrink: 0 !important;
+    min-height: 52px !important;
+  }
+  .profile-it-icon-badge {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    flex-shrink: 0 !important;
+  }
+  .profile-it-title {
+    font-size: 0.85rem;
+  }
+  .profile-it-subtitle {
+    font-size: 0.68rem;
+  }
+  .profile-it-score-val {
+    font-size: 1.15rem;
+  }
+  .profile-it-score-wrapper {
+    padding: 4px 10px;
+  }
+  .profile-metrics-grid {
+    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0 !important;
+  }
+  .profile-metric-card {
+    padding: 8px 6px;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .profile-metric-card .metric-icon {
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    flex-shrink: 0;
+  }
+  .profile-metric-card .metric-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .profile-metric-card .metric-info .label {
+    font-size: 0.62rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .profile-metric-card .metric-info .value {
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .profile-tab-content {
+    overflow: visible !important;
+    flex: none !important;
+    min-height: auto !important;
+  }
+
+  .tab-label-full {
+    display: none !important;
+  }
+  .tab-label-short {
+    display: inline !important;
+  }
+
+  .profile-tabs-nav {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+    overflow-x: visible !important;
+    padding-bottom: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  .profile-tab-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 6px 2px 8px 2px !important;
+    font-size: 0.78rem !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
+/* Hero Card : Énergie IT Cumulée */
+.profile-it-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  flex-shrink: 0;
+  min-height: 56px;
+  background: linear-gradient(135deg, rgba(217, 70, 239, 0.12) 0%, rgba(13, 20, 36, 0.9) 60%, rgba(0, 255, 204, 0.08) 100%);
+  border: 1.5px solid rgba(217, 70, 239, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 0 24px rgba(217, 70, 239, 0.15), inset 0 0 16px rgba(217, 70, 239, 0.06);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.profile-it-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #d946ef, #00ffcc);
+  opacity: 0.8;
+}
+
+.profile-it-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profile-it-icon-badge {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 10px;
+  background: rgba(217, 70, 239, 0.18);
+  border: 1px solid rgba(217, 70, 239, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f0abfc;
+  box-shadow: 0 0 12px rgba(217, 70, 239, 0.3);
+}
+
+.it-hero-icon {
+  filter: drop-shadow(0 0 6px rgba(217, 70, 239, 0.6));
+}
+
+.profile-it-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-it-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.profile-it-subtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-it-score-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-shrink: 0;
+  background: rgba(217, 70, 239, 0.15);
+  border: 1px solid rgba(217, 70, 239, 0.4);
+  padding: 6px 14px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.2);
+}
+
+.profile-it-score-val {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #f0abfc;
+  text-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
+}
+
+.profile-it-score-unit {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #d946ef;
+}
+
+.profile-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.profile-metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.profile-metric-card .metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.profile-metric-card .metric-icon.co2 {
+  background: rgba(0, 255, 204, 0.08);
+  color: #00ffcc;
+  border: 1px solid rgba(0, 255, 204, 0.2);
+}
+
+.profile-metric-card .metric-icon.water {
+  background: rgba(0, 179, 255, 0.08);
+  color: #00b3ff;
+  border: 1px solid rgba(0, 179, 255, 0.2);
+}
+
+.profile-metric-card .metric-icon.waste {
+  background: rgba(255, 159, 67, 0.08);
+  color: #ff9f43;
+  border: 1px solid rgba(255, 159, 67, 0.2);
+}
+
+.profile-metric-card .metric-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile-metric-card .label {
+  font-size: 0.65rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-metric-card .value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* Tabs Navigation */
+.profile-tabs-nav {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.profile-tab-btn {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 6px 12px 10px 12px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.profile-tab-btn:hover {
+  color: #fff;
+}
+
+.profile-tab-btn.active {
+  color: #00ffcc;
+}
+
+.profile-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #00ffcc;
+  box-shadow: 0 0 10px #00ffcc;
+}
+
+.tab-label-short {
+  display: none;
+}
+
+.tab-label-full {
+  display: inline;
+}
+
+.profile-tab-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 60px;
+}
+
+.empty-state {
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 30px;
+}

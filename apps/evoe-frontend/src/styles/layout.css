@@ -1,0 +1,183 @@
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+.app-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.transition-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(0,255,204,1) 0%, rgba(0,0,0,1) 100%);
+  border-radius: 50%;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.ui-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none; /* Laisse passer les clics vers le canvas */
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 40px 22px 40px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  pointer-events: auto; /* Réactive les clics pour le header */
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: flex !important;
+    align-items: center;
+  }
+  .header {
+    padding: 10px 14px 20px 14px !important;
+    flex-wrap: nowrap;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+@media (max-height: 500px) {
+  .header {
+    padding: 6px 20px 18px 20px !important;
+  }
+  .logo h1 {
+    font-size: 1.1rem !important;
+  }
+}
+
+.mobile-portrait-only {
+  display: none !important;
+}
+
+@media (max-width: 768px) and (min-height: 521px) {
+  .mobile-portrait-only {
+    display: block !important;
+  }
+}
+
+@media (max-height: 550px) {
+  #hud-completion-bar {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin: 0 auto !important;
+    min-width: 170px !important;
+    max-width: 250px !important;
+    padding: 5px 14px !important;
+  }
+  #hud-completion-bar span {
+    font-size: 0.72rem !important;
+  }
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  white-space: nowrap; /* Empêche "EVOE" et "2026" de se séparer */
+}
+
+@media (max-width: 768px) {
+  .logo h1 {
+    font-size: 1rem;
+  }
+}
+
+.icon {
+  color: #00ffcc;
+}
+
+.icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00ffcc, #00b3ff);
+  border: none;
+  border-radius: 8px; /* Faiblement arrondi, comme demandé */
+  padding: 10px 20px;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  white-space: nowrap; /* Empêche le texte de passer sur 3 lignes sur mobile */
+}
+
+@media (max-width: 768px) {
+  .switch-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  /* Boutons d'action du header : espacement harmonieux pour Recherche et Menu Système */
+  .header-actions {
+    gap: 8px !important;
+  }
+  .header-actions .switch-btn,
+  .header-actions a.switch-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+.switch-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+}
+
+.switch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
