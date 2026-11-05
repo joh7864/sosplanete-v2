@@ -10,6 +10,7 @@ import { AntigravityEffect } from './easter-egg-effects/AntigravityEffect';
 import { RocketThrusterEffect } from './easter-egg-effects/RocketThrusterEffect';
 import { Temporal1985Effect } from './easter-egg-effects/Temporal1985Effect';
 import { DiscoPartyEffect } from './easter-egg-effects/DiscoPartyEffect';
+import { DiscoVictoryHud } from './DiscoVictoryHud';
 import LockWowAnimation from './LockWowAnimation';
 
 export interface EasterEggVictoryDispatcherProps {
@@ -296,13 +297,11 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
           background: showCard
             ? effectType === 'konami'
               ? 'rgba(0, 6, 0, 0.88)'
-              : effectType === 'antigravity'
+              : effectType === 'antigravity' || isDisco
               ? 'transparent'
-              : isDisco
-              ? 'radial-gradient(circle at center, rgba(30, 10, 45, 0.75) 0%, rgba(2, 6, 23, 0.94) 80%)'
               : 'radial-gradient(circle at center, rgba(6, 78, 59, 0.7) 0%, rgba(2, 6, 23, 0.94) 80%)'
             : 'transparent',
-          backdropFilter: showCard && effectType !== 'konami' && effectType !== 'antigravity' ? 'blur(16px)' : 'none',
+          backdropFilter: showCard && effectType !== 'konami' && effectType !== 'antigravity' && !isDisco ? 'blur(16px)' : 'none',
           overflow: 'hidden',
           userSelect: 'none',
           transition: 'background 0.5s ease, backdrop-filter 0.5s ease',
@@ -417,7 +416,19 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
               remainingPlayers={remainingPlayers}
             />
           )}
-          {showCard && effectType !== 'konami' && (
+          {/* Option B : Fête Disco avec Titre Aérien et Barre Basse Non-Intrusive */}
+          {showCard && isDisco && (
+            <DiscoVictoryHud
+              eggTitle={eggTitle || 'Fête Orbitale'}
+              displayPoints={displayPoints}
+              isTeamRewarded={isTeamRewarded}
+              onOpenCommLink={onOpenCommLink}
+              onClose={onClose}
+            />
+          )}
+
+          {/* Modale Classique pour les autres Easter Eggs */}
+          {showCard && effectType !== 'konami' && !isDisco && (
             <motion.div
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.6, opacity: 0, y: 40 }}
@@ -434,18 +445,10 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 maxWidth: '520px',
                 width: '90%',
                 padding: '36px 32px',
-                background: isDisco
-                  ? 'linear-gradient(145deg, rgba(24, 15, 38, 0.95), rgba(15, 23, 42, 0.95))'
-                  : 'rgba(15, 23, 42, 0.92)',
-                border: isDisco
-                  ? '2px solid rgba(236, 72, 153, 0.75)'
-                  : isAntigrav
-                  ? '2px solid rgba(56, 189, 248, 0.7)'
-                  : '2px solid rgba(16, 185, 129, 0.6)',
+                background: 'rgba(15, 23, 42, 0.92)',
+                border: isAntigrav ? '2px solid rgba(56, 189, 248, 0.7)' : '2px solid rgba(16, 185, 129, 0.6)',
                 borderRadius: '28px',
-                boxShadow: isDisco
-                  ? '0 25px 65px rgba(0, 0, 0, 0.9), 0 0 55px rgba(236, 72, 153, 0.45)'
-                  : isAntigrav
+                boxShadow: isAntigrav
                   ? '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 50px rgba(56, 189, 248, 0.4)'
                   : '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.35)',
                 backdropFilter: 'blur(20px)',
@@ -474,7 +477,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 <X size={18} />
               </button>
 
-              {/* Visuel central (Cadenas 3D animé, Disque Vinyl Funk ou Hologramme) */}
+              {/* Visuel central (Cadenas 3D animé ou Hologramme) */}
               {renderCenterVisual()}
 
               {/* Badge d'état */}
@@ -488,9 +491,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   gap: '6px',
                   padding: '6px 14px',
                   borderRadius: '20px',
-                  background: isDisco ? 'rgba(236, 72, 153, 0.18)' : 'rgba(16, 185, 129, 0.15)',
-                  border: isDisco ? '1.5px solid #ec4899' : '1.5px solid #10b981',
-                  color: isDisco ? '#f472b6' : '#34d399',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1.5px solid #10b981',
+                  color: '#34d399',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   textTransform: 'uppercase',
@@ -498,8 +501,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   marginBottom: '10px',
                 }}
               >
-                {isDisco ? <Sparkles size={16} /> : <ShieldCheck size={16} />}
-                {isDisco ? 'Piste Débloquée // Disco Fever Orbitale' : 'Énigme Résolue // Données Déchiffrées'}
+                <ShieldCheck size={16} />
+                Énigme Résolue // Données Déchiffrées
               </motion.div>
 
               {/* Titre Triomphal */}
@@ -513,7 +516,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   fontWeight: 900,
                   color: '#ffffff',
                   letterSpacing: '-0.3px',
-                  textShadow: isDisco ? '0 0 20px rgba(236, 72, 153, 0.65)' : '0 0 20px rgba(16, 185, 129, 0.45)',
+                  textShadow: '0 0 20px rgba(16, 185, 129, 0.45)',
                 }}
               >
                 {eggTitle} !
@@ -540,17 +543,15 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   gap: '12px',
                   padding: '12px 24px',
                   borderRadius: '18px',
-                  background: isDisco
-                    ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(245, 158, 11, 0.25))'
-                    : 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
-                  border: isDisco ? '2px solid #ec4899' : '2px solid #f59e0b',
-                  boxShadow: isDisco ? '0 0 35px rgba(236, 72, 153, 0.35)' : '0 0 35px rgba(245, 158, 11, 0.35)',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
+                  border: '2px solid #f59e0b',
+                  boxShadow: '0 0 35px rgba(245, 158, 11, 0.35)',
                   marginBottom: '26px',
                 }}
               >
-                <Sparkles size={28} color={isDisco ? '#f472b6' : '#fbbf24'} />
+                <Sparkles size={28} color="#fbbf24" />
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isDisco ? '#fbcfe8' : '#fde68a', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a', textTransform: 'uppercase' }}>
                     {isTeamRewarded
                       ? "Bonus IT d'Équipe"
                       : remainingPlayers && remainingPlayers > 0
@@ -576,9 +577,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                       width: '100%',
                       padding: '14px 20px',
                       borderRadius: '14px',
-                      background: isDisco
-                        ? 'linear-gradient(135deg, #ec4899, #8b5cf6)'
-                        : 'linear-gradient(135deg, #10b981, #059669)',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
                       border: 'none',
                       color: '#ffffff',
                       fontSize: '0.96rem',
@@ -588,7 +587,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '10px',
-                      boxShadow: isDisco ? '0 4px 20px rgba(236, 72, 153, 0.55)' : '0 4px 20px rgba(16, 185, 129, 0.5)',
+                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.5)',
                       transition: 'all 0.15s ease',
                     }}
                   >
