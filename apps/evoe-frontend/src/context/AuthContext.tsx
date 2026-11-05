@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { evoeClient } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { telemetry } from '../services/telemetryService';
@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [missions, setMissions] = useState<any[]>([]);
   const [players, setPlayers] = useState<any[]>([]);
 
-  const refreshContext = async () => {
+  const refreshContext = useCallback(async () => {
     const savedToken = localStorage.getItem("evoe_token") || sessionStorage.getItem("evoe_token");
     const savedAuth = localStorage.getItem("evoe_auth") || sessionStorage.getItem("evoe_auth");
     const savedInstanceId = localStorage.getItem("instanceId") || sessionStorage.getItem("instanceId");
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Erreur rafraîchissement contexte:", e);
       }
     }
-  };
+  }, []);
 
   const finishLogin = (instId: string, _schoolName: string, headers: any, _loginPseudo: string) => {
     headers["x-instance-id"] = instId;

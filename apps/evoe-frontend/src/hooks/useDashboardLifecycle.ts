@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { evoeClient } from '../lib/api';
 import { applyArcadeCatalog } from '../components/arcade';
 import { preloadEvoeAssets } from '../utils/preloadAssets';
@@ -79,26 +79,31 @@ export function useDashboardLifecycle({
   }, [expandedMission, setExpandedMission]);
 
   // Polling suspendu quand l'onglet ou la salle d'arcade est masqué/ouvert
+  const fetchEvoeDataRef = useRef(fetchEvoeData);
+  fetchEvoeDataRef.current = fetchEvoeData;
+  const fetchChallengesRef = useRef(fetchChallenges);
+  fetchChallengesRef.current = fetchChallenges;
+
   useEffect(() => {
-    fetchEvoeData();
-    if (era === '2026') fetchChallenges();
+    fetchEvoeDataRef.current();
+    if (era === '2026') fetchChallengesRef.current();
 
     const poll = () => {
       if (document.hidden || isArcadeOpen) return;
-      if (era === '2070') fetchEvoeData(true);
+      if (era === '2070') fetchEvoeDataRef.current(true);
       else if (era === '2026') {
-        fetchEvoeData(true);
-        fetchChallenges(true);
+        fetchEvoeDataRef.current(true);
+        fetchChallengesRef.current(true);
       }
     };
 
     const interval = setInterval(poll, 10000);
     const handleVisibilityChange = () => {
       if (!document.hidden && !isArcadeOpen) {
-        if (era === '2070') fetchEvoeData(true);
+        if (era === '2070') fetchEvoeDataRef.current(true);
         else if (era === '2026') {
-          fetchEvoeData(true);
-          fetchChallenges(true);
+          fetchEvoeDataRef.current(true);
+          fetchChallengesRef.current(true);
         }
       }
     };
@@ -108,7 +113,8 @@ export function useDashboardLifecycle({
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [era, instanceId, isArcadeOpen, fetchEvoeData, fetchChallenges]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [era, instanceId, isArcadeOpen]);
 
   // Auto-scroll vers le vaisseau ciblé sur le radar
   useEffect(() => {

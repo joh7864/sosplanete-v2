@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { evoeClient } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { telemetry } from '../services/telemetryService';
@@ -169,7 +169,7 @@ export function useEvoeData() {
 
   const [isEvoeDataLoading, setIsEvoeDataLoading] = useState(true);
 
-  const fetchEvoeData = async (isBackground = false) => {
+  const fetchEvoeData = useCallback(async (isBackground = false) => {
     if (!instanceId) return;
     refreshContext();
 
@@ -200,9 +200,9 @@ export function useEvoeData() {
         setIsEvoeDataLoading(false);
       }
     }
-  };
+  }, [instanceId, refreshContext]);
 
-  const fetchChallenges = async (isBackground = false) => {
+  const fetchChallenges = useCallback(async (isBackground = false) => {
     if (!instanceId) return;
     try {
       if (!isBackground) {
@@ -221,7 +221,7 @@ export function useEvoeData() {
         setLoadingChallenges(false);
       }
     }
-  };
+  }, [instanceId]);
 
   // Chargement automatique au montage dès que l'instanceId est disponible
   useEffect(() => {
