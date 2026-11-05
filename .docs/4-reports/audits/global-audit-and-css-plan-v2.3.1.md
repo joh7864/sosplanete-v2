@@ -99,32 +99,37 @@ graph LR
 ```
 
 ### 📋 Phase 3.1 — Création du Système de Tokens CSS (`src/styles/tokens.css`)
-- [ ] Extraire toutes les variables de couleur du jeu sous forme de variables CSS standardisées (`--evoe-primary`, `--evoe-accent-2070`, `--evoe-glass-bg`, etc.).
-- [ ] Définir les tokens de typographie et polices (Comic Sans MS / VT323 / Inter).
-- [ ] Centraliser les tokens d'élévation, d'effets de flou (glassmorphism) et de safe-areas.
-- [ ] Importer `tokens.css` à la racine de `index.html` ou `index.css`.
+- [x] Extraire toutes les variables de couleur du jeu sous forme de variables CSS standardisées (`--evoe-primary`, `--evoe-accent-2070`, `--evoe-glass-bg`, etc.).
+- [x] Définir les tokens de typographie et polices (Inter / VT323 / Roboto).
+- [x] Centraliser les tokens d'élévation, d'effets de flou (glassmorphism), rayons et transitions.
+- [x] Importer `tokens.css` à la racine de `src/styles/index.css`.
 
-### 📋 Phase 3.2 — Découpage Modulaire de `App.css` (Cible : 6 fichiers < 500 l.)
+### 📋 Phase 3.2 — Découpage Modulaire de `App.css` (Cible : fichiers < 600 l.)
 Scinder [App.css](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/App.css) dans `apps/evoe-frontend/src/styles/` :
 
-| Nouveau fichier | Contenu ciblé | Lignes estimées |
+| Nouveau fichier | Contenu ciblé | Lignes réelles |
 | :--- | :--- | :-: |
-| `src/styles/layout.css` | Conteneur global, canvas 3D Three.js, transition, header racine | ~180 l. |
-| `src/styles/codex.css` | Codex 2026, cartes missions, popover holographique, orientation warning | ~380 l. |
-| `src/styles/dashboard2070.css` | Panneaux néon, extrapolation 2070, radar cyberpunk, jauges EOD | ~600 l. |
-| `src/styles/profile.css` | Fiche profil Nexus, sidebar desktop, modale, badges et héros IT | ~600 l. *(découpable en 2 si besoin)* |
-| `src/styles/mobile-nav.css` | Barre inférieure mobile, FAB flottant, adaptateur paysage, Chat bottom-sheet | ~360 l. |
-| `src/styles/widgets.css` | Leaderboard switch capsule, badges de version, micro-composants HUD | ~100 l. |
+| `src/styles/tokens.css` | Système de Design Tokens standardisés | 85 l. |
+| `src/styles/layout.css` | Conteneur global, canvas 3D Three.js, transition, header racine | 184 l. |
+| `src/styles/codex.css` | Codex 2026, cartes missions, popover holographique, orientation warning | 380 l. |
+| `src/styles/dashboard2070.css` | Panneaux néon, extrapolation 2070, jauges EOD | 446 l. |
+| `src/styles/radar2070.css` | Radar cyberpunk, glitch écran, recalibration | 155 l. |
+| `src/styles/profile-modal.css` | Fiche profil Nexus, sidebar desktop, form, custom select | 522 l. |
+| `src/styles/profile-tabs.css` | Avatar picker popover, carte héro IT, système d'onglets | 437 l. |
+| `src/styles/profile-easter-eggs.css` | Onglet anomalies Easter Eggs, listes de stats, navigation dots, responsive | 566 l. |
+| `src/styles/mobile-nav.css` | Barre inférieure mobile, FAB flottant, Chat bottom-sheet | 360 l. |
+| `src/styles/widgets.css` | Leaderboard switch capsule, badges de version HUD | 28 l. |
+| `src/styles/mascot.css` | Bulle mascotte, alerte 2ème indice, boîte interactive cryptex/comm-link | 65 l. |
 
-Un fichier central `src/styles/index.css` importera ces 6 modules (`@import './tokens.css'; @import './layout.css'; ...`), garantissant une transition 100% transparente pour l'application sans casser les imports existants.
+Un fichier central `src/styles/index.css` importe l'ensemble de ces modules, et `App.css` est réduit à **7 lignes**.
 
 ### 📋 Phase 3.3 — Résorption des Styles Inline dans les Composants Mascotte & Modales
-- [ ] Créer `src/styles/mascot.css` regroupant les styles de la bulle mascotte, du cryptex, de la lightbox et du panneau de victoire.
-- [ ] Remplacer les styles inline volumineux par des classes BEM sémantiques (`.mascot-bubble`, `.mascot-victory-panel`, `.mascot-padlock`).
-- [ ] Remplacer les valeurs hexadécimales hardcodées par les tokens CSS de la Phase 3.1.
+- [x] Créer `src/styles/mascot.css` regroupant les styles de la bulle mascotte, du cryptex, de la lightbox et du panneau de victoire.
+- [x] Remplacer les styles inline volumineux par des classes BEM sémantiques (`.mascot-hint-alert`, `.mascot-message-text`, `.mascot-interactive-box`, `.mascot-typing-cursor`).
+- [x] `MascotBubble3D.tsx` descendu à **468 lignes** (bien sous le plafond de 600 l.).
 
 ### 📋 Phase 3.4 — Assainissement des `!important` et Media Queries
-- [ ] Réduire les 48 occurrences de `!important` en augmentant légèrement la spécificité des sélecteurs là où c'est nécessaire.
+- [ ] Réduire les occurrences de `!important` en augmentant légèrement la spécificité des sélecteurs là où c'est nécessaire.
 - [ ] Regrouper les media queries redondantes (`max-width: 768px`, orientation portrait/paysage) sous des breakpoints unifiés.
 - [ ] Vérifier la parfaite réactivité sur émulateur mobile (iPhone SE, Pixel, iPad Paysage/Portrait).
 
@@ -134,7 +139,7 @@ Un fichier central `src/styles/index.css` importera ces 6 modules (`@import './t
 
 | Option technique | Avantages | Inconvénients | Recommandation |
 | :--- | :--- | :--- | :---: |
-| **Option A : CSS Modulaire pur (`src/styles/*.css`)** | Respect strict des conventions actuelles de `evoe-frontend`, zéro dépendance ajoutée, transition 100% sans risque | Pas de scoping natif par composant (utilise des conventions de nommage sémantiques) | **Recommandé (Top 1)** |
+| **Option A : CSS Modulaire pur (`src/styles/*.css`)** | Respect strict des conventions actuelles de `evoe-frontend`, zéro dépendance ajoutée, transition 100% sans risque | Pas de scoping natif par composant (utilise des conventions de nommage sémantiques) | **Recommandé (Top 1) — ✅ Implémenté** |
 | **Option B : CSS Modules (`.module.css`)** | Scoping automatique des classes | Nécessite de réécrire la syntaxe `className={styles.foo}` dans tous les fichiers JSX | Trop invasif à ce stade |
 | **Option C : Migration Tailwind comme Admin** | Cohérence avec `admin-sosplanete-v2` | Très gros chantier de réécriture de 3 000 lignes de styles custom néon/3D | Déconseillé |
 
@@ -144,8 +149,12 @@ Un fichier central `src/styles/index.css` importera ces 6 modules (`@import './t
  
 1. **Priorités 1 & 2 achevées avec succès** :
    - [x] [App.tsx](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/App.tsx) : **519 lignes** (seuil < 600 l. validé).
-   - [x] [MascotBubble3D.tsx](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/components/ui/MascotBubble3D.tsx) : **497 lignes** (seuil < 600 l. validé).
-   - [x] Build TypeScript / Vite vert et `check:size` validé (dette résorbée dans `.size-baseline.json`).
-2. **Priorité 3 (CSS Architecture)** :
-   - Valider l'Option A (CSS Modulaire en 6 thèmes + `tokens.css`).
-   - Lancer la **Phase 3.1** (Création de `src/styles/tokens.css`) et **Phase 3.2** (Découpage de `App.css`).
+   - [x] [MascotBubble3D.tsx](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/components/ui/MascotBubble3D.tsx) : **468 lignes** (seuil < 600 l. validé).
+   - [x] Build TypeScript / Vite vert et `check:size` validé.
+2. **Priorité 3 (CSS Architecture) : Phases 3.1 à 3.3 achevées avec succès** :
+   - [x] [tokens.css](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/styles/tokens.css) : design system standardisé.
+   - [x] [App.css](file:///c:/Users/User/Documents/Sync%20Pcloud/Professionnel/Dev/sosplanete-v2/apps/evoe-frontend/src/App.css) : découpé de 3 078 lignes à **7 lignes**.
+   - [x] 10 sous-feuilles modulaires créées dans `src/styles/` (toutes < 570 lignes, 0 fichier > 600 l.).
+   - [x] Baseline mise à jour : **39 fichiers** tolérés (dette `App.css` résorbée).
+3. **Phase 3.4 (Finalisation)** :
+   - Harmonisation progressive des media queries et allègement des `!important`.
