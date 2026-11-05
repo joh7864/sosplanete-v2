@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio } from 'lucide-react';
+import { Sparkles, MessageSquare, X, ShieldCheck, Zap, Globe, Compass, Radio, Music } from 'lucide-react';
 import { playUnlockCadenasSound, playConstellationChimeSound } from '../../utils/easterEggAudio';
 import { getArcadeGame } from '../arcade/core/arcadeRegistry';
 import { MatrixRainEffect } from './easter-egg-effects/MatrixRainEffect';
@@ -40,6 +40,22 @@ interface Particle {
   delay: number;
 }
 
+const PARTICLE_COLORS = ['#10b981', '#34d399', '#f59e0b', '#fbbf24', '#38bdf8', '#c084fc', '#ffffff'];
+const STATIC_PARTICLES: Particle[] = Array.from({ length: 48 }, (_, i) => {
+  const angle = (i / 48) * Math.PI * 2 + (((i * 13) % 40) - 20) / 100;
+  const distance = 120 + ((i * 37) % 240);
+  return {
+    id: i,
+    x: Math.cos(angle) * distance,
+    y: Math.sin(angle) * distance - 30,
+    size: 4 + ((i * 7) % 9),
+    color: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
+    rotation: ((i * 71) % 720) - 360,
+    duration: 1.5 + ((i * 11) % 10) / 10,
+    delay: ((i * 5) % 20) / 100,
+  };
+});
+
 export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProps> = ({
   isOpen,
   onClose,
@@ -56,9 +72,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
   remainingPlayers,
 }) => {
   const [displayPoints, setDisplayPoints] = useState(0);
-  const [particles, setParticles] = useState<Particle[]>([]);
   const [showCard, setShowCard] = useState(false);
-  const [showCryptex, setShowCryptex] = useState(false);
   const arcadeGameTitle = arcadeGameKey ? getArcadeGame(arcadeGameKey)?.title ?? arcadeGameKey : undefined;
 
   // Détermination du type d'effet WOOOW à afficher
@@ -78,24 +92,18 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     return 'celestial';
   })();
 
+  const isDisco = effectType === 'disco';
+  const isAntigrav = effectType === 'antigravity';
+  const particles = STATIC_PARTICLES;
+
   useEffect(() => {
-    if (!isOpen) {
-      setDisplayPoints(0);
-      setParticles([]);
-      setShowCard(false);
-      setShowCryptex(false);
-      return;
-    }
+    if (!isOpen) return;
 
     let cardTimer: ReturnType<typeof setTimeout> | null = null;
-    if (effectType === 'cadenas') {
-      setShowCryptex(true);
-      setShowCard(false);
-    } else {
-      setShowCryptex(false);
+    if (effectType !== 'cadenas') {
       cardTimer = setTimeout(() => {
         setShowCard(true);
-      }, 1200);
+      }, 6000);
     }
 
     // Audio dédié
@@ -105,31 +113,10 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
       playConstellationChimeSound();
     }
 
-    // Particules de triomphe
-    const colors = ['#10b981', '#34d399', '#f59e0b', '#fbbf24', '#38bdf8', '#c084fc', '#ffffff'];
-    const newParticles: Particle[] = Array.from({ length: 48 }, (_, i) => {
-      const angle = (i / 48) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
-      const distance = 120 + Math.random() * 240;
-      return {
-        id: i,
-        x: Math.cos(angle) * distance,
-        y: Math.sin(angle) * distance - 30,
-        size: Math.random() * 8 + 4,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        rotation: Math.random() * 720 - 360,
-        duration: 1.5 + Math.random() * 1.0,
-        delay: Math.random() * 0.2,
-      };
-    });
-    setParticles(newParticles);
-
     // Incrémentation dynamique des points IT
     let start = 0;
-    const duration = 1200;
     const stepTime = 30;
-    const steps = duration / stepTime;
-    const increment = pointsIT / steps;
-
+    const increment = pointsIT / (1200 / stepTime);
     const pointsTimer = setInterval(() => {
       start += increment;
       if (start >= pointsIT) {
@@ -143,6 +130,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     return () => {
       if (cardTimer) clearTimeout(cardTimer);
       clearInterval(pointsTimer);
+      setDisplayPoints(0);
+      setShowCard(false);
     };
   }, [isOpen, pointsIT, effectType]);
 
@@ -150,37 +139,17 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
 
   // Récit et message de déblocage selon l'énigme
   const getLoreDescription = () => {
-    let baseText = '';
-    switch (effectType) {
-      case 'cadenas':
-        baseText = 'Félicitations Détective ! Les 5 règles du schéma ont été résolues et le verrou quantique s’est ouvert.';
-        break;
-      case 'matrix':
-        baseText = 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.';
-        break;
-      case 'konami':
-        baseText = `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu ${arcadeGameTitle} pour ton équipe${teamName ? ` ${teamName}` : ''}.`;
-        break;
-      case 'antigravity':
-        baseText = 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.';
-        break;
-      case 'rocket':
-        baseText = 'Poussée maximale des réacteurs atteinte ! Le vaisseau EVOE fend l’espace sub-orbital à pleine puissance.';
-        break;
-      case 'temporal1985':
-        baseText = 'Vitesse de 88 MPH franchie ! Une boucle temporelle vers 1985 s’est ouverte à travers la passerelle.';
-        break;
-      case 'disco':
-        baseText = 'Fréquence festive synchronisée ! La boule à facettes orbitale illumine le pont de la station spatiale.';
-        break;
-      case 'constellation':
-        baseText = 'Triangle d’étoiles complété ! Les balises célestes se sont alignées pour révéler les coordonnées secrètes.';
-        break;
-      default:
-        baseText = 'Anomalie temporelle découverte et neutralisée avec succès ! Les données cryptées ont été décodées.';
-        break;
-    }
-
+    const loreMap: Record<string, string> = {
+      cadenas: 'Félicitations Détective ! Les 5 règles du schéma ont été résolues et le verrou quantique s’est ouvert.',
+      matrix: 'Accès root obtenu ! Les lignes de code défilent et le Comm-Link est directement relié au mainframe de la station.',
+      konami: `Grâce à toi, la salle d’arcade est ouverte et tu as débloqué le jeu ${arcadeGameTitle} pour ton équipe${teamName ? ` ${teamName}` : ''}.`,
+      antigravity: 'Gravité terrestre temporairement suspendue ! Les modules de commande flottent en apesanteur spatiale.',
+      rocket: 'Poussée maximale des réacteurs atteinte ! Le vaisseau EVOE fend l’espace sub-orbital à pleine puissance.',
+      temporal1985: 'Vitesse de 88 MPH franchie ! Une boucle temporelle vers 1985 s’est ouverte à travers la passerelle.',
+      disco: 'Fréquence festive synchronisée ! La boule à facettes orbitale illumine le pont de la station spatiale.',
+      constellation: 'Triangle d’étoiles complété ! Les balises célestes se sont alignées pour révéler les coordonnées secrètes.',
+    };
+    const baseText = loreMap[effectType] || 'Anomalie temporelle découverte et neutralisée avec succès ! Les données cryptées ont été décodées.';
     if (!isTeamRewarded && remainingPlayers && remainingPlayers > 0) {
       return `${baseText} Préviens tes amis de l’équipe, car il faut encore ${remainingPlayers} joueur${remainingPlayers > 1 ? 's' : ''} pour gagner les points IT !`;
     }
@@ -270,38 +239,41 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     }
 
     // Badge sphérique hologramme pour les autres Easter Eggs
-    const visualIcons: Record<string, any> = {
+    const visualIcons: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
       matrix: Zap,
       konami: Radio,
       antigravity: Globe,
       rocket: Sparkles,
       temporal1985: Zap,
-      disco: Sparkles,
+      disco: Music,
       constellation: Compass,
       celestial: Sparkles,
     };
-
     const VisualIcon = visualIcons[effectType] || Sparkles;
 
     return (
       <motion.div
         initial={{ scale: 0.4, rotate: -20 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: 'spring', damping: 12 }}
+        animate={{ scale: isDisco ? [1, 1.08, 1] : 1, rotate: isDisco ? [0, 6, -6, 0] : 0 }}
+        transition={isDisco ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : { type: 'spring', damping: 12 }}
         style={{
           width: '90px',
           height: '90px',
           borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(56, 189, 248, 0.25))',
-          border: '2px solid #38bdf8',
-          boxShadow: '0 0 40px rgba(56, 189, 248, 0.5), inset 0 0 20px rgba(16, 185, 129, 0.35)',
+          background: isDisco
+            ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.35), rgba(168, 85, 247, 0.35))'
+            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(56, 189, 248, 0.25))',
+          border: isDisco ? '2px solid #ec4899' : '2px solid #38bdf8',
+          boxShadow: isDisco
+            ? '0 0 45px rgba(236, 72, 153, 0.6), inset 0 0 20px rgba(244, 114, 182, 0.4)'
+            : '0 0 40px rgba(56, 189, 248, 0.5), inset 0 0 20px rgba(16, 185, 129, 0.35)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '18px',
         }}
       >
-        <VisualIcon size={44} color="#38bdf8" />
+        <VisualIcon size={44} color={isDisco ? '#f472b6' : '#38bdf8'} />
       </motion.div>
     );
   };
@@ -310,6 +282,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
     <AnimatePresence>
       <div
         id="easter-egg-victory-overlay"
+        onClick={() => {
+          if (!showCard && effectType !== 'cadenas') setShowCard(true);
+        }}
         style={{
           position: 'fixed',
           inset: 0,
@@ -317,11 +292,14 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          cursor: !showCard && effectType !== 'cadenas' ? 'pointer' : 'default',
           background: showCard
             ? effectType === 'konami'
               ? 'rgba(0, 6, 0, 0.88)'
               : effectType === 'antigravity'
               ? 'transparent'
+              : isDisco
+              ? 'radial-gradient(circle at center, rgba(30, 10, 45, 0.75) 0%, rgba(2, 6, 23, 0.94) 80%)'
               : 'radial-gradient(circle at center, rgba(6, 78, 59, 0.7) 0%, rgba(2, 6, 23, 0.94) 80%)'
             : 'transparent',
           backdropFilter: showCard && effectType !== 'konami' && effectType !== 'antigravity' ? 'blur(16px)' : 'none',
@@ -337,10 +315,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
         {effectType === 'rocket' && <RocketThrusterEffect />}
         {effectType === 'temporal1985' && <Temporal1985Effect />}
         {effectType === 'disco' && <DiscoPartyEffect />}
-        {effectType === 'cadenas' && showCryptex && (
+        {effectType === 'cadenas' && !showCard && (
           <LockWowAnimation
             onClose={() => {
-              setShowCryptex(false);
               setShowCard(true);
               playUnlockCadenasSound();
             }}
@@ -441,8 +418,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
             />
           )}
           {showCard && effectType !== 'konami' && (
-
             <motion.div
+              onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.6, opacity: 0, y: 40 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.7, opacity: 0 }}
@@ -457,12 +434,18 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 maxWidth: '520px',
                 width: '90%',
                 padding: '36px 32px',
-                background: 'rgba(15, 23, 42, 0.92)',
-                border: effectType === 'antigravity'
+                background: isDisco
+                  ? 'linear-gradient(145deg, rgba(24, 15, 38, 0.95), rgba(15, 23, 42, 0.95))'
+                  : 'rgba(15, 23, 42, 0.92)',
+                border: isDisco
+                  ? '2px solid rgba(236, 72, 153, 0.75)'
+                  : isAntigrav
                   ? '2px solid rgba(56, 189, 248, 0.7)'
                   : '2px solid rgba(16, 185, 129, 0.6)',
                 borderRadius: '28px',
-                boxShadow: effectType === 'antigravity'
+                boxShadow: isDisco
+                  ? '0 25px 65px rgba(0, 0, 0, 0.9), 0 0 55px rgba(236, 72, 153, 0.45)'
+                  : isAntigrav
                   ? '0 25px 60px rgba(0, 0, 0, 0.85), 0 0 50px rgba(56, 189, 248, 0.4)'
                   : '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.35)',
                 backdropFilter: 'blur(20px)',
@@ -486,21 +469,12 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   justifyContent: 'center',
                   color: '#94a3b8',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.color = '#94a3b8';
                 }}
               >
                 <X size={18} />
               </button>
 
-              {/* Visuel central (Cadenas 3D animé ou Hologramme) */}
+              {/* Visuel central (Cadenas 3D animé, Disque Vinyl Funk ou Hologramme) */}
               {renderCenterVisual()}
 
               {/* Badge d'état */}
@@ -514,9 +488,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   gap: '6px',
                   padding: '6px 14px',
                   borderRadius: '20px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  border: '1.5px solid #10b981',
-                  color: '#34d399',
+                  background: isDisco ? 'rgba(236, 72, 153, 0.18)' : 'rgba(16, 185, 129, 0.15)',
+                  border: isDisco ? '1.5px solid #ec4899' : '1.5px solid #10b981',
+                  color: isDisco ? '#f472b6' : '#34d399',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   textTransform: 'uppercase',
@@ -524,8 +498,8 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   marginBottom: '10px',
                 }}
               >
-                <ShieldCheck size={16} />
-                Énigme Résolue // Données Déchiffrées
+                {isDisco ? <Sparkles size={16} /> : <ShieldCheck size={16} />}
+                {isDisco ? 'Piste Débloquée // Disco Fever Orbitale' : 'Énigme Résolue // Données Déchiffrées'}
               </motion.div>
 
               {/* Titre Triomphal */}
@@ -539,7 +513,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   fontWeight: 900,
                   color: '#ffffff',
                   letterSpacing: '-0.3px',
-                  textShadow: '0 0 20px rgba(16, 185, 129, 0.45)',
+                  textShadow: isDisco ? '0 0 20px rgba(236, 72, 153, 0.65)' : '0 0 20px rgba(16, 185, 129, 0.45)',
                 }}
               >
                 {eggTitle} !
@@ -550,12 +524,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.25 }}
-                style={{
-                  margin: '0 0 20px 0',
-                  fontSize: '0.9rem',
-                  color: '#cbd5e1',
-                  lineHeight: 1.45,
-                }}
+                style={{ margin: '0 0 20px 0', fontSize: '0.9rem', color: '#cbd5e1', lineHeight: 1.45 }}
               >
                 {getLoreDescription()}
               </motion.p>
@@ -571,15 +540,17 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                   gap: '12px',
                   padding: '12px 24px',
                   borderRadius: '18px',
-                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
-                  border: '2px solid #f59e0b',
-                  boxShadow: '0 0 35px rgba(245, 158, 11, 0.35)',
+                  background: isDisco
+                    ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(245, 158, 11, 0.25))'
+                    : 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.22))',
+                  border: isDisco ? '2px solid #ec4899' : '2px solid #f59e0b',
+                  boxShadow: isDisco ? '0 0 35px rgba(236, 72, 153, 0.35)' : '0 0 35px rgba(245, 158, 11, 0.35)',
                   marginBottom: '26px',
                 }}
               >
-                <Sparkles size={28} color="#fbbf24" />
+                <Sparkles size={28} color={isDisco ? '#f472b6' : '#fbbf24'} />
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isDisco ? '#fbcfe8' : '#fde68a', textTransform: 'uppercase' }}>
                     {isTeamRewarded
                       ? "Bonus IT d'Équipe"
                       : remainingPlayers && remainingPlayers > 0
@@ -593,14 +564,7 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
               </motion.div>
 
               {/* Actions : Partage Comm-Link & Fermer */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                  width: '100%',
-                }}
-              >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
                 {onOpenCommLink && (
                   <button
                     type="button"
@@ -612,7 +576,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                       width: '100%',
                       padding: '14px 20px',
                       borderRadius: '14px',
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      background: isDisco
+                        ? 'linear-gradient(135deg, #ec4899, #8b5cf6)'
+                        : 'linear-gradient(135deg, #10b981, #059669)',
                       border: 'none',
                       color: '#ffffff',
                       fontSize: '0.96rem',
@@ -622,11 +588,9 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '10px',
-                      boxShadow: '0 4px 20px rgba(16, 185, 129, 0.5)',
+                      boxShadow: isDisco ? '0 4px 20px rgba(236, 72, 153, 0.55)' : '0 4px 20px rgba(16, 185, 129, 0.5)',
                       transition: 'all 0.15s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
                   >
                     <MessageSquare size={18} />
                     {isTeamRewarded
@@ -652,14 +616,6 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#ffffff';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.4)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#94a3b8';
-                    e.currentTarget.style.borderColor = 'rgba(148, 163, 184, 0.3)';
-                  }}
                 >
                   Continuer l’exploration
                 </button>
@@ -667,6 +623,36 @@ export const EasterEggVictoryDispatcher: React.FC<EasterEggVictoryDispatcherProp
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Invite au clic durant le Temps 1 */}
+        {!showCard && effectType !== 'cadenas' && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: [0.75, 1, 0.75], y: [0, -4, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              bottom: '26px',
+              zIndex: 35,
+              padding: '10px 22px',
+              borderRadius: '24px',
+              background: 'rgba(15, 23, 42, 0.88)',
+              border: isDisco ? '1.5px solid rgba(236, 72, 153, 0.65)' : '1.5px solid rgba(255, 255, 255, 0.25)',
+              color: '#ffffff',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              boxShadow: isDisco ? '0 8px 30px rgba(0,0,0,0.6), 0 0 20px rgba(236, 72, 153, 0.35)' : '0 8px 30px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              pointerEvents: 'none',
+            }}
+          >
+            <span>✨ Cliquez n’importe où pour voir la récompense</span>
+            <span>⏭️</span>
+          </motion.div>
+        )}
       </div>
     </AnimatePresence>
   );

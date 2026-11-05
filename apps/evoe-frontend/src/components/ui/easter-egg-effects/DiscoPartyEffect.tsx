@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { playDiscoPartySound } from '../../../utils/easterEggAudio';
+import { startDiscoGroove } from '../../../utils/discoGrooveAudio';
 
 interface DiscoPartyEffectProps {
   duration?: number;
@@ -17,31 +17,62 @@ interface ConfettiPiece {
   rotation: number;
 }
 
+interface DanceTile {
+  colors: string[];
+  glows: string[];
+  delay: number;
+}
+
+const CONFETTI_COLORS = ['#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24', '#f97316'];
+const STATIC_CONFETTIS: ConfettiPiece[] = Array.from({ length: 55 }, (_, i) => ({
+  id: i,
+  x: (i * 37 + 13) % 100,
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  size: 6 + ((i * 7) % 11),
+  duration: 1.8 + ((i * 3) % 20) / 10,
+  delay: ((i * 5) % 15) / 10,
+  rotation: ((i * 73) % 720) - 360,
+}));
+
+const TILE_PALETTES = [
+  ['#ec4899', '#06b6d4', '#8b5cf6', '#ec4899'],
+  ['#06b6d4', '#10b981', '#fbbf24', '#06b6d4'],
+  ['#8b5cf6', '#ec4899', '#06b6d4', '#8b5cf6'],
+  ['#10b981', '#f59e0b', '#ec4899', '#10b981'],
+  ['#f59e0b', '#06b6d4', '#10b981', '#f59e0b'],
+];
+
+const STATIC_DANCE_FLOOR_TILES: DanceTile[] = Array.from({ length: 24 }, (_, i) => {
+  const colors = TILE_PALETTES[i % TILE_PALETTES.length];
+  const glows = colors.map((c) => `0 0 16px ${c}99, inset 0 0 10px ${c}66`);
+  return {
+    colors,
+    glows,
+    delay: (i % 8) * 0.08 + Math.floor(i / 8) * 0.12,
+  };
+});
+
 export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
-  duration = 4000,
+  duration,
   onComplete,
 }) => {
+  // Lancement du groove disco funky Stayin' Alive (104 BPM)
   useEffect(() => {
-    playDiscoPartySound();
-    const timer = setTimeout(() => {
-      onComplete?.();
-    }, duration);
-    return () => clearTimeout(timer);
+    const audioController = startDiscoGroove();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (duration) {
+      timer = setTimeout(() => {
+        onComplete?.();
+      }, duration);
+    }
+    return () => {
+      audioController.stop();
+      if (timer) clearTimeout(timer);
+    };
   }, [duration, onComplete]);
 
-  // Confettis de fête multicolores
-  const confettis: ConfettiPiece[] = useMemo(() => {
-    const colors = ['#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24', '#f97316'];
-    return Array.from({ length: 65 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100, // vw
-      color: colors[Math.floor(Math.random() * colors.length)],
-      size: Math.random() * 10 + 6,
-      duration: Math.random() * 2.2 + 1.8,
-      delay: Math.random() * 1.2,
-      rotation: Math.random() * 720 - 360,
-    }));
-  }, []);
+  const confettis = STATIC_CONFETTIS;
+  const danceFloorTiles = STATIC_DANCE_FLOOR_TILES;
 
   return (
     <div
@@ -51,7 +82,7 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
         zIndex: 9999,
         pointerEvents: 'none',
         overflow: 'hidden',
-        background: 'radial-gradient(circle at center, rgba(15, 23, 42, 0.5) 0%, rgba(2, 6, 23, 0.85) 100%)',
+        background: 'radial-gradient(circle at center, rgba(30, 10, 50, 0.65) 0%, rgba(2, 6, 23, 0.92) 85%)',
       }}
     >
       {/* 1. Projecteurs de lumière rotatifs (Spotlight Beams) */}
@@ -65,17 +96,17 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
           height: '100%',
         }}
       >
-        {['#ec4899', '#3b82f6', '#10b981', '#f59e0b'].map((col, idx) => (
+        {['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'].map((col, idx) => (
           <motion.div
             key={idx}
             animate={{
-              rotate: [idx * 90 - 45, idx * 90 + 45, idx * 90 - 45],
+              rotate: [idx * 72 - 40, idx * 72 + 40, idx * 72 - 40],
               opacity: [0.25, 0.65, 0.25],
             }}
             transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
             style={{
               position: 'absolute',
-              top: '80px',
+              top: '70px',
               left: '50%',
               width: '180px',
               height: '120vh',
@@ -88,14 +119,14 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
         ))}
       </div>
 
-      {/* 2. Boule à facettes miroitante (Mirror Disco Ball) */}
+      {/* 2. Boule à facettes miroitante (Mirror Disco Ball au sommet) */}
       <motion.div
         initial={{ y: -200 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 14, stiffness: 100 }}
         style={{
           position: 'absolute',
-          top: '30px',
+          top: '20px',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
@@ -105,7 +136,7 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
         }}
       >
         {/* Fil de suspension métallique */}
-        <div style={{ width: '2px', height: '50px', background: 'linear-gradient(to bottom, #94a3b8, #cbd5e1)' }} />
+        <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom, #94a3b8, #cbd5e1)' }} />
 
         {/* Boule disco avec rotation et reflets facettés */}
         <motion.div
@@ -113,12 +144,12 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
           transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
           style={{
             position: 'relative',
-            width: '100px',
-            height: '100px',
+            width: '95px',
+            height: '95px',
             borderRadius: '50%',
             background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 30%, #475569 80%, #0f172a 100%)',
-            boxShadow: '0 0 45px rgba(255, 255, 255, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.5)',
-            border: '2px solid rgba(255, 255, 255, 0.4)',
+            boxShadow: '0 0 50px rgba(255, 255, 255, 0.85), inset 0 0 20px rgba(255, 255, 255, 0.6)',
+            border: '2px solid rgba(255, 255, 255, 0.6)',
             overflow: 'hidden',
           }}
         >
@@ -162,48 +193,174 @@ export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
         />
       ))}
 
-      {/* 4. Bannière HUD Disco Party */}
-      <motion.div
-        initial={{ scale: 0.6, opacity: 0, y: 30 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, type: 'spring', damping: 12 }}
+      {/* 4. Piste de Danse Néon Rétro-Futuriste (Perspective 3D) */}
+      <div
         style={{
           position: 'absolute',
-          top: '32%',
+          bottom: '-35px',
           left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '18px 40px',
-          background: 'rgba(20, 10, 35, 0.92)',
-          border: '2px solid #ec4899',
-          borderRadius: '24px',
-          boxShadow: '0 0 50px rgba(236, 72, 153, 0.6), inset 0 0 25px rgba(59, 130, 246, 0.3)',
-          backdropFilter: 'blur(16px)',
-          textAlign: 'center',
-          zIndex: 20,
+          transform: 'translateX(-50%) perspective(500px) rotateX(55deg)',
+          width: '880px',
+          maxWidth: '110vw',
+          height: '210px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(8, 1fr)',
+          gridTemplateRows: 'repeat(3, 1fr)',
+          gap: '7px',
+          zIndex: 8,
         }}
       >
-        <div style={{ color: '#f472b6', fontSize: '0.85rem', fontWeight: 900, letterSpacing: '3px', textTransform: 'uppercase' }}>
-          🪩 AMBIANCE INTERGALACTIQUE 🪩
-        </div>
-        <div
+        {danceFloorTiles.map((tile, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              backgroundColor: tile.colors,
+              boxShadow: tile.glows,
+              opacity: [0.65, 0.95, 0.65],
+            }}
+            transition={{
+              duration: 1.15,
+              repeat: Infinity,
+              delay: tile.delay,
+              ease: 'easeInOut',
+            }}
+            style={{
+              borderRadius: '6px',
+              border: '1.5px solid rgba(255, 255, 255, 0.3)',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* 5. Danseurs sur la Piste : Gribouille en roi du dancefloor + Astronautes funk */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '25px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '680px',
+          height: '190px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-around',
+          zIndex: 10,
+        }}
+      >
+        {/* Danseur Gauche : Astronaute Funk */}
+        <motion.div
+          animate={{
+            y: [0, -18, 0],
+            rotateZ: [-6, 6, -6],
+            scaleY: [1, 0.94, 1],
+          }}
+          transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            fontSize: '1.9rem',
-            fontWeight: 900,
-            color: '#ffffff',
-            textShadow: '0 0 20px #ec4899, 0 0 40px #8b5cf6',
-            letterSpacing: '1px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
           }}
         >
-          DISCO FEVER ORBITALE !
-        </div>
-        <div style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>
-          Fréquence festive activée sur toute la station spatiale
-        </div>
-      </motion.div>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-8px',
+              width: '80px',
+              height: '20px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
+              filter: 'blur(8px)',
+            }}
+          />
+          <img
+            src="/images/easter-eggs/astronaut_float_1.png"
+            alt="Danseur Astronaute 1"
+            style={{
+              width: '110px',
+              height: 'auto',
+              filter: 'drop-shadow(0 10px 20px rgba(6, 182, 212, 0.65))',
+              transform: 'scaleX(-1)',
+            }}
+          />
+        </motion.div>
+
+        {/* Danseur Centre : Gribouille sur son hoverboard au tempo 104 BPM Stayin' Alive */}
+        <motion.div
+          animate={{
+            y: [0, -26, 0],
+            rotateZ: [-7, 7, -7],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{ duration: 0.577, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
+            zIndex: 12,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-10px',
+              width: '130px',
+              height: '26px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #ec4899 0%, transparent 75%)',
+              filter: 'blur(10px)',
+            }}
+          />
+          <img
+            src="/images/robot-mascot.png"
+            alt="Gribouille Disco King"
+            style={{
+              width: '150px',
+              height: 'auto',
+              filter: 'drop-shadow(0 15px 30px rgba(236, 72, 153, 0.8))',
+            }}
+          />
+        </motion.div>
+
+        {/* Danseur Droite : Astronaute Disco Groove */}
+        <motion.div
+          animate={{
+            y: [0, -18, 0],
+            rotateZ: [6, -6, 6],
+            scaleY: [1, 0.94, 1],
+          }}
+          transition={{ duration: 1.15, delay: 0.28, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-8px',
+              width: '80px',
+              height: '20px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #a855f7 0%, transparent 70%)',
+              filter: 'blur(8px)',
+            }}
+          />
+          <img
+            src="/images/easter-eggs/astronaut_float_2.png"
+            alt="Danseur Astronaute 2"
+            style={{
+              width: '110px',
+              height: 'auto',
+              filter: 'drop-shadow(0 10px 20px rgba(168, 85, 247, 0.65))',
+            }}
+          />
+        </motion.div>
+      </div>
     </div>
   );
 };
