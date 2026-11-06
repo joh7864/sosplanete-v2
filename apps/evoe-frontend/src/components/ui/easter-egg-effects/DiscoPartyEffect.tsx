@@ -3,373 +3,284 @@ import { motion } from 'framer-motion';
 import { startDiscoGroove } from '../../../utils/discoGrooveAudio';
 
 interface DiscoPartyEffectProps {
-  duration?: number;
-  onComplete?: () => void;
+  onAdvance?: () => void;
 }
 
-interface ConfettiPiece {
-  id: number;
-  x: number;
-  color: string;
-  size: number;
-  duration: number;
-  delay: number;
-  rotation: number;
-}
-
-interface DanceTile {
-  colors: string[];
-  glows: string[];
-  delay: number;
-}
-
-const CONFETTI_COLORS = ['#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24', '#f97316'];
-const STATIC_CONFETTIS: ConfettiPiece[] = Array.from({ length: 50 }, (_, i) => ({
+// Poussières de lumière & confettis disco pré-calculés
+const DISCO_SPARKLES = Array.from({ length: 24 }, (_, i) => ({
   id: i,
-  x: (i * 37 + 13) % 100,
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  size: 6 + ((i * 7) % 11),
-  duration: 1.8 + ((i * 3) % 20) / 10,
-  delay: ((i * 5) % 15) / 10,
-  rotation: ((i * 73) % 720) - 360,
+  left: `${4 + (i * 4.1) % 92}%`,
+  top: `${15 + (i * 3.7) % 75}%`,
+  size: 3 + (i % 4) * 2,
+  color: ['#ec4899', '#38bdf8', '#facc15', '#a855f7', '#ffffff'][i % 5],
+  duration: 1.8 + (i % 5) * 0.4,
+  delay: (i * 0.15) % 1.5,
 }));
 
-const TILE_PALETTES = [
-  ['#ec4899', '#06b6d4', '#8b5cf6', '#ec4899'],
-  ['#06b6d4', '#10b981', '#fbbf24', '#06b6d4'],
-  ['#8b5cf6', '#ec4899', '#06b6d4', '#8b5cf6'],
-  ['#10b981', '#f59e0b', '#ec4899', '#10b981'],
-  ['#f59e0b', '#06b6d4', '#10b981', '#f59e0b'],
+// Faisceaux laser volumétriques partant de la boule à facettes (x=50%, y=12%)
+const LASER_BEAMS = [
+  { angle: -42, color: 'rgba(56, 189, 248, 0.45)', duration: 2.2 },
+  { angle: -24, color: 'rgba(236, 72, 153, 0.42)', duration: 1.9 },
+  { angle: -8, color: 'rgba(168, 85, 247, 0.45)', duration: 2.4 },
+  { angle: 10, color: 'rgba(56, 189, 248, 0.42)', duration: 2.1 },
+  { angle: 26, color: 'rgba(236, 72, 153, 0.45)', duration: 2.3 },
+  { angle: 44, color: 'rgba(250, 204, 21, 0.38)', duration: 2.0 },
 ];
 
-const STATIC_DANCE_FLOOR_TILES: DanceTile[] = Array.from({ length: 24 }, (_, i) => {
-  const colors = TILE_PALETTES[i % TILE_PALETTES.length];
-  const glows = colors.map((c) => `0 0 18px ${c}99, inset 0 0 12px ${c}66`);
-  return {
-    colors,
-    glows,
-    delay: (i % 8) * 0.08 + Math.floor(i / 8) * 0.12,
-  };
-});
-
-export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({
-  duration,
-  onComplete,
-}) => {
-  // Lancement du groove disco funky Stayin' Alive (104 BPM)
+export const DiscoPartyEffect: React.FC<DiscoPartyEffectProps> = ({ onAdvance }) => {
+  // Déclenchement de la musique funky 104 BPM (Stayin' Alive Web Audio)
   useEffect(() => {
-    const audioController = startDiscoGroove();
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (duration) {
-      timer = setTimeout(() => {
-        onComplete?.();
-      }, duration);
-    }
+    const discoAudio = startDiscoGroove();
     return () => {
-      audioController.stop();
-      if (timer) clearTimeout(timer);
+      discoAudio.stop();
     };
-  }, [duration, onComplete]);
-
-  const confettis = STATIC_CONFETTIS;
-  const danceFloorTiles = STATIC_DANCE_FLOOR_TILES;
+  }, []);
 
   return (
     <div
+      onClick={onAdvance}
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
-        pointerEvents: 'none',
+        zIndex: 20,
         overflow: 'hidden',
-        backgroundImage: 'url(/images/easter-eggs/disco_space_bay.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        cursor: 'pointer',
+        userSelect: 'none',
       }}
     >
-      {/* Voile sombre d'ambiance néon pour contraster les danseurs et dalles */}
+      {/* 1. DÉCOR 3D UNIFIÉ : Baie vitrée spatiale, Terre, Danseurs & Piste néon */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(circle at 50% 40%, rgba(20, 10, 40, 0.45) 0%, rgba(2, 6, 23, 0.75) 100%)',
+          backgroundImage: "url('/images/easter-eggs/disco_scene_club.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center bottom',
+          backgroundRepeat: 'no-repeat',
         }}
       />
 
-      {/* 1. Projecteurs de lumière volumétriques (Spotlight Laser Beams) */}
+      {/* 2. FAISCEAUX LASERS VOLUMÉTRIQUES DE LA BOULE À FACETTES */}
       <div
         style={{
           position: 'absolute',
           top: 0,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          height: '100%',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
         }}
       >
-        {['#ec4899', '#38bdf8', '#a855f7', '#fbbf24', '#06b6d4'].map((col, idx) => (
+        {LASER_BEAMS.map((beam, idx) => (
           <motion.div
             key={idx}
             animate={{
-              rotate: [idx * 60 - 35, idx * 60 + 35, idx * 60 - 35],
-              opacity: [0.25, 0.6, 0.25],
+              rotate: [beam.angle - 8, beam.angle + 8, beam.angle - 8],
+              opacity: [0.35, 0.8, 0.35],
             }}
-            transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut', delay: idx * 0.4 }}
+            transition={{
+              duration: beam.duration,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
             style={{
               position: 'absolute',
-              top: '40px',
+              top: '9%',
               left: '50%',
-              width: '140px',
+              width: '16px',
               height: '110vh',
-              background: `linear-gradient(to bottom, ${col}aa 0%, ${col}22 50%, transparent 90%)`,
               transformOrigin: 'top center',
-              filter: 'blur(14px)',
+              background: `linear-gradient(180deg, ${beam.color} 0%, rgba(255,255,255,0.7) 12%, ${beam.color} 40%, transparent 95%)`,
+              filter: 'blur(6px)',
               mixBlendMode: 'screen',
             }}
           />
         ))}
+
+        {/* Halo et éclats scintillants sur la boule */}
+        <motion.div
+          animate={{
+            scale: [1, 1.25, 1],
+            opacity: [0.55, 0.95, 0.55],
+          }}
+          transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            position: 'absolute',
+            top: '7%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '260px',
+            height: '260px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(236,72,153,0.5) 0%, rgba(56,189,248,0.3) 40%, transparent 70%)',
+            filter: 'blur(22px)',
+            mixBlendMode: 'screen',
+          }}
+        />
       </div>
 
-      {/* 2. Boule disco 3D en rotation avec facettes miroitantes */}
+      {/* 3. PULSATION LUMINEUSE AU SOL SYNCHRONISÉE AU RYTHME DISCO */}
+      <motion.div
+        animate={{
+          opacity: [0.2, 0.55, 0.2],
+        }}
+        transition={{
+          duration: 0.577, // 104 BPM (temps par battement)
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        style={{
+          position: 'absolute',
+          bottom: '2%',
+          left: '15%',
+          right: '15%',
+          height: '35%',
+          background: 'radial-gradient(ellipse at 50% 80%, rgba(236, 72, 153, 0.35) 0%, rgba(56, 189, 248, 0.25) 45%, transparent 75%)',
+          pointerEvents: 'none',
+          mixBlendMode: 'screen',
+          filter: 'blur(20px)',
+        }}
+      />
+
+      {/* 4. GRIBOUILLE OFFICIEL QUI DANSE AU CENTRE (SANS OVERBOARD) */}
       <div
         style={{
           position: 'absolute',
-          top: '20px',
+          bottom: '10%',
           left: '50%',
           transform: 'translateX(-50%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          pointerEvents: 'none',
           zIndex: 15,
         }}
       >
-        <div style={{ width: '2px', height: '35px', background: 'linear-gradient(to bottom, #94a3b8, #ffffff)' }} />
-        <motion.div
-          animate={{ rotateY: 360 }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+        {/* Reflet néon & ombre de contact sous ses pieds */}
+        <div
           style={{
             position: 'relative',
-            width: '92px',
-            height: '92px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 30%, #475569 80%, #0f172a 100%)',
-            boxShadow: '0 0 50px rgba(255, 255, 255, 0.85), 0 0 25px rgba(236, 72, 153, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.6)',
-            border: '2px solid rgba(255, 255, 255, 0.6)',
-            overflow: 'hidden',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
           }}
         >
-          {/* Facettes miroir animées */}
+          {/* Ombre sombre d'occlusion au sol */}
           <motion.div
-            animate={{ backgroundPosition: ['0px 0px', '92px 46px'] }}
-            transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.85) 15%, transparent 20%), linear-gradient(0deg, transparent 48%, rgba(255,255,255,0.3) 50%, transparent 52%), linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.3) 50%, transparent 52%)',
-              backgroundSize: '16px 16px',
-            }}
-          />
-        </motion.div>
-      </div>
-
-      {/* 3. Pluie de confettis festifs */}
-      {confettis.map((c) => (
-        <motion.div
-          key={c.id}
-          initial={{ y: -20, x: `${c.x}vw`, rotate: 0, opacity: 1 }}
-          animate={{ y: '105vh', rotate: c.rotation, opacity: [1, 1, 0.8] }}
-          transition={{ duration: c.duration, delay: c.delay, ease: 'linear', repeat: Infinity }}
-          style={{
-            position: 'absolute',
-            width: `${c.size}px`,
-            height: `${c.size * 0.7}px`,
-            background: c.color,
-            borderRadius: '2px',
-            boxShadow: `0 0 8px ${c.color}`,
-          }}
-        />
-      ))}
-
-      {/* 4. Piste de Danse Néon 3D Centrée (Perspective & Dalles Glassmorphism) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '8%',
-          left: '50%',
-          transform: 'translateX(-50%) perspective(850px) rotateX(46deg)',
-          width: '920px',
-          maxWidth: '105vw',
-          height: '240px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(8, 1fr)',
-          gridTemplateRows: 'repeat(3, 1fr)',
-          gap: '8px',
-          zIndex: 8,
-        }}
-      >
-        {danceFloorTiles.map((tile, i) => (
-          <motion.div
-            key={i}
             animate={{
-              backgroundColor: tile.colors,
-              boxShadow: tile.glows,
-              opacity: [0.75, 1, 0.75],
+              scale: [1, 0.85, 1, 0.9, 1],
+              opacity: [0.75, 0.55, 0.75, 0.6, 0.75],
             }}
             transition={{
-              duration: 1.15,
+              duration: 1.154,
               repeat: Infinity,
-              delay: tile.delay,
               ease: 'easeInOut',
             }}
             style={{
-              borderRadius: '8px',
-              border: '1.5px solid rgba(255, 255, 255, 0.35)',
-              backdropFilter: 'blur(4px)',
+              position: 'absolute',
+              bottom: '-8px',
+              width: '180px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 75%)',
+              filter: 'blur(5px)',
             }}
           />
-        ))}
+
+          {/* Reflet néon cyan/magenta sous ses semelles */}
+          <motion.div
+            animate={{
+              scale: [1, 1.25, 1, 1.15, 1],
+              opacity: [0.45, 0.85, 0.45, 0.75, 0.45],
+            }}
+            transition={{
+              duration: 1.154,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '-12px',
+              width: '220px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'radial-gradient(ellipse at center, rgba(56, 189, 248, 0.7) 0%, rgba(236, 72, 153, 0.45) 50%, transparent 80%)',
+              filter: 'blur(10px)',
+              mixBlendMode: 'screen',
+            }}
+          />
+        </div>
+
+        {/* Personnage Gribouille animé en rythme 104 BPM */}
+        <motion.div
+          animate={{
+            y: [0, -22, 0, -14, 0],
+            rotate: [0, -3.5, 0, 3.5, 0],
+            scaleX: [1, 0.97, 1.02, 0.98, 1],
+            scaleY: [1, 1.04, 0.98, 1.03, 1],
+          }}
+          transition={{
+            duration: 1.154,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          style={{
+            position: 'relative',
+            filter: 'drop-shadow(0 15px 25px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 20px rgba(56, 189, 248, 0.35))',
+          }}
+        >
+          <img
+            src="/images/easter-eggs/gribouille_techno_dance.png"
+            alt="Gribouille Danseur Disco"
+            style={{
+              height: '350px',
+              width: 'auto',
+              maxHeight: '44vh',
+              objectFit: 'contain',
+              display: 'block',
+              userSelect: 'none',
+              pointerEvents: 'none',
+            }}
+          />
+        </motion.div>
       </div>
 
-      {/* 5. Danseurs sur la Piste : Clubbers Option B & Gribouille au centre */}
+      {/* 5. POUSSIÈRES D'ÉTOILES ET CONFETTIS FLOTTANTS */}
       <div
         style={{
           position: 'absolute',
-          bottom: '12%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '100%',
-          maxWidth: '880px',
-          height: '240px',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          padding: '0 20px',
-          zIndex: 10,
+          inset: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
         }}
       >
-        {/* Danseurs Gauche (Duo Clubbing) */}
-        <motion.div
-          animate={{
-            y: [0, -15, 0],
-            rotateZ: [-3.5, 3.5, -3.5],
-            scaleY: [1, 0.95, 1],
-          }}
-          transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          {/* Halo lumineux sous les pieds */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-6px',
-              width: '150px',
-              height: '22px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(236, 72, 153, 0.8) 0%, transparent 75%)',
-              filter: 'blur(8px)',
-            }}
-          />
-          <img
-            src="/images/easter-eggs/disco_dancers_left.png"
-            alt="Danseurs Disco Gauche"
-            style={{
-              width: '240px',
-              height: 'auto',
-              maxHeight: '230px',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 12px 24px rgba(236, 72, 153, 0.75))',
-            }}
-          />
-        </motion.div>
-
-        {/* Danseur Centre : Gribouille debout sur ses pieds, grooves funky à 104 BPM */}
-        <motion.div
-          animate={{
-            y: [0, -22, 0],
-            rotateZ: [-5.5, 5.5, -5.5],
-            scale: [1, 1.05, 1],
-          }}
-          transition={{ duration: 0.577, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            zIndex: 14,
-            marginBottom: '10px',
-          }}
-        >
-          {/* Halo néon dynamique sous Gribouille */}
+        {DISCO_SPARKLES.map((sp) => (
           <motion.div
-            animate={{ scale: [0.9, 1.25, 0.9], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 0.577, repeat: Infinity, ease: 'easeInOut' }}
+            key={sp.id}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.2, 0.9, 0.2],
+              scale: [0.8, 1.25, 0.8],
+            }}
+            transition={{
+              duration: sp.duration,
+              delay: sp.delay,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
             style={{
               position: 'absolute',
-              bottom: '-8px',
-              width: '130px',
-              height: '26px',
+              left: sp.left,
+              top: sp.top,
+              width: `${sp.size}px`,
+              height: `${sp.size}px`,
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.9) 0%, transparent 75%)',
-              filter: 'blur(10px)',
+              backgroundColor: sp.color,
+              boxShadow: `0 0 10px ${sp.color}`,
             }}
           />
-          <img
-            src="/images/easter-eggs/gribouille_dancing.png"
-            alt="Gribouille Danseur Disco"
-            style={{
-              width: '155px',
-              height: 'auto',
-              maxHeight: '215px',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 14px 28px rgba(6, 182, 212, 0.85)) drop-shadow(0 0 15px rgba(236, 72, 153, 0.6))',
-            }}
-          />
-        </motion.div>
-
-        {/* Danseurs Droite (Duo Clubbing) */}
-        <motion.div
-          animate={{
-            y: [0, -15, 0],
-            rotateZ: [3.5, -3.5, 3.5],
-            scaleY: [1, 0.95, 1],
-          }}
-          transition={{ duration: 1.15, delay: 0.28, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          {/* Halo lumineux sous les pieds */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-6px',
-              width: '150px',
-              height: '22px',
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(168, 85, 247, 0.8) 0%, transparent 75%)',
-              filter: 'blur(8px)',
-            }}
-          />
-          <img
-            src="/images/easter-eggs/disco_dancers_right.png"
-            alt="Danseurs Disco Droite"
-            style={{
-              width: '240px',
-              height: 'auto',
-              maxHeight: '230px',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 12px 24px rgba(168, 85, 247, 0.75))',
-            }}
-          />
-        </motion.div>
+        ))}
       </div>
     </div>
   );
