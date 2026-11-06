@@ -12,6 +12,7 @@ interface UseEasterEggTriggersProps {
   activeEggCode?: string;
   cycleEggs?: CycleEggItem[];
   isCurrentEggDiscovered?: boolean;
+  isCurrentEggInteractable?: boolean;
   isExplicitHintVisible?: boolean;
   onTrigger: (triggerType: EasterEggTriggerType, metadata?: any, targetEggId?: number) => void;
 }
@@ -22,6 +23,7 @@ export function useEasterEggTriggers({
   activeEggCode,
   cycleEggs,
   isCurrentEggDiscovered = false,
+  isCurrentEggInteractable = false,
   isExplicitHintVisible = false,
   onTrigger,
 }: UseEasterEggTriggersProps) {
@@ -91,7 +93,7 @@ export function useEasterEggTriggers({
           (e) =>
             e.triggerType === type &&
             !e.isDiscovered &&
-            e.isInteractable !== false &&
+            e.isInteractable === true &&
             (!matcher || matcher(e)),
         );
         if (found) return found;
@@ -99,6 +101,7 @@ export function useEasterEggTriggers({
       if (
         activeTriggerType === type &&
         !isCurrentEggDiscovered &&
+        isCurrentEggInteractable === true &&
         (!matcher ||
           matcher({
             id: 0,
@@ -116,7 +119,7 @@ export function useEasterEggTriggers({
       }
       return null;
     },
-    [cycleEggs, activeTriggerType, activeEggCode, triggerConfig, isCurrentEggDiscovered],
+    [cycleEggs, activeTriggerType, activeEggCode, triggerConfig, isCurrentEggDiscovered, isCurrentEggInteractable],
   );
 
   // Avance dans la séquence Konami (touches clavier, swipes mobiles ou boutons virtuels)
@@ -152,8 +155,10 @@ export function useEasterEggTriggers({
             // ignore
           }
 
-          const matched = findCandidateEgg('KONAMI_CODE') || (activeEggCode === 'EE_KONAMI_80S' ? { id: undefined } : null);
-          onTrigger('KONAMI_CODE', { sequence: 'konami' }, matched?.id || undefined);
+          const matched = findCandidateEgg('KONAMI_CODE');
+          if (matched) {
+            onTrigger('KONAMI_CODE', { sequence: 'konami' }, matched.id || undefined);
+          }
           konamiTimer.current = setTimeout(() => {
             setKonamiHUD({
               isVisible: false,
@@ -216,16 +221,9 @@ export function useEasterEggTriggers({
   useEffect(() => {
     // Une fois le Konami découvert par ce joueur, plus aucune écoute (clavier, swipes, HUD).
     // Le rejeu de l'animation de déblocage reste disponible via la mascotte.
-    const isCurrentKonami = activeEggCode === 'EE_KONAMI_80S' || activeTriggerType === 'KONAMI_CODE';
-    const konamiDiscovered =
-      Boolean(isCurrentKonami && isCurrentEggDiscovered) ||
-      Boolean(cycleEggs?.some((e) => (e.triggerType === 'KONAMI_CODE' || e.code === 'EE_KONAMI_80S') && e.isDiscovered));
+    const isKonamiActive = Boolean(findCandidateEgg('KONAMI_CODE'));
 
-    const isKonamiActive =
-      !konamiDiscovered &&
-      (Boolean(findCandidateEgg('KONAMI_CODE')) || (!isCurrentEggDiscovered && isCurrentKonami));
-
-    if (!isKonamiActive && !activeTriggerType && (!cycleEggs || cycleEggs.length === 0)) return;
+    if (!isKonamiActive) return;
 
     // 1. Konami Code Listener (Touches Clavier)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -362,7 +360,7 @@ export function useEasterEggTriggers({
 
       // Alternative textuelle pour le Konami Code sur mobile ou desktop
       if (cleanCmd === 'konami' || cleanCmd === 'code konami' || cleanCmd === 'arcade') {
-        const konamiEgg = findCandidateEgg('KONAMI_CODE') || (activeEggCode === 'EE_KONAMI_80S' ? { id: undefined } : null);
+        const konamiEgg = findCandidateEgg('KONAMI_CODE');
         if (konamiEgg) {
           playKonamiSuccessSound();
           onTrigger('KONAMI_CODE', { sequence: 'konami', source: 'text_input' }, konamiEgg.id || undefined);
@@ -385,7 +383,7 @@ export function useEasterEggTriggers({
         onTrigger('COMM_LINK_COMMAND', { command: `!${cleanCmd}` }, cmdEgg.id || undefined);
       }
     },
-    [findCandidateEgg, activeEggCode, onTrigger],
+    [findCandidateEgg, onTrigger],
   );
 
   // Fermeture manuelle du HUD Konami
@@ -434,9 +432,7 @@ export function useEasterEggTriggers({
   // --- METRIC SEQUENCE (Carbone -> Eau -> Déchets -> Carbone -> Eau) ---
   const handleMetricClick = useCallback(
     (metricName: 'carbon' | 'water' | 'waste') => {
-      const metricEgg =
-        findCandidateEgg('METRIC_SEQUENCE') ||
-        (activeEggCode === 'EE_FIVE_NOTES_PROFILE' ? { id: undefined, triggerConfig } : null);
+      const metricEgg = findCandidateEgg('METRIC_SEQUENCE');
       if (!metricEgg) return;
 
       const expectedSequence = metricEgg.triggerConfig?.sequence || ['carbon', 'water', 'waste', 'carbon', 'water'];
@@ -459,15 +455,13 @@ export function useEasterEggTriggers({
         metricSequenceRef.current = [];
       }, 7000);
     },
-    [findCandidateEgg, activeEggCode, triggerConfig, onTrigger],
+    [findCandidateEgg, onTrigger],
   );
 
   // --- 3D CONSTELLATION STARS CLICK HANDLER ---
   const handleStarClick = useCallback(
     (starId: number) => {
-      const starEgg =
-        findCandidateEgg('SCREEN_EDGE') ||
-        (activeEggCode === 'EE_CONSTELLATION_3D' ? { id: undefined, triggerConfig } : null);
+      const starEgg = findCandidateEgg('SCREEN_EDGE');
       if (!starEgg) return;
 
       const requiredStarsCount = starEgg.triggerConfig?.stars || 3;
@@ -478,7 +472,7 @@ export function useEasterEggTriggers({
         clickedStarsRef.current.clear();
       }
     },
-    [findCandidateEgg, activeEggCode, triggerConfig, onTrigger],
+    [findCandidateEgg, onTrigger],
   );
 
   // Handlers and states attached to React elements
@@ -490,9 +484,7 @@ export function useEasterEggTriggers({
 
     // Logo Hold
     handleLogoMouseDown: () => {
-      const logoEgg =
-        findCandidateEgg('LOGO_HOLD') ||
-        (activeEggCode === 'EE_LOGO_ROCKET' ? { id: undefined, triggerConfig } : null);
+      const logoEgg = findCandidateEgg('LOGO_HOLD');
       if (!logoEgg) return;
       const duration = (logoEgg.triggerConfig?.durationSeconds || 3) * 1000;
       logoHoldTimer.current = setTimeout(() => {

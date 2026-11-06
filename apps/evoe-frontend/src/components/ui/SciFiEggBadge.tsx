@@ -21,15 +21,15 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
   }
 
   const hasActiveEgg = !!eggData.hasActiveEgg && !!eggData.easterEgg;
-  const isInteractable = !!eggData.hasAnyInteractable || (hasActiveEgg && eggData.easterEgg?.isInteractable !== false);
+  const isInteractable = !!eggData.hasAnyInteractable || (hasActiveEgg && eggData.easterEgg?.isInteractable === true);
   const isDiscovered = !!eggData.playerProgress?.isDiscovered;
   const isTeamRewarded = !!eggData.teamProgress?.isTeamRewarded;
   const isHunting =
     isInteractable && !isDiscovered && !isTeamRewarded && !!eggData.playerProgress?.firstInteractionAt;
 
-  // Teinte de bordure selon l'état d'interaction : ardoise en mode veille discret, cyan/ambre en interactif
-  let rimColor = isInteractable ? '#38bdf8' : '#64748b';
-  let rimGlow = isInteractable ? 'rgba(56, 189, 248, 0.5)' : 'rgba(100, 116, 139, 0.2)';
+  // Teinte de bordure selon l'état d'interaction : ardoise très discrète en mode veille/verrouillé, cyan/ambre en interactif
+  let rimColor = isInteractable ? '#38bdf8' : 'rgba(100, 116, 139, 0.25)';
+  let rimGlow = isInteractable ? 'rgba(56, 189, 248, 0.5)' : 'none';
 
   if (isTeamRewarded) {
     rimColor = '#fbbf24';
@@ -74,9 +74,9 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
           ? 'Anomalie temporelle résolue !'
           : isInteractable
             ? 'Anomalie temporelle détectée : Déchiffrez le signal 2070 !'
-            : hasActiveEgg
-              ? 'Anomalie temporelle en veille (Accomplissez vos missions pour activer)'
-              : 'Easter Egg - En veille orbitale'
+            : isDiscovered
+              ? 'Anomalie temporelle découverte'
+              : undefined // Aucun indice/titre spoiler quand le prérequis n'est pas rempli
       }
       onClick={(e) => {
         e.stopPropagation();
@@ -86,7 +86,8 @@ export const SciFiEggBadge: React.FC<SciFiEggBadgeProps> = ({
       initial={{ scale: 0, opacity: 0 }}
       animate={{
         scale: 1,
-        opacity: isInteractable ? 1 : 0.45,
+        // Très peu visible si prérequis non atteint (silhouette subtile à côté de l'avatar incitant à chercher)
+        opacity: isInteractable || isDiscovered ? 1 : 0.2,
         y: [0, -3, 0],
       }}
       transition={{

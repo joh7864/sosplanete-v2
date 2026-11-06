@@ -94,8 +94,16 @@ export function useEasterEggFlow({ setChatActiveTab, setChatOpen }: UseEasterEgg
         (e) => e.triggerType === triggerType && (!metadata?.target || e.triggerConfig?.target === metadata.target),
       );
     }
-    if (!triggeredEgg) {
-      triggeredEgg = activeEggData?.easterEgg;
+    if (
+      !triggeredEgg &&
+      activeEggData?.easterEgg?.triggerType === triggerType &&
+      activeEggData.easterEgg.isInteractable !== false
+    ) {
+      triggeredEgg = activeEggData.easterEgg;
+    }
+
+    if (!triggeredEgg || triggeredEgg.isInteractable === false) {
+      return;
     }
 
     const result = await validateTrigger(triggerType as any, metadata, undefined, triggeredEgg?.id);
@@ -157,6 +165,10 @@ export function useEasterEggFlow({ setChatActiveTab, setChatOpen }: UseEasterEgg
     activeEggCode: activeEggData?.easterEgg?.code,
     cycleEggs: activeEggData?.cycleEggs,
     isCurrentEggDiscovered: !!activeEggData?.playerProgress?.isDiscovered,
+    isCurrentEggInteractable:
+      activeEggData?.hasAnyInteractable !== undefined
+        ? activeEggData.hasAnyInteractable
+        : activeEggData?.easterEgg?.isInteractable === true,
     isExplicitHintVisible: isCurrentKonamiExplicitHint,
     onTrigger: handleEasterEggTrigger,
   });

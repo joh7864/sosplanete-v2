@@ -168,14 +168,26 @@ export function useEasterEgg() {
         const candidate = activeEggData.cycleEggs.find(
           (e) =>
             !e.isDiscovered &&
+            e.isInteractable === true &&
             e.triggerType === triggerType &&
             (!metadata?.target || e.triggerConfig?.target === metadata.target),
         );
         if (candidate) resolvedEggId = candidate.id;
       }
-      if (!resolvedEggId) resolvedEggId = activeEggData?.easterEgg?.id;
+      if (!resolvedEggId && activeEggData?.easterEgg?.triggerType === triggerType && activeEggData.easterEgg.isInteractable === true) {
+        resolvedEggId = activeEggData.easterEgg.id;
+      }
 
-      if (!resolvedEggId) return { success: false };
+      if (!resolvedEggId) return { success: false, message: 'Énigme introuvable ou verrouillée' };
+
+      // Protection ultime : blocage local si l'œuf a ses prérequis verrouillés
+      const targetEggObj =
+        activeEggData?.cycleEggs?.find((e) => e.id === resolvedEggId) ||
+        (activeEggData?.easterEgg?.id === resolvedEggId ? activeEggData.easterEgg : null);
+
+      if (targetEggObj && targetEggObj.isInteractable === false) {
+        return { success: false, message: 'Prérequis non atteints pour cet Easter Egg' };
+      }
       try {
         const res = await evoeClient.post(
           `${EVOE_API_URL}/easter-eggs/validate-trigger`,

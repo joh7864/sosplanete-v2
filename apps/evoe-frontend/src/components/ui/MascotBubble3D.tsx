@@ -8,7 +8,6 @@ import { MascotLightbox } from './mascot/MascotLightbox';
 import { MascotVictoryPanel } from './mascot/MascotVictoryPanel';
 import { MascotInteractiveArea } from './mascot/MascotInteractiveArea';
 import { MascotHeader } from './mascot/MascotHeader';
-import { MascotLockedPanel } from './mascot/MascotLockedPanel';
 import { MascotSchemaThumbnail } from './mascot/MascotSchemaThumbnail';
 import { useViewportDimensions } from './mascot/useViewportDimensions';
 import { useMascotForm } from './mascot/useMascotForm';
@@ -98,7 +97,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const visibleCycleEggs = useMemo(() => {
     if (!cycleEggs) return [];
     return cycleEggs.filter(
-      (e: CycleEggItem) => (e.isInteractable !== false || e.isDiscovered) && (e as any).isVisible !== false,
+      (e: CycleEggItem) => (e.isInteractable === true || e.isDiscovered) && (e as any).isVisible !== false,
     );
   }, [cycleEggs]);
 
@@ -122,8 +121,7 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const currentTitle = currentEgg ? (currentEgg.title || currentEgg.name || '') : title;
   const effectiveTriggerType = currentEgg ? currentEgg.triggerType : triggerType;
   const effectiveIsDiscovered = currentEgg ? !!currentEgg.isDiscovered : isDiscovered;
-  const currentIsInteractable = currentEgg ? (currentEgg.isInteractable !== false) : true;
-  const currentPrereqDesc = currentEgg?.prerequisiteDesc;
+  const currentIsInteractable = currentEgg ? currentEgg.isInteractable === true : false;
   const effectiveRewardPointsIT = currentEgg ? currentEgg.rewardPointsIT : rewardPointsIT;
   const currentImageUrl = resolveAssetUrl(currentEgg ? currentEgg.imageUrl : imageUrl);
   const currentExplicitHint = currentEgg ? currentEgg.explicitHint : explicitHint;
@@ -132,8 +130,9 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
   const currentRawMessage = currentEgg ? (currentEgg.crypticMessage || '') : (crypticMessage || '');
   const isEggLocked = !currentIsInteractable && !effectiveIsDiscovered;
 
-  const currentMessage = isEggLocked
-    ? `Signal quantique scellé. Accomplissez les missions prioritaires dans le jeu pour déverrouiller l'accès à cette anomalie.${currentPrereqDesc ? `\n\nConditions requises : ${currentPrereqDesc}` : ''}`
+  // Tant que l'œuf est verrouillé par ses prérequis : aucun indice, aucun message cryptique
+  const currentMessage = isEggLocked || !currentEgg
+    ? "Agent, concentrez-vous sur vos missions prioritaires pour stabiliser l'Arche et explorer les recoins temporels !"
     : ((currentShowExplicitHint && currentExplicitHint ? currentExplicitHint : currentRawMessage) ||
       "Transmission prioritaire 2070 : Décodez l'anomalie temporelle...");
 
@@ -378,10 +377,8 @@ export const MascotBubble3D: React.FC<MascotBubble3DProps> = ({
                   />
                 )}
 
-                {/* Zone interactive de saisie ou statut verrouillé */}
-                {isEggLocked ? (
-                  <MascotLockedPanel currentPrereqDesc={currentPrereqDesc} />
-                ) : (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ||
+                {/* Zone interactive de saisie : masquée si l'œuf est verrouillé */}
+                {isEggLocked || !currentEgg ? null : (effectiveTriggerType === 'RIDDLE_ANSWER_INPUT' ||
                   effectiveTriggerType === 'COMM_LINK_COMMAND' ||
                   effectiveIsDiscovered ||
                   localSuccess) ? (
